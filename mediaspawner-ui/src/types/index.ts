@@ -7,9 +7,11 @@ export interface MediaSource {
 }
 
 export interface VisualSettings {
-  temp: boolean; // placeholder to fix linting error
-  // e.g., positionX, positionY, width, height, durationSeconds, fadeInMillis, fadeOutMillis, etc.
-  // Specifics to be determined by Streamer.bot capabilities
+  enabled: boolean;
+  sources: MediaSource[];
+  sourceSelectionMode: "random_equal" | "random_weighted" | "sequential";
+  // Visual spawn settings (e.g., position, size, duration) will be added here.
+  // Specifics to be determined by Streamer.bot capabilities.
 }
 
 export interface AudioBehaviorSettings {
