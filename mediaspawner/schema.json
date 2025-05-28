@@ -1,0 +1,424 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://mediaspawner.app/schema/configuration/v1",
+    "title": "MediaSpawner Configuration",
+    "description": "Schema for MediaSpawner configuration output containing media asset collections and randomization settings",
+    "type": "object",
+    "required": [
+        "id",
+        "name",
+        "groups",
+        "lastModified"
+    ],
+    "properties": {
+        "id": {
+            "type": "string",
+            "description": "Unique identifier for the configuration",
+            "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "name": {
+            "type": "string",
+            "description": "Human-readable name for the configuration",
+            "minLength": 1,
+            "maxLength": 100
+        },
+        "description": {
+            "type": "string",
+            "description": "Optional description of the configuration",
+            "maxLength": 500
+        },
+        "groups": {
+            "type": "array",
+            "description": "Array of asset groups in this configuration",
+            "items": {
+                "$ref": "#/definitions/AssetGroup"
+            }
+        },
+        "lastModified": {
+            "type": "integer",
+            "description": "Timestamp of last modification (Unix timestamp in milliseconds)",
+            "minimum": 0
+        }
+    },
+    "definitions": {
+        "AssetGroup": {
+            "type": "object",
+            "description": "Collection of media assets with shared configuration and randomization settings",
+            "required": [
+                "id",
+                "name",
+                "assets",
+                "randomization",
+                "duration"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "Unique identifier for the asset group",
+                    "pattern": "^[a-zA-Z0-9_-]+$"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Human-readable name for the group",
+                    "minLength": 1,
+                    "maxLength": 100
+                },
+                "assets": {
+                    "type": "array",
+                    "description": "Array of media assets in this group",
+                    "items": {
+                        "$ref": "#/definitions/MediaAsset"
+                    }
+                },
+                "randomization": {
+                    "$ref": "#/definitions/RandomizationConfig"
+                },
+                "duration": {
+                    "type": "integer",
+                    "description": "Display duration for the group in milliseconds",
+                    "minimum": 0
+                }
+            }
+        },
+        "MediaAsset": {
+            "type": "object",
+            "description": "Individual media file with configurable properties",
+            "required": [
+                "id",
+                "type",
+                "name",
+                "path",
+                "isUrl",
+                "properties"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "Unique identifier for the asset",
+                    "pattern": "^[a-zA-Z0-9_-]+$"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "image",
+                        "video",
+                        "audio"
+                    ],
+                    "description": "Type of media asset"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Human-readable name for the asset",
+                    "minLength": 1,
+                    "maxLength": 100
+                },
+                "path": {
+                    "type": "string",
+                    "description": "URL or local file reference path",
+                    "minLength": 1
+                },
+                "isUrl": {
+                    "type": "boolean",
+                    "description": "Whether this asset is a URL (true) or local file (false)"
+                },
+                "properties": {
+                    "$ref": "#/definitions/MediaAssetProperties"
+                }
+            }
+        },
+        "MediaAssetProperties": {
+            "type": "object",
+            "description": "Configurable properties specific to the asset type",
+            "properties": {
+                "dimensions": {
+                    "$ref": "#/definitions/Dimensions"
+                },
+                "position": {
+                    "$ref": "#/definitions/Position"
+                },
+                "volume": {
+                    "type": "number",
+                    "description": "Volume level for videos and audio (0-1)",
+                    "minimum": 0,
+                    "maximum": 1
+                },
+                "loop": {
+                    "type": "boolean",
+                    "description": "Whether the asset should loop for videos and audio"
+                }
+            },
+            "additionalProperties": false
+        },
+        "Dimensions": {
+            "type": "object",
+            "description": "Width and height dimensions in pixels",
+            "required": [
+                "width",
+                "height"
+            ],
+            "properties": {
+                "width": {
+                    "type": "number",
+                    "description": "Width in pixels",
+                    "minimum": 1
+                },
+                "height": {
+                    "type": "number",
+                    "description": "Height in pixels",
+                    "minimum": 1
+                }
+            },
+            "additionalProperties": false
+        },
+        "Position": {
+            "type": "object",
+            "description": "X and Y coordinate position in pixels",
+            "required": [
+                "x",
+                "y"
+            ],
+            "properties": {
+                "x": {
+                    "type": "number",
+                    "description": "X coordinate in pixels"
+                },
+                "y": {
+                    "type": "number",
+                    "description": "Y coordinate in pixels"
+                }
+            },
+            "additionalProperties": false
+        },
+        "RandomizationConfig": {
+            "type": "object",
+            "description": "Configuration for randomization behavior within an asset group",
+            "required": [
+                "enabled",
+                "assetSelection"
+            ],
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Whether randomization is enabled for this group"
+                },
+                "assetSelection": {
+                    "type": "string",
+                    "enum": [
+                        "one",
+                        "all"
+                    ],
+                    "description": "How many assets to select from the group"
+                },
+                "position": {
+                    "$ref": "#/definitions/PositionRandomization"
+                },
+                "dimensions": {
+                    "$ref": "#/definitions/DimensionsRandomization"
+                },
+                "volume": {
+                    "$ref": "#/definitions/VolumeRandomization"
+                }
+            },
+            "additionalProperties": false
+        },
+        "PositionRandomization": {
+            "type": "object",
+            "description": "Position randomization configuration",
+            "required": [
+                "enabled",
+                "bounds"
+            ],
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Whether position randomization is enabled"
+                },
+                "bounds": {
+                    "$ref": "#/definitions/PositionBounds"
+                }
+            },
+            "additionalProperties": false
+        },
+        "PositionBounds": {
+            "type": "object",
+            "description": "Boundary constraints for random positioning",
+            "required": [
+                "minX",
+                "maxX",
+                "minY",
+                "maxY"
+            ],
+            "properties": {
+                "minX": {
+                    "type": "number",
+                    "description": "Minimum X coordinate"
+                },
+                "maxX": {
+                    "type": "number",
+                    "description": "Maximum X coordinate"
+                },
+                "minY": {
+                    "type": "number",
+                    "description": "Minimum Y coordinate"
+                },
+                "maxY": {
+                    "type": "number",
+                    "description": "Maximum Y coordinate"
+                }
+            },
+            "additionalProperties": false
+        },
+        "DimensionsRandomization": {
+            "type": "object",
+            "description": "Dimensions randomization configuration",
+            "required": [
+                "enabled",
+                "width",
+                "height"
+            ],
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Whether dimensions randomization is enabled"
+                },
+                "width": {
+                    "$ref": "#/definitions/NumberRange"
+                },
+                "height": {
+                    "$ref": "#/definitions/NumberRange"
+                }
+            },
+            "additionalProperties": false
+        },
+        "VolumeRandomization": {
+            "type": "object",
+            "description": "Volume randomization configuration",
+            "required": [
+                "enabled",
+                "range"
+            ],
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Whether volume randomization is enabled"
+                },
+                "range": {
+                    "$ref": "#/definitions/NumberRange"
+                }
+            },
+            "additionalProperties": false
+        },
+        "NumberRange": {
+            "type": "object",
+            "description": "Generic number range with minimum and maximum values",
+            "required": [
+                "min",
+                "max"
+            ],
+            "properties": {
+                "min": {
+                    "type": "number",
+                    "description": "Minimum value"
+                },
+                "max": {
+                    "type": "number",
+                    "description": "Maximum value"
+                }
+            },
+            "additionalProperties": false
+        }
+    },
+    "examples": [
+        {
+            "id": "stream-overlay-config-001",
+            "name": "Stream Overlay Configuration",
+            "description": "Media assets for stream overlays with randomized positioning",
+            "groups": [
+                {
+                    "id": "background-images",
+                    "name": "Background Images",
+                    "assets": [
+                        {
+                            "id": "bg-forest",
+                            "type": "image",
+                            "name": "Forest Background",
+                            "path": "https://example.com/forest.jpg",
+                            "isUrl": true,
+                            "properties": {
+                                "dimensions": {
+                                    "width": 1920,
+                                    "height": 1080
+                                },
+                                "position": {
+                                    "x": 0,
+                                    "y": 0
+                                }
+                            }
+                        },
+                        {
+                            "id": "bg-city",
+                            "type": "image",
+                            "name": "City Background",
+                            "path": "city_skyline.png",
+                            "isUrl": false,
+                            "properties": {
+                                "dimensions": {
+                                    "width": 1920,
+                                    "height": 1080
+                                },
+                                "position": {
+                                    "x": 0,
+                                    "y": 0
+                                }
+                            }
+                        }
+                    ],
+                    "randomization": {
+                        "enabled": true,
+                        "assetSelection": "one",
+                        "position": {
+                            "enabled": false,
+                            "bounds": {
+                                "minX": 0,
+                                "maxX": 1920,
+                                "minY": 0,
+                                "maxY": 1080
+                            }
+                        }
+                    },
+                    "duration": 30000
+                },
+                {
+                    "id": "sound-effects",
+                    "name": "Sound Effects",
+                    "assets": [
+                        {
+                            "id": "notification-bell",
+                            "type": "audio",
+                            "name": "Notification Bell",
+                            "path": "notification.wav",
+                            "isUrl": false,
+                            "properties": {
+                                "volume": 0.8,
+                                "loop": false
+                            }
+                        }
+                    ],
+                    "randomization": {
+                        "enabled": true,
+                        "assetSelection": "all",
+                        "volume": {
+                            "enabled": true,
+                            "range": {
+                                "min": 0.5,
+                                "max": 1.0
+                            }
+                        }
+                    },
+                    "duration": 5000
+                }
+            ],
+            "lastModified": 1699123456789
+        }
+    ]
+}

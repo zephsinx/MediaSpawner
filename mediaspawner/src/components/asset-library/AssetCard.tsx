@@ -57,6 +57,14 @@ export function AssetCard({
     }
   };
 
+  const getAssetSourceIndicator = (isUrl: boolean) => {
+    return isUrl ? "🌐" : "📁";
+  };
+
+  const getAssetSourceLabel = (isUrl: boolean) => {
+    return isUrl ? "URL" : "Local";
+  };
+
   const isImageOrVideo = asset.type === "image" || asset.type === "video";
   const isUrlPath =
     asset.path.startsWith("http://") || asset.path.startsWith("https://");
@@ -145,6 +153,12 @@ export function AssetCard({
             <span className="text-sm text-gray-500 capitalize bg-gray-100 px-2 py-1 rounded text-xs">
               {asset.type}
             </span>
+            <span
+              className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded text-xs"
+              title={`${getAssetSourceLabel(asset.isUrl)} asset`}
+            >
+              {getAssetSourceIndicator(asset.isUrl)}
+            </span>
             {canPreview && (
               <button
                 onClick={handlePreviewClick}
@@ -193,8 +207,16 @@ export function AssetCard({
           >
             {asset.name}
           </div>
-          <div className="text-xs text-gray-500 capitalize bg-gray-100 px-2 py-1 rounded inline-block mb-2">
-            {asset.type}
+          <div className="flex items-center justify-center space-x-1 mb-2">
+            <span className="text-xs text-gray-500 capitalize bg-gray-100 px-2 py-1 rounded">
+              {asset.type}
+            </span>
+            <span
+              className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded"
+              title={`${getAssetSourceLabel(asset.isUrl)} asset`}
+            >
+              {getAssetSourceIndicator(asset.isUrl)}
+            </span>
           </div>
           <div
             className="text-xs text-gray-400 truncate w-full"

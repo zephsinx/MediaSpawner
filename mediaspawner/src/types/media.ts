@@ -18,6 +18,9 @@ export interface MediaAsset {
   /** URL or local file reference path */
   path: string;
 
+  /** Whether this asset is a URL (true) or local file (false) */
+  isUrl: boolean;
+
   /** Configurable properties specific to the asset type */
   properties: MediaAssetProperties;
 }
@@ -191,6 +194,41 @@ export const isAudioAsset = (asset: MediaAsset): boolean => {
 };
 
 /**
+ * Check if a path is a URL
+ */
+export const isUrlPath = (path: string): boolean => {
+  return path.startsWith("http://") || path.startsWith("https://");
+};
+
+/**
+ * Extract filename from a path (local or URL)
+ */
+export const extractFilename = (path: string): string => {
+  // Extract filename from URL or local path
+  const filename = path.split(/[/\\]/).pop() || "";
+  return filename.split("?")[0]; // Remove query parameters from URLs
+};
+
+/**
+ * Process path for storage based on whether it's a URL or local file
+ * URLs (http/https) are stored as full URLs, local files store only the filename
+ */
+export const processAssetPath = (
+  path: string
+): { storedPath: string; isUrl: boolean } => {
+  const isUrl = isUrlPath(path);
+
+  if (isUrl) {
+    // Store full URL for web assets
+    return { storedPath: path, isUrl: true };
+  } else {
+    // Store filename only for local files (relative to working directory)
+    const filename = extractFilename(path);
+    return { storedPath: filename, isUrl: false };
+  }
+};
+
+/**
  * Helper function to create a new media asset with default properties
  */
 export const createMediaAsset = (
@@ -199,11 +237,14 @@ export const createMediaAsset = (
   path: string,
   id?: string
 ): MediaAsset => {
+  const { storedPath, isUrl } = processAssetPath(path);
+
   return {
     id: id || crypto.randomUUID(),
     type,
     name,
-    path,
+    path: storedPath,
+    isUrl,
     properties: getDefaultProperties(type),
   };
 };

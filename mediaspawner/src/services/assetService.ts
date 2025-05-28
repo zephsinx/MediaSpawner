@@ -169,13 +169,37 @@ export class AssetService {
   }
 
   /**
-   * Get asset statistics
+   * Get assets filtered by URL/local type
+   */
+  static getAssetsByUrlType(isUrl: boolean): MediaAsset[] {
+    const assets = this.getAssets();
+    return assets.filter((asset) => asset.isUrl === isUrl);
+  }
+
+  /**
+   * Get URL assets only
+   */
+  static getUrlAssets(): MediaAsset[] {
+    return this.getAssetsByUrlType(true);
+  }
+
+  /**
+   * Get local file assets only
+   */
+  static getLocalAssets(): MediaAsset[] {
+    return this.getAssetsByUrlType(false);
+  }
+
+  /**
+   * Get asset statistics including URL/local breakdown
    */
   static getAssetStats(): {
     total: number;
     images: number;
     videos: number;
     audio: number;
+    urls: number;
+    local: number;
   } {
     const assets = this.getAssets();
     return {
@@ -183,6 +207,8 @@ export class AssetService {
       images: assets.filter((asset) => asset.type === "image").length,
       videos: assets.filter((asset) => asset.type === "video").length,
       audio: assets.filter((asset) => asset.type === "audio").length,
+      urls: assets.filter((asset) => asset.isUrl === true).length,
+      local: assets.filter((asset) => asset.isUrl === false).length,
     };
   }
 
@@ -203,12 +229,6 @@ export class AssetService {
         result.isValid = await this.validateUrl(asset.path);
         if (!result.isValid) {
           result.error = "URL is not accessible";
-        }
-      } else if (this.isDataUrl(asset.path)) {
-        // Data URLs are always valid if properly formatted
-        result.isValid = this.isValidDataUrl(asset.path);
-        if (!result.isValid) {
-          result.error = "Invalid data URL format";
         }
       } else {
         // For local file paths, we can only do basic format validation
@@ -375,33 +395,12 @@ export class AssetService {
   }
 
   /**
-   * Check if path is a data URL
-   */
-  private static isDataUrl(path: string): boolean {
-    return path.startsWith("data:");
-  }
-
-  /**
    * Validate URL accessibility
    */
   private static async validateUrl(url: string): Promise<boolean> {
     try {
       const response = await fetch(url, { method: "HEAD" });
       return response.ok;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * Validate data URL format
-   */
-  private static isValidDataUrl(dataUrl: string): boolean {
-    try {
-      // Basic data URL format check
-      const dataUrlPattern =
-        /^data:([a-zA-Z0-9][a-zA-Z0-9/+-]*)?;?(base64)?,(.*)$/;
-      return dataUrlPattern.test(dataUrl);
     } catch {
       return false;
     }
@@ -466,7 +465,54 @@ export class AssetService {
       typeof record.path === "string" &&
       typeof record.type === "string" &&
       ["image", "video", "audio"].includes(record.type as string) &&
-      typeof record.createdAt === "string"
+      typeof record.isUrl === "boolean" &&
+      typeof record.properties === "object"
     );
+  }
+
+  /**
+   * Demo method to test asset type detection functionality
+   * This method demonstrates the new isUrl detection and path processing
+   */
+  static testAssetTypeDetection(): void {
+    console.log("Testing Asset Type Detection...");
+
+    // Test URL assets
+    const urlAsset = this.addAsset(
+      "image",
+      "Web Image",
+      "https://example.com/image.jpg"
+    );
+    console.log("URL Asset:", {
+      name: urlAsset.name,
+      path: urlAsset.path,
+      isUrl: urlAsset.isUrl,
+      expectedPath: "https://example.com/image.jpg",
+      expectedIsUrl: true,
+    });
+
+    // Test local file assets
+    const localAsset = this.addAsset(
+      "video",
+      "Local Video",
+      "C:\\StreamAssets\\videos\\intro.mp4"
+    );
+    console.log("Local Asset:", {
+      name: localAsset.name,
+      path: localAsset.path,
+      isUrl: localAsset.isUrl,
+      expectedPath: "intro.mp4",
+      expectedIsUrl: false,
+    });
+
+    // Test statistics
+    const stats = this.getAssetStats();
+    console.log("Asset Statistics:", stats);
+
+    // Clean up test assets
+    this.deleteAsset(urlAsset.id);
+    this.deleteAsset(localAsset.id);
+
+    console.log("Asset Type Detection Test Complete!");
   }
 }
