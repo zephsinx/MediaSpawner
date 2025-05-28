@@ -3,6 +3,9 @@ import { PathInput } from "./PathInput";
 import { SettingsService } from "../../services/settingsService";
 import type { Settings } from "../../types/settings";
 
+// Constants
+const SUCCESS_MESSAGE_TIMEOUT_MS = 3000;
+
 const SettingsPage: React.FC = () => {
   const [settings, setSettings] = useState<Settings>({ workingDirectory: "" });
   const [workingDirectory, setWorkingDirectory] = useState("");
@@ -51,7 +54,7 @@ const SettingsPage: React.FC = () => {
       // Clear "saved" status after 3 seconds
       setTimeout(() => {
         setSaveStatus("idle");
-      }, 3000);
+      }, SUCCESS_MESSAGE_TIMEOUT_MS);
     } else {
       setErrorMessage(result.error || "Failed to save settings");
       setSaveStatus("error");

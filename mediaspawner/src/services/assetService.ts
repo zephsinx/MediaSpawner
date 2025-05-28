@@ -169,7 +169,7 @@ export class AssetService {
   }
 
   /**
-   * Get assets filtered by URL/local type
+   * Get assets filtered by URL type (URL vs local files)
    */
   static getAssetsByUrlType(isUrl: boolean): MediaAsset[] {
     const assets = this.getAssets();
@@ -177,21 +177,21 @@ export class AssetService {
   }
 
   /**
-   * Get URL assets only
+   * Get all assets that are URLs (web-hosted)
    */
   static getUrlAssets(): MediaAsset[] {
     return this.getAssetsByUrlType(true);
   }
 
   /**
-   * Get local file assets only
+   * Get all assets that are local files
    */
   static getLocalAssets(): MediaAsset[] {
     return this.getAssetsByUrlType(false);
   }
 
   /**
-   * Get asset statistics including URL/local breakdown
+   * Get comprehensive statistics about assets including URL/local breakdown
    */
   static getAssetStats(): {
     total: number;
@@ -451,7 +451,7 @@ export class AssetService {
   }
 
   /**
-   * Validate if an object is a valid MediaAsset
+   * Check if an object is a valid MediaAsset
    */
   private static isValidAssetObject(obj: unknown): obj is MediaAsset {
     if (!obj || typeof obj !== "object") {
@@ -468,51 +468,5 @@ export class AssetService {
       typeof record.isUrl === "boolean" &&
       typeof record.properties === "object"
     );
-  }
-
-  /**
-   * Demo method to test asset type detection functionality
-   * This method demonstrates the new isUrl detection and path processing
-   */
-  static testAssetTypeDetection(): void {
-    console.log("Testing Asset Type Detection...");
-
-    // Test URL assets
-    const urlAsset = this.addAsset(
-      "image",
-      "Web Image",
-      "https://example.com/image.jpg"
-    );
-    console.log("URL Asset:", {
-      name: urlAsset.name,
-      path: urlAsset.path,
-      isUrl: urlAsset.isUrl,
-      expectedPath: "https://example.com/image.jpg",
-      expectedIsUrl: true,
-    });
-
-    // Test local file assets
-    const localAsset = this.addAsset(
-      "video",
-      "Local Video",
-      "C:\\StreamAssets\\videos\\intro.mp4"
-    );
-    console.log("Local Asset:", {
-      name: localAsset.name,
-      path: localAsset.path,
-      isUrl: localAsset.isUrl,
-      expectedPath: "intro.mp4",
-      expectedIsUrl: false,
-    });
-
-    // Test statistics
-    const stats = this.getAssetStats();
-    console.log("Asset Statistics:", stats);
-
-    // Clean up test assets
-    this.deleteAsset(urlAsset.id);
-    this.deleteAsset(localAsset.id);
-
-    console.log("Asset Type Detection Test Complete!");
   }
 }

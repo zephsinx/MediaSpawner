@@ -1,7 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { ChangeEvent } from "react";
 import { SettingsService } from "../../services/settingsService";
 import type { WorkingDirectoryValidationResult } from "../../types/settings";
+
+// Constants for timing
+const VALIDATION_DEBOUNCE_MS = 300;
 
 export interface PathInputProps {
   value: string;
@@ -30,34 +33,39 @@ export function PathInput({
 
   const [isDirty, setIsDirty] = useState(false);
 
-  // Validate path whenever value changes
+  // Debounced validation function
+  const debouncedValidation = useCallback(
+    (() => {
+      let timeoutId: NodeJS.Timeout;
+      return (pathValue: string) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          const validation: WorkingDirectoryValidationResult =
+            SettingsService.validateWorkingDirectory(pathValue);
+
+          setValidationState({
+            isValid: validation.isValid,
+            error: validation.error,
+            normalizedPath: validation.normalizedPath,
+          });
+
+          // Call onChange with validation results
+          onChange(pathValue, validation.isValid, validation.normalizedPath);
+        }, VALIDATION_DEBOUNCE_MS);
+      };
+    })(),
+    [onChange]
+  );
+
+  // Validate path whenever value changes (with debouncing)
   useEffect(() => {
-    const validation: WorkingDirectoryValidationResult =
-      SettingsService.validateWorkingDirectory(value);
-
-    setValidationState({
-      isValid: validation.isValid,
-      error: validation.error,
-      normalizedPath: validation.normalizedPath,
-    });
-
-    // Call onChange with validation results
-    onChange(value, validation.isValid, validation.normalizedPath);
-  }, [value, onChange]);
+    debouncedValidation(value);
+  }, [value, debouncedValidation]);
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
     setIsDirty(true);
-    onChange(newValue, false); // Will be updated by useEffect
-  };
-
-  const handleBrowseClick = () => {
-    // Note: We can't actually browse directories in a web browser
-    // This button could be used for future desktop app integration
-    // For now, we'll show a helpful message
-    alert(
-      "Directory browsing is not available in web browsers. Please type the full path manually."
-    );
+    onChange(newValue, false); // Will be updated by debounced validation
   };
 
   const getValidationMessage = () => {
@@ -101,10 +109,9 @@ export function PathInput({
   `.trim();
 
   const buttonClasses = `
-    px-4 py-2 ml-2 bg-gray-100 border border-gray-300 rounded-md
-    hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500
+    px-4 py-2 ml-2 bg-gray-200 border border-gray-300 rounded-md
+    cursor-not-allowed opacity-50 text-gray-500
     transition-colors duration-200
-    ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}
   `.trim();
 
   return (
@@ -128,10 +135,9 @@ export function PathInput({
         {showBrowseButton && (
           <button
             type="button"
-            onClick={handleBrowseClick}
-            disabled={disabled}
+            disabled={true}
             className={buttonClasses}
-            title="Directory browsing not available in web browsers"
+            title="Directory browsing is not available in web browsers. Please type the full path manually."
           >
             Browse
           </button>

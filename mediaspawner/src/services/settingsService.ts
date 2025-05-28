@@ -13,6 +13,10 @@ import {
 
 const SETTINGS_STORAGE_KEY = "mediaspawner_settings";
 
+// Cache for validation results to improve performance
+const validationCache = new Map<string, WorkingDirectoryValidationResult>();
+const CACHE_MAX_SIZE = 50; // Limit cache size to prevent memory leaks
+
 /**
  * Service for managing application settings with localStorage persistence
  */
@@ -126,9 +130,36 @@ export class SettingsService {
   }
 
   /**
-   * Validate working directory path
+   * Validate working directory path (with memoization for performance)
    */
   static validateWorkingDirectory(
+    path: string
+  ): WorkingDirectoryValidationResult {
+    // Check cache first
+    if (validationCache.has(path)) {
+      return validationCache.get(path)!;
+    }
+
+    // Perform validation
+    const result = this.performValidation(path);
+
+    // Cache the result (with size limit)
+    if (validationCache.size >= CACHE_MAX_SIZE) {
+      // Remove oldest entry (Map maintains insertion order)
+      const firstKey = validationCache.keys().next().value;
+      if (firstKey !== undefined) {
+        validationCache.delete(firstKey);
+      }
+    }
+    validationCache.set(path, result);
+
+    return result;
+  }
+
+  /**
+   * Perform the actual validation logic (extracted for memoization)
+   */
+  private static performValidation(
     path: string
   ): WorkingDirectoryValidationResult {
     if (!path || path.trim() === "") {
