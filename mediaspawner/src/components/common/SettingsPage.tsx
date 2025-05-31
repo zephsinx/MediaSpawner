@@ -132,9 +132,8 @@ const SettingsPage: React.FC = () => {
 
         <div className="mb-4">
           <p className="text-sm text-gray-600 mb-4">
-            Set the base directory where your local media files are stored. This
-            helps with displaying shorter, more readable paths for local assets.
-            Leave empty if you don't have a specific working directory.
+            Base directory for your local media files. Required for Streamer.bot
+            to access local assets. Leave empty if not using local files.
           </p>
 
           <PathInput

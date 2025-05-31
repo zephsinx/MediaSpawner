@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { MediaAsset } from "../../types/media";
+import { computeDisplayPath } from "../../utils/pathDisplay";
 
 export interface AssetCardProps {
   asset: MediaAsset;
@@ -118,10 +119,11 @@ export function AssetCard({
   };
 
   const formatPath = (path: string) => {
-    if (path.length > 30) {
-      return "..." + path.slice(-27);
+    const displayPath = computeDisplayPath(path);
+    if (displayPath.length > 30) {
+      return "..." + displayPath.slice(-27);
     }
-    return path;
+    return displayPath;
   };
 
   if (variant === "list") {

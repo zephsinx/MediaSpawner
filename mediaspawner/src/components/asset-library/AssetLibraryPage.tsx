@@ -7,6 +7,7 @@ import {
   type AssetValidationResult,
   type CleanupResult,
 } from "../../services/assetService";
+import { detectAssetTypeFromPath } from "../../utils/assetTypeDetection";
 import type { MediaAsset } from "../../types/media";
 
 const AssetLibraryPage: React.FC = () => {
@@ -51,15 +52,8 @@ const AssetLibraryPage: React.FC = () => {
       return;
     }
 
-    // Determine asset type from file extension
-    const extension = newAssetPath.split(".").pop()?.toLowerCase();
-    let type: MediaAsset["type"] = "image";
-
-    if (["mp4", "webm", "mov", "avi"].includes(extension || "")) {
-      type = "video";
-    } else if (["mp3", "wav", "ogg", "m4a"].includes(extension || "")) {
-      type = "audio";
-    }
+    // Use the new asset type detection utility
+    const type = detectAssetTypeFromPath(newAssetPath.trim());
 
     AssetService.addAsset(type, newAssetName.trim(), newAssetPath.trim());
     setAssets(AssetService.getAssets());
