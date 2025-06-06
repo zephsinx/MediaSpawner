@@ -141,7 +141,7 @@ const SettingsPage: React.FC = () => {
             onChange={handleWorkingDirectoryChange}
             label="Working Directory Path"
             placeholder="e.g., C:\StreamAssets or /home/user/stream-assets"
-            showBrowseButton={true}
+            showBrowseButton={false}
           />
         </div>
 

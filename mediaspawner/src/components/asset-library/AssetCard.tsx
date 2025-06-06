@@ -62,15 +62,14 @@ export function AssetCard({
     return isUrl ? "🌐" : "📁";
   };
 
-  const getAssetSourceLabel = (isUrl: boolean) => {
-    return isUrl ? "URL" : "Local";
+  const getAssetSourceTooltip = (isUrl: boolean) => {
+    return isUrl
+      ? "URL asset - supports preview"
+      : "Local file - requires working directory";
   };
 
   const isImageOrVideo = asset.type === "image" || asset.type === "video";
-  const isUrlPath =
-    asset.path.startsWith("http://") || asset.path.startsWith("https://");
-  const canPreview =
-    isImageOrVideo && (isUrlPath || asset.path.startsWith("data:"));
+  const canPreview = isImageOrVideo && asset.isUrl;
 
   const renderPreview = () => {
     if (asset.type === "image" && canPreview && !imageError) {
@@ -118,14 +117,6 @@ export function AssetCard({
     }
   };
 
-  const formatPath = (path: string) => {
-    const displayPath = computeDisplayPath(path);
-    if (displayPath.length > 30) {
-      return "..." + displayPath.slice(-27);
-    }
-    return displayPath;
-  };
-
   if (variant === "list") {
     return (
       <div
@@ -140,15 +131,13 @@ export function AssetCard({
           ${className}
         `}
         onClick={handleCardClick}
+        title={computeDisplayPath(asset.path)}
       >
         <div className="flex items-center space-x-4">
           <div className="flex-shrink-0 w-16">{renderPreview()}</div>
           <div className="flex-1 min-w-0">
             <div className="font-medium truncate text-gray-900">
               {asset.name}
-            </div>
-            <div className="text-sm text-gray-500 truncate" title={asset.path}>
-              {formatPath(asset.path)}
             </div>
           </div>
           <div className="flex-shrink-0 flex items-center space-x-2">
@@ -157,7 +146,7 @@ export function AssetCard({
             </span>
             <span
               className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded text-xs"
-              title={`${getAssetSourceLabel(asset.isUrl)} asset`}
+              title={getAssetSourceTooltip(asset.isUrl)}
             >
               {getAssetSourceIndicator(asset.isUrl)}
             </span>
@@ -196,6 +185,7 @@ export function AssetCard({
         ${className}
       `}
       onClick={handleCardClick}
+      title={computeDisplayPath(asset.path)}
     >
       <div className="flex flex-col">
         {/* Preview */}
@@ -215,16 +205,10 @@ export function AssetCard({
             </span>
             <span
               className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded"
-              title={`${getAssetSourceLabel(asset.isUrl)} asset`}
+              title={getAssetSourceTooltip(asset.isUrl)}
             >
               {getAssetSourceIndicator(asset.isUrl)}
             </span>
-          </div>
-          <div
-            className="text-xs text-gray-400 truncate w-full"
-            title={asset.path}
-          >
-            {formatPath(asset.path)}
           </div>
         </div>
 

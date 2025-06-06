@@ -32,6 +32,7 @@ export function PathInput({
   }>({ isValid: true });
 
   const [isDirty, setIsDirty] = useState(false);
+  const [currentValue, setCurrentValue] = useState(value);
 
   // Debounced validation function
   const debouncedValidation = useCallback(
@@ -49,27 +50,39 @@ export function PathInput({
             normalizedPath: validation.normalizedPath,
           });
 
-          // Call onChange with validation results
-          onChange(pathValue, validation.isValid, validation.normalizedPath);
+          // Only call onChange for user-initiated changes (when isDirty is true)
+          // This prevents circular dependency from prop updates
+          if (isDirty) {
+            onChange(pathValue, validation.isValid, validation.normalizedPath);
+          }
         }, VALIDATION_DEBOUNCE_MS);
       };
     })(),
-    [onChange]
+    [onChange, isDirty]
   );
 
-  // Validate path whenever value changes (with debouncing)
+  // Sync currentValue when prop value changes
   useEffect(() => {
-    debouncedValidation(value);
-  }, [value, debouncedValidation]);
+    setCurrentValue(value);
+  }, [value]);
+
+  // Validate path whenever currentValue changes (with debouncing)
+  useEffect(() => {
+    debouncedValidation(currentValue);
+  }, [currentValue, debouncedValidation]);
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
+    setCurrentValue(newValue);
     setIsDirty(true);
-    onChange(newValue, false); // Will be updated by debounced validation
+
+    // Remove immediate onChange call to prevent circular dependency
+    // Let debounced validation handle the onChange call
+    debouncedValidation(newValue);
   };
 
   const getValidationMessage = () => {
-    if (!isDirty || !value) {
+    if (!isDirty || !currentValue) {
       return null;
     }
 
@@ -79,11 +92,15 @@ export function PathInput({
       );
     }
 
-    if (validationState.isValid && value && validationState.normalizedPath) {
+    if (
+      validationState.isValid &&
+      currentValue &&
+      validationState.normalizedPath
+    ) {
       return (
         <div className="mt-1 text-sm text-green-600">
           ✓ Valid path
-          {validationState.normalizedPath !== value
+          {validationState.normalizedPath !== currentValue
             ? ` (normalized: ${validationState.normalizedPath})`
             : ""}
         </div>
@@ -98,7 +115,7 @@ export function PathInput({
     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
     transition-colors duration-200
     ${
-      !isDirty || !value
+      !isDirty || !currentValue
         ? "border-gray-300"
         : validationState.isValid
         ? "border-green-500 bg-green-50"
@@ -125,7 +142,7 @@ export function PathInput({
       <div className="flex items-center">
         <input
           type="text"
-          value={value}
+          value={currentValue}
           onChange={handleInputChange}
           placeholder={placeholder}
           disabled={disabled}
@@ -146,7 +163,7 @@ export function PathInput({
 
       {getValidationMessage()}
 
-      {!value && isDirty && (
+      {!currentValue && isDirty && (
         <div className="mt-1 text-sm text-gray-500">
           Leave empty to not set a working directory
         </div>
