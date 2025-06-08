@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import type { MediaAsset } from "../../types/media";
 import { computeDisplayPath } from "../../utils/pathDisplay";
 
@@ -12,7 +12,7 @@ export interface AssetCardProps {
   className?: string;
 }
 
-export function AssetCard({
+export const AssetCard = memo(function AssetCard({
   asset,
   variant = "grid",
   isSelected = false,
@@ -238,4 +238,4 @@ export function AssetCard({
       </div>
     </div>
   );
-}
+});

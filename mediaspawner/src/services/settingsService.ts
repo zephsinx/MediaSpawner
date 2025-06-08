@@ -10,6 +10,7 @@ import {
   WINDOWS_PATH_RULES,
   UNIX_PATH_RULES,
 } from "../types/settings";
+import { CacheService, CACHE_KEYS } from "./cacheService";
 
 const SETTINGS_STORAGE_KEY = "mediaspawner_settings";
 
@@ -22,31 +23,35 @@ const CACHE_MAX_SIZE = 50; // Limit cache size to prevent memory leaks
  */
 export class SettingsService {
   /**
-   * Get current settings with fallback to defaults
+   * Get current settings with fallback to defaults and caching
    */
   static getSettings(): Settings {
-    try {
-      const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
-      if (!stored) {
-        return { ...DEFAULT_SETTINGS };
-      }
+    return CacheService.get(CACHE_KEYS.SETTINGS, () => {
+      try {
+        const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
+        if (!stored) {
+          return { ...DEFAULT_SETTINGS };
+        }
 
-      const parsed = JSON.parse(stored);
-      if (!this.isValidSettingsObject(parsed)) {
-        console.warn("Invalid settings found in localStorage, using defaults");
+        const parsed = JSON.parse(stored);
+        if (!this.isValidSettingsObject(parsed)) {
+          console.warn(
+            "Invalid settings found in localStorage, using defaults"
+          );
+          this.clearSettings();
+          return { ...DEFAULT_SETTINGS };
+        }
+
+        return {
+          ...DEFAULT_SETTINGS,
+          ...parsed,
+        };
+      } catch (error) {
+        console.error("Failed to load settings from localStorage:", error);
         this.clearSettings();
         return { ...DEFAULT_SETTINGS };
       }
-
-      return {
-        ...DEFAULT_SETTINGS,
-        ...parsed,
-      };
-    } catch (error) {
-      console.error("Failed to load settings from localStorage:", error);
-      this.clearSettings();
-      return { ...DEFAULT_SETTINGS };
-    }
+    });
   }
 
   /**
@@ -75,6 +80,9 @@ export class SettingsService {
         SETTINGS_STORAGE_KEY,
         JSON.stringify(updatedSettings)
       );
+
+      // Invalidate cache after successful write
+      CacheService.invalidate(CACHE_KEYS.SETTINGS);
 
       return {
         success: true,
@@ -106,11 +114,13 @@ export class SettingsService {
   }
 
   /**
-   * Reset settings to defaults
+   * Reset settings to defaults and invalidate cache
    */
   static resetSettings(): Settings {
     try {
       localStorage.removeItem(SETTINGS_STORAGE_KEY);
+      // Invalidate cache after successful reset
+      CacheService.invalidate(CACHE_KEYS.SETTINGS);
       return { ...DEFAULT_SETTINGS };
     } catch (error) {
       console.error("Failed to reset settings:", error);
@@ -119,11 +129,13 @@ export class SettingsService {
   }
 
   /**
-   * Clear settings from localStorage
+   * Clear settings from localStorage and invalidate cache
    */
   static clearSettings(): void {
     try {
       localStorage.removeItem(SETTINGS_STORAGE_KEY);
+      // Invalidate cache after successful clear
+      CacheService.invalidate(CACHE_KEYS.SETTINGS);
     } catch (error) {
       console.error("Failed to clear settings:", error);
     }

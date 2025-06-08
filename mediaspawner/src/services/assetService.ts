@@ -1,5 +1,6 @@
 import type { MediaAsset } from "../types/media";
 import { createMediaAsset } from "../types/media";
+import { CacheService, CACHE_KEYS } from "./cacheService";
 
 const STORAGE_KEY = "mediaspawner_assets";
 
@@ -26,28 +27,32 @@ export interface CleanupResult {
  */
 export class AssetService {
   /**
-   * Get all assets from storage
+   * Get all assets from storage with caching
    */
   static getAssets(): MediaAsset[] {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (!stored) {
+    return CacheService.get(CACHE_KEYS.ASSETS, () => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (!stored) {
+          return [];
+        }
+        const assets = JSON.parse(stored);
+        return Array.isArray(assets) ? assets : [];
+      } catch (error) {
+        console.error("Failed to load assets from storage:", error);
         return [];
       }
-      const assets = JSON.parse(stored);
-      return Array.isArray(assets) ? assets : [];
-    } catch (error) {
-      console.error("Failed to load assets from storage:", error);
-      return [];
-    }
+    });
   }
 
   /**
-   * Save assets to storage
+   * Save assets to storage and invalidate cache
    */
   static saveAssets(assets: MediaAsset[]): void {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(assets));
+      // Invalidate cache after successful write
+      CacheService.invalidate(CACHE_KEYS.ASSETS);
     } catch (error) {
       console.error("Failed to save assets to storage:", error);
     }
@@ -109,10 +114,12 @@ export class AssetService {
   }
 
   /**
-   * Clear all assets
+   * Clear all assets and invalidate cache
    */
   static clearAssets(): void {
     localStorage.removeItem(STORAGE_KEY);
+    // Invalidate cache after successful clear
+    CacheService.invalidate(CACHE_KEYS.ASSETS);
   }
 
   /**

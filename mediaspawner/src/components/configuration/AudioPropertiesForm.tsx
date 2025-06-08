@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import type { MediaAsset } from "../../types/media";
 
 export interface AudioPropertiesFormProps {
@@ -6,7 +6,7 @@ export interface AudioPropertiesFormProps {
   onChange: (updatedAsset: MediaAsset) => void;
 }
 
-export function AudioPropertiesForm({
+export const AudioPropertiesForm = memo(function AudioPropertiesForm({
   asset,
   onChange,
 }: AudioPropertiesFormProps) {
@@ -120,4 +120,4 @@ export function AudioPropertiesForm({
       </div>
     </div>
   );
-}
+});

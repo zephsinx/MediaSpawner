@@ -3,6 +3,7 @@ import {
   createConfiguration,
   updateConfigurationTimestamp,
 } from "../types/media";
+import { CacheService, CACHE_KEYS } from "./cacheService";
 
 const STORAGE_KEY = "mediaspawner_configurations";
 
@@ -11,27 +12,31 @@ const STORAGE_KEY = "mediaspawner_configurations";
  */
 export class ConfigurationService {
   /**
-   * Get all configurations from localStorage
+   * Get all configurations from localStorage with caching
    */
   static getConfigurations(): Configuration[] {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (!stored) return [];
+    return CacheService.get(CACHE_KEYS.CONFIGURATIONS, () => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (!stored) return [];
 
-      const configurations = JSON.parse(stored);
-      return Array.isArray(configurations) ? configurations : [];
-    } catch (error) {
-      console.error("Failed to load configurations:", error);
-      return [];
-    }
+        const configurations = JSON.parse(stored);
+        return Array.isArray(configurations) ? configurations : [];
+      } catch (error) {
+        console.error("Failed to load configurations:", error);
+        return [];
+      }
+    });
   }
 
   /**
-   * Save configurations to localStorage
+   * Save configurations to localStorage and invalidate cache
    */
   private static saveConfigurations(configurations: Configuration[]): boolean {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(configurations));
+      // Invalidate cache after successful write
+      CacheService.invalidate(CACHE_KEYS.CONFIGURATIONS);
       return true;
     } catch (error) {
       console.error("Failed to save configurations:", error);
@@ -209,6 +214,8 @@ export class ConfigurationService {
   static clearAll(): boolean {
     try {
       localStorage.removeItem(STORAGE_KEY);
+      // Invalidate cache after successful clear
+      CacheService.invalidate(CACHE_KEYS.CONFIGURATIONS);
       return true;
     } catch (error) {
       console.error("Failed to clear configurations:", error);

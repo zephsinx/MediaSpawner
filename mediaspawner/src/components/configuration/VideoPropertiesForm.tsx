@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import type { MediaAsset } from "../../types/media";
 
 export interface VideoPropertiesFormProps {
@@ -6,7 +6,7 @@ export interface VideoPropertiesFormProps {
   onChange: (updatedAsset: MediaAsset) => void;
 }
 
-export function VideoPropertiesForm({
+export const VideoPropertiesForm = memo(function VideoPropertiesForm({
   asset,
   onChange,
 }: VideoPropertiesFormProps) {
@@ -195,4 +195,4 @@ export function VideoPropertiesForm({
       </div>
     </div>
   );
-}
+});

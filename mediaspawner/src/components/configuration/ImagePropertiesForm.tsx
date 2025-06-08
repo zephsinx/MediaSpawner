@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import type { MediaAsset } from "../../types/media";
 
 export interface ImagePropertiesFormProps {
@@ -6,7 +6,7 @@ export interface ImagePropertiesFormProps {
   onChange: (updatedAsset: MediaAsset) => void;
 }
 
-export function ImagePropertiesForm({
+export const ImagePropertiesForm = memo(function ImagePropertiesForm({
   asset,
   onChange,
 }: ImagePropertiesFormProps) {
@@ -139,4 +139,4 @@ export function ImagePropertiesForm({
       </div>
     </div>
   );
-}
+});

@@ -3,6 +3,7 @@ import type { Settings } from "../types/settings";
 import { ConfigurationService } from "./configurationService";
 import { AssetService } from "./assetService";
 import { SettingsService } from "./settingsService";
+import { CacheService } from "./cacheService";
 
 /**
  * Export data structure containing all application data
@@ -340,6 +341,9 @@ export class ImportExportService {
           config.description
         );
       });
+
+      // Clear all caches after successful import to ensure fresh data
+      CacheService.clear();
 
       return true;
     } catch (error) {

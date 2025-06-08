@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, memo } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -73,7 +73,7 @@ function DraggableAssetCard({
 }
 
 // Droppable Group Card Component
-function DroppableGroupCard({
+const DroppableGroupCard = memo(function DroppableGroupCard({
   group,
   isSelected,
   isOver,
@@ -223,7 +223,7 @@ function DroppableGroupCard({
       )}
     </div>
   );
-}
+});
 
 export function AssetGroupBuilder({
   configuration,
