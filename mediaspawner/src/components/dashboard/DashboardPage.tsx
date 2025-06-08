@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { ConfigurationService } from "../../services/configurationService";
 import { AssetService } from "../../services/assetService";
 import { ConfigurationForm } from "../configuration/ConfigurationForm";
@@ -71,6 +71,21 @@ const DashboardPage: React.FC = () => {
     setShowCreateForm(false);
     setEditingConfig(null);
   };
+
+  // Optimized configuration statistics with useMemo
+  const configStats = useMemo(() => {
+    const stats: Record<string, { totalAssets: number }> = {};
+
+    configurations.forEach((config) => {
+      const totalAssets = config.groups.reduce(
+        (sum, group) => sum + group.assets.length,
+        0
+      );
+      stats[config.id] = { totalAssets };
+    });
+
+    return stats;
+  }, [configurations]);
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString();
@@ -197,11 +212,7 @@ const DashboardPage: React.FC = () => {
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
                       <span>{config.groups.length} groups</span>
                       <span>
-                        {config.groups.reduce(
-                          (sum, group) => sum + group.assets.length,
-                          0
-                        )}{" "}
-                        assets
+                        {configStats[config.id]?.totalAssets || 0} assets
                       </span>
                       <span>Modified {formatDate(config.lastModified)}</span>
                     </div>

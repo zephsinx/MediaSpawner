@@ -58,15 +58,11 @@ function DraggableAssetCard({
             {asset.type} • {asset.isUrl ? "🌐 URL" : "📁 Local"}
           </p>
         </div>
-        <span
-          className={`px-2 py-1 text-xs rounded ${
-            isInGroup
-              ? "bg-green-100 text-green-700"
-              : "bg-blue-100 text-blue-700"
-          }`}
-        >
-          {isInGroup ? "Added" : "Drag to add"}
-        </span>
+        {isInGroup && (
+          <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-700">
+            Added
+          </span>
+        )}
       </div>
     </div>
   );
@@ -571,7 +567,7 @@ export function AssetGroupBuilder({
                           onClick={() =>
                             handleAddAssetToGroup(asset, selectedGroup.id)
                           }
-                          className="absolute top-2 right-2 px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                          className="absolute top-1/2 right-3 transform -translate-y-1/2 px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                         >
                           Add
                         </button>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { MediaAsset } from "../../types/media";
 import { AssetCard } from "./AssetCard";
 import { ConfirmDialog } from "../common/ConfirmDialog";
@@ -89,21 +89,46 @@ export function AssetList({
     setAssetToDelete(null);
   };
 
-  // Filter assets based on search query and type filter
-  const filteredAssets = assets.filter((asset) => {
-    const matchesSearch =
-      asset.name.toLowerCase().includes(currentSearchQuery.toLowerCase()) ||
-      asset.path.toLowerCase().includes(currentSearchQuery.toLowerCase());
-    const matchesType =
-      currentTypeFilter === "all" || asset.type === currentTypeFilter;
-    return matchesSearch && matchesType;
-  });
+  // Optimized search query preprocessing
+  const normalizedSearchQuery = useMemo(() => {
+    return currentSearchQuery.toLowerCase().trim();
+  }, [currentSearchQuery]);
+
+  // Optimized filtering with useMemo to prevent recalculation on every render
+  const filteredAssets = useMemo(() => {
+    if (!normalizedSearchQuery && currentTypeFilter === "all") {
+      return assets; // Early return for no filtering
+    }
+
+    return assets.filter((asset) => {
+      const matchesSearch =
+        !normalizedSearchQuery ||
+        asset.name.toLowerCase().includes(normalizedSearchQuery) ||
+        asset.path.toLowerCase().includes(normalizedSearchQuery);
+      const matchesType =
+        currentTypeFilter === "all" || asset.type === currentTypeFilter;
+      return matchesSearch && matchesType;
+    });
+  }, [assets, normalizedSearchQuery, currentTypeFilter]);
+
+  // Optimized type counts with useMemo to prevent recalculation
+  const typeCounts = useMemo(() => {
+    const counts = {
+      all: assets.length,
+      image: 0,
+      video: 0,
+      audio: 0,
+    };
+
+    assets.forEach((asset) => {
+      counts[asset.type]++;
+    });
+
+    return counts;
+  }, [assets]);
 
   const getTypeFilterCount = (type: AssetTypeFilter) => {
-    if (type === "all") {
-      return assets.length;
-    }
-    return assets.filter((asset) => asset.type === type).length;
+    return typeCounts[type];
   };
 
   const getAssetTypeIcon = (type: MediaAsset["type"]) => {
