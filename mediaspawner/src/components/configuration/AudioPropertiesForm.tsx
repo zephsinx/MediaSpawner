@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { MediaAsset } from "../../types/media";
 
 export interface AudioPropertiesFormProps {
@@ -15,13 +15,21 @@ export function AudioPropertiesForm({
   );
   const [loop, setLoop] = useState<boolean>(asset.properties.loop || false);
 
-  // Update local state when asset changes
+  // Stable reference for onChange to prevent re-render loops
+  const stableOnChange = useCallback(
+    (updatedAsset: MediaAsset) => {
+      onChange(updatedAsset);
+    },
+    [onChange]
+  );
+
+  // Update local state when asset changes (only on asset ID change)
   useEffect(() => {
     setVolume((asset.properties.volume || 0.5) * 100);
     setLoop(asset.properties.loop || false);
   }, [asset.id]);
 
-  // Update asset when values change
+  // Update asset when values change (optimized dependencies)
   useEffect(() => {
     const updatedAsset: MediaAsset = {
       ...asset,
@@ -31,8 +39,8 @@ export function AudioPropertiesForm({
         loop,
       },
     };
-    onChange(updatedAsset);
-  }, [volume, loop, asset, onChange]);
+    stableOnChange(updatedAsset);
+  }, [volume, loop, stableOnChange]);
 
   const handleNumberChange = (
     value: string,

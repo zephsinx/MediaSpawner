@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { MediaAsset } from "../../types/media";
 
 export interface VideoPropertiesFormProps {
@@ -23,7 +23,15 @@ export function VideoPropertiesForm({
   );
   const [loop, setLoop] = useState<boolean>(asset.properties.loop || false);
 
-  // Update local state when asset changes
+  // Stable reference for onChange to prevent re-render loops
+  const stableOnChange = useCallback(
+    (updatedAsset: MediaAsset) => {
+      onChange(updatedAsset);
+    },
+    [onChange]
+  );
+
+  // Update local state when asset changes (only on asset ID change)
   useEffect(() => {
     setWidth(asset.properties.dimensions?.width || 100);
     setHeight(asset.properties.dimensions?.height || 100);
@@ -33,7 +41,7 @@ export function VideoPropertiesForm({
     setLoop(asset.properties.loop || false);
   }, [asset.id]);
 
-  // Update asset when values change
+  // Update asset when values change (optimized dependencies)
   useEffect(() => {
     const updatedAsset: MediaAsset = {
       ...asset,
@@ -45,8 +53,8 @@ export function VideoPropertiesForm({
         loop,
       },
     };
-    onChange(updatedAsset);
-  }, [width, height, x, y, volume, loop, asset, onChange]);
+    stableOnChange(updatedAsset);
+  }, [width, height, x, y, volume, loop, stableOnChange]);
 
   const handleNumberChange = (
     value: string,

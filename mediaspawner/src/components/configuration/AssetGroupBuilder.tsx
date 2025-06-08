@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -242,6 +242,8 @@ export function AssetGroupBuilder({
   const [editingGroupName, setEditingGroupName] = useState("");
   const [activeAsset, setActiveAsset] = useState<MediaAsset | null>(null);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -266,6 +268,24 @@ export function AssetGroupBuilder({
     document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedAssetId]);
+
+  // Handle clicks outside the component to deselect asset
+  useEffect(() => {
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (
+        selectedAssetId &&
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setSelectedAssetId(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleDocumentClick);
+    return () => {
+      document.removeEventListener("mousedown", handleDocumentClick);
     };
   }, [selectedAssetId]);
 
@@ -336,13 +356,6 @@ export function AssetGroupBuilder({
     setSelectedAssetId(selectedAssetId === assetId ? null : assetId);
   };
 
-  const handleContainerClick = () => {
-    // Deselect asset when clicking on the main container
-    if (selectedAssetId) {
-      setSelectedAssetId(null);
-    }
-  };
-
   const handleSave = () => {
     const updatedConfig: Configuration = {
       ...configuration,
@@ -394,7 +407,8 @@ export function AssetGroupBuilder({
   const selectedAsset = findSelectedAsset();
 
   // Handle asset property updates
-  const handleAssetUpdate = (updatedAsset: MediaAsset) => {
+  // Optimized asset update handler with useCallback for stable reference
+  const handleAssetUpdate = useCallback((updatedAsset: MediaAsset) => {
     setGroups((prevGroups) => {
       return prevGroups.map((group) => ({
         ...group,
@@ -403,7 +417,7 @@ export function AssetGroupBuilder({
         ),
       }));
     });
-  };
+  }, []);
 
   return (
     <DndContext
@@ -411,10 +425,7 @@ export function AssetGroupBuilder({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div
-        className="bg-white border rounded-lg p-6"
-        onClick={handleContainerClick}
-      >
+      <div ref={containerRef} className="bg-white border rounded-lg p-6">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-lg font-medium">Asset Group Builder</h3>
           <div className="flex space-x-3">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { MediaAsset } from "../../types/media";
 
 export interface ImagePropertiesFormProps {
@@ -19,7 +19,15 @@ export function ImagePropertiesForm({
   const [x, setX] = useState<number>(asset.properties.position?.x || 0);
   const [y, setY] = useState<number>(asset.properties.position?.y || 0);
 
-  // Update local state when asset changes
+  // Stable reference for onChange to prevent re-render loops
+  const stableOnChange = useCallback(
+    (updatedAsset: MediaAsset) => {
+      onChange(updatedAsset);
+    },
+    [onChange]
+  );
+
+  // Update local state when asset changes (only on asset ID change)
   useEffect(() => {
     setWidth(asset.properties.dimensions?.width || 100);
     setHeight(asset.properties.dimensions?.height || 100);
@@ -27,7 +35,7 @@ export function ImagePropertiesForm({
     setY(asset.properties.position?.y || 0);
   }, [asset.id]);
 
-  // Update asset when values change
+  // Update asset when values change (optimized dependencies)
   useEffect(() => {
     const updatedAsset: MediaAsset = {
       ...asset,
@@ -37,8 +45,8 @@ export function ImagePropertiesForm({
         position: { x, y },
       },
     };
-    onChange(updatedAsset);
-  }, [width, height, x, y, asset, onChange]);
+    stableOnChange(updatedAsset);
+  }, [width, height, x, y, stableOnChange]);
 
   const handleNumberChange = (
     value: string,
