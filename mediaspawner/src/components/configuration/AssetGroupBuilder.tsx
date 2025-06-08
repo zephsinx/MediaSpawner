@@ -1,15 +1,4 @@
 import { useState, useEffect, useRef, useCallback, memo } from "react";
-import {
-  DndContext,
-  DragOverlay,
-  useDraggable,
-  useDroppable,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-  type DragStartEvent,
-} from "@dnd-kit/core";
 import { AssetService } from "../../services/assetService";
 import { createAssetGroup } from "../../types/media";
 import type { Configuration, AssetGroup, MediaAsset } from "../../types/media";
@@ -25,27 +14,17 @@ export interface AssetGroupBuilderProps {
   onCancel: () => void;
 }
 
-// Draggable Asset Card Component
-function DraggableAssetCard({
+// Asset Card Component
+function AssetCard({
   asset,
   isInGroup,
 }: {
   asset: MediaAsset;
   isInGroup: boolean;
 }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: asset.id,
-    data: { asset },
-  });
-
   return (
     <div
-      ref={setNodeRef}
-      {...listeners}
-      {...attributes}
-      className={`border rounded p-3 transition-colors cursor-grab active:cursor-grabbing ${
-        isDragging ? "opacity-50" : ""
-      } ${
+      className={`border rounded p-3 transition-colors ${
         isInGroup
           ? "border-green-500 bg-green-50"
           : "border-gray-200 hover:bg-gray-50"
@@ -68,11 +47,10 @@ function DraggableAssetCard({
   );
 }
 
-// Droppable Group Card Component
-const DroppableGroupCard = memo(function DroppableGroupCard({
+// Group Card Component
+const GroupCard = memo(function GroupCard({
   group,
   isSelected,
-  isOver,
   onSelect,
   onEdit,
   onDelete,
@@ -86,7 +64,6 @@ const DroppableGroupCard = memo(function DroppableGroupCard({
 }: {
   group: AssetGroup;
   isSelected: boolean;
-  isOver: boolean;
   onSelect: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -98,18 +75,11 @@ const DroppableGroupCard = memo(function DroppableGroupCard({
   setEditingGroupName: (name: string) => void;
   handleEditGroup: (groupId: string, newName: string) => void;
 }) {
-  const { setNodeRef } = useDroppable({
-    id: group.id,
-  });
-
   return (
     <div
-      ref={setNodeRef}
       className={`border rounded p-3 cursor-pointer transition-colors ${
         isSelected
           ? "border-blue-500 bg-blue-50"
-          : isOver
-          ? "border-green-500 bg-green-50"
           : "border-gray-200 hover:bg-gray-50"
       }`}
       onClick={onSelect}
@@ -137,7 +107,6 @@ const DroppableGroupCard = memo(function DroppableGroupCard({
               <h5 className="font-medium text-gray-900">{group.name}</h5>
               <p className="text-sm text-gray-500">
                 {group.assets.length} assets
-                {isOver && " • Drop here to add"}
               </p>
             </div>
           )}
@@ -236,17 +205,8 @@ export function AssetGroupBuilder({
   const [newGroupName, setNewGroupName] = useState("");
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupName, setEditingGroupName] = useState("");
-  const [activeAsset, setActiveAsset] = useState<MediaAsset | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
 
   // Load available assets on mount
   useEffect(() => {
@@ -365,26 +325,6 @@ export function AssetGroupBuilder({
     return group?.assets.some((asset) => asset.id === assetId) || false;
   };
 
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    const asset = active.data.current?.asset as MediaAsset;
-    setActiveAsset(asset);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (over) {
-      const asset = active.data.current?.asset as MediaAsset;
-      const groupId = over.id as string;
-
-      // Add asset to the group it was dropped on
-      handleAddAssetToGroup(asset, groupId);
-    }
-
-    setActiveAsset(null);
-  };
-
   const selectedGroup = selectedGroupId
     ? groups.find((g) => g.id === selectedGroupId)
     : null;
@@ -416,230 +356,202 @@ export function AssetGroupBuilder({
   }, []);
 
   return (
-    <DndContext
-      sensors={sensors}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <div ref={containerRef} className="bg-white border rounded-lg p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-medium">Asset Group Builder</h3>
-          <div className="flex space-x-3">
+    <div ref={containerRef} className="bg-white border rounded-lg p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-lg font-medium">Asset Group Builder</h3>
+        <div className="flex space-x-3">
+          <button
+            onClick={handleSave}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+          >
+            Save Groups
+          </button>
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+
+      <div
+        className={`grid gap-6 ${
+          selectedAsset
+            ? "grid-cols-1 lg:grid-cols-3"
+            : "grid-cols-1 lg:grid-cols-2"
+        }`}
+      >
+        {/* Groups Panel */}
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="text-md font-medium text-gray-800">Asset Groups</h4>
             <button
-              onClick={handleSave}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+              onClick={() => setShowNewGroupForm(true)}
+              className="px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
             >
-              Save Groups
+              Add Group
             </button>
-            <button
-              onClick={onCancel}
-              className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
-            >
-              Cancel
-            </button>
+          </div>
+
+          {/* New Group Form */}
+          {showNewGroupForm && (
+            <div className="bg-gray-50 p-4 rounded mb-4">
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  placeholder="Group name"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onKeyPress={(e) => e.key === "Enter" && handleCreateGroup()}
+                />
+                <button
+                  onClick={handleCreateGroup}
+                  disabled={!newGroupName.trim()}
+                  className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 transition-colors"
+                >
+                  Create
+                </button>
+                <button
+                  onClick={() => {
+                    setShowNewGroupForm(false);
+                    setNewGroupName("");
+                  }}
+                  className="px-3 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Groups List */}
+          <div className="space-y-2">
+            {groups.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>No groups created yet</p>
+                <p className="text-sm">
+                  Create your first group to get started
+                </p>
+              </div>
+            ) : (
+              groups.map((group) => (
+                <GroupCard
+                  key={group.id}
+                  group={group}
+                  isSelected={selectedGroupId === group.id}
+                  onSelect={() => setSelectedGroupId(group.id)}
+                  onEdit={() => {
+                    setEditingGroupId(group.id);
+                    setEditingGroupName(group.name);
+                  }}
+                  onDelete={() => handleDeleteGroup(group.id)}
+                  onRemoveAsset={(assetId: string) =>
+                    handleRemoveAssetFromGroup(assetId, group.id)
+                  }
+                  onSelectAsset={handleSelectAsset}
+                  selectedAssetId={selectedAssetId}
+                  editingGroupId={editingGroupId}
+                  editingGroupName={editingGroupName}
+                  setEditingGroupName={setEditingGroupName}
+                  handleEditGroup={handleEditGroup}
+                />
+              ))
+            )}
           </div>
         </div>
 
-        <div
-          className={`grid gap-6 ${
-            selectedAsset
-              ? "grid-cols-1 lg:grid-cols-3"
-              : "grid-cols-1 lg:grid-cols-2"
-          }`}
-        >
-          {/* Groups Panel */}
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="text-md font-medium text-gray-800">
-                Asset Groups
-              </h4>
-              <button
-                onClick={() => setShowNewGroupForm(true)}
-                className="px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
-              >
-                Add Group
-              </button>
+        {/* Asset Library Panel */}
+        <div>
+          <h4 className="text-md font-medium text-gray-800 mb-4">
+            Asset Library
+          </h4>
+
+          {selectedGroup && (
+            <p className="text-sm text-gray-600 mb-4">
+              Adding assets to:{" "}
+              <span className="font-medium">{selectedGroup.name}</span>
+              <br />
+              <span className="text-xs text-gray-500">
+                💡 Click to add assets to selected group
+              </span>
+            </p>
+          )}
+
+          {availableAssets.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <p>No assets in library</p>
+              <p className="text-sm">Add assets to the Asset Library first</p>
             </div>
-
-            {/* New Group Form */}
-            {showNewGroupForm && (
-              <div className="bg-gray-50 p-4 rounded mb-4">
-                <div className="flex space-x-2">
-                  <input
-                    type="text"
-                    value={newGroupName}
-                    onChange={(e) => setNewGroupName(e.target.value)}
-                    placeholder="Group name"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    onKeyPress={(e) => e.key === "Enter" && handleCreateGroup()}
-                  />
-                  <button
-                    onClick={handleCreateGroup}
-                    disabled={!newGroupName.trim()}
-                    className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 transition-colors"
-                  >
-                    Create
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowNewGroupForm(false);
-                      setNewGroupName("");
-                    }}
-                    className="px-3 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Groups List */}
-            <div className="space-y-2">
-              {groups.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No groups created yet</p>
-                  <p className="text-sm">
-                    Create your first group to get started
-                  </p>
-                </div>
-              ) : (
-                groups.map((group) => (
-                  <DroppableGroupCard
-                    key={group.id}
-                    group={group}
-                    isSelected={selectedGroupId === group.id}
-                    isOver={false} // Will be handled by DndContext
-                    onSelect={() => setSelectedGroupId(group.id)}
-                    onEdit={() => {
-                      setEditingGroupId(group.id);
-                      setEditingGroupName(group.name);
-                    }}
-                    onDelete={() => handleDeleteGroup(group.id)}
-                    onRemoveAsset={(assetId) =>
-                      handleRemoveAssetFromGroup(assetId, group.id)
-                    }
-                    onSelectAsset={handleSelectAsset}
-                    selectedAssetId={selectedAssetId}
-                    editingGroupId={editingGroupId}
-                    editingGroupName={editingGroupName}
-                    setEditingGroupName={setEditingGroupName}
-                    handleEditGroup={handleEditGroup}
-                  />
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Asset Library Panel */}
-          <div>
-            <h4 className="text-md font-medium text-gray-800 mb-4">
-              Asset Library
-            </h4>
-
-            {selectedGroup && (
-              <p className="text-sm text-gray-600 mb-4">
-                Adding assets to:{" "}
-                <span className="font-medium">{selectedGroup.name}</span>
-                <br />
-                <span className="text-xs text-gray-500">
-                  💡 Drag assets to groups or click to add to selected group
-                </span>
-              </p>
-            )}
-
-            {availableAssets.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <p>No assets in library</p>
-                <p className="text-sm">Add assets to the Asset Library first</p>
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {availableAssets.map((asset) => {
-                  const isInGroup = selectedGroup
-                    ? isAssetInGroup(asset.id, selectedGroup.id)
-                    : false;
-                  return (
-                    <div key={asset.id} className="relative">
-                      <DraggableAssetCard asset={asset} isInGroup={isInGroup} />
-                      {/* Click-to-add button overlay for selected group */}
-                      {selectedGroup && !isInGroup && (
-                        <button
-                          onClick={() =>
-                            handleAddAssetToGroup(asset, selectedGroup.id)
-                          }
-                          className="absolute top-1/2 right-3 transform -translate-y-1/2 px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                        >
-                          Add
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Property Panel */}
-          {selectedAsset && (
-            <div>
-              <h4 className="text-md font-medium text-gray-800 mb-4">
-                Asset Properties
-              </h4>
-              <div className="bg-white border rounded-lg p-4">
-                <div className="mb-3">
-                  <h5 className="font-medium text-gray-900">
-                    {selectedAsset.name}
-                  </h5>
-                  <p className="text-sm text-gray-500">
-                    {selectedAsset.type} •{" "}
-                    {selectedAsset.isUrl ? "🌐 URL" : "📁 Local"}
-                  </p>
-                </div>
-
-                {selectedAsset.type === "image" && (
-                  <ImagePropertiesForm
-                    asset={selectedAsset}
-                    onChange={handleAssetUpdate}
-                  />
-                )}
-
-                {selectedAsset.type === "video" && (
-                  <VideoPropertiesForm
-                    asset={selectedAsset}
-                    onChange={handleAssetUpdate}
-                  />
-                )}
-
-                {selectedAsset.type === "audio" && (
-                  <AudioPropertiesForm
-                    asset={selectedAsset}
-                    onChange={handleAssetUpdate}
-                  />
-                )}
-              </div>
+          ) : (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {availableAssets.map((asset) => {
+                const isInGroup = selectedGroup
+                  ? isAssetInGroup(asset.id, selectedGroup.id)
+                  : false;
+                return (
+                  <div key={asset.id} className="relative">
+                    <AssetCard asset={asset} isInGroup={isInGroup} />
+                    {/* Click-to-add button overlay for selected group */}
+                    {selectedGroup && !isInGroup && (
+                      <button
+                        onClick={() =>
+                          handleAddAssetToGroup(asset, selectedGroup.id)
+                        }
+                        className="absolute top-1/2 right-3 transform -translate-y-1/2 px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                      >
+                        Add
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Drag Overlay */}
-        <DragOverlay>
-          {activeAsset ? (
-            <div className="border rounded p-3 bg-white shadow-lg opacity-90">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h6 className="font-medium text-gray-900">
-                    {activeAsset.name}
-                  </h6>
-                  <p className="text-sm text-gray-500">
-                    {activeAsset.type} •{" "}
-                    {activeAsset.isUrl ? "🌐 URL" : "📁 Local"}
-                  </p>
-                </div>
+        {/* Property Panel */}
+        {selectedAsset && (
+          <div>
+            <h4 className="text-md font-medium text-gray-800 mb-4">
+              Asset Properties
+            </h4>
+            <div className="bg-white border rounded-lg p-4">
+              <div className="mb-3">
+                <h5 className="font-medium text-gray-900">
+                  {selectedAsset.name}
+                </h5>
+                <p className="text-sm text-gray-500">
+                  {selectedAsset.type} •{" "}
+                  {selectedAsset.isUrl ? "🌐 URL" : "📁 Local"}
+                </p>
               </div>
+
+              {selectedAsset.type === "image" && (
+                <ImagePropertiesForm
+                  asset={selectedAsset}
+                  onChange={handleAssetUpdate}
+                />
+              )}
+
+              {selectedAsset.type === "video" && (
+                <VideoPropertiesForm
+                  asset={selectedAsset}
+                  onChange={handleAssetUpdate}
+                />
+              )}
+
+              {selectedAsset.type === "audio" && (
+                <AudioPropertiesForm
+                  asset={selectedAsset}
+                  onChange={handleAssetUpdate}
+                />
+              )}
             </div>
-          ) : null}
-        </DragOverlay>
+          </div>
+        )}
       </div>
-    </DndContext>
+    </div>
   );
 }
