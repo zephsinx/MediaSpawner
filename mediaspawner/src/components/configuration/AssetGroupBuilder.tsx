@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, memo } from "react";
 import { AssetService } from "../../services/assetService";
 import { createAssetGroup } from "../../types/media";
 import type { Configuration, AssetGroup, MediaAsset } from "../../types/media";
+import { AssetList, type AssetTypeFilter } from "../asset-library/AssetList";
 import {
   ImagePropertiesForm,
   VideoPropertiesForm,
@@ -12,39 +13,6 @@ export interface AssetGroupBuilderProps {
   configuration: Configuration;
   onSave: (updatedConfig: Configuration) => void;
   onCancel: () => void;
-}
-
-// Asset Card Component
-function AssetCard({
-  asset,
-  isInGroup,
-}: {
-  asset: MediaAsset;
-  isInGroup: boolean;
-}) {
-  return (
-    <div
-      className={`border rounded p-3 transition-colors ${
-        isInGroup
-          ? "border-green-500 bg-green-50"
-          : "border-gray-200 hover:bg-gray-50"
-      }`}
-    >
-      <div className="flex justify-between items-center">
-        <div>
-          <h6 className="font-medium text-gray-900">{asset.name}</h6>
-          <p className="text-sm text-gray-500">
-            {asset.type} • {asset.isUrl ? "🌐 URL" : "📁 Local"}
-          </p>
-        </div>
-        {isInGroup && (
-          <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-700">
-            Added
-          </span>
-        )}
-      </div>
-    </div>
-  );
 }
 
 // Group Card Component
@@ -205,6 +173,8 @@ export function AssetGroupBuilder({
   const [newGroupName, setNewGroupName] = useState("");
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupName, setEditingGroupName] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<AssetTypeFilter>("all");
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -479,36 +449,30 @@ export function AssetGroupBuilder({
             </p>
           )}
 
-          {availableAssets.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <p>No assets in library</p>
-              <p className="text-sm">Add assets to the Asset Library first</p>
-            </div>
-          ) : (
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {availableAssets.map((asset) => {
-                const isInGroup = selectedGroup
-                  ? isAssetInGroup(asset.id, selectedGroup.id)
-                  : false;
-                return (
-                  <div key={asset.id} className="relative">
-                    <AssetCard asset={asset} isInGroup={isInGroup} />
-                    {/* Click-to-add button overlay for selected group */}
-                    {selectedGroup && !isInGroup && (
-                      <button
-                        onClick={() =>
-                          handleAddAssetToGroup(asset, selectedGroup.id)
-                        }
-                        className="absolute top-1/2 right-3 transform -translate-y-1/2 px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                      >
-                        Add
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <div className="max-h-96 overflow-y-auto">
+            <AssetList
+              assets={availableAssets}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              typeFilter={typeFilter}
+              onTypeFilterChange={setTypeFilter}
+              onAssetSelect={(asset) => {
+                if (selectedGroup) {
+                  if (isAssetInGroup(asset.id, selectedGroup.id)) {
+                    handleRemoveAssetFromGroup(asset.id, selectedGroup.id);
+                  } else {
+                    handleAddAssetToGroup(asset, selectedGroup.id);
+                  }
+                }
+              }}
+              selectedAssets={
+                selectedGroup
+                  ? selectedGroup.assets.map((asset) => asset.id)
+                  : []
+              }
+              className="border-0"
+            />
+          </div>
         </div>
 
         {/* Property Panel */}
