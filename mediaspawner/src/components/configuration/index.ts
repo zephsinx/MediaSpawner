@@ -17,3 +17,5 @@ export {
   AudioPropertiesForm,
   type AudioPropertiesFormProps,
 } from "./AudioPropertiesForm";
+
+export { PropertyModal, type PropertyModalProps } from "./PropertyModal";

@@ -3,11 +3,7 @@ import { AssetService } from "../../services/assetService";
 import { createAssetGroup } from "../../types/media";
 import type { Configuration, AssetGroup, MediaAsset } from "../../types/media";
 import { AssetList, type AssetTypeFilter } from "../asset-library/AssetList";
-import {
-  ImagePropertiesForm,
-  VideoPropertiesForm,
-  AudioPropertiesForm,
-} from "./index";
+import { PropertyModal } from "./index";
 
 export interface AssetGroupBuilderProps {
   configuration: Configuration;
@@ -345,13 +341,7 @@ export function AssetGroupBuilder({
         </div>
       </div>
 
-      <div
-        className={`grid gap-6 ${
-          selectedAsset
-            ? "grid-cols-1 lg:grid-cols-3"
-            : "grid-cols-1 lg:grid-cols-2"
-        }`}
-      >
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         {/* Groups Panel */}
         <div>
           <div className="flex justify-between items-center mb-4">
@@ -474,48 +464,15 @@ export function AssetGroupBuilder({
             />
           </div>
         </div>
-
-        {/* Property Panel */}
-        {selectedAsset && (
-          <div>
-            <h4 className="text-md font-medium text-gray-800 mb-4">
-              Asset Properties
-            </h4>
-            <div className="bg-white border rounded-lg p-4">
-              <div className="mb-3">
-                <h5 className="font-medium text-gray-900">
-                  {selectedAsset.name}
-                </h5>
-                <p className="text-sm text-gray-500">
-                  {selectedAsset.type} •{" "}
-                  {selectedAsset.isUrl ? "🌐 URL" : "📁 Local"}
-                </p>
-              </div>
-
-              {selectedAsset.type === "image" && (
-                <ImagePropertiesForm
-                  asset={selectedAsset}
-                  onChange={handleAssetUpdate}
-                />
-              )}
-
-              {selectedAsset.type === "video" && (
-                <VideoPropertiesForm
-                  asset={selectedAsset}
-                  onChange={handleAssetUpdate}
-                />
-              )}
-
-              {selectedAsset.type === "audio" && (
-                <AudioPropertiesForm
-                  asset={selectedAsset}
-                  onChange={handleAssetUpdate}
-                />
-              )}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Property Modal */}
+      <PropertyModal
+        asset={selectedAsset}
+        isOpen={selectedAsset !== null}
+        onClose={() => setSelectedAssetId(null)}
+        onSave={handleAssetUpdate}
+      />
     </div>
   );
 }
