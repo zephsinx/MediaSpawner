@@ -76,11 +76,17 @@ const ASSET_TYPE_MIMES = {
  * Extract file extension from a path or URL
  */
 function extractExtension(path: string): string {
-  const lastDot = path.lastIndexOf(".");
-  const lastSlash = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
+  // Remove query parameters and fragments from URLs
+  const cleanPath = path.split("?")[0].split("#")[0];
+
+  const lastDot = cleanPath.lastIndexOf(".");
+  const lastSlash = Math.max(
+    cleanPath.lastIndexOf("/"),
+    cleanPath.lastIndexOf("\\")
+  );
 
   if (lastDot > lastSlash && lastDot !== -1) {
-    return path.slice(lastDot + 1).toLowerCase();
+    return cleanPath.slice(lastDot + 1).toLowerCase();
   }
   return "";
 }
@@ -91,13 +97,13 @@ function extractExtension(path: string): string {
 export function detectAssetTypeFromPath(path: string): MediaAsset["type"] {
   const extension = extractExtension(path);
 
-  if (ASSET_TYPE_EXTENSIONS.image.includes(extension as any)) {
+  if ((ASSET_TYPE_EXTENSIONS.image as readonly string[]).includes(extension)) {
     return "image";
   }
-  if (ASSET_TYPE_EXTENSIONS.video.includes(extension as any)) {
+  if ((ASSET_TYPE_EXTENSIONS.video as readonly string[]).includes(extension)) {
     return "video";
   }
-  if (ASSET_TYPE_EXTENSIONS.audio.includes(extension as any)) {
+  if ((ASSET_TYPE_EXTENSIONS.audio as readonly string[]).includes(extension)) {
     return "audio";
   }
 
@@ -111,13 +117,13 @@ export function detectAssetTypeFromPath(path: string): MediaAsset["type"] {
 export function detectAssetTypeFromMime(mimeType: string): MediaAsset["type"] {
   const normalizedMime = mimeType.toLowerCase().split(";")[0].trim();
 
-  if (ASSET_TYPE_MIMES.image.includes(normalizedMime as any)) {
+  if ((ASSET_TYPE_MIMES.image as readonly string[]).includes(normalizedMime)) {
     return "image";
   }
-  if (ASSET_TYPE_MIMES.video.includes(normalizedMime as any)) {
+  if ((ASSET_TYPE_MIMES.video as readonly string[]).includes(normalizedMime)) {
     return "video";
   }
-  if (ASSET_TYPE_MIMES.audio.includes(normalizedMime as any)) {
+  if ((ASSET_TYPE_MIMES.audio as readonly string[]).includes(normalizedMime)) {
     return "audio";
   }
 
