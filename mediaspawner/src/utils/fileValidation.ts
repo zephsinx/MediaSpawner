@@ -1,7 +1,29 @@
 export const SUPPORTED_FILE_EXTENSIONS = {
-  image: ["jpg", "jpeg", "png", "gif", "webp"],
-  video: ["mp4", "webm", "mov"],
-  audio: ["mp3", "wav", "ogg", "m4a"],
+  image: [
+    "jpg",
+    "jpeg",
+    "png",
+    "gif",
+    "bmp",
+    "webp",
+    "svg",
+    "ico",
+    "tiff",
+    "tif",
+  ],
+  video: [
+    "mp4",
+    "webm",
+    "mov",
+    "avi",
+    "mkv",
+    "flv",
+    "wmv",
+    "m4v",
+    "3gp",
+    "ogv",
+  ],
+  audio: ["mp3", "wav", "ogg", "m4a", "aac", "flac", "wma", "opus", "m4r"],
 } as const;
 
 export type MediaType = keyof typeof SUPPORTED_FILE_EXTENSIONS;
@@ -16,10 +38,19 @@ export interface FileValidationResult {
  * Extract file extension from a file path or URL
  */
 export function getFileExtension(filePath: string): string {
-  const lastDot = filePath.lastIndexOf(".");
-  if (lastDot === -1) return "";
+  // Remove query parameters and fragments from URLs
+  const cleanPath = filePath.split("?")[0].split("#")[0];
 
-  return filePath.substring(lastDot + 1).toLowerCase();
+  const lastDot = cleanPath.lastIndexOf(".");
+  const lastSlash = Math.max(
+    cleanPath.lastIndexOf("/"),
+    cleanPath.lastIndexOf("\\")
+  );
+
+  if (lastDot > lastSlash && lastDot !== -1) {
+    return cleanPath.substring(lastDot + 1).toLowerCase();
+  }
+  return "";
 }
 
 /**
