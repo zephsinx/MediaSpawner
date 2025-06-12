@@ -1,6 +1,7 @@
-import { useState, memo } from "react";
+import { memo } from "react";
 import type { MediaAsset } from "../../types/media";
 import { computeDisplayPath } from "../../utils/pathDisplay";
+import { MediaPreview } from "../common/MediaPreview";
 
 export interface AssetCardProps {
   asset: MediaAsset;
@@ -21,9 +22,6 @@ export const AssetCard = memo(function AssetCard({
   onDelete,
   className = "",
 }: AssetCardProps) {
-  const [imageError, setImageError] = useState(false);
-  const [imageLoading, setImageLoading] = useState(true);
-
   const handleCardClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onClick) {
@@ -45,19 +43,6 @@ export const AssetCard = memo(function AssetCard({
     }
   };
 
-  const getAssetTypeIcon = (type: MediaAsset["type"]) => {
-    switch (type) {
-      case "image":
-        return "🖼️";
-      case "video":
-        return "🎥";
-      case "audio":
-        return "🎵";
-      default:
-        return "📄";
-    }
-  };
-
   const getAssetSourceIndicator = (isUrl: boolean) => {
     return isUrl ? "🌐" : "📁";
   };
@@ -72,49 +57,7 @@ export const AssetCard = memo(function AssetCard({
   const canPreview = isImageOrVideo && asset.isUrl;
 
   const renderPreview = () => {
-    if (asset.type === "image" && canPreview && !imageError) {
-      return (
-        <div className="relative w-full h-24 bg-gray-100 rounded overflow-hidden">
-          {imageLoading && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-          )}
-          <img
-            src={asset.path}
-            alt={asset.name}
-            className="w-full h-full object-cover"
-            onLoad={() => setImageLoading(false)}
-            onError={() => {
-              setImageError(true);
-              setImageLoading(false);
-            }}
-          />
-        </div>
-      );
-    } else if (asset.type === "video" && canPreview) {
-      return (
-        <div className="relative w-full h-24 bg-gray-100 rounded overflow-hidden">
-          <video
-            src={asset.path}
-            className="w-full h-full object-cover"
-            muted
-            preload="metadata"
-          />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-8 h-8 bg-black bg-opacity-50 rounded-full flex items-center justify-center text-white text-xs">
-              ▶
-            </div>
-          </div>
-        </div>
-      );
-    } else {
-      return (
-        <div className="w-full h-24 bg-gray-100 rounded flex items-center justify-center">
-          <div className="text-3xl">{getAssetTypeIcon(asset.type)}</div>
-        </div>
-      );
-    }
+    return <MediaPreview asset={asset} />;
   };
 
   if (variant === "list") {
