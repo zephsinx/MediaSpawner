@@ -113,8 +113,8 @@ const ConfigEditorPage: React.FC = () => {
               Configuration Editor
             </h1>
             <p className="text-gray-600">
-              Edit media asset configurations and manage asset groups with
-              drag-and-drop functionality.
+              Edit media asset configurations and manage asset groups by
+              clicking to add assets.
             </p>
           </div>
 
