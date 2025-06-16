@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, memo } from "react";
+import { useState, useEffect, useCallback, memo, useMemo } from "react";
 import type { MediaAsset } from "../../types/media";
 
 export interface VideoPropertiesFormProps {
@@ -31,17 +31,37 @@ export const VideoPropertiesForm = memo(function VideoPropertiesForm({
     [onChange]
   );
 
-  // Update local state when asset changes (only on asset ID change)
-  useEffect(() => {
-    setWidth(asset.properties.dimensions?.width || 100);
-    setHeight(asset.properties.dimensions?.height || 100);
-    setX(asset.properties.position?.x || 0);
-    setY(asset.properties.position?.y || 0);
-    setVolume((asset.properties.volume || 0.5) * 100);
-    setLoop(asset.properties.loop || false);
-  }, [asset.id]);
+  // Memoize asset properties to create stable reference and prevent loops
+  const assetProperties = useMemo(
+    () => ({
+      width: asset.properties.dimensions?.width || 100,
+      height: asset.properties.dimensions?.height || 100,
+      x: asset.properties.position?.x || 0,
+      y: asset.properties.position?.y || 0,
+      volume: (asset.properties.volume || 0.5) * 100,
+      loop: asset.properties.loop || false,
+    }),
+    [
+      asset.properties.dimensions?.width,
+      asset.properties.dimensions?.height,
+      asset.properties.position?.x,
+      asset.properties.position?.y,
+      asset.properties.volume,
+      asset.properties.loop,
+    ]
+  );
 
-  // Update asset when values change (optimized dependencies)
+  // Update local state when asset properties change
+  useEffect(() => {
+    setWidth(assetProperties.width);
+    setHeight(assetProperties.height);
+    setX(assetProperties.x);
+    setY(assetProperties.y);
+    setVolume(assetProperties.volume);
+    setLoop(assetProperties.loop);
+  }, [assetProperties]);
+
+  // Update asset when values change
   useEffect(() => {
     const updatedAsset: MediaAsset = {
       ...asset,
@@ -54,7 +74,7 @@ export const VideoPropertiesForm = memo(function VideoPropertiesForm({
       },
     };
     stableOnChange(updatedAsset);
-  }, [width, height, x, y, volume, loop, stableOnChange]);
+  }, [width, height, x, y, volume, loop, stableOnChange, asset]);
 
   const handleNumberChange = (
     value: string,

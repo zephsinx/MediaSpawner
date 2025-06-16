@@ -33,7 +33,12 @@ export const ImagePropertiesForm = memo(function ImagePropertiesForm({
     setHeight(asset.properties.dimensions?.height || 100);
     setX(asset.properties.position?.x || 0);
     setY(asset.properties.position?.y || 0);
-  }, [asset.id]);
+  }, [
+    asset.properties.dimensions?.height,
+    asset.properties.dimensions?.width,
+    asset.properties.position?.x,
+    asset.properties.position?.y,
+  ]);
 
   // Update asset when values change (optimized dependencies)
   useEffect(() => {
@@ -46,7 +51,7 @@ export const ImagePropertiesForm = memo(function ImagePropertiesForm({
       },
     };
     stableOnChange(updatedAsset);
-  }, [width, height, x, y, stableOnChange]);
+  }, [width, height, x, y, stableOnChange, asset]);
 
   const handleNumberChange = (
     value: string,

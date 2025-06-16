@@ -27,7 +27,7 @@ export const AudioPropertiesForm = memo(function AudioPropertiesForm({
   useEffect(() => {
     setVolume((asset.properties.volume || 0.5) * 100);
     setLoop(asset.properties.loop || false);
-  }, [asset.id]);
+  }, [asset.id, asset.properties.loop, asset.properties.volume]);
 
   // Update asset when values change (optimized dependencies)
   useEffect(() => {
@@ -40,7 +40,7 @@ export const AudioPropertiesForm = memo(function AudioPropertiesForm({
       },
     };
     stableOnChange(updatedAsset);
-  }, [volume, loop, stableOnChange]);
+  }, [volume, loop, stableOnChange, asset]);
 
   const handleNumberChange = (
     value: string,

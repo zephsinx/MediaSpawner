@@ -25,7 +25,7 @@ export function PropertyModal({
     if (isOpen && asset) {
       setWorkingAsset({ ...asset });
     }
-  }, [isOpen, asset?.id]);
+  }, [isOpen, asset]);
 
   const handleAssetChange = (updatedAsset: MediaAsset) => {
     setWorkingAsset(updatedAsset);

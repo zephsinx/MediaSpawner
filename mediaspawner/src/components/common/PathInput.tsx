@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { ChangeEvent } from "react";
 import { SettingsService } from "../../services/settingsService";
 import type { WorkingDirectoryValidationResult } from "../../types/settings";
@@ -34,30 +34,28 @@ export function PathInput({
   const [isDirty, setIsDirty] = useState(false);
   const [currentValue, setCurrentValue] = useState(value);
 
-  // Debounced validation function
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+
   const debouncedValidation = useCallback(
-    (() => {
-      let timeoutId: NodeJS.Timeout;
-      return (pathValue: string) => {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => {
-          const validation: WorkingDirectoryValidationResult =
-            SettingsService.validateWorkingDirectory(pathValue);
+    (pathValue: string) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(() => {
+        const validation: WorkingDirectoryValidationResult =
+          SettingsService.validateWorkingDirectory(pathValue);
 
-          setValidationState({
-            isValid: validation.isValid,
-            error: validation.error,
-            normalizedPath: validation.normalizedPath,
-          });
+        setValidationState({
+          isValid: validation.isValid,
+          error: validation.error,
+          normalizedPath: validation.normalizedPath,
+        });
 
-          // Only call onChange for user-initiated changes (when isDirty is true)
-          // This prevents circular dependency from prop updates
-          if (isDirty) {
-            onChange(pathValue, validation.isValid, validation.normalizedPath);
-          }
-        }, VALIDATION_DEBOUNCE_MS);
-      };
-    })(),
+        if (isDirty) {
+          onChange(pathValue, validation.isValid, validation.normalizedPath);
+        }
+      }, VALIDATION_DEBOUNCE_MS);
+    },
     [onChange, isDirty]
   );
 
