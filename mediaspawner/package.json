@@ -15,6 +15,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@babel/runtime": "^7.27.6",
     "@tailwindcss/vite": "^4.1.7",
     "freezeframe": "^5.0.2",
     "react": "^19.1.0",

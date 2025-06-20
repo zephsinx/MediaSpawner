@@ -19,3 +19,6 @@ export {
 } from "./AudioPropertiesForm";
 
 export { PropertyModal, type PropertyModalProps } from "./PropertyModal";
+export { UnifiedConfigurationBuilder } from "./UnifiedConfigurationBuilder";
+export { ProgressHeader } from "./ProgressHeader";
+export { ConfigSection } from "./ConfigSection";
