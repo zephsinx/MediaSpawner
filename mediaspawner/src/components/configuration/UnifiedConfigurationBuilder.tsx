@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Configuration, AssetGroup, MediaAsset } from "../../types/media";
 import { createAssetGroup } from "../../types/media";
 import { AssetService } from "../../services/assetService";
@@ -11,6 +11,12 @@ export interface UnifiedConfigurationBuilderProps {
   onSave: (config: Configuration) => void;
   onCancel: () => void;
   mode?: "create" | "edit";
+}
+
+interface StepProgression {
+  autoAdvanceEnabled: boolean;
+  pendingAdvancement: string | null;
+  lastAdvancedStep: string | null;
 }
 
 interface UnifiedBuilderState {
@@ -60,6 +66,17 @@ export function UnifiedConfigurationBuilder({
     selectedAssetId: null,
   });
 
+  // Step progression state management
+  const [stepProgression, setStepProgression] = useState<StepProgression>({
+    autoAdvanceEnabled: true,
+    pendingAdvancement: null,
+    lastAdvancedStep: null,
+  });
+
+  // Timeout refs for cleanup
+  const autoAdvanceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const manualNavTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Group form state for first group creation
   const [groupForm, setGroupForm] = useState({
     name: "",
@@ -67,6 +84,84 @@ export function UnifiedConfigurationBuilder({
   });
 
   const isEditMode = mode === "edit";
+
+  // Step availability logic
+  const isSectionAvailable = (step: string): boolean => {
+    switch (step) {
+      case "basic":
+        return true;
+      case "groups":
+        return state.completedSteps.basicInfo;
+      case "assets":
+        return (
+          state.completedSteps.basicInfo && state.completedSteps.firstGroup
+        );
+      case "complete":
+        return Object.values(state.completedSteps).every(Boolean);
+      default:
+        return false;
+    }
+  };
+
+  // Auto-advance logic with proper cleanup
+  useEffect(() => {
+    if (!stepProgression.autoAdvanceEnabled) return;
+
+    // Find the next step to advance to
+    let nextStepToAdvance: string | null = null;
+
+    if (state.completedSteps.basicInfo && state.currentStep === "basic") {
+      nextStepToAdvance = "groups";
+    } else if (
+      state.completedSteps.firstGroup &&
+      state.currentStep === "groups"
+    ) {
+      nextStepToAdvance = "assets";
+    } else if (
+      state.completedSteps.assetsAdded &&
+      state.currentStep === "assets"
+    ) {
+      nextStepToAdvance = "complete";
+    }
+
+    if (nextStepToAdvance && isSectionAvailable(nextStepToAdvance)) {
+      // Clear any existing timeout
+      if (autoAdvanceTimeoutRef.current) {
+        clearTimeout(autoAdvanceTimeoutRef.current);
+      }
+
+      // Set new timeout with cleanup
+      autoAdvanceTimeoutRef.current = setTimeout(() => {
+        setState((prev) => ({
+          ...prev,
+          currentStep: nextStepToAdvance as
+            | "basic"
+            | "groups"
+            | "assets"
+            | "complete",
+        }));
+        setStepProgression((prev) => ({
+          ...prev,
+          lastAdvancedStep: nextStepToAdvance,
+        }));
+        autoAdvanceTimeoutRef.current = null;
+      }, 300);
+    }
+
+    // Cleanup function
+    return () => {
+      if (autoAdvanceTimeoutRef.current) {
+        clearTimeout(autoAdvanceTimeoutRef.current);
+        autoAdvanceTimeoutRef.current = null;
+      }
+    };
+  }, [
+    stepProgression.autoAdvanceEnabled,
+    state.completedSteps.basicInfo,
+    state.completedSteps.firstGroup,
+    state.completedSteps.assetsAdded,
+    state.currentStep,
+  ]);
 
   // Initialize completed steps for edit mode
   useEffect(() => {
@@ -92,16 +187,52 @@ export function UnifiedConfigurationBuilder({
     }));
   }, []);
 
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (autoAdvanceTimeoutRef.current) {
+        clearTimeout(autoAdvanceTimeoutRef.current);
+      }
+      if (manualNavTimeoutRef.current) {
+        clearTimeout(manualNavTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Enhanced section toggle with smart navigation
   const handleSectionToggle = (section: string) => {
     const validSteps = ["basic", "groups", "assets", "complete"];
-    const newStep = validSteps.includes(section) ? section : "basic";
+    const targetStep = validSteps.includes(section) ? section : "basic";
+
+    // Check if target section is available
+    if (!isSectionAvailable(targetStep)) {
+      return; // Don't allow navigation to unavailable sections
+    }
+
+    // Disable auto-advance temporarily when user manually navigates
+    setStepProgression((prev) => ({
+      ...prev,
+      autoAdvanceEnabled: false,
+    }));
+
     setState((prev) => ({
       ...prev,
-      currentStep:
-        prev.currentStep === section
-          ? "basic"
-          : (newStep as "basic" | "groups" | "assets" | "complete"),
+      currentStep: targetStep as "basic" | "groups" | "assets" | "complete",
     }));
+
+    // Clear any existing manual navigation timeout
+    if (manualNavTimeoutRef.current) {
+      clearTimeout(manualNavTimeoutRef.current);
+    }
+
+    // Re-enable auto-advance after user interaction with proper cleanup
+    manualNavTimeoutRef.current = setTimeout(() => {
+      setStepProgression((prev) => ({
+        ...prev,
+        autoAdvanceEnabled: true,
+      }));
+      manualNavTimeoutRef.current = null;
+    }, 1000);
   };
 
   const handleNameChange = (name: string) => {
