@@ -1,10 +1,22 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { Configuration, AssetGroup, MediaAsset } from "../../types/media";
 import { createAssetGroup } from "../../types/media";
 import { AssetService } from "../../services/assetService";
 import { ProgressHeader } from "./ProgressHeader";
 import { ConfigSection } from "./ConfigSection";
 import { AssetList } from "../asset-library";
+
+enum ConfigStep {
+  BASIC = "basic",
+  GROUPS = "groups",
+  ASSETS = "assets",
+  COMPLETE = "complete",
+}
+
+// Type guard for validating config steps
+const isValidConfigStep = (step: string): step is ConfigStep => {
+  return Object.values(ConfigStep).includes(step as ConfigStep);
+};
 
 export interface UnifiedConfigurationBuilderProps {
   configuration?: Configuration;
@@ -27,7 +39,7 @@ interface UnifiedBuilderState {
   };
 
   // Progressive disclosure tracking
-  currentStep: "basic" | "groups" | "assets" | "complete";
+  currentStep: ConfigStep;
   completedSteps: {
     basicInfo: boolean;
     firstGroup: boolean;
@@ -54,7 +66,7 @@ export function UnifiedConfigurationBuilder({
       name: configuration?.name || "",
       description: configuration?.description || "",
     },
-    currentStep: "basic",
+    currentStep: ConfigStep.BASIC,
     completedSteps: {
       basicInfo: false,
       firstGroup: false,
@@ -86,42 +98,48 @@ export function UnifiedConfigurationBuilder({
   const isEditMode = mode === "edit";
 
   // Step availability logic
-  const isSectionAvailable = (step: string): boolean => {
-    switch (step) {
-      case "basic":
-        return true;
-      case "groups":
-        return state.completedSteps.basicInfo;
-      case "assets":
-        return (
-          state.completedSteps.basicInfo && state.completedSteps.firstGroup
-        );
-      case "complete":
-        return Object.values(state.completedSteps).every(Boolean);
-      default:
-        return false;
-    }
-  };
+  const isSectionAvailable = useCallback(
+    (step: ConfigStep): boolean => {
+      switch (step) {
+        case ConfigStep.BASIC:
+          return true;
+        case ConfigStep.GROUPS:
+          return state.completedSteps.basicInfo;
+        case ConfigStep.ASSETS:
+          return (
+            state.completedSteps.basicInfo && state.completedSteps.firstGroup
+          );
+        case ConfigStep.COMPLETE:
+          return Object.values(state.completedSteps).every(Boolean);
+        default:
+          return false;
+      }
+    },
+    [state.completedSteps]
+  );
 
   // Auto-advance logic with proper cleanup
   useEffect(() => {
     if (!stepProgression.autoAdvanceEnabled) return;
 
     // Find the next step to advance to
-    let nextStepToAdvance: string | null = null;
+    let nextStepToAdvance: ConfigStep | null = null;
 
-    if (state.completedSteps.basicInfo && state.currentStep === "basic") {
-      nextStepToAdvance = "groups";
+    if (
+      state.completedSteps.basicInfo &&
+      state.currentStep === ConfigStep.BASIC
+    ) {
+      nextStepToAdvance = ConfigStep.GROUPS;
     } else if (
       state.completedSteps.firstGroup &&
-      state.currentStep === "groups"
+      state.currentStep === ConfigStep.GROUPS
     ) {
-      nextStepToAdvance = "assets";
+      nextStepToAdvance = ConfigStep.ASSETS;
     } else if (
       state.completedSteps.assetsAdded &&
-      state.currentStep === "assets"
+      state.currentStep === ConfigStep.ASSETS
     ) {
-      nextStepToAdvance = "complete";
+      nextStepToAdvance = ConfigStep.COMPLETE;
     }
 
     if (nextStepToAdvance && isSectionAvailable(nextStepToAdvance)) {
@@ -134,11 +152,7 @@ export function UnifiedConfigurationBuilder({
       autoAdvanceTimeoutRef.current = setTimeout(() => {
         setState((prev) => ({
           ...prev,
-          currentStep: nextStepToAdvance as
-            | "basic"
-            | "groups"
-            | "assets"
-            | "complete",
+          currentStep: nextStepToAdvance as ConfigStep,
         }));
         setStepProgression((prev) => ({
           ...prev,
@@ -161,6 +175,7 @@ export function UnifiedConfigurationBuilder({
     state.completedSteps.firstGroup,
     state.completedSteps.assetsAdded,
     state.currentStep,
+    isSectionAvailable,
   ]);
 
   // Initialize completed steps for edit mode
@@ -201,8 +216,7 @@ export function UnifiedConfigurationBuilder({
 
   // Enhanced section toggle with smart navigation
   const handleSectionToggle = (section: string) => {
-    const validSteps = ["basic", "groups", "assets", "complete"];
-    const targetStep = validSteps.includes(section) ? section : "basic";
+    const targetStep = isValidConfigStep(section) ? section : ConfigStep.BASIC;
 
     // Check if target section is available
     if (!isSectionAvailable(targetStep)) {
@@ -217,7 +231,7 @@ export function UnifiedConfigurationBuilder({
 
     setState((prev) => ({
       ...prev,
-      currentStep: targetStep as "basic" | "groups" | "assets" | "complete",
+      currentStep: targetStep,
     }));
 
     // Clear any existing manual navigation timeout
@@ -410,8 +424,8 @@ export function UnifiedConfigurationBuilder({
         <ConfigSection
           title="Basic Configuration"
           completed={state.completedSteps.basicInfo}
-          expanded={state.currentStep === "basic"}
-          onToggle={() => handleSectionToggle("basic")}
+          expanded={state.currentStep === ConfigStep.BASIC}
+          onToggle={() => handleSectionToggle(ConfigStep.BASIC)}
         >
           <div className="space-y-4">
             {/* Name Field */}
@@ -447,8 +461,8 @@ export function UnifiedConfigurationBuilder({
         <ConfigSection
           title="Create Your First Asset Group"
           completed={state.completedSteps.firstGroup}
-          expanded={state.currentStep === "groups"}
-          onToggle={() => handleSectionToggle("groups")}
+          expanded={state.currentStep === ConfigStep.GROUPS}
+          onToggle={() => handleSectionToggle(ConfigStep.GROUPS)}
         >
           <div className="space-y-4">
             <div>
@@ -506,8 +520,8 @@ export function UnifiedConfigurationBuilder({
         <ConfigSection
           title="Add Assets to Your Group"
           completed={state.completedSteps.assetsAdded}
-          expanded={state.currentStep === "assets"}
-          onToggle={() => handleSectionToggle("assets")}
+          expanded={state.currentStep === ConfigStep.ASSETS}
+          onToggle={() => handleSectionToggle(ConfigStep.ASSETS)}
         >
           {state.groups.length > 0 ? (
             <div className="space-y-4">
