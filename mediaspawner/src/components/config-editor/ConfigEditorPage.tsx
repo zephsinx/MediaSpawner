@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ConfigurationService } from "../../services/configurationService";
-import { AssetGroupBuilder } from "../configuration/AssetGroupBuilder";
-import { ConfigurationForm } from "../configuration/ConfigurationForm";
+import { UnifiedConfigurationBuilder } from "../configuration/UnifiedConfigurationBuilder";
 import type { Configuration } from "../../types/media";
 
 const ConfigEditorPage: React.FC = () => {
@@ -10,9 +9,7 @@ const ConfigEditorPage: React.FC = () => {
   const [editingConfig, setEditingConfig] = useState<Configuration | null>(
     null
   );
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showUnifiedBuilder, setShowUnifiedBuilder] = useState(false);
 
   // Load configurations on component mount
   useEffect(() => {
@@ -29,78 +26,54 @@ const ConfigEditorPage: React.FC = () => {
     : null;
 
   const handleConfigurationChange = (configId: string) => {
-    if (hasUnsavedChanges) {
-      const confirmSwitch = window.confirm(
-        "You have unsaved changes. Switch configuration anyway?"
-      );
-      if (!confirmSwitch) return;
-    }
-
     setSelectedConfigId(configId);
-    setEditingConfig(null);
-    setHasUnsavedChanges(false);
-    setIsEditing(false);
   };
 
-  const handleEditStart = () => {
-    if (selectedConfig) {
+  const handleStartBuilder = (mode: "create" | "edit") => {
+    if (mode === "edit" && selectedConfig) {
       setEditingConfig(selectedConfig);
-      setIsEditing(true);
-      setHasUnsavedChanges(false);
-    }
-  };
-
-  const handleSaveConfiguration = (updatedConfig: Configuration) => {
-    const success = ConfigurationService.updateConfiguration(updatedConfig);
-    if (success) {
-      setConfigurations(ConfigurationService.getConfigurations());
+    } else {
       setEditingConfig(null);
-      setHasUnsavedChanges(false);
-      setIsEditing(false);
     }
+    setShowUnifiedBuilder(true);
   };
 
-  const handleCancelEdit = () => {
-    if (hasUnsavedChanges) {
-      const confirmCancel = window.confirm(
-        "You have unsaved changes. Cancel editing anyway?"
+  const handleBuilderSave = (config: Configuration) => {
+    const isEditMode = !!editingConfig;
+
+    if (isEditMode) {
+      // Update existing configuration
+      const success = ConfigurationService.updateConfiguration(config);
+      if (success) {
+        setConfigurations(ConfigurationService.getConfigurations());
+        setSelectedConfigId(config.id);
+      }
+    } else {
+      // Create new configuration and save via service
+      const savedConfig = ConfigurationService.createConfiguration(
+        config.name,
+        config.description
       );
-      if (!confirmCancel) return;
+      if (savedConfig) {
+        // Update the saved config with groups
+        const configWithGroups = { ...savedConfig, groups: config.groups };
+        const updateSuccess =
+          ConfigurationService.updateConfiguration(configWithGroups);
+        if (updateSuccess) {
+          setConfigurations(ConfigurationService.getConfigurations());
+          setSelectedConfigId(savedConfig.id);
+        }
+      }
     }
 
+    // Reset builder state
     setEditingConfig(null);
-    setHasUnsavedChanges(false);
-    setIsEditing(false);
+    setShowUnifiedBuilder(false);
   };
 
-  const handleCreateNew = () => {
-    if (hasUnsavedChanges) {
-      const confirmCreate = window.confirm(
-        "You have unsaved changes. Create new configuration anyway?"
-      );
-      if (!confirmCreate) return;
-    }
-
-    setShowCreateForm(true);
-    setIsEditing(false);
+  const handleBuilderCancel = () => {
     setEditingConfig(null);
-    setHasUnsavedChanges(false);
-  };
-
-  const handleCreateFormSave = (newConfig: Configuration) => {
-    // Refresh configurations list
-    const updatedConfigs = ConfigurationService.getConfigurations();
-    setConfigurations(updatedConfigs);
-
-    // Select the newly created configuration
-    setSelectedConfigId(newConfig.id);
-
-    // Hide the create form
-    setShowCreateForm(false);
-  };
-
-  const handleCreateFormCancel = () => {
-    setShowCreateForm(false);
+    setShowUnifiedBuilder(false);
   };
 
   return (
@@ -119,8 +92,8 @@ const ConfigEditorPage: React.FC = () => {
           </div>
 
           <button
-            onClick={handleCreateNew}
-            disabled={isEditing || showCreateForm}
+            onClick={() => handleStartBuilder("create")}
+            disabled={showUnifiedBuilder}
             className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
           >
             Create New Configuration
@@ -128,170 +101,155 @@ const ConfigEditorPage: React.FC = () => {
         </div>
 
         {/* Breadcrumb Navigation */}
-        {selectedConfig && !showCreateForm && (
+        {selectedConfig && !showUnifiedBuilder && (
           <div className="text-sm text-gray-500 mb-4">
             <span>Configuration Editor</span>
             <span className="mx-2">›</span>
             <span className="font-medium text-gray-700">
               {selectedConfig.name}
             </span>
-            {isEditing && (
-              <>
-                <span className="mx-2">›</span>
-                <span className="text-blue-600">Editing</span>
-              </>
-            )}
           </div>
         )}
 
-        {/* Create Form Breadcrumb */}
-        {showCreateForm && (
+        {/* Unified Builder Breadcrumb */}
+        {showUnifiedBuilder && (
           <div className="text-sm text-gray-500 mb-4">
             <span>Configuration Editor</span>
             <span className="mx-2">›</span>
-            <span className="text-green-600">Create New Configuration</span>
+            <span
+              className={editingConfig ? "text-blue-600" : "text-green-600"}
+            >
+              {editingConfig
+                ? `Edit ${editingConfig.name}`
+                : "Create New Configuration"}
+            </span>
           </div>
         )}
       </div>
 
-      {/* Configuration Creation Form */}
-      {showCreateForm && (
-        <div className="mb-6">
-          <ConfigurationForm
-            onSave={handleCreateFormSave}
-            onCancel={handleCreateFormCancel}
-          />
-        </div>
-      )}
+      {/* Unified Configuration Builder */}
+      {showUnifiedBuilder ? (
+        <UnifiedConfigurationBuilder
+          configuration={editingConfig || undefined}
+          mode={editingConfig ? "edit" : "create"}
+          onSave={handleBuilderSave}
+          onCancel={handleBuilderCancel}
+        />
+      ) : (
+        <>
+          {/* Configuration Selection */}
+          {configurations.length > 0 ? (
+            <div className="bg-white border rounded-lg p-6 mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-800">
+                  Select Configuration
+                </h2>
 
-      {/* Configuration Selection - hidden when creating new */}
-      {!showCreateForm && configurations.length > 0 ? (
-        <div className="bg-white border rounded-lg p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">
-              Select Configuration
-            </h2>
-
-            {selectedConfig && !isEditing && (
-              <button
-                onClick={handleEditStart}
-                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-              >
-                Edit Configuration
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <label className="text-sm font-medium text-gray-700">
-              Configuration:
-            </label>
-            <select
-              value={selectedConfigId || ""}
-              onChange={(e) => handleConfigurationChange(e.target.value)}
-              disabled={isEditing}
-              className="flex-1 max-w-md px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-            >
-              {configurations.map((config) => (
-                <option key={config.id} value={config.id}>
-                  {config.name}
-                  {config.description && ` - ${config.description}`}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {selectedConfig && !isEditing && (
-            <div className="mt-4 p-4 bg-gray-50 rounded-md">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div>
-                  <span className="font-medium text-gray-700">Groups:</span>
-                  <span className="ml-2 text-gray-600">
-                    {selectedConfig.groups.length}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-700">
-                    Total Assets:
-                  </span>
-                  <span className="ml-2 text-gray-600">
-                    {selectedConfig.groups.reduce(
-                      (sum, group) => sum + group.assets.length,
-                      0
-                    )}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-700">
-                    Last Modified:
-                  </span>
-                  <span className="ml-2 text-gray-600">
-                    {new Date(selectedConfig.lastModified).toLocaleDateString()}
-                  </span>
-                </div>
+                {selectedConfig && (
+                  <button
+                    onClick={() => handleStartBuilder("edit")}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                  >
+                    Edit Configuration
+                  </button>
+                )}
               </div>
 
-              {selectedConfig.description && (
-                <div className="mt-2">
-                  <span className="font-medium text-gray-700">
-                    Description:
-                  </span>
-                  <span className="ml-2 text-gray-600">
-                    {selectedConfig.description}
-                  </span>
+              <div className="flex items-center space-x-4">
+                <label className="text-sm font-medium text-gray-700">
+                  Configuration:
+                </label>
+                <select
+                  value={selectedConfigId || ""}
+                  onChange={(e) => handleConfigurationChange(e.target.value)}
+                  className="flex-1 max-w-md px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {configurations.map((config) => (
+                    <option key={config.id} value={config.id}>
+                      {config.name}
+                      {config.description && ` - ${config.description}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedConfig && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-md">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium text-gray-700">Groups:</span>
+                      <span className="ml-2 text-gray-600">
+                        {selectedConfig.groups.length}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">
+                        Total Assets:
+                      </span>
+                      <span className="ml-2 text-gray-600">
+                        {selectedConfig.groups.reduce(
+                          (sum, group) => sum + group.assets.length,
+                          0
+                        )}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">
+                        Last Modified:
+                      </span>
+                      <span className="ml-2 text-gray-600">
+                        {new Date(
+                          selectedConfig.lastModified
+                        ).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {selectedConfig.description && (
+                    <div className="mt-2">
+                      <span className="font-medium text-gray-700">
+                        Description:
+                      </span>
+                      <span className="ml-2 text-gray-600">
+                        {selectedConfig.description}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
+          ) : (
+            <div className="bg-white border rounded-lg p-8 text-center">
+              <div className="mb-4">
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No configurations available
+              </h3>
+              <p className="text-gray-500 mb-4">
+                Create your first configuration to start editing asset groups
+              </p>
+              <button
+                onClick={() => handleStartBuilder("create")}
+                className="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+              >
+                Create Your First Configuration
+              </button>
+            </div>
           )}
-        </div>
-      ) : !showCreateForm ? (
-        <div className="bg-white border rounded-lg p-8 text-center">
-          <div className="mb-4">
-            <svg
-              className="mx-auto h-12 w-12 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No configurations available
-          </h3>
-          <p className="text-gray-500 mb-4">
-            Create your first configuration to start editing asset groups
-          </p>
-          <button
-            onClick={handleCreateNew}
-            className="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-          >
-            Create Your First Configuration
-          </button>
-        </div>
-      ) : null}
-
-      {/* Asset Group Builder - shown when editing */}
-      {isEditing && editingConfig && !showCreateForm && (
-        <AssetGroupBuilder
-          configuration={editingConfig}
-          onSave={handleSaveConfiguration}
-          onCancel={handleCancelEdit}
-        />
-      )}
-
-      {/* Unsaved Changes Warning */}
-      {hasUnsavedChanges && (
-        <div className="fixed bottom-4 right-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg shadow-lg">
-          <p className="text-sm text-yellow-700">
-            You have unsaved changes in the configuration editor.
-          </p>
-        </div>
+        </>
       )}
     </div>
   );
