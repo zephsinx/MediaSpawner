@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import type { Configuration, AssetGroup, MediaAsset } from "../../types/media";
 import { createAssetGroup } from "../../types/media";
+import { AssetService } from "../../services/assetService";
 import { ProgressHeader } from "./ProgressHeader";
 import { ConfigSection } from "./ConfigSection";
+import { AssetList } from "../asset-library";
 
 export interface UnifiedConfigurationBuilderProps {
   configuration?: Configuration;
@@ -82,6 +84,14 @@ export function UnifiedConfigurationBuilder({
     }
   }, [isEditMode, configuration]);
 
+  // Load available assets on mount
+  useEffect(() => {
+    setState((prev) => ({
+      ...prev,
+      availableAssets: AssetService.getAssets(),
+    }));
+  }, []);
+
   const handleSectionToggle = (section: string) => {
     const validSteps = ["basic", "groups", "assets", "complete"];
     const newStep = validSteps.includes(section) ? section : "basic";
@@ -157,6 +167,24 @@ export function UnifiedConfigurationBuilder({
     setGroupForm({ name: "", duration: 5000 });
   };
 
+  // Asset assignment handler
+  const handleAddAssetToGroup = (asset: MediaAsset) => {
+    if (state.groups.length === 0) return;
+
+    const updatedGroups = state.groups.map((group, index) => {
+      if (index === 0) {
+        // First group only
+        const isAlreadyAdded = group.assets.some((a) => a.id === asset.id);
+        if (!isAlreadyAdded) {
+          return { ...group, assets: [...group.assets, asset] };
+        }
+      }
+      return group;
+    });
+
+    setState((prev) => ({ ...prev, groups: updatedGroups }));
+  };
+
   // Real-time validation for basic info completion
   useEffect(() => {
     const basicComplete =
@@ -195,6 +223,22 @@ export function UnifiedConfigurationBuilder({
       }));
     }
   }, [state.groups, state.completedSteps.firstGroup]);
+
+  // Real-time validation for assets completion
+  useEffect(() => {
+    const assetsComplete =
+      state.groups.length > 0 && state.groups[0].assets.length > 0;
+
+    if (assetsComplete !== state.completedSteps.assetsAdded) {
+      setState((prev) => ({
+        ...prev,
+        completedSteps: {
+          ...prev.completedSteps,
+          assetsAdded: assetsComplete,
+        },
+      }));
+    }
+  }, [state.groups, state.completedSteps.assetsAdded]);
 
   const handleSave = () => {
     // TODO: Implement final save logic combining all sections
@@ -329,14 +373,35 @@ export function UnifiedConfigurationBuilder({
         </ConfigSection>
 
         <ConfigSection
-          title="Add Assets"
+          title="Add Assets to Your Group"
           completed={state.completedSteps.assetsAdded}
           expanded={state.currentStep === "assets"}
           onToggle={() => handleSectionToggle("assets")}
         >
-          <div className="text-gray-500 text-sm">
-            Asset library integration will be implemented in Step 6
-          </div>
+          {state.groups.length > 0 ? (
+            <div className="space-y-4">
+              <div className="text-sm text-gray-600">
+                Adding assets to: <strong>{state.groups[0].name}</strong>
+              </div>
+
+              <AssetList
+                assets={state.availableAssets}
+                onAssetSelect={handleAddAssetToGroup}
+                selectedAssets={[]} // Not using selection highlighting for this workflow
+                className="max-h-96 overflow-y-auto"
+              />
+
+              {state.groups[0].assets.length > 0 && (
+                <div className="text-sm text-green-600">
+                  ✅ {state.groups[0].assets.length} asset(s) added to group
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-gray-500 text-sm">
+              Create a group first to add assets
+            </div>
+          )}
         </ConfigSection>
 
         <div className="flex justify-end space-x-3 pt-6 border-t">
