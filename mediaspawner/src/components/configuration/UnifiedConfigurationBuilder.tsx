@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { Configuration, AssetGroup, MediaAsset } from "../../types/media";
+import { createAssetGroup } from "../../types/media";
 import { ProgressHeader } from "./ProgressHeader";
 import { ConfigSection } from "./ConfigSection";
 
@@ -57,6 +58,12 @@ export function UnifiedConfigurationBuilder({
     selectedAssetId: null,
   });
 
+  // Group form state for first group creation
+  const [groupForm, setGroupForm] = useState({
+    name: "",
+    duration: 5000,
+  });
+
   const isEditMode = mode === "edit";
 
   // Initialize completed steps for edit mode
@@ -101,6 +108,55 @@ export function UnifiedConfigurationBuilder({
     }));
   };
 
+  // Group management handlers
+  const handleGroupNameChange = (name: string) => {
+    const currentGroup = state.groups.length > 0 ? state.groups[0] : null;
+
+    if (currentGroup) {
+      // Update existing first group
+      setState((prev) => ({
+        ...prev,
+        groups: prev.groups.map((group, index) =>
+          index === 0 ? { ...group, name } : group
+        ),
+      }));
+    } else {
+      // Update form for new group
+      setGroupForm((prev) => ({ ...prev, name }));
+    }
+  };
+
+  const handleGroupDurationChange = (duration: number) => {
+    const currentGroup = state.groups.length > 0 ? state.groups[0] : null;
+
+    if (currentGroup) {
+      // Update existing first group
+      setState((prev) => ({
+        ...prev,
+        groups: prev.groups.map((group, index) =>
+          index === 0 ? { ...group, duration } : group
+        ),
+      }));
+    } else {
+      // Update form for new group
+      setGroupForm((prev) => ({ ...prev, duration }));
+    }
+  };
+
+  const handleCreateFirstGroup = () => {
+    if (!groupForm.name.trim()) return;
+
+    const newGroup = createAssetGroup(groupForm.name.trim());
+    setState((prev) => ({
+      ...prev,
+      groups: [{ ...newGroup, duration: groupForm.duration }],
+      selectedGroupId: newGroup.id,
+    }));
+
+    // Reset form
+    setGroupForm({ name: "", duration: 5000 });
+  };
+
   // Real-time validation for basic info completion
   useEffect(() => {
     const basicComplete =
@@ -122,6 +178,24 @@ export function UnifiedConfigurationBuilder({
     state.completedSteps.basicInfo,
   ]);
 
+  // Real-time validation for first group completion
+  useEffect(() => {
+    const firstGroupComplete =
+      state.groups.length > 0 &&
+      state.groups[0].name.trim() !== "" &&
+      state.groups[0].duration > 0;
+
+    if (firstGroupComplete !== state.completedSteps.firstGroup) {
+      setState((prev) => ({
+        ...prev,
+        completedSteps: {
+          ...prev.completedSteps,
+          firstGroup: firstGroupComplete,
+        },
+      }));
+    }
+  }, [state.groups, state.completedSteps.firstGroup]);
+
   const handleSave = () => {
     // TODO: Implement final save logic combining all sections
     console.log("Save configuration:", state);
@@ -139,6 +213,14 @@ export function UnifiedConfigurationBuilder({
 
     onSave(configToSave);
   };
+
+  const currentGroup = state.groups.length > 0 ? state.groups[0] : null;
+  const currentGroupName = currentGroup ? currentGroup.name : groupForm.name;
+  const currentGroupDuration = currentGroup
+    ? currentGroup.duration
+    : groupForm.duration;
+  const isGroupFormValid =
+    currentGroupName.trim() !== "" && currentGroupDuration > 0;
 
   return (
     <div className="unified-configuration-builder bg-white border rounded-lg p-6">
@@ -188,40 +270,75 @@ export function UnifiedConfigurationBuilder({
         </ConfigSection>
 
         <ConfigSection
-          title="Asset Groups"
+          title="Create Your First Asset Group"
           completed={state.completedSteps.firstGroup}
           expanded={state.currentStep === "groups"}
           onToggle={() => handleSectionToggle("groups")}
         >
-          <div className="text-gray-500 text-sm">
-            Group creation and management will be implemented in Step 5
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Group Name *
+              </label>
+              <input
+                type="text"
+                value={currentGroupName}
+                onChange={(e) => handleGroupNameChange(e.target.value)}
+                placeholder="Enter group name"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Display Duration (ms) *
+              </label>
+              <input
+                type="number"
+                value={currentGroupDuration}
+                onChange={(e) =>
+                  handleGroupDurationChange(Number(e.target.value))
+                }
+                min="100"
+                step="100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                How long assets in this group will be displayed (milliseconds)
+              </p>
+            </div>
+
+            {!currentGroup && (
+              <div className="pt-2">
+                <button
+                  onClick={handleCreateFirstGroup}
+                  disabled={!isGroupFormValid}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                >
+                  Create First Group
+                </button>
+              </div>
+            )}
+
+            {currentGroup && (
+              <div className="pt-2 text-sm text-green-600">
+                ✅ Group "{currentGroup.name}" created successfully
+              </div>
+            )}
           </div>
         </ConfigSection>
 
         <ConfigSection
-          title="Asset Library"
+          title="Add Assets"
           completed={state.completedSteps.assetsAdded}
           expanded={state.currentStep === "assets"}
           onToggle={() => handleSectionToggle("assets")}
         >
           <div className="text-gray-500 text-sm">
-            AssetList integration and PropertyModal will be implemented in Step
-            6
+            Asset library integration will be implemented in Step 6
           </div>
         </ConfigSection>
 
-        <ConfigSection
-          title="Review and Finish"
-          completed={false}
-          expanded={state.currentStep === "complete"}
-          onToggle={() => handleSectionToggle("complete")}
-        >
-          <div className="text-gray-500 text-sm">
-            Final review and save actions
-          </div>
-        </ConfigSection>
-
-        {/* Actions */}
         <div className="flex justify-end space-x-3 pt-6 border-t">
           <button
             onClick={onCancel}
