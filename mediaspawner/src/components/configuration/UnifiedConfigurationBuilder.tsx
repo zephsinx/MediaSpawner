@@ -61,6 +61,14 @@ export function UnifiedConfigurationBuilder({
   onCancel,
   mode = "create",
 }: UnifiedConfigurationBuilderProps) {
+  // Constants for timing and validation
+  const TIMING_CONSTANTS = {
+    AUTO_ADVANCE_DELAY: 300,
+    MANUAL_NAV_REENABLE_DELAY: 1000,
+    DEFAULT_GROUP_DURATION: 5000,
+    MIN_DURATION: 100,
+    DURATION_STEP: 100,
+  } as const;
   const [state, setState] = useState<UnifiedBuilderState>({
     configuration: {
       name: configuration?.name || "",
@@ -90,9 +98,12 @@ export function UnifiedConfigurationBuilder({
   const manualNavTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Group form state for first group creation
-  const [groupForm, setGroupForm] = useState({
+  const [groupForm, setGroupForm] = useState<{
+    name: string;
+    duration: number;
+  }>({
     name: "",
-    duration: 5000,
+    duration: TIMING_CONSTANTS.DEFAULT_GROUP_DURATION,
   });
 
   const isEditMode = mode === "edit";
@@ -159,7 +170,7 @@ export function UnifiedConfigurationBuilder({
           lastAdvancedStep: nextStepToAdvance,
         }));
         autoAdvanceTimeoutRef.current = null;
-      }, 300);
+      }, TIMING_CONSTANTS.AUTO_ADVANCE_DELAY);
     }
 
     // Cleanup function
@@ -176,6 +187,7 @@ export function UnifiedConfigurationBuilder({
     state.completedSteps.assetsAdded,
     state.currentStep,
     isSectionAvailable,
+    TIMING_CONSTANTS.AUTO_ADVANCE_DELAY,
   ]);
 
   // Initialize completed steps for edit mode
@@ -246,7 +258,7 @@ export function UnifiedConfigurationBuilder({
         autoAdvanceEnabled: true,
       }));
       manualNavTimeoutRef.current = null;
-    }, 1000);
+    }, TIMING_CONSTANTS.MANUAL_NAV_REENABLE_DELAY);
   };
 
   const handleNameChange = (name: string) => {
@@ -309,7 +321,10 @@ export function UnifiedConfigurationBuilder({
     }));
 
     // Reset form
-    setGroupForm({ name: "", duration: 5000 });
+    setGroupForm({
+      name: "",
+      duration: TIMING_CONSTANTS.DEFAULT_GROUP_DURATION,
+    });
   };
 
   // Asset assignment handler
@@ -386,10 +401,6 @@ export function UnifiedConfigurationBuilder({
   }, [state.groups, state.completedSteps.assetsAdded]);
 
   const handleSave = () => {
-    // TODO: Implement final save logic combining all sections
-    console.log("Save configuration:", state);
-
-    // Placeholder - will be implemented with proper Configuration object creation
     const configToSave =
       configuration ||
       ({
@@ -485,11 +496,16 @@ export function UnifiedConfigurationBuilder({
               <input
                 type="number"
                 value={currentGroupDuration}
-                onChange={(e) =>
-                  handleGroupDurationChange(Number(e.target.value))
-                }
-                min="100"
-                step="100"
+                onChange={(e) => {
+                  const value = Math.max(
+                    TIMING_CONSTANTS.MIN_DURATION,
+                    Number(e.target.value) ||
+                      TIMING_CONSTANTS.DEFAULT_GROUP_DURATION
+                  );
+                  handleGroupDurationChange(value);
+                }}
+                min={TIMING_CONSTANTS.MIN_DURATION}
+                step={TIMING_CONSTANTS.DURATION_STEP}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
               />
               <p className="text-xs text-gray-500 mt-1">
