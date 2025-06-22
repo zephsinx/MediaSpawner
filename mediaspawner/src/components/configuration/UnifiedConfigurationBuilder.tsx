@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { Configuration, AssetGroup, MediaAsset } from "../../types/media";
 import { createAssetGroup } from "../../types/media";
 import { AssetService } from "../../services/assetService";
@@ -23,12 +23,6 @@ export interface UnifiedConfigurationBuilderProps {
   onSave: (config: Configuration) => void;
   onCancel: () => void;
   mode?: "create" | "edit";
-}
-
-interface StepProgression {
-  autoAdvanceEnabled: boolean;
-  pendingAdvancement: string | null;
-  lastAdvancedStep: string | null;
 }
 
 interface UnifiedBuilderState {
@@ -63,8 +57,6 @@ export function UnifiedConfigurationBuilder({
 }: UnifiedConfigurationBuilderProps) {
   // Constants for timing and validation
   const TIMING_CONSTANTS = {
-    AUTO_ADVANCE_DELAY: 300,
-    MANUAL_NAV_REENABLE_DELAY: 1000,
     DEFAULT_GROUP_DURATION: 5000,
     MIN_DURATION: 100,
     DURATION_STEP: 100,
@@ -85,17 +77,6 @@ export function UnifiedConfigurationBuilder({
     availableAssets: [],
     selectedAssetId: null,
   });
-
-  // Step progression state management
-  const [stepProgression, setStepProgression] = useState<StepProgression>({
-    autoAdvanceEnabled: true,
-    pendingAdvancement: null,
-    lastAdvancedStep: null,
-  });
-
-  // Timeout refs for cleanup
-  const autoAdvanceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const manualNavTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Group form state for first group creation
   const [groupForm, setGroupForm] = useState<{
@@ -129,67 +110,6 @@ export function UnifiedConfigurationBuilder({
     [state.completedSteps]
   );
 
-  // Auto-advance logic with proper cleanup
-  useEffect(() => {
-    if (!stepProgression.autoAdvanceEnabled) return;
-
-    // Find the next step to advance to
-    let nextStepToAdvance: ConfigStep | null = null;
-
-    if (
-      state.completedSteps.basicInfo &&
-      state.currentStep === ConfigStep.BASIC
-    ) {
-      nextStepToAdvance = ConfigStep.GROUPS;
-    } else if (
-      state.completedSteps.firstGroup &&
-      state.currentStep === ConfigStep.GROUPS
-    ) {
-      nextStepToAdvance = ConfigStep.ASSETS;
-    } else if (
-      state.completedSteps.assetsAdded &&
-      state.currentStep === ConfigStep.ASSETS
-    ) {
-      nextStepToAdvance = ConfigStep.COMPLETE;
-    }
-
-    if (nextStepToAdvance && isSectionAvailable(nextStepToAdvance)) {
-      // Clear any existing timeout
-      if (autoAdvanceTimeoutRef.current) {
-        clearTimeout(autoAdvanceTimeoutRef.current);
-      }
-
-      // Set new timeout with cleanup
-      autoAdvanceTimeoutRef.current = setTimeout(() => {
-        setState((prev) => ({
-          ...prev,
-          currentStep: nextStepToAdvance as ConfigStep,
-        }));
-        setStepProgression((prev) => ({
-          ...prev,
-          lastAdvancedStep: nextStepToAdvance,
-        }));
-        autoAdvanceTimeoutRef.current = null;
-      }, TIMING_CONSTANTS.AUTO_ADVANCE_DELAY);
-    }
-
-    // Cleanup function
-    return () => {
-      if (autoAdvanceTimeoutRef.current) {
-        clearTimeout(autoAdvanceTimeoutRef.current);
-        autoAdvanceTimeoutRef.current = null;
-      }
-    };
-  }, [
-    stepProgression.autoAdvanceEnabled,
-    state.completedSteps.basicInfo,
-    state.completedSteps.firstGroup,
-    state.completedSteps.assetsAdded,
-    state.currentStep,
-    isSectionAvailable,
-    TIMING_CONSTANTS.AUTO_ADVANCE_DELAY,
-  ]);
-
   // Initialize completed steps for edit mode
   useEffect(() => {
     if (isEditMode && configuration) {
@@ -214,19 +134,7 @@ export function UnifiedConfigurationBuilder({
     }));
   }, []);
 
-  // Cleanup timeouts on unmount
-  useEffect(() => {
-    return () => {
-      if (autoAdvanceTimeoutRef.current) {
-        clearTimeout(autoAdvanceTimeoutRef.current);
-      }
-      if (manualNavTimeoutRef.current) {
-        clearTimeout(manualNavTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Enhanced section toggle with smart navigation
+  // Section toggle navigation
   const handleSectionToggle = (section: string) => {
     const targetStep = isValidConfigStep(section) ? section : ConfigStep.BASIC;
 
@@ -235,30 +143,10 @@ export function UnifiedConfigurationBuilder({
       return; // Don't allow navigation to unavailable sections
     }
 
-    // Disable auto-advance temporarily when user manually navigates
-    setStepProgression((prev) => ({
-      ...prev,
-      autoAdvanceEnabled: false,
-    }));
-
     setState((prev) => ({
       ...prev,
       currentStep: targetStep,
     }));
-
-    // Clear any existing manual navigation timeout
-    if (manualNavTimeoutRef.current) {
-      clearTimeout(manualNavTimeoutRef.current);
-    }
-
-    // Re-enable auto-advance after user interaction with proper cleanup
-    manualNavTimeoutRef.current = setTimeout(() => {
-      setStepProgression((prev) => ({
-        ...prev,
-        autoAdvanceEnabled: true,
-      }));
-      manualNavTimeoutRef.current = null;
-    }, TIMING_CONSTANTS.MANUAL_NAV_REENABLE_DELAY);
   };
 
   const handleNameChange = (name: string) => {
@@ -347,9 +235,7 @@ export function UnifiedConfigurationBuilder({
 
   // Real-time validation for basic info completion
   useEffect(() => {
-    const basicComplete =
-      state.configuration.name.trim() !== "" &&
-      state.configuration.description.trim() !== "";
+    const basicComplete = state.configuration.name.trim() !== "";
 
     if (basicComplete !== state.completedSteps.basicInfo) {
       setState((prev) => ({
@@ -360,11 +246,7 @@ export function UnifiedConfigurationBuilder({
         },
       }));
     }
-  }, [
-    state.configuration.name,
-    state.configuration.description,
-    state.completedSteps.basicInfo,
-  ]);
+  }, [state.configuration.name, state.completedSteps.basicInfo]);
 
   // Real-time validation for first group completion
   useEffect(() => {
@@ -401,15 +283,13 @@ export function UnifiedConfigurationBuilder({
   }, [state.groups, state.completedSteps.assetsAdded]);
 
   const handleSave = () => {
-    const configToSave =
-      configuration ||
-      ({
-        id: crypto.randomUUID(),
-        name: state.configuration.name,
-        description: state.configuration.description,
-        groups: state.groups,
-        lastModified: Date.now(),
-      } as Configuration);
+    const configToSave: Configuration = {
+      id: configuration?.id || crypto.randomUUID(),
+      name: state.configuration.name,
+      description: state.configuration.description,
+      groups: state.groups,
+      lastModified: Date.now(),
+    };
 
     onSave(configToSave);
   };
