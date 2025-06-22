@@ -215,15 +215,22 @@ export function UnifiedConfigurationBuilder({
     });
   };
 
-  // Asset assignment handler
-  const handleAddAssetToGroup = (asset: MediaAsset) => {
+  // Asset toggle handler - add or remove from group
+  const handleToggleAssetInGroup = (asset: MediaAsset) => {
     if (state.groups.length === 0) return;
 
     const updatedGroups = state.groups.map((group, index) => {
       if (index === 0) {
         // First group only
         const isAlreadyAdded = group.assets.some((a) => a.id === asset.id);
-        if (!isAlreadyAdded) {
+        if (isAlreadyAdded) {
+          // Remove asset from group
+          return {
+            ...group,
+            assets: group.assets.filter((a) => a.id !== asset.id),
+          };
+        } else {
+          // Add asset to group
           return { ...group, assets: [...group.assets, asset] };
         }
       }
@@ -422,19 +429,30 @@ export function UnifiedConfigurationBuilder({
           {state.groups.length > 0 ? (
             <div className="space-y-4">
               <div className="text-sm text-gray-600">
-                Adding assets to: <strong>{state.groups[0].name}</strong>
+                Managing assets for: <strong>{state.groups[0].name}</strong>
+                <div className="text-xs text-gray-500 mt-1">
+                  Click to add unselected assets or remove selected assets (blue
+                  highlighted)
+                </div>
               </div>
 
               <AssetList
                 assets={state.availableAssets}
-                onAssetSelect={handleAddAssetToGroup}
-                selectedAssets={[]} // Not using selection highlighting for this workflow
+                onAssetSelect={handleToggleAssetInGroup}
+                selectedAssets={
+                  state.groups[0]?.assets.map((asset) => asset.id) || []
+                }
                 className="max-h-96 overflow-y-auto"
               />
 
-              {state.groups[0].assets.length > 0 && (
+              {state.groups[0].assets.length > 0 ? (
                 <div className="text-sm text-green-600">
-                  ✅ {state.groups[0].assets.length} asset(s) added to group
+                  ✅ {state.groups[0].assets.length} asset(s) in group
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500">
+                  No assets added yet. Click assets above to add them to this
+                  group.
                 </div>
               )}
             </div>
