@@ -1,6 +1,7 @@
 # Epic 1: Data Model & Services Foundation - User Stories
 
 ## Epic Overview
+
 **Epic**: Data Model & Services Foundation  
 **Priority**: 1 (Critical Path)  
 **Status**: Not Started  
@@ -10,7 +11,8 @@ Create type definitions and services to support the new spawn-centric architectu
 ---
 
 ## Story 1: Define Spawn Data Structure
-**Story ID**: MS-1  
+
+**Story ID**: MS-9
 **Priority**: High  
 **Estimate**: 2 points  
 **Status**: Not Started  
@@ -19,22 +21,27 @@ Create type definitions and services to support the new spawn-centric architectu
 As a developer, I want to define the Spawn interface with all required properties, so that I can represent spawns with enabled/disabled states and trigger configuration.
 
 **Acceptance Criteria**:
+
 - [ ] Spawn interface includes: id, name, enabled, trigger, duration, assets[]
 - [ ] Spawn supports asset inheritance settings (default properties)
+- [ ] SpawnAsset interface for spawn-specific asset instances with settings inheritance
 - [ ] TypeScript compilation passes without errors
 - [ ] Interface designed for future OBS-style settings expansion
 - [ ] Proper JSDoc documentation added
 
 **Technical Notes**:
-- Extend existing MediaAsset type for spawn-specific asset settings
+
+- Create SpawnAsset interface extending MediaAsset with spawn-specific overrides
 - Include enabled boolean for toggle functionality
 - Trigger field should be flexible string/object for future expansion
+- Design inheritance model: Spawn defaults → SpawnAsset overrides
 
 **Dependencies**: None
 
 ---
 
 ## Story 2: Define SpawnProfile Data Structure
+
 **Story ID**: MS-2  
 **Priority**: High  
 **Estimate**: 2 points  
@@ -44,6 +51,7 @@ As a developer, I want to define the Spawn interface with all required propertie
 As a developer, I want to define the SpawnProfile interface with active profile tracking, so that I can manage collections of spawns with one active profile at a time.
 
 **Acceptance Criteria**:
+
 - [ ] SpawnProfile interface includes: id, name, description, spawns[], lastModified
 - [ ] Interface supports active profile identification
 - [ ] Maintains proper relationship to spawns array
@@ -51,6 +59,7 @@ As a developer, I want to define the SpawnProfile interface with active profile 
 - [ ] Proper JSDoc documentation added
 
 **Technical Notes**:
+
 - Replace existing Configuration interface
 - Consider settings for active profile tracking (separate from profile data)
 - Ensure spawns array properly typed with Spawn interface
@@ -60,6 +69,7 @@ As a developer, I want to define the SpawnProfile interface with active profile 
 ---
 
 ## Story 3: Implement SpawnService CRUD Operations
+
 **Story ID**: MS-3  
 **Priority**: High  
 **Estimate**: 5 points  
@@ -69,6 +79,7 @@ As a developer, I want to define the SpawnProfile interface with active profile 
 As a developer, I want basic spawn CRUD operations, so that I can create, read, update, and delete spawns within profiles with enable/disable functionality.
 
 **Acceptance Criteria**:
+
 - [ ] Implement createSpawn(), getSpawn(), updateSpawn(), deleteSpawn()
 - [ ] Implement enableSpawn(), disableSpawn() methods
 - [ ] Proper localStorage persistence with error handling
@@ -77,6 +88,7 @@ As a developer, I want basic spawn CRUD operations, so that I can create, read, 
 - [ ] Handles edge cases (empty profiles, invalid IDs)
 
 **Technical Notes**:
+
 - Follow existing service patterns (AssetService structure)
 - Integrate with CacheService for performance
 - Include spawn validation logic
@@ -87,6 +99,7 @@ As a developer, I want basic spawn CRUD operations, so that I can create, read, 
 ---
 
 ## Story 4: Implement SpawnProfileService with Active Profile Management
+
 **Story ID**: MS-4  
 **Priority**: High  
 **Estimate**: 5 points  
@@ -96,6 +109,7 @@ As a developer, I want basic spawn CRUD operations, so that I can create, read, 
 As a developer, I want spawn profile management with active profile tracking, so that only one profile is active at a time with proper context switching.
 
 **Acceptance Criteria**:
+
 - [ ] Profile CRUD operations: create, read, update, delete
 - [ ] setActiveProfile() and getActiveProfile() methods
 - [ ] Profile switching behavior (context reset)
@@ -104,6 +118,7 @@ As a developer, I want spawn profile management with active profile tracking, so
 - [ ] Error handling for invalid profiles
 
 **Technical Notes**:
+
 - Replace existing ConfigurationService
 - Integrate with SettingsService for active profile persistence
 - Ensure proper cache invalidation on profile switches
@@ -114,6 +129,7 @@ As a developer, I want spawn profile management with active profile tracking, so
 ---
 
 ## Story 5: Extend AssetService for Spawn-Specific Settings
+
 **Story ID**: MS-5  
 **Priority**: High  
 **Estimate**: 8 points  
@@ -123,6 +139,7 @@ As a developer, I want spawn profile management with active profile tracking, so
 As a developer, I want spawn-specific asset settings with inheritance, so that assets can have different configurations per spawn while inheriting defaults.
 
 **Acceptance Criteria**:
+
 - [ ] getSpawnAssetSettings(spawnId, assetId) method
 - [ ] setSpawnAssetSettings(spawnId, assetId, settings) method
 - [ ] Asset settings inherit from spawn defaults
@@ -133,8 +150,10 @@ As a developer, I want spawn-specific asset settings with inheritance, so that a
 - [ ] Performance optimized for large asset lists
 
 **Technical Notes**:
+
 - Extend existing AssetService without breaking current functionality
-- Design inheritance model: Spawn defaults → Asset overrides
+- Implement data structure for SpawnAsset instances (not just MediaAsset references)
+- Design inheritance model: Spawn defaults → SpawnAsset overrides → final rendered settings
 - Consider storage structure for spawn-asset settings relationships
 - Maintain backward compatibility with existing asset operations
 
@@ -143,7 +162,8 @@ As a developer, I want spawn-specific asset settings with inheritance, so that a
 ---
 
 ## Story Dependencies
-```
+
+```text
 Story 1 (Spawn Interface)
 ├── Story 2 (SpawnProfile Interface)
 ├── Story 3 (SpawnService)
@@ -152,7 +172,9 @@ Story 1 (Spawn Interface)
 ```
 
 ## Definition of Done
+
 Each story is complete when:
+
 - [ ] Code implemented and peer reviewed
 - [ ] Unit tests pass with >90% coverage
 - [ ] TypeScript compilation clean (no errors, minimal warnings)
@@ -162,14 +184,17 @@ Each story is complete when:
 - [ ] Vision alignment validated against checklist
 
 ## Vision Validation Checklist
-- [ ] Supports spawn enable/disable functionality
-- [ ] Includes trigger configuration for future expansion
-- [ ] Supports one active profile at a time
-- [ ] Scalable to 100s of spawns per profile
-- [ ] Asset inheritance model implemented correctly
-- [ ] Maintains clean, reusable asset library
+
+- [ ] Supports spawn enable/disable functionality ✓ (Stories 1, 3)
+- [ ] Includes trigger configuration for future expansion ✓ (Story 1)
+- [ ] Supports one active profile at a time ✓ (Stories 2, 4)
+- [ ] Scalable to 100s of spawns per profile ✓ (All stories)
+- [ ] Asset inheritance model implemented correctly ✓ (Stories 1, 5)
+- [ ] Maintains clean, reusable asset library ✓ (Story 5)
+- [ ] SpawnAsset data structure for inheritance ✓ (Stories 1, 5)
 
 ## Technical Standards
+
 - **TypeScript**: Strict mode, no `any` types
 - **Testing**: Jest unit tests, >90% coverage
 - **Performance**: All localStorage operations cached
@@ -177,7 +202,8 @@ Each story is complete when:
 - **Error Handling**: Proper try/catch with meaningful errors
 
 ## Notes
+
 - Build incrementally - each story should be functional independently
 - Follow existing service patterns in codebase
 - Keep interfaces flexible for future OBS integration
-- No data migration required - fresh start approach 
+- No data migration required - fresh start approach
