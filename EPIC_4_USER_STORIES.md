@@ -41,106 +41,188 @@ As a user, I want a spawn editor component in the center panel, so that I can co
 
 ---
 
-## Story 2: Implement Manual Save/Cancel Workflow
+## Story 2: Implement Basic Save/Cancel Controls
 
 **Story ID**: MS-24  
 **Priority**: High  
-**Estimate**: 8 points  
+**Estimate**: 5 points  
 **Status**: Not Started  
 
 **User Story**:  
-As a user, I want explicit save and cancel controls for spawn editing, so that I have full control over when changes are persisted without auto-save interference.
+As a user, I want basic save and cancel controls for spawn editing, so that I have explicit control over when changes are persisted.
 
 **Acceptance Criteria**:
 
 - [ ] Prominent "Save" and "Cancel" buttons in spawn editor
 - [ ] Save button calls SpawnService.updateSpawn() with current form data
 - [ ] Cancel button reverts form to last saved state
-- [ ] Confirmation dialog for cancel when unsaved changes exist
-- [ ] Success/error feedback for save operations
 - [ ] Save button disabled when no changes or validation errors exist
 - [ ] Cancel button always enabled
-- [ ] Keyboard shortcuts: Ctrl+S for save, Escape for cancel
+- [ ] Basic form state management with original vs current values
+- [ ] Proper error handling for save failures
 
 **Technical Notes**:
 
 - Use SpawnService.updateSpawn() from Epic 1
 - Implement form state management with original vs current values
-- Include proper error handling for save failures
-- Design confirmation dialogs for cancel operations
+- Include basic error handling for save failures
+- Focus on core save/cancel functionality
 
 **Dependencies**: Epic 1 (SpawnService), Story 1
 
 ---
 
-## Story 3: Build Comprehensive Unsaved Changes Detection
+## Story 3: Add Advanced Save/Cancel Features
 
 **Story ID**: MS-25  
 **Priority**: High  
-**Estimate**: 8 points  
+**Estimate**: 3 points  
 **Status**: Not Started  
 
 **User Story**:  
-As a user, I want comprehensive warnings about unsaved changes, so that I never accidentally lose work when navigating away or switching contexts.
+As a user, I want advanced save/cancel features like confirmation dialogs and feedback messaging, so that I can efficiently manage my spawn editing workflow.
+
+**Acceptance Criteria**:
+
+- [ ] Confirmation dialog for cancel when unsaved changes exist
+- [ ] Success/error feedback messaging for save operations
+- [ ] Clear messaging about what changes will be lost
+- [ ] Proper dialog patterns for confirmation
+- [ ] Visual feedback for successful save operations
+
+**Technical Notes**:
+
+- Build on basic save/cancel functionality from Story 2
+- Design confirmation dialogs for cancel operations
+- Include user feedback patterns
+- Implement success/error messaging system
+
+**Dependencies**: Story 2
+
+---
+
+## Story 4: Build Core Unsaved Changes Detection
+
+**Story ID**: MS-26  
+**Priority**: High  
+**Estimate**: 5 points  
+**Status**: Not Started  
+
+**User Story**:  
+As a user, I want the system to detect when I have unsaved changes, so that I know when my work needs to be saved.
 
 **Acceptance Criteria**:
 
 - [ ] Unsaved changes detection across all form fields
-- [ ] Warning dialog before spawn selection changes
-- [ ] Warning dialog before profile switching
-- [ ] Warning dialog before browser navigation/refresh
-- [ ] "Dirty" state indicators throughout the form
-- [ ] Clear messaging about what changes will be lost
-- [ ] Options to save, discard, or cancel navigation
-- [ ] Persist unsaved changes temporarily during warnings
+- [ ] Deep comparison between original and current spawn state
+- [ ] Integration with form state management
+- [ ] Basic dirty state tracking
+- [ ] Performance-optimized change detection
+- [ ] Proper state management for complex form data
 
 **Technical Notes**:
 
 - Implement deep comparison between original and current spawn state
-- Use browser beforeunload event for navigation warnings
-- Integrate with panel state management for context switching
-- Store temporary state during warning dialogs
+- Focus on core detection logic without UI warnings
+- Integrate with form state management from Story 2
+- Prepare foundation for warning dialogs
 
-**Dependencies**: Epic 1 (Spawn types), Epic 2 (panel state), Stories 1, 2
+**Dependencies**: Epic 1 (Spawn types), Stories 1, 2
 
 ---
 
-## Story 4: Create Spawn Settings Form with Validation
+## Story 5: Implement Navigation Warning Dialogs
 
-**Story ID**: MS-26  
+**Story ID**: MS-27  
 **Priority**: High  
-**Estimate**: 8 points  
+**Estimate**: 3 points  
 **Status**: Not Started  
 
 **User Story**:  
-As a user, I want a comprehensive spawn settings form with real-time validation, so that I can configure all spawn properties with immediate feedback on errors.
+As a user, I want warnings before navigating away from unsaved changes, so that I never accidentally lose work when switching contexts.
+
+**Acceptance Criteria**:
+
+- [ ] Warning dialog before spawn selection changes
+- [ ] Warning dialog before profile switching
+- [ ] Warning dialog before browser navigation/refresh
+- [ ] Options to save, discard, or cancel navigation
+- [ ] Temporary state preservation during warnings
+- [ ] Proper cleanup of warnings when changes are saved
+
+**Technical Notes**:
+
+- Use browser beforeunload event for navigation warnings
+- Integrate with panel state management for context switching
+- Store temporary state during warning dialogs
+- Build on unsaved changes detection from Story 4
+
+**Dependencies**: Epic 2 (panel state), Stories 2, 3, 4
+
+---
+
+## Story 6: Create Basic Spawn Settings Form
+
+**Story ID**: MS-28  
+**Priority**: High  
+**Estimate**: 5 points  
+**Status**: Not Started  
+
+**User Story**:  
+As a user, I want a basic spawn settings form with essential fields, so that I can configure the core properties of my spawns.
 
 **Acceptance Criteria**:
 
 - [ ] Spawn name field with required validation and uniqueness checking
 - [ ] Spawn description field (optional)
-- [ ] Trigger configuration field with placeholder for future expansion
-- [ ] Duration field with numeric validation and sensible defaults
 - [ ] Enable/disable toggle for spawn
-- [ ] Real-time validation with clear error messages
-- [ ] Form sections organized logically (Basic Info, Behavior, Advanced)
-- [ ] Proper input types and validation constraints
+- [ ] Basic form structure and layout
+- [ ] Proper input types and basic validation
+- [ ] Clear form organization and styling
 
 **Technical Notes**:
 
 - Use SpawnService for name uniqueness validation
-- Implement form validation library or custom validation
-- Design trigger field to be flexible for future OBS-style triggers
+- Focus on core form fields without advanced features
 - Include proper TypeScript types for all form fields
-- Consider form field grouping for better organization
+- Prepare structure for advanced settings
 
 **Dependencies**: Epic 1 (Spawn types, SpawnService), Stories 1, 2
 
 ---
 
-## Story 5: Implement Asset Inheritance Model UI
+## Story 7: Add Advanced Spawn Settings
 
-**Story ID**: MS-27  
+**Story ID**: MS-29  
+**Priority**: High  
+**Estimate**: 3 points  
+**Status**: Not Started  
+
+**User Story**:  
+As a user, I want advanced spawn settings like triggers and duration, so that I can configure complex spawn behavior.
+
+**Acceptance Criteria**:
+
+- [ ] Trigger configuration field with placeholder for future expansion
+- [ ] Duration field with numeric validation and sensible defaults
+- [ ] Form sections organized logically (Basic Info, Behavior, Advanced)
+- [ ] Advanced input constraints and validation
+- [ ] Proper field grouping and organization
+
+**Technical Notes**:
+
+- Build on basic form structure from Story 6
+- Design trigger field to be flexible for future OBS-style triggers
+- Implement advanced validation patterns
+- Consider form field grouping for better organization
+
+**Dependencies**: Story 6
+
+---
+
+## Story 8: Implement Asset Inheritance Model UI
+
+**Story ID**: MS-30  
 **Priority**: High  
 **Estimate**: 5 points  
 **Status**: Not Started  
@@ -165,13 +247,13 @@ As a user, I want to see and configure spawn default settings that will be inher
 - Prepare for integration with Epic 5 asset management
 - Use consistent styling for inheritance indicators
 
-**Dependencies**: Epic 1 (Spawn types), Stories 1, 4
+**Dependencies**: Epic 1 (Spawn types), Stories 1, 6
 
 ---
 
-## Story 6: Add Form Validation and Error Handling
+## Story 9: Add Form Validation and Error Handling
 
-**Story ID**: MS-28  
+**Story ID**: MS-31  
 **Priority**: Medium  
 **Estimate**: 5 points  
 **Status**: Not Started  
@@ -196,13 +278,13 @@ As a user, I want clear validation and error handling throughout the spawn edito
 - Integrate with save/cancel workflow from Story 2
 - Consider validation library for complex rules
 
-**Dependencies**: Stories 1, 2, 4
+**Dependencies**: Stories 1, 2, 6
 
 ---
 
-## Story 7: Create Dirty State Indicators
+## Story 10: Create Dirty State Indicators
 
-**Story ID**: MS-29  
+**Story ID**: MS-32  
 **Priority**: Medium  
 **Estimate**: 5 points  
 **Status**: Not Started  
@@ -224,16 +306,16 @@ As a user, I want clear visual indicators of unsaved changes, so that I always k
 
 - Implement field-level dirty state tracking
 - Use consistent visual language for dirty indicators
-- Integrate with unsaved changes detection from Story 3
+- Integrate with unsaved changes detection from Story 4
 - Consider browser title updates for dirty state
 
-**Dependencies**: Stories 1, 2, 3
+**Dependencies**: Stories 1, 2, 4
 
 ---
 
-## Story 8: Add Navigation Warnings and Protection
+## Story 11: Add Navigation Warnings and Protection
 
-**Story ID**: MS-30  
+**Story ID**: MS-33  
 **Priority**: Medium  
 **Estimate**: 5 points  
 **Status**: Not Started  
@@ -258,13 +340,13 @@ As a user, I want protection against accidental navigation away from unsaved cha
 - Coordinate with panel state management for context switching
 - Implement proper warning dialog patterns
 
-**Dependencies**: Epic 2 (routing, panel state), Stories 1, 2, 3
+**Dependencies**: Epic 2 (routing, panel state), Stories 1, 2, 4
 
 ---
 
-## Story 9: Implement Auto-save Prevention Controls
+## Story 12: Implement Auto-save Prevention Controls
 
-**Story ID**: MS-31  
+**Story ID**: MS-34  
 **Priority**: Low  
 **Estimate**: 3 points  
 **Status**: Not Started  
@@ -297,14 +379,17 @@ As a user, I want explicit control over when my changes are saved, so that I can
 
 ```text
 Story 1 (Basic Component)
-├── Story 2 (Save/Cancel)
-│   ├── Story 3 (Unsaved Changes)
-│   │   ├── Story 7 (Dirty Indicators)
-│   │   └── Story 8 (Navigation Warnings)
-│   └── Story 9 (Auto-save Prevention)
-├── Story 4 (Settings Form)
-│   ├── Story 5 (Inheritance Model)
-│   └── Story 6 (Validation)
+├── Story 2 (Basic Save/Cancel)
+│   ├── Story 3 (Advanced Save/Cancel)
+│   ├── Story 4 (Core Unsaved Changes)
+│   │   ├── Story 5 (Navigation Warning Dialogs)
+│   │   ├── Story 10 (Dirty Indicators)
+│   │   └── Story 11 (Navigation Protection)
+│   └── Story 12 (Auto-save Prevention)
+├── Story 6 (Basic Settings Form)
+│   ├── Story 7 (Advanced Settings)
+│   ├── Story 8 (Inheritance Model)
+│   └── Story 9 (Validation)
 ```
 
 ## Definition of Done
@@ -325,14 +410,14 @@ Each story is complete when:
 
 ## Vision Validation Checklist
 
-- [ ] Manual save with explicit user control ✓ (Stories 2, 9)
-- [ ] Comprehensive unsaved changes warnings ✓ (Stories 3, 7, 8)
+- [ ] Manual save with explicit user control ✓ (Stories 2, 3, 12)
+- [ ] Comprehensive unsaved changes warnings ✓ (Stories 4, 5, 10, 11)
 - [ ] Spawn-centric workflow with center panel focus ✓ (Story 1)
-- [ ] Asset inheritance model implemented ✓ (Story 5)
+- [ ] Asset inheritance model implemented ✓ (Story 8)
 - [ ] Experienced user friendly approach ✓ (All stories)
 - [ ] Practical functionality over visual appeal ✓ (All stories)
-- [ ] Clear feedback for streaming configuration management ✓ (Stories 6, 7)
-- [ ] Explicit control over changes ✓ (Stories 2, 8, 9)
+- [ ] Clear feedback for streaming configuration management ✓ (Stories 9, 10)
+- [ ] Explicit control over changes ✓ (Stories 2, 3, 11, 12)
 
 ## Technical Standards
 
@@ -347,19 +432,19 @@ Each story is complete when:
 
 ## Integration Points with Other Epics
 
-- **Epic 1**: Uses Spawn data types and SpawnService for CRUD operations
-- **Epic 2**: Integrates with three-panel layout and panel state management
-- **Epic 3**: Receives spawn selection from spawn list navigation
-- **Epic 5**: Provides spawn configuration for asset management integration
-- **Epic 6**: Will work with profile management for context switching
+- **Epic 1**: Uses Spawn data types and SpawnService for CRUD operations (Stories 2, 4, 6, 8)
+- **Epic 2**: Integrates with three-panel layout and panel state management (Stories 1, 5, 11)
+- **Epic 3**: Receives spawn selection from spawn list navigation (Story 1)
+- **Epic 5**: Provides spawn configuration for asset management integration (Story 8)
+- **Epic 6**: Will work with profile management for context switching (Story 5)
 
 ## Critical Success Factors
 
-- **Manual Save Philosophy**: Must implement explicit user control over saves
-- **Unsaved Changes Protection**: Comprehensive warnings prevent data loss
-- **Asset Inheritance**: Clear representation of spawn defaults and overrides
-- **Form Validation**: Real-time feedback guides users to correct configurations
-- **Integration**: Seamless integration with spawn list and asset management
+- **Manual Save Philosophy**: Must implement explicit user control over saves (Stories 2, 3, 12)
+- **Unsaved Changes Protection**: Comprehensive warnings prevent data loss (Stories 4, 5, 10, 11)
+- **Asset Inheritance**: Clear representation of spawn defaults and overrides (Story 8)
+- **Form Validation**: Real-time feedback guides users to correct configurations (Stories 6, 7, 9)
+- **Integration**: Seamless integration with spawn list and asset management (Story 1)
 
 ## Notes
 
