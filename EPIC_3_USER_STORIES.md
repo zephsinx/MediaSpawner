@@ -76,7 +76,7 @@ As a user, I want to enable/disable spawns with toggle switches, so that I can q
 
 **Story ID**: MS-18  
 **Priority**: High  
-**Estimate**: 4 points  
+**Estimate**: 5 points  
 **Status**: Not Started  
 
 **User Story**:  
@@ -139,7 +139,7 @@ As a user, I want to search and filter my spawns, so that I can quickly find spe
 
 **Story ID**: MS-20  
 **Priority**: Medium  
-**Estimate**: 4 points  
+**Estimate**: 3 points  
 **Status**: Not Started  
 
 **User Story**:  
