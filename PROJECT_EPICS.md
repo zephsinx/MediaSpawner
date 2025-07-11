@@ -83,18 +83,20 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 **Status**: Not Started  
 **Estimated Effort**: Large  
 
-**Summary**: Implement spawn creation, editing, and configuration
+**Summary**: Implement spawn creation, editing, and configuration with explicit manual save workflows
 
-**Description**: Build spawn editor with settings inheritance, manual save/cancel functionality, and unsaved changes handling. Includes spawn settings form, asset inheritance model, and proper state management for spawn editing workflow.
+**Description**: Build spawn editor with comprehensive manual save/cancel functionality, unsaved changes warnings, and asset inheritance model. This epic is critical to the "experienced user friendly" vision principle, providing explicit control over changes with clear feedback for streaming configuration management.
 
 **Key Deliverables**:
 
-- Spawn editor component for center panel
-- Spawn settings form (name, trigger, duration, etc.)
-- Manual save/cancel with unsaved changes warnings
-- Asset inheritance from spawn settings
-- Spawn creation and editing workflows
-- Form validation and error handling
+- Spawn editor component for center panel with manual save workflow
+- Comprehensive unsaved changes detection and warning system
+- Spawn settings form (name, trigger, duration, etc.) with real-time validation
+- Asset inheritance UI showing spawn defaults and override capabilities
+- Explicit save/cancel controls with confirmation dialogs
+- Form validation and error handling with clear user feedback
+- Dirty state indicators and navigation warnings
+- Auto-save prevention with user control emphasis
 
 **Dependencies**: Epic 1, 2, 3  
 **Blocks**: Epic 5
@@ -107,19 +109,21 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 **Status**: Not Started  
 **Estimated Effort**: Large  
 
-**Summary**: Integrate asset library with spawn-specific asset configuration
+**Summary**: Integrate asset library with comprehensive drag & drop workflows and spawn-specific asset configuration
 
-**Description**: Adapt existing asset components for the right panel, implement drag & drop functionality, spawn-specific asset settings with inheritance/override model, and collapsible asset library. Includes asset assignment to spawns and individual asset configuration within spawn context.
+**Description**: Adapt existing asset components for the right panel with detailed collapsible asset library functionality, comprehensive drag & drop workflows, and spawn-specific asset settings with clear inheritance/override model. Includes seamless asset assignment workflows and individual asset configuration within spawn context.
 
 **Key Deliverables**:
 
-- Asset management component for right panel
-- Collapsible asset library with auto-expand functionality
-- Drag & drop from asset library to spawn
-- Spawn-specific asset settings with inheritance/override
-- Asset reordering within spawns
-- Asset settings overlay/modal for individual configuration
-- Integration with existing asset validation and preview
+- Asset management component for right panel with two-section layout
+- Detailed collapsible asset library with auto-expand/collapse functionality
+- Comprehensive drag & drop workflows (library to spawn, reordering within spawn)
+- Spawn-specific asset settings with clear inheritance/override visualization
+- Asset reordering within spawns with visual feedback
+- Asset settings overlay/modal for individual spawn-specific configuration
+- Integration with existing asset validation and preview components
+- Asset assignment workflows with immediate visual feedback
+- Clear indication of inherited vs overridden asset properties
 
 **Dependencies**: Epic 1, 2, 4  
 **Blocks**: Epic 6
