@@ -36,16 +36,17 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 **Status**: Not Started  
 **Estimated Effort**: Medium  
 
-**Summary**: Build the core three-panel layout infrastructure
+**Summary**: Build the core three-panel layout infrastructure with unified configuration workspace
 
-**Description**: Implement the main layout component with left spawn list panel (25%), center spawn editor panel (50%), and right asset management panel (25%). Includes responsive design considerations and panel state management.
+**Description**: Implement the main layout component with left spawn list panel (25%), center unified configuration workspace (50%), and right asset management panel (25%). The center panel serves as a unified workspace for both spawn settings and asset configuration. The right panel includes dynamic two-section layout with resizable dividers. Includes responsive design considerations and panel state management.
 
 **Key Deliverables**:
 
-- Three-panel layout component
+- Three-panel layout component with unified configuration workspace concept
 - Panel resizing and responsive behavior
 - Header with spawn profile selector
-- Basic panel state management
+- Basic panel state management for center panel dual-mode (spawn settings/asset settings)
+- Dynamic right panel with resizable divider infrastructure
 - Updated routing structure
 
 **Dependencies**: Epic 1  
@@ -83,20 +84,24 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 **Status**: Not Started  
 **Estimated Effort**: Large  
 
-**Summary**: Implement spawn creation, editing, and configuration with explicit manual save workflows
+**Summary**: Implement unified configuration workspace with spawn creation, editing, and asset configuration with explicit manual save workflows
 
-**Description**: Build spawn editor with comprehensive manual save/cancel functionality, unsaved changes warnings, and asset inheritance model. This epic is critical to the "experienced user friendly" vision principle, providing explicit control over changes with clear feedback for streaming configuration management.
+**Description**: Build unified configuration workspace in center panel with comprehensive manual save/cancel functionality, unsaved changes warnings, and asset inheritance model. The center panel serves dual purposes: spawn settings configuration and individual asset settings configuration. This epic is critical to the "experienced user friendly" vision principle, providing explicit control over changes with clear feedback for streaming configuration management.
 
 **Key Deliverables**:
 
-- Spawn editor component for center panel with manual save workflow
-- Comprehensive unsaved changes detection and warning system
+- Unified configuration workspace component for center panel with manual save workflow
 - Spawn settings form (name, trigger, duration, etc.) with real-time validation
+- Asset settings form component for spawn-specific asset configuration
+- Context switching between spawn settings and asset settings modes
+- Asset settings integration with proper space allocation for complex configurations
+- Comprehensive unsaved changes detection and warning system for both modes
 - Asset inheritance UI showing spawn defaults and override capabilities
-- Explicit save/cancel controls with confirmation dialogs
+- Explicit save/cancel controls with confirmation dialogs for both spawn and asset settings
 - Form validation and error handling with clear user feedback
 - Dirty state indicators and navigation warnings
 - Auto-save prevention with user control emphasis
+- Clear indication of inherited vs overridden asset properties
 
 **Dependencies**: Epic 1, 2, 3  
 **Blocks**: Epic 5
@@ -109,21 +114,25 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 **Status**: Not Started  
 **Estimated Effort**: Large  
 
-**Summary**: Integrate asset library with comprehensive drag & drop workflows and spawn-specific asset configuration
+**Summary**: Integrate asset library with comprehensive drag & drop workflows and dynamic space management for streamlined asset selection and assignment
 
-**Description**: Adapt existing asset components for the right panel with detailed collapsible asset library functionality, comprehensive drag & drop workflows, and spawn-specific asset settings with clear inheritance/override model. Includes seamless asset assignment workflows and individual asset configuration within spawn context.
+**Description**: Adapt existing asset components for the right panel with dynamic two-section layout, comprehensive drag & drop workflows, and streamlined asset selection/assignment focus. The right panel focuses purely on asset selection and assignment, with asset configuration handled in the center panel. Includes dynamic space management with resizable dividers and smart defaults optimized for different spawn sizes.
 
 **Key Deliverables**:
 
-- Asset management component for right panel with two-section layout
+- Asset management component for right panel with dynamic two-section layout
+- User-resizable divider between sections with smart defaults (30/70 split)
+- Minimum height constraints (80px top, 200px bottom) and auto-behaviors
+- Asset counter badges on section headers ("Assets in Spawn (3)", "Asset Library (127)")
+- Scroll indicators when sections have more content than visible
+- Collapse/expand buttons for quick space management
 - Detailed collapsible asset library with auto-expand/collapse functionality
-- Comprehensive drag & drop workflows (library to spawn, reordering within spawn)
-- Spawn-specific asset settings with clear inheritance/override visualization
+- Comprehensive drag & drop workflows with clear visual feedback (library to spawn, reordering within spawn)
 - Asset reordering within spawns with visual feedback
-- Asset settings overlay/modal for individual spawn-specific configuration
-- Integration with existing asset validation and preview components
 - Asset assignment workflows with immediate visual feedback
-- Clear indication of inherited vs overridden asset properties
+- Integration with existing asset validation and preview components
+- Clear drag & drop zones with visual feedback for different spawn sizes
+- Auto-behaviors: expand library for few assets, grow spawn section for many assets
 
 **Dependencies**: Epic 1, 2, 4  
 **Blocks**: Epic 6

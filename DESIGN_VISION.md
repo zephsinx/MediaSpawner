@@ -41,18 +41,21 @@ Spawn Profile (organizational container)
 ├─────────────────────────────────────────────────────────────────┤
 │ Left Panel (25%)  │ Center Panel (50%)  │ Right Panel (25%)     │
 │ ═════════════════ │ ══════════════════ │ ═══════════════════   │
-│ Spawn List        │ Spawn Editor        │ Asset Management      │
-│                   │                     │                       │
+│ Spawn List        │ Unified Config      │ Asset Management      │
+│                   │ Workspace           │                       │
 │ • Spawn A (5)     │ ┌─ Spawn Settings ─┐│ ┌─ Assets in Spawn ─┐ │
-│ • Spawn B (3) ✓   │ │ Name: [____]     ││ │ □ Asset A         │ │
-│ • Spawn C (7)     │ │ Trigger: [____]  ││ │ □ Asset B         │ │
-│ • Spawn D (2) ✗   │ │ Duration: [____] ││ │ □ Asset C         │ │
-│                   │ │ [More settings]  ││ └───────────────────┘ │
-│ [+ New Spawn]     │ └─────────────────┘│                       │
-│                   │                     │ ┌─ Asset Library ──┐ │
-│ [Search: ____]    │ [Save] [Cancel]     │ │ (Collapsible)     │ │
-│                   │                     │ │ Available Assets  │ │
-│                   │                     │ └─────────────────┘   │
+│ • Spawn B (3) ✓   │ │ Name: [____]     ││ │ (3) □ Asset A     │ │
+│ • Spawn C (7)     │ │ Trigger: [____]  ││ │     □ Asset B     │ │
+│ • Spawn D (2) ✗   │ │ Duration: [____] ││ │     □ Asset C     │ │
+│                   │ │ [More settings]  ││ ╞═══════════════════╡ │
+│ [+ New Spawn]     │ └─────────────────┘│ │ [Resizable Divider] │ │
+│                   │  OR                 │ ╞═══════════════════╡ │
+│ [Search: ____]    │ ┌─ Asset Settings ─┐│ │ Asset Library (127) │ │
+│                   │ │ Dimensions: [__] ││ │ (Collapsible)     │ │
+│                   │ │ Position: [____] ││ │ Available Assets  │ │
+│                   │ │ Volume: [______] ││ │ [Search Filter]   │ │
+│                   │ └─────────────────┘│ └─────────────────────┘ │
+│                   │ [Save] [Cancel]     │                       │
 └───────────────────┴─────────────────────┴───────────────────────┘
 ```
 
@@ -79,12 +82,13 @@ Spawn Profile (organizational container)
 
 #### Center Panel: Spawn Editor (50%)
 
-**Purpose**: Primary workspace for configuring individual Spawns
+**Purpose**: Primary workspace for configuring individual Spawns and their assets
 
 **States**:
 
 - **No Selection**: Welcome state with "Select a spawn or create new"
 - **Spawn Selected**: Full spawn configuration interface
+- **Asset Settings**: Asset-specific configuration form (when configuring spawn-specific overrides)
 
 **Spawn Settings**:
 
@@ -92,6 +96,13 @@ Spawn Profile (organizational container)
 - Behavior: Trigger conditions, Duration
 - Advanced settings: Will expand to include OBS-style media configuration options
 - Clear save/cancel actions with unsaved changes warnings
+
+**Asset Settings Integration**:
+
+- Asset-specific configuration form appears in center panel when configuring overrides
+- Unified configuration workspace for both spawn and asset settings
+- Clear context switching between spawn settings and individual asset configuration
+- Asset settings include dimensions, position, volume, and other spawn-specific overrides
 
 **Asset Inheritance**:
 
@@ -101,15 +112,16 @@ Spawn Profile (organizational container)
 
 #### Right Panel: Asset Management (25%)
 
-**Purpose**: Asset assignment and configuration for current Spawn
+**Purpose**: Asset selection and assignment for current Spawn
 
-**Two-Section Layout**:
+**Dynamic Two-Section Layout**:
 
 1. **Top Section**: Assets in Current Spawn
    - List of assets assigned to selected spawn
    - Drag to reorder assets
-   - Click asset to configure spawn-specific settings
+   - Click asset to configure spawn-specific settings (opens in center panel)
    - Remove assets from spawn
+   - Asset counter badges for clear overview
 
 2. **Bottom Section**: Asset Library (Collapsible)
    - Browsable list of all available assets
@@ -118,11 +130,28 @@ Spawn Profile (organizational container)
    - Search/filter functionality
    - Auto-expands when adding assets
 
+**Dynamic Space Management**:
+
+- **User-resizable divider** between sections for manual control
+- **Smart defaults**: 30% top / 70% bottom split (optimal for typical 1-3 asset case)
+- **Minimum heights**: Top section (80px), Bottom section (200px)
+- **Auto-behaviors**:
+  - Auto-expand library when spawn is empty or has few assets
+  - Grow spawn section when spawn has 5+ assets
+  - Collapse library completely when spawn section needs maximum space
+
+**Visual Enhancements**:
+
+- Asset counter badges on section headers ("Assets in Spawn (3)", "Asset Library (127)")
+- Scroll indicators when sections have more content than visible
+- Collapse/expand buttons for quick space management
+- Clear drag & drop zones with visual feedback
+
 **Asset Settings Flow**:
 
-- Click on spawn asset → temporarily replaces asset library with settings form
+- Click on spawn asset → opens asset settings form in center panel
 - Configure asset-specific overrides (dimensions, position, volume, etc.)
-- Return to library view when done
+- Return to spawn settings view when done
 
 ## User Workflows
 
@@ -132,7 +161,7 @@ Spawn Profile (organizational container)
 2. **Navigate to Spawn** (left panel list or create new)
 3. **Configure Spawn Settings** (center panel)
 4. **Add Assets** (drag from right panel or expand library)
-5. **Configure Individual Assets** (click asset in right panel)
+5. **Configure Individual Assets** (click asset in right panel → opens settings in center panel)
 6. **Save Changes** (explicit save button)
 
 ### Secondary Workflows
@@ -208,8 +237,8 @@ Spawn Profile (organizational container)
 ### Why Three-Panel Layout?
 
 - **Left Panel**: Efficient navigation for up to 100s of spawns with search/filter
-- **Center Panel**: Dedicated workspace for complex spawn configuration
-- **Right Panel**: Context-aware asset management without losing spawn focus
+- **Center Panel**: Unified configuration workspace for both spawn and asset settings
+- **Right Panel**: Streamlined asset selection and assignment without losing spawn focus
 
 ### Why Inline Disabled Spawns?
 
@@ -231,6 +260,20 @@ Spawn Profile (organizational container)
 - Asset library remains clean and reusable
 - Settings inheritance from spawn with override capability
 - Supports complex streaming scenarios
+
+### Why Center Panel Asset Configuration?
+
+- **Proper space allocation**: Asset settings forms need adequate space for complex configurations
+- **Unified workspace**: All configuration tasks happen in one dedicated area
+- **Reduced cognitive load**: Right panel focuses purely on selection/assignment
+- **Context preservation**: Asset settings appear in primary workspace with full context
+
+### Why Dynamic Right Panel Sections?
+
+- **Flexible space usage**: Adapts to different spawn sizes (1-3 typical assets vs 10+ edge cases)
+- **User control**: Resizable divider allows manual adjustment for personal preference
+- **Smart defaults**: 30/70 split optimized for typical usage patterns
+- **Visual clarity**: Asset counter badges and scroll indicators provide clear feedback
 
 ## Current Application Context
 
