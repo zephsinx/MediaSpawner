@@ -18,11 +18,13 @@ Build the core three-panel layout infrastructure with responsive design, panel s
 **Status**: Not Started  
 
 **User Story**:  
-As a developer, I want a three-panel layout component with fixed proportions, so that I can provide consistent structure for spawn management workflow.
+As a developer, I want a three-panel layout component with fixed proportions, so that I can provide consistent structure for spawn management workflow with unified configuration workspace.
 
 **Acceptance Criteria**:
 
 - [ ] Three-panel layout: Left (25%), Center (50%), Right (25%)
+- [ ] Center panel infrastructure prepared for unified configuration workspace (dual-mode capability)
+- [ ] Right panel infrastructure prepared for dynamic two-section layout
 - [ ] Responsive design for different desktop screen sizes (1280px+)
 - [ ] Proper CSS Grid or Flexbox implementation
 - [ ] Minimum and maximum panel widths enforced (prevent too narrow/wide)
@@ -36,6 +38,8 @@ As a developer, I want a three-panel layout component with fixed proportions, so
 - Target desktop resolutions: 1280px, 1440px, 1920px, ultrawide
 - Ensure panels maintain usability at different desktop sizes
 - Plan for future panel resizing (not implemented yet)
+- Center panel structure should accommodate future dual-mode content (spawn settings/asset settings)
+- Right panel structure should accommodate future dynamic sections
 
 **Dependencies**: Epic 1 (types for routing context)
 
@@ -80,7 +84,7 @@ As a user, I want a header with spawn profile selector and context indicators, s
 **Status**: Not Started  
 
 **User Story**:  
-As a developer, I want centralized panel state management, so that panels can communicate selected spawn, profile context, and unsaved changes.
+As a developer, I want centralized panel state management, so that panels can communicate selected spawn, profile context, unsaved changes, and center panel mode switching.
 
 **Acceptance Criteria**:
 
@@ -88,8 +92,9 @@ As a developer, I want centralized panel state management, so that panels can co
 - [ ] Panel communication system (spawn selection, profile changes)
 - [ ] State persistence for selected spawn per profile
 - [ ] Unsaved changes tracking across panels
+- [ ] Center panel mode state management (spawn settings vs asset settings modes)
 - [ ] Clear state transitions when switching profiles
-- [ ] TypeScript interfaces for all state objects
+- [ ] TypeScript interfaces for all state objects including center panel modes
 - [ ] Error handling for invalid state
 
 **Technical Notes**:
@@ -98,6 +103,8 @@ As a developer, I want centralized panel state management, so that panels can co
 - Consider localStorage for persisting selected spawn per profile
 - Design state to support future features (multiple selection, etc.)
 - Ensure state resets appropriately on profile switches
+- Include state foundation for center panel dual-mode operation
+- Prepare state structure for future right panel dynamic sections
 
 **Dependencies**: Epic 1 (Spawn/SpawnProfile types)
 
@@ -179,12 +186,13 @@ As a developer, I want placeholder components for each panel, so that I can test
 **Acceptance Criteria**:
 
 - [ ] Left panel placeholder: "Spawn List Coming Soon"
-- [ ] Center panel placeholder: "Spawn Editor Coming Soon"  
-- [ ] Right panel placeholder: "Asset Management Coming Soon"
+- [ ] Center panel placeholder: "Unified Configuration Workspace Coming Soon"  
+- [ ] Right panel placeholder: "Dynamic Asset Management Coming Soon"
 - [ ] Placeholders show panel dimensions and boundaries
 - [ ] Basic styling consistent with design vision
 - [ ] Easy to replace with real components
 - [ ] Props interface for future content injection
+- [ ] Center panel placeholder indicates dual-mode capability
 
 **Technical Notes**:
 
@@ -193,6 +201,8 @@ As a developer, I want placeholder components for each panel, so that I can test
 - Use semantic HTML structure
 - Prepare component slots for future real implementations
 - Consider loading states or skeleton screens
+- Center panel placeholder should hint at unified workspace concept
+- Right panel placeholder should hint at dynamic sections concept
 
 **Dependencies**: Stories 1, 2, 3
 
@@ -229,6 +239,8 @@ Each story is complete when:
 - [ ] Panel state management for spawn selection ✓ (Story 3)
 - [ ] Desktop-optimized design for practical use ✓ (Stories 1, 5)
 - [ ] Routing supports spawn-centric workflow ✓ (Story 4)
+- [ ] Foundation for unified configuration workspace ✓ (Stories 1, 3, 6)
+- [ ] Foundation for dynamic asset management ✓ (Stories 1, 3, 6)
 - [ ] Foundation for future panel interactions ✓ (Stories 3, 6)
 - [ ] Clean, uncluttered interface ✓ (All stories)
 
@@ -244,8 +256,8 @@ Each story is complete when:
 ## Integration Points with Future Epics
 
 - **Epic 3**: Left panel component slot ready
-- **Epic 4**: Center panel component slot ready  
-- **Epic 5**: Right panel component slot ready
+- **Epic 4**: Center panel unified configuration workspace infrastructure ready  
+- **Epic 5**: Right panel dynamic asset management infrastructure ready
 - **Epic 6**: Header profile management integration ready
 
 ## Notes
