@@ -2,9 +2,9 @@
 
 ## Epic Overview
 
-**Epic**: Spawn List & Navigation  
-**Priority**: 3 (Critical Path)  
-**Status**: Not Started  
+**Epic**: Spawn List & Navigation
+**Priority**: 3 (Critical Path)
+**Status**: Not Started
 
 Build spawn list component with enable/disable functionality, search/filter capabilities, and efficient navigation for handling 100s of spawns in the left panel.
 
@@ -12,12 +12,12 @@ Build spawn list component with enable/disable functionality, search/filter capa
 
 ## Story 1: Create Basic Spawn List Component
 
-**Story ID**: MS-16  
-**Priority**: High  
-**Estimate**: 5 points  
-**Status**: Not Started  
+**Story ID**: MS-16
+**Priority**: High
+**Estimate**: 5 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want to see a list of all spawns in my active profile, so that I can quickly navigate and select spawns to work with.
 
 **Acceptance Criteria**:
@@ -43,12 +43,12 @@ As a user, I want to see a list of all spawns in my active profile, so that I ca
 
 ## Story 2: Implement Enable/Disable Toggle Functionality
 
-**Story ID**: MS-17  
-**Priority**: High  
-**Estimate**: 3 points  
-**Status**: Not Started  
+**Story ID**: MS-17
+**Priority**: High
+**Estimate**: 3 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want to enable/disable spawns with toggle switches, so that I can quickly control which spawns are active without editing them.
 
 **Acceptance Criteria**:
@@ -74,12 +74,12 @@ As a user, I want to enable/disable spawns with toggle switches, so that I can q
 
 ## Story 3: Add Spawn Selection and Navigation
 
-**Story ID**: MS-18  
-**Priority**: High  
-**Estimate**: 5 points  
-**Status**: Not Started  
+**Story ID**: MS-18
+**Priority**: High
+**Estimate**: 5 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want to select spawns from the list to edit them, so that the spawn editor loads the selected spawn's configuration.
 
 **Acceptance Criteria**:
@@ -105,12 +105,12 @@ As a user, I want to select spawns from the list to edit them, so that the spawn
 
 ## Story 4: Implement Search and Filter Functionality
 
-**Story ID**: MS-19  
-**Priority**: Medium  
-**Estimate**: 5 points  
-**Status**: Not Started  
+**Story ID**: MS-19
+**Priority**: Medium
+**Estimate**: 5 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want to search and filter my spawns, so that I can quickly find specific spawns when I have many in my profile.
 
 **Acceptance Criteria**:
@@ -137,12 +137,12 @@ As a user, I want to search and filter my spawns, so that I can quickly find spe
 
 ## Story 5: Add "New Spawn" Creation Workflow
 
-**Story ID**: MS-20  
-**Priority**: Medium  
-**Estimate**: 3 points  
-**Status**: Not Started  
+**Story ID**: MS-20
+**Priority**: Medium
+**Estimate**: 3 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want to create new spawns directly from the spawn list, so that I can quickly add spawns to my profile.
 
 **Acceptance Criteria**:
@@ -168,12 +168,12 @@ As a user, I want to create new spawns directly from the spawn list, so that I c
 
 ## Story 6: Optimize Performance for Large Spawn Lists
 
-**Story ID**: MS-21  
-**Priority**: Medium  
-**Estimate**: 5 points  
-**Status**: Not Started  
+**Story ID**: MS-21
+**Priority**: Medium
+**Estimate**: 5 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user with many spawns, I want the spawn list to remain responsive and fast, so that I can efficiently navigate even with 100s of spawns.
 
 **Acceptance Criteria**:
@@ -200,12 +200,12 @@ As a user with many spawns, I want the spawn list to remain responsive and fast,
 
 ## Story 7: Add Spawn Information Display
 
-**Story ID**: MS-22  
-**Priority**: Low  
-**Estimate**: 3 points  
-**Status**: Not Started  
+**Story ID**: MS-22
+**Priority**: Low
+**Estimate**: 3 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want to see key information about each spawn in the list, so that I can quickly understand what each spawn contains without opening it.
 
 **Acceptance Criteria**:
@@ -232,7 +232,7 @@ As a user, I want to see key information about each spawn in the list, so that I
 ## Story Dependencies
 
 ```text
-Story 1 (Basic List) 
+Story 1 (Basic List)
 ├── Story 2 (Enable/Disable)
 ├── Story 3 (Selection/Navigation)
 │   ├── Story 4 (Search/Filter)

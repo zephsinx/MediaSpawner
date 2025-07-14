@@ -2,9 +2,9 @@
 
 ## Epic Overview
 
-**Epic**: Data Model & Services Foundation  
-**Priority**: 1 (Critical Path)  
-**Status**: Not Started  
+**Epic**: Data Model & Services Foundation
+**Priority**: 1 (Critical Path)
+**Status**: Not Started
 
 Create type definitions and services to support the new spawn-centric architecture with enabled/disabled states, active profile management, and spawn-specific asset settings.
 
@@ -13,11 +13,11 @@ Create type definitions and services to support the new spawn-centric architectu
 ## Story 1: Define Spawn Data Structure
 
 **Story ID**: MS-9
-**Priority**: High  
-**Estimate**: 2 points  
-**Status**: Not Started  
+**Priority**: High
+**Estimate**: 2 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a developer, I want to define the Spawn interface with all required properties, so that I can represent spawns with enabled/disabled states and trigger configuration.
 
 **Acceptance Criteria**:
@@ -42,12 +42,12 @@ As a developer, I want to define the Spawn interface with all required propertie
 
 ## Story 2: Define SpawnProfile Data Structure
 
-**Story ID**: MS-2  
-**Priority**: High  
-**Estimate**: 2 points  
-**Status**: Not Started  
+**Story ID**: MS-2
+**Priority**: High
+**Estimate**: 2 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a developer, I want to define the SpawnProfile interface with active profile tracking, so that I can manage collections of spawns with one active profile at a time.
 
 **Acceptance Criteria**:
@@ -70,12 +70,12 @@ As a developer, I want to define the SpawnProfile interface with active profile 
 
 ## Story 3: Implement SpawnService CRUD Operations
 
-**Story ID**: MS-3  
-**Priority**: High  
-**Estimate**: 5 points  
-**Status**: Not Started  
+**Story ID**: MS-3
+**Priority**: High
+**Estimate**: 5 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a developer, I want basic spawn CRUD operations, so that I can create, read, update, and delete spawns within profiles with enable/disable functionality.
 
 **Acceptance Criteria**:
@@ -100,12 +100,12 @@ As a developer, I want basic spawn CRUD operations, so that I can create, read, 
 
 ## Story 4: Implement SpawnProfileService with Active Profile Management
 
-**Story ID**: MS-4  
-**Priority**: High  
-**Estimate**: 5 points  
-**Status**: Not Started  
+**Story ID**: MS-4
+**Priority**: High
+**Estimate**: 5 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a developer, I want spawn profile management with active profile tracking, so that only one profile is active at a time with proper context switching.
 
 **Acceptance Criteria**:
@@ -130,12 +130,12 @@ As a developer, I want spawn profile management with active profile tracking, so
 
 ## Story 5: Extend AssetService for Spawn-Specific Settings
 
-**Story ID**: MS-5  
-**Priority**: High  
-**Estimate**: 8 points  
-**Status**: Not Started  
+**Story ID**: MS-5
+**Priority**: High
+**Estimate**: 8 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a developer, I want spawn-specific asset settings with inheritance, so that assets can have different configurations per spawn while inheriting defaults.
 
 **Acceptance Criteria**:

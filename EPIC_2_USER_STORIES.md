@@ -2,9 +2,9 @@
 
 ## Epic Overview
 
-**Epic**: Three-Panel Layout System  
-**Priority**: 2 (Critical Path)  
-**Status**: Not Started  
+**Epic**: Three-Panel Layout System
+**Priority**: 2 (Critical Path)
+**Status**: Not Started
 
 Build the core three-panel layout infrastructure with responsive design, panel state management, and header integration for spawn profile management.
 
@@ -12,12 +12,12 @@ Build the core three-panel layout infrastructure with responsive design, panel s
 
 ## Story 1: Create Basic Three-Panel Layout Component
 
-**Story ID**: MS-10  
-**Priority**: High  
-**Estimate**: 5 points  
-**Status**: Not Started  
+**Story ID**: MS-10
+**Priority**: High
+**Estimate**: 5 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a developer, I want a three-panel layout component with fixed proportions, so that I can provide consistent structure for spawn management workflow with unified configuration workspace.
 
 **Acceptance Criteria**:
@@ -47,12 +47,12 @@ As a developer, I want a three-panel layout component with fixed proportions, so
 
 ## Story 2: Implement Application Header with Profile Context
 
-**Story ID**: MS-11  
-**Priority**: High  
-**Estimate**: 3 points  
-**Status**: Not Started  
+**Story ID**: MS-11
+**Priority**: High
+**Estimate**: 3 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want a header with spawn profile selector and context indicators, so that I always know which profile I'm working in and can switch profiles easily.
 
 **Acceptance Criteria**:
@@ -78,12 +78,12 @@ As a user, I want a header with spawn profile selector and context indicators, s
 
 ## Story 3: Create Panel State Management System
 
-**Story ID**: MS-12  
-**Priority**: High  
-**Estimate**: 5 points  
-**Status**: Not Started  
+**Story ID**: MS-12
+**Priority**: High
+**Estimate**: 5 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a developer, I want centralized panel state management, so that panels can communicate selected spawn, profile context, unsaved changes, and center panel mode switching.
 
 **Acceptance Criteria**:
@@ -112,12 +112,12 @@ As a developer, I want centralized panel state management, so that panels can co
 
 ## Story 4: Update Routing for New Layout Structure
 
-**Story ID**: MS-13  
-**Priority**: Medium  
-**Estimate**: 3 points  
-**Status**: Not Started  
+**Story ID**: MS-13
+**Priority**: Medium
+**Estimate**: 3 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want URL routing that reflects my current spawn profile and selected spawn, so that I can bookmark, share, and navigate back to specific states.
 
 **Acceptance Criteria**:
@@ -144,12 +144,12 @@ As a user, I want URL routing that reflects my current spawn profile and selecte
 
 ## Story 5: Optimize Layout for Desktop Screen Variations
 
-**Story ID**: MS-14  
-**Priority**: Medium  
-**Estimate**: 3 points  
-**Status**: Not Started  
+**Story ID**: MS-14
+**Priority**: Medium
+**Estimate**: 3 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want the layout to work well on different desktop screen sizes, so that I can manage spawns effectively on various desktop monitors and resolutions.
 
 **Acceptance Criteria**:
@@ -175,18 +175,18 @@ As a user, I want the layout to work well on different desktop screen sizes, so 
 
 ## Story 6: Create Panel Placeholder Components
 
-**Story ID**: MS-15  
-**Priority**: Low  
-**Estimate**: 2 points  
-**Status**: Not Started  
+**Story ID**: MS-15
+**Priority**: Low
+**Estimate**: 2 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a developer, I want placeholder components for each panel, so that I can test the layout and demonstrate the structure before implementing full functionality.
 
 **Acceptance Criteria**:
 
 - [ ] Left panel placeholder: "Spawn List Coming Soon"
-- [ ] Center panel placeholder: "Unified Configuration Workspace Coming Soon"  
+- [ ] Center panel placeholder: "Unified Configuration Workspace Coming Soon"
 - [ ] Right panel placeholder: "Dynamic Asset Management Coming Soon"
 - [ ] Placeholders show panel dimensions and boundaries
 - [ ] Basic styling consistent with design vision
@@ -256,7 +256,7 @@ Each story is complete when:
 ## Integration Points with Future Epics
 
 - **Epic 3**: Left panel component slot ready
-- **Epic 4**: Center panel unified configuration workspace infrastructure ready  
+- **Epic 4**: Center panel unified configuration workspace infrastructure ready
 - **Epic 5**: Right panel dynamic asset management infrastructure ready
 - **Epic 6**: Header profile management integration ready
 

@@ -8,9 +8,9 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 
 ## Epic 1: Data Model & Services Foundation
 
-**Priority**: 1 (Critical Path)  
-**Status**: Not Started  
-**Estimated Effort**: Medium  
+**Priority**: 1 (Critical Path)
+**Status**: Not Started
+**Estimated Effort**: Medium
 
 **Summary**: Implement new data structures and services for Spawns and Spawn Profiles
 
@@ -25,16 +25,16 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 - SpawnProfileService for profile management with active profile setting
 - Extended AssetService for spawn-specific asset settings with inheritance/override model
 
-**Dependencies**: None  
+**Dependencies**: None
 **Blocks**: All other epics
 
 ---
 
 ## Epic 2: Three-Panel Layout System
 
-**Priority**: 2 (Critical Path)  
-**Status**: Not Started  
-**Estimated Effort**: Medium  
+**Priority**: 2 (Critical Path)
+**Status**: Not Started
+**Estimated Effort**: Medium
 
 **Summary**: Build the core three-panel layout infrastructure with unified configuration workspace
 
@@ -49,16 +49,16 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 - Dynamic right panel with resizable divider infrastructure
 - Updated routing structure
 
-**Dependencies**: Epic 1  
+**Dependencies**: Epic 1
 **Blocks**: Epic 3, 4, 5
 
 ---
 
 ## Epic 3: Spawn List & Navigation
 
-**Priority**: 3 (Critical Path)  
-**Status**: Not Started  
-**Estimated Effort**: Medium  
+**Priority**: 3 (Critical Path)
+**Status**: Not Started
+**Estimated Effort**: Medium
 
 **Summary**: Implement spawn list with enable/disable, search, and navigation
 
@@ -73,16 +73,16 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 - "New Spawn" creation workflow
 - Efficient rendering for large spawn lists
 
-**Dependencies**: Epic 1, 2  
+**Dependencies**: Epic 1, 2
 **Blocks**: Epic 4
 
 ---
 
 ## Epic 4: Spawn Editor & Settings
 
-**Priority**: 4 (Critical Path)  
-**Status**: Not Started  
-**Estimated Effort**: Large  
+**Priority**: 4 (Critical Path)
+**Status**: Not Started
+**Estimated Effort**: Large
 
 **Summary**: Implement unified configuration workspace with spawn creation, editing, and asset configuration with explicit manual save workflows
 
@@ -103,16 +103,16 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 - Auto-save prevention with user control emphasis
 - Clear indication of inherited vs overridden asset properties
 
-**Dependencies**: Epic 1, 2, 3  
+**Dependencies**: Epic 1, 2, 3
 **Blocks**: Epic 5
 
 ---
 
 ## Epic 5: Asset Integration & Spawn-Specific Settings
 
-**Priority**: 5 (Critical Path)  
-**Status**: Not Started  
-**Estimated Effort**: Large  
+**Priority**: 5 (Critical Path)
+**Status**: Not Started
+**Estimated Effort**: Large
 
 **Summary**: Integrate asset library with comprehensive drag & drop workflows and dynamic space management for streamlined asset selection and assignment
 
@@ -134,16 +134,16 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 - Clear drag & drop zones with visual feedback for different spawn sizes
 - Auto-behaviors: expand library for few assets, grow spawn section for many assets
 
-**Dependencies**: Epic 1, 2, 4  
+**Dependencies**: Epic 1, 2, 4
 **Blocks**: Epic 6
 
 ---
 
 ## Epic 6: Spawn Profile Management
 
-**Priority**: 6  
-**Status**: Not Started  
-**Estimated Effort**: Medium  
+**Priority**: 6
+**Status**: Not Started
+**Estimated Effort**: Medium
 
 **Summary**: Implement active spawn profile management and switching
 
@@ -158,16 +158,16 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 - Profile management interface
 - Settings integration for active profile
 
-**Dependencies**: Epic 1, 2, 5  
+**Dependencies**: Epic 1, 2, 5
 **Blocks**: Epic 7
 
 ---
 
 ## Epic 7: Data Migration & Legacy Cleanup
 
-**Priority**: 7  
-**Status**: Not Started  
-**Estimated Effort**: Medium  
+**Priority**: 7
+**Status**: Not Started
+**Estimated Effort**: Medium
 
 **Summary**: Migrate existing data and remove legacy components
 
@@ -182,16 +182,16 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 - Clean up unused services and utilities
 - Update import/export functionality
 
-**Dependencies**: Epic 1, 2, 3, 4, 5, 6  
+**Dependencies**: Epic 1, 2, 3, 4, 5, 6
 **Blocks**: Epic 8
 
 ---
 
 ## Epic 8: Polish & User Experience
 
-**Priority**: 8  
-**Status**: Not Started  
-**Estimated Effort**: Small  
+**Priority**: 8
+**Status**: Not Started
+**Estimated Effort**: Small
 
 **Summary**: Add final UX enhancements and optimizations
 
@@ -207,7 +207,7 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 - User experience testing and refinements
 - Documentation updates
 
-**Dependencies**: Epic 7  
+**Dependencies**: Epic 7
 **Blocks**: None
 
 ---

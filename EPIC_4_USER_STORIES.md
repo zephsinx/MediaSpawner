@@ -2,9 +2,9 @@
 
 ## Epic Overview
 
-**Epic**: Spawn Editor & Settings  
-**Priority**: 4 (Critical Path)  
-**Status**: Not Started  
+**Epic**: Spawn Editor & Settings
+**Priority**: 4 (Critical Path)
+**Status**: Not Started
 
 Build unified configuration workspace in center panel with comprehensive manual save/cancel functionality, unsaved changes warnings, and asset inheritance model. The center panel serves dual purposes: spawn settings configuration and individual asset settings configuration. This epic is critical to the "experienced user friendly" vision principle, providing explicit control over changes with clear feedback for streaming configuration management.
 
@@ -12,12 +12,12 @@ Build unified configuration workspace in center panel with comprehensive manual 
 
 ## Story 1: Create Unified Configuration Workspace Component
 
-**Story ID**: MS-23  
-**Priority**: High  
-**Estimate**: 5 points  
-**Status**: Not Started  
+**Story ID**: MS-23
+**Priority**: High
+**Estimate**: 5 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want a unified configuration workspace in the center panel, so that I can configure both spawn settings and individual asset settings in a dedicated workspace with clear state management.
 
 **Acceptance Criteria**:
@@ -48,12 +48,12 @@ As a user, I want a unified configuration workspace in the center panel, so that
 
 ## Story 2: Implement Basic Save/Cancel Controls
 
-**Story ID**: MS-24  
-**Priority**: High  
-**Estimate**: 5 points  
-**Status**: Not Started  
+**Story ID**: MS-24
+**Priority**: High
+**Estimate**: 5 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want basic save and cancel controls for spawn editing, so that I have explicit control over when changes are persisted.
 
 **Acceptance Criteria**:
@@ -79,12 +79,12 @@ As a user, I want basic save and cancel controls for spawn editing, so that I ha
 
 ## Story 3: Add Advanced Save/Cancel Features
 
-**Story ID**: MS-25  
-**Priority**: High  
-**Estimate**: 3 points  
-**Status**: Not Started  
+**Story ID**: MS-25
+**Priority**: High
+**Estimate**: 3 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want advanced save/cancel features like confirmation dialogs and feedback messaging, so that I can efficiently manage my spawn editing workflow.
 
 **Acceptance Criteria**:
@@ -108,12 +108,12 @@ As a user, I want advanced save/cancel features like confirmation dialogs and fe
 
 ## Story 4: Build Core Unsaved Changes Detection
 
-**Story ID**: MS-26  
-**Priority**: High  
-**Estimate**: 5 points  
-**Status**: Not Started  
+**Story ID**: MS-26
+**Priority**: High
+**Estimate**: 5 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want the system to detect when I have unsaved changes, so that I know when my work needs to be saved.
 
 **Acceptance Criteria**:
@@ -138,12 +138,12 @@ As a user, I want the system to detect when I have unsaved changes, so that I kn
 
 ## Story 5: Implement Navigation Warning Dialogs
 
-**Story ID**: MS-27  
-**Priority**: High  
-**Estimate**: 3 points  
-**Status**: Not Started  
+**Story ID**: MS-27
+**Priority**: High
+**Estimate**: 3 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want warnings before navigating away from unsaved changes, so that I never accidentally lose work when switching contexts.
 
 **Acceptance Criteria**:
@@ -168,12 +168,12 @@ As a user, I want warnings before navigating away from unsaved changes, so that 
 
 ## Story 6: Create Basic Spawn Settings Form
 
-**Story ID**: MS-28  
-**Priority**: High  
-**Estimate**: 5 points  
-**Status**: Not Started  
+**Story ID**: MS-28
+**Priority**: High
+**Estimate**: 5 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want a basic spawn settings form with essential fields, so that I can configure the core properties of my spawns.
 
 **Acceptance Criteria**:
@@ -198,12 +198,12 @@ As a user, I want a basic spawn settings form with essential fields, so that I c
 
 ## Story 7: Add Advanced Spawn Settings
 
-**Story ID**: MS-29  
-**Priority**: High  
-**Estimate**: 3 points  
-**Status**: Not Started  
+**Story ID**: MS-29
+**Priority**: High
+**Estimate**: 3 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want advanced spawn settings like triggers and duration, so that I can configure complex spawn behavior.
 
 **Acceptance Criteria**:
@@ -227,12 +227,12 @@ As a user, I want advanced spawn settings like triggers and duration, so that I 
 
 ## Story 8: Implement Asset Inheritance Model UI
 
-**Story ID**: MS-30  
-**Priority**: High  
-**Estimate**: 5 points  
-**Status**: Not Started  
+**Story ID**: MS-30
+**Priority**: High
+**Estimate**: 5 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want to see and configure spawn default settings that will be inherited by assets, so that I can set common properties once and override them per asset as needed.
 
 **Acceptance Criteria**:
@@ -258,12 +258,12 @@ As a user, I want to see and configure spawn default settings that will be inher
 
 ## Story 9: Create Asset Settings Form Component
 
-**Story ID**: MS-38  
-**Priority**: High  
-**Estimate**: 8 points  
-**Status**: Not Started  
+**Story ID**: MS-38
+**Priority**: High
+**Estimate**: 8 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want an asset settings form in the center panel, so that I can configure spawn-specific asset overrides with proper space allocation and clear inheritance indication.
 
 **Acceptance Criteria**:
@@ -290,12 +290,12 @@ As a user, I want an asset settings form in the center panel, so that I can conf
 
 ## Story 10: Implement Context Switching Between Modes
 
-**Story ID**: MS-39  
-**Priority**: High  
-**Estimate**: 5 points  
-**Status**: Not Started  
+**Story ID**: MS-39
+**Priority**: High
+**Estimate**: 5 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want smooth context switching between spawn settings and asset settings, so that I can efficiently configure both spawn defaults and individual asset overrides in the same workspace.
 
 **Acceptance Criteria**:
@@ -321,12 +321,12 @@ As a user, I want smooth context switching between spawn settings and asset sett
 
 ## Story 11: Build Asset Settings Integration with Spawn Defaults
 
-**Story ID**: MS-40  
-**Priority**: High  
-**Estimate**: 5 points  
-**Status**: Not Started  
+**Story ID**: MS-40
+**Priority**: High
+**Estimate**: 5 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want asset settings to integrate seamlessly with spawn defaults, so that I can see inherited values and understand which properties come from the spawn vs asset-specific overrides.
 
 **Acceptance Criteria**:
@@ -352,12 +352,12 @@ As a user, I want asset settings to integrate seamlessly with spawn defaults, so
 
 ## Story 12: Add Form Validation and Error Handling
 
-**Story ID**: MS-31  
-**Priority**: Medium  
-**Estimate**: 5 points  
-**Status**: Not Started  
+**Story ID**: MS-31
+**Priority**: Medium
+**Estimate**: 5 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want clear validation and error handling throughout the spawn editor, so that I understand what needs to be corrected before saving.
 
 **Acceptance Criteria**:
@@ -383,12 +383,12 @@ As a user, I want clear validation and error handling throughout the spawn edito
 
 ## Story 13: Create Dirty State Indicators
 
-**Story ID**: MS-32  
-**Priority**: Medium  
-**Estimate**: 5 points  
-**Status**: Not Started  
+**Story ID**: MS-32
+**Priority**: Medium
+**Estimate**: 5 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want clear visual indicators of unsaved changes, so that I always know which fields have been modified and need to be saved.
 
 **Acceptance Criteria**:
@@ -414,12 +414,12 @@ As a user, I want clear visual indicators of unsaved changes, so that I always k
 
 ## Story 14: Add Navigation Warnings and Protection
 
-**Story ID**: MS-33  
-**Priority**: Medium  
-**Estimate**: 5 points  
-**Status**: Not Started  
+**Story ID**: MS-33
+**Priority**: Medium
+**Estimate**: 5 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want protection against accidental navigation away from unsaved changes, so that I don't lose work when switching spawns, profiles, or browser contexts.
 
 **Acceptance Criteria**:
@@ -445,12 +445,12 @@ As a user, I want protection against accidental navigation away from unsaved cha
 
 ## Story 15: Implement Auto-save Prevention Controls
 
-**Story ID**: MS-34  
-**Priority**: Low  
-**Estimate**: 3 points  
-**Status**: Not Started  
+**Story ID**: MS-34
+**Priority**: Low
+**Estimate**: 3 points
+**Status**: Not Started
 
-**User Story**:  
+**User Story**:
 As a user, I want explicit control over when my changes are saved, so that I can experiment with settings without fear of accidentally persisting incomplete configurations.
 
 **Acceptance Criteria**:
