@@ -10,65 +10,68 @@ Create type definitions and services to support the new spawn-centric architectu
 
 ---
 
-## Story 1: Define Spawn Data Structure
+## Story 1: Set Up Spawn Data Foundation
 
-**Story ID**: MS-9
+**Story ID**: MS-1
 **Priority**: High
-**Estimate**: 2 points
+**Estimate**: 3 points
 **Status**: Not Started
 
 **User Story**:
-As a developer, I want to define the Spawn interface with all required properties, so that I can represent spawns with enabled/disabled states and trigger configuration.
+As a user, I want spawns to have clear properties and structure, so that I can create organized collections of media assets with consistent behavior.
 
 **Acceptance Criteria**:
 
-- [ ] Spawn interface includes: id, name, enabled, trigger, duration, assets[]
-- [ ] Spawn supports asset inheritance settings (default properties)
-- [ ] SpawnAsset interface for spawn-specific asset instances with settings inheritance
-- [ ] TypeScript compilation passes without errors
-- [ ] Interface designed for future OBS-style settings expansion
-- [ ] Proper JSDoc documentation added
+- [ ] Can create spawns with names and descriptions
+- [ ] Spawns can be enabled or disabled
+- [ ] Spawns support trigger and duration settings
+- [ ] Spawns can contain multiple assets
+- [ ] Spawn data validates properly when saved
 
-**Technical Notes**:
+**Technical Task MS-1-T1**: Implement Spawn Interface
 
-- Create SpawnAsset interface extending MediaAsset with spawn-specific overrides
-- Include enabled boolean for toggle functionality
-- Trigger field should be flexible string/object for future expansion
-- Design inheritance model: Spawn defaults → SpawnAsset overrides
+- Create Spawn interface with: id, name, enabled, trigger, duration, assets[]
+- Design SpawnAsset interface for spawn-specific asset instances
+- Include inheritance settings for default properties
+- Add proper JSDoc documentation
+- Ensure TypeScript compilation passes without errors
+- Design for future OBS-style settings expansion
 
 **Dependencies**: None
 
 ---
 
-## Story 2: Define SpawnProfile Data Structure
+## Story 2: Set Up Spawn Profile Organization
 
 **Story ID**: MS-2
 **Priority**: High
-**Estimate**: 2 points
+**Estimate**: 3 points
 **Status**: Not Started
 
 **User Story**:
-As a developer, I want to define the SpawnProfile interface with active profile tracking, so that I can manage collections of spawns with one active profile at a time.
+As a user, I want to organize my spawns into profiles, so that I can manage different collections of spawns for different projects or contexts.
 
 **Acceptance Criteria**:
 
-- [ ] SpawnProfile interface includes: id, name, description, spawns[], lastModified
-- [ ] Interface supports active profile identification
-- [ ] Maintains proper relationship to spawns array
-- [ ] Compatible with localStorage JSON serialization
-- [ ] Proper JSDoc documentation added
+- [ ] Can create profiles to organize spawns
+- [ ] Each profile has a name and description
+- [ ] Only one profile is active at a time
+- [ ] Profile data saves and loads correctly
+- [ ] Can track when profiles were last modified
 
-**Technical Notes**:
+**Technical Task MS-2-T1**: Implement SpawnProfile Interface
 
-- Replace existing Configuration interface
-- Consider settings for active profile tracking (separate from profile data)
-- Ensure spawns array properly typed with Spawn interface
+- Create SpawnProfile interface with: id, name, description, spawns[], lastModified
+- Support active profile identification
+- Ensure compatibility with localStorage JSON serialization
+- Maintain proper relationship to spawns array
+- Add proper JSDoc documentation
 
 **Dependencies**: Story 1 (Spawn interface)
 
 ---
 
-## Story 3: Implement SpawnService CRUD Operations
+## Story 3: Manage Individual Spawns
 
 **Story ID**: MS-3
 **Priority**: High
@@ -76,29 +79,32 @@ As a developer, I want to define the SpawnProfile interface with active profile 
 **Status**: Not Started
 
 **User Story**:
-As a developer, I want basic spawn CRUD operations, so that I can create, read, update, and delete spawns within profiles with enable/disable functionality.
+As a user, I want to create, edit, and delete spawns, so that I can build and maintain my spawn configurations.
 
 **Acceptance Criteria**:
 
-- [ ] Implement createSpawn(), getSpawn(), updateSpawn(), deleteSpawn()
-- [ ] Implement enableSpawn(), disableSpawn() methods
-- [ ] Proper localStorage persistence with error handling
-- [ ] Cache integration for performance (using existing CacheService)
-- [ ] Unit tests with >90% coverage
-- [ ] Handles edge cases (empty profiles, invalid IDs)
+- [ ] Can create new spawns with default settings
+- [ ] Can update spawn properties and save changes
+- [ ] Can delete spawns I no longer need
+- [ ] Can enable and disable spawns quickly
+- [ ] Changes persist when I restart the application
+- [ ] Clear error messages when operations fail
 
-**Technical Notes**:
+**Technical Task MS-3-T1**: Implement SpawnService CRUD Operations
 
-- Follow existing service patterns (AssetService structure)
-- Integrate with CacheService for performance
-- Include spawn validation logic
-- Consider batch operations for future bulk actions
+- Implement createSpawn(), getSpawn(), updateSpawn(), deleteSpawn()
+- Add enableSpawn(), disableSpawn() methods
+- Include localStorage persistence with error handling
+- Integrate with existing CacheService for performance
+- Add spawn validation logic
+- Handle edge cases (empty profiles, invalid IDs)
+- Include unit tests with >90% coverage
 
 **Dependencies**: Stories 1, 2
 
 ---
 
-## Story 4: Implement SpawnProfileService with Active Profile Management
+## Story 4: Manage Spawn Profiles and Active Selection
 
 **Story ID**: MS-4
 **Priority**: High
@@ -106,58 +112,88 @@ As a developer, I want basic spawn CRUD operations, so that I can create, read, 
 **Status**: Not Started
 
 **User Story**:
-As a developer, I want spawn profile management with active profile tracking, so that only one profile is active at a time with proper context switching.
+As a user, I want to switch between different spawn profiles, so that I can work with different sets of spawns based on my current project or context.
 
 **Acceptance Criteria**:
 
-- [ ] Profile CRUD operations: create, read, update, delete
-- [ ] setActiveProfile() and getActiveProfile() methods
-- [ ] Profile switching behavior (context reset)
-- [ ] Active profile persisted in application settings
-- [ ] Unit tests with >90% coverage
-- [ ] Error handling for invalid profiles
+- [ ] Can create, edit, and delete spawn profiles
+- [ ] Can switch between profiles easily
+- [ ] Active profile is remembered when I restart the application
+- [ ] Profile switching resets my current context appropriately
+- [ ] Clear feedback when profile operations succeed or fail
 
-**Technical Notes**:
+**Technical Task MS-4-T1**: Implement SpawnProfileService
 
 - Replace existing ConfigurationService
+- Implement profile CRUD operations: create, read, update, delete
+- Add setActiveProfile() and getActiveProfile() methods
+- Handle profile switching behavior with context reset
 - Integrate with SettingsService for active profile persistence
-- Ensure proper cache invalidation on profile switches
-- Consider profile validation and name uniqueness
+- Include proper cache invalidation on profile switches
+- Add profile validation and name uniqueness
+- Include unit tests with >90% coverage
 
 **Dependencies**: Stories 1, 2
 
 ---
 
-## Story 5: Extend AssetService for Spawn-Specific Settings
+## Story 5: Support Spawn-Specific Asset Settings
 
 **Story ID**: MS-5
 **Priority**: High
-**Estimate**: 8 points
+**Estimate**: 3 points
 **Status**: Not Started
 
 **User Story**:
-As a developer, I want spawn-specific asset settings with inheritance, so that assets can have different configurations per spawn while inheriting defaults.
+As a user, I want assets to have different settings in different spawns, so that the same asset can behave differently depending on which spawn it's used in.
 
 **Acceptance Criteria**:
 
-- [ ] getSpawnAssetSettings(spawnId, assetId) method
-- [ ] setSpawnAssetSettings(spawnId, assetId, settings) method
+- [ ] Assets can have unique settings per spawn
 - [ ] Asset settings inherit from spawn defaults
-- [ ] Override capability for individual assets per spawn
-- [ ] Settings tied to specific spawn instances (not global)
-- [ ] Proper data structure for spawn-asset relationships
-- [ ] Unit tests with >90% coverage
-- [ ] Performance optimized for large asset lists
+- [ ] Can override individual asset properties per spawn
+- [ ] Asset settings save separately for each spawn
+- [ ] Settings load correctly when switching spawns
 
-**Technical Notes**:
+**Technical Task MS-5-T1**: Extend AssetService for Spawn Settings
 
-- Extend existing AssetService without breaking current functionality
-- Implement data structure for SpawnAsset instances (not just MediaAsset references)
-- Design inheritance model: Spawn defaults → SpawnAsset overrides → final rendered settings
-- Consider storage structure for spawn-asset settings relationships
+- Add getSpawnAssetSettings(spawnId, assetId) method
+- Add setSpawnAssetSettings(spawnId, assetId, settings) method
+- Implement data structure for SpawnAsset instances
 - Maintain backward compatibility with existing asset operations
+- Design inheritance model: Spawn defaults → SpawnAsset overrides
 
 **Dependencies**: Stories 1, 2, 3, 4
+
+---
+
+## Story 6: Optimize Asset Settings Performance
+
+**Story ID**: MS-6
+**Priority**: Medium
+**Estimate**: 3 points
+**Status**: Not Started
+
+**User Story**:
+As a user with many spawns and assets, I want asset operations to remain fast, so that I can work efficiently even with large configurations.
+
+**Acceptance Criteria**:
+
+- [ ] Asset settings load quickly even with many spawns
+- [ ] Switching between spawns feels responsive
+- [ ] Can handle dozens of assets per spawn efficiently
+- [ ] No noticeable delays when configuring asset settings
+
+**Technical Task MS-6-T1**: Implement Performance Optimizations
+
+- Optimize asset settings operations for large asset lists
+- Implement efficient storage structure for spawn-asset relationships
+- Add performance benchmarks and monitoring
+- Consider storage structure optimizations
+- Include unit tests with >90% coverage
+- Profile performance with large datasets
+
+**Dependencies**: Story 5
 
 ---
 
@@ -168,7 +204,8 @@ Story 1 (Spawn Interface)
 ├── Story 2 (SpawnProfile Interface)
 ├── Story 3 (SpawnService)
 │   └── Story 4 (SpawnProfileService)
-└── Story 5 (Asset Settings) [depends on all above]
+│       └── Story 5 (Asset Settings)
+│           └── Story 6 (Performance)
 ```
 
 ## Definition of Done
