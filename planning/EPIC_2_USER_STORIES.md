@@ -10,7 +10,7 @@ Build the core three-panel layout infrastructure with responsive design, panel s
 
 ---
 
-## Story 1: Create Basic Three-Panel Layout Component
+## Story 1: Navigate with Three-Panel Workspace
 
 **Story ID**: MS-10
 **Priority**: High
@@ -18,34 +18,34 @@ Build the core three-panel layout infrastructure with responsive design, panel s
 **Status**: Not Started
 
 **User Story**:
-As a developer, I want a three-panel layout component with fixed proportions, so that I can provide consistent structure for spawn management workflow with unified configuration workspace.
+As a user, I want a three-panel workspace layout, so that I can see my spawn list, configuration workspace, and asset management in organized sections.
 
 **Acceptance Criteria**:
 
-- [ ] Three-panel layout: Left (25%), Center (50%), Right (25%)
-- [ ] Center panel infrastructure prepared for unified configuration workspace (dual-mode capability)
-- [ ] Right panel infrastructure prepared for dynamic two-section layout
-- [ ] Responsive design for different desktop screen sizes (1280px+)
-- [ ] Proper CSS Grid or Flexbox implementation
-- [ ] Minimum and maximum panel widths enforced (prevent too narrow/wide)
-- [ ] Clean, practical styling (minimal visual flourishes)
-- [ ] Tailwind CSS integration
-- [ ] Proper TypeScript props interface
+- [ ] Can see three distinct workspace areas side by side
+- [ ] Left area shows spawn navigation (25% width)
+- [ ] Center area provides configuration workspace (50% width)
+- [ ] Right area handles asset management (25% width)
+- [ ] Layout works well on different desktop screen sizes
+- [ ] Panels maintain usable proportions and don't become too narrow
+- [ ] Interface has clean, practical styling without visual clutter
 
-**Technical Notes**:
+**Technical Task MS-10-T1**: Implement Three-Panel Layout Infrastructure
 
-- Use CSS Grid for precise panel control
+- Create three-panel layout: Left (25%), Center (50%), Right (25%)
+- Use CSS Grid or Flexbox for precise panel control
 - Target desktop resolutions: 1280px, 1440px, 1920px, ultrawide
-- Ensure panels maintain usability at different desktop sizes
-- Plan for future panel resizing (not implemented yet)
-- Center panel structure should accommodate future dual-mode content (spawn settings/asset settings)
-- Right panel structure should accommodate future dynamic sections
+- Implement minimum and maximum panel widths
+- Prepare center panel for unified configuration workspace (dual-mode capability)
+- Prepare right panel for dynamic two-section layout
+- Integrate Tailwind CSS with proper TypeScript props interface
+- Plan infrastructure for future panel resizing
 
 **Dependencies**: Epic 1 (types for routing context)
 
 ---
 
-## Story 2: Implement Application Header with Profile Context
+## Story 2: Switch Between Spawn Profiles
 
 **Story ID**: MS-11
 **Priority**: High
@@ -57,26 +57,29 @@ As a user, I want a header with spawn profile selector and context indicators, s
 
 **Acceptance Criteria**:
 
-- [ ] Header component with spawn profile selector dropdown
-- [ ] Active profile indication (name/description)
-- [ ] Profile actions: Create, Edit, Delete (placeholder buttons)
-- [ ] Application title/branding
-- [ ] Header layout optimized for desktop screens
-- [ ] Clear visual hierarchy
-- [ ] Integration with SpawnProfileService for active profile
+- [ ] Can see which spawn profile is currently active
+- [ ] Can switch between different spawn profiles from dropdown
+- [ ] Header shows profile name and description clearly
+- [ ] Can access profile management actions (create, edit, delete)
+- [ ] Application title and branding are visible
+- [ ] Header layout works well on desktop screens
+- [ ] Profile switching updates my workspace context appropriately
 
-**Technical Notes**:
+**Technical Task MS-11-T1**: Implement Profile Header Component
 
+- Create header component with spawn profile selector dropdown
+- Integrate with SpawnProfileService for active profile management
+- Add profile actions: Create, Edit, Delete (placeholder buttons)
 - Use existing dropdown patterns from current app
-- Profile selector should call SpawnProfileService.setActiveProfile()
+- Implement SpawnProfileService.setActiveProfile() calls
+- Optimize header layout for desktop screens with clear visual hierarchy
 - Consider breadcrumb space for future navigation context
-- Keep header height consistent
 
 **Dependencies**: Epic 1 (SpawnProfileService)
 
 ---
 
-## Story 3: Create Panel State Management System
+## Story 3: Maintain Context Across Panels
 
 **Story ID**: MS-12
 **Priority**: High
@@ -84,33 +87,36 @@ As a user, I want a header with spawn profile selector and context indicators, s
 **Status**: Not Started
 
 **User Story**:
-As a developer, I want centralized panel state management, so that panels can communicate selected spawn, profile context, unsaved changes, and center panel mode switching.
+As a user, I want my selections and context maintained across the workspace, so that panels stay coordinated when I switch profiles, select spawns, or make changes.
 
 **Acceptance Criteria**:
 
-- [ ] React Context for panel state (selected spawn, active profile, etc.)
-- [ ] Panel communication system (spawn selection, profile changes)
-- [ ] State persistence for selected spawn per profile
-- [ ] Unsaved changes tracking across panels
-- [ ] Center panel mode state management (spawn settings vs asset settings modes)
-- [ ] Clear state transitions when switching profiles
-- [ ] TypeScript interfaces for all state objects including center panel modes
-- [ ] Error handling for invalid state
+- [ ] Selected spawn stays consistent across all panels
+- [ ] Profile switching resets context appropriately
+- [ ] Unsaved changes are tracked across the workspace
+- [ ] Panel coordination works smoothly (spawn selection affects other panels)
+- [ ] My last selected spawn is remembered for each profile
+- [ ] Context switching feels responsive and predictable
+- [ ] Workspace handles invalid selections gracefully
 
-**Technical Notes**:
+**Technical Task MS-12-T1**: Implement Panel State Management System
 
-- Use React Context + useReducer for complex state
-- Consider localStorage for persisting selected spawn per profile
+- Create React Context for panel state (selected spawn, active profile, etc.)
+- Implement panel communication system (spawn selection, profile changes)
+- Add state persistence for selected spawn per profile using localStorage
+- Build unsaved changes tracking across panels
+- Create center panel mode state management (spawn settings vs asset settings modes)
+- Ensure clear state transitions when switching profiles
+- Add TypeScript interfaces for all state objects including center panel modes
+- Include error handling for invalid state
 - Design state to support future features (multiple selection, etc.)
-- Ensure state resets appropriately on profile switches
-- Include state foundation for center panel dual-mode operation
 - Prepare state structure for future right panel dynamic sections
 
 **Dependencies**: Epic 1 (Spawn/SpawnProfile types)
 
 ---
 
-## Story 4: Update Routing for New Layout Structure
+## Story 4: Navigate with Bookmarkable URLs
 
 **Story ID**: MS-13
 **Priority**: Medium
@@ -122,16 +128,20 @@ As a user, I want URL routing that reflects my current spawn profile and selecte
 
 **Acceptance Criteria**:
 
-- [ ] Route structure: `/profile/:profileId/spawn/:spawnId?`
-- [ ] Default route redirects to active profile
-- [ ] URL updates when profile or spawn selection changes
-- [ ] Handle invalid profile/spawn IDs gracefully
-- [ ] Browser back/forward button support
-- [ ] URL reflects current application state
-- [ ] Route protection for non-existent profiles/spawns
+- [ ] URL shows which profile and spawn I'm currently viewing
+- [ ] Can bookmark specific spawn configurations and return to them
+- [ ] Browser back/forward buttons work as expected
+- [ ] URL updates automatically when I change profiles or select spawns
+- [ ] Invalid URLs redirect gracefully to valid states
+- [ ] URL reflects my current application state accurately
 
-**Technical Notes**:
+**Technical Task MS-13-T1**: Implement URL Routing System
 
+- Create route structure: `/profile/:profileId/spawn/:spawnId?`
+- Set up default route redirects to active profile
+- Implement URL updates when profile or spawn selection changes
+- Handle invalid profile/spawn IDs gracefully
+- Add browser back/forward button support
 - Replace existing routing structure completely
 - Use React Router v6 patterns
 - Consider URL encoding for profile/spawn names vs IDs
@@ -142,7 +152,7 @@ As a user, I want URL routing that reflects my current spawn profile and selecte
 
 ---
 
-## Story 5: Optimize Layout for Desktop Screen Variations
+## Story 5: Work on Different Desktop Screens
 
 **Story ID**: MS-14
 **Priority**: Medium
@@ -154,18 +164,22 @@ As a user, I want the layout to work well on different desktop screen sizes, so 
 
 **Acceptance Criteria**:
 
-- [ ] Support for common desktop resolutions (1280px, 1440px, 1920px+)
-- [ ] Ultrawide monitor support (maintain panel proportions)
-- [ ] Minimum window size handling (prevent unusable layouts)
-- [ ] Panel content scaling for different screen densities
-- [ ] Maintain 25%/50%/25% proportions across desktop sizes
-- [ ] Test on common desktop screen sizes
+- [ ] Layout works well on standard desktop resolutions (1280px, 1440px, 1920px+)
+- [ ] Ultrawide monitors maintain good panel proportions
+- [ ] Minimum window size still provides usable workspace
+- [ ] Text and UI elements scale appropriately for different screen densities
+- [ ] Panel proportions remain consistent across desktop sizes
+- [ ] Interface is tested and functional on common desktop configurations
 
-**Technical Notes**:
+**Technical Task MS-14-T1**: Optimize Desktop Layout Responsiveness
 
+- Support common desktop resolutions (1280px, 1440px, 1920px+)
+- Implement ultrawide monitor support (maintain panel proportions)
+- Add minimum window size handling (prevent unusable layouts)
+- Ensure panel content scaling for different screen densities
+- Maintain 25%/50%/25% proportions across desktop sizes
 - Use Tailwind responsive utilities for desktop breakpoints
 - Focus on desktop-first approach (1280px minimum)
-- Ensure text and UI elements scale appropriately
 - Test with common desktop resolutions and browser zoom levels
 - Consider high-DPI displays
 
@@ -173,7 +187,7 @@ As a user, I want the layout to work well on different desktop screen sizes, so 
 
 ---
 
-## Story 6: Create Panel Placeholder Components
+## Story 6: See Layout Structure During Development
 
 **Story ID**: MS-15
 **Priority**: Low
@@ -181,25 +195,29 @@ As a user, I want the layout to work well on different desktop screen sizes, so 
 **Status**: Not Started
 
 **User Story**:
-As a developer, I want placeholder components for each panel, so that I can test the layout and demonstrate the structure before implementing full functionality.
+As a user, I want to see the workspace structure while features are being developed, so that I can understand the layout and provide feedback before full functionality is ready.
 
 **Acceptance Criteria**:
 
-- [ ] Left panel placeholder: "Spawn List Coming Soon"
-- [ ] Center panel placeholder: "Unified Configuration Workspace Coming Soon"
-- [ ] Right panel placeholder: "Dynamic Asset Management Coming Soon"
-- [ ] Placeholders show panel dimensions and boundaries
-- [ ] Basic styling consistent with design vision
-- [ ] Easy to replace with real components
-- [ ] Props interface for future content injection
-- [ ] Center panel placeholder indicates dual-mode capability
+- [ ] Can see placeholders for spawn list area
+- [ ] Can see placeholder for configuration workspace area
+- [ ] Can see placeholder for asset management area
+- [ ] Placeholders show clear boundaries and dimensions
+- [ ] Placeholder styling matches the intended design direction
+- [ ] Placeholders indicate what functionality will be available
+- [ ] Easy to understand the intended workspace flow
 
-**Technical Notes**:
+**Technical Task MS-15-T1**: Create Panel Placeholder Components
 
-- Simple placeholder components with consistent styling
+- Create left panel placeholder: "Spawn List Coming Soon"
+- Create center panel placeholder: "Unified Configuration Workspace Coming Soon"
+- Create right panel placeholder: "Dynamic Asset Management Coming Soon"
+- Show panel dimensions and boundaries clearly
+- Apply basic styling consistent with design vision
+- Design components to be easily replaced with real implementations
+- Create props interface for future content injection
 - Include panel titles and brief descriptions
 - Use semantic HTML structure
-- Prepare component slots for future real implementations
 - Consider loading states or skeleton screens
 - Center panel placeholder should hint at unified workspace concept
 - Right panel placeholder should hint at dynamic sections concept
