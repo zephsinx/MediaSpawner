@@ -6,17 +6,19 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 
 ---
 
-## Epic 1: Data Model & Services Foundation
+## Epic 1: Spawn Management Foundation
 
 **Priority**: 1 (Critical Path)
 **Status**: Not Started
 **Estimated Effort**: Medium
 
-**Summary**: Implement new data structures and services for Spawns and Spawn Profiles
+**User Value**: Users can create, organize, and manage spawns and spawn profiles with proper data persistence and inheritance behavior, providing the foundation for all spawn-centric workflows.
 
-**Description**: Create type definitions and services to support the new spawn-centric architecture. This includes defining Spawn and SpawnProfile interfaces with enabled/disabled states, implementing SpawnService and SpawnProfileService with active profile management, and extending AssetService for spawn-specific asset settings with inheritance model.
+**Summary**: Establish core data structures and services that enable users to work with spawns and spawn profiles effectively.
 
-**Key Deliverables**:
+**Technical Approach**: Create type definitions and services to support the new spawn-centric architecture. This includes defining Spawn and SpawnProfile interfaces with enabled/disabled states, implementing SpawnService and SpawnProfileService with active profile management, and extending AssetService for spawn-specific asset settings with inheritance model.
+
+**Technical Deliverables**:
 
 - New TypeScript type definitions for Spawns and Spawn Profiles
 - Spawn interface with enabled/disabled state and trigger configuration
@@ -36,11 +38,13 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 **Status**: Not Started
 **Estimated Effort**: Medium
 
-**Summary**: Build the core three-panel layout infrastructure with unified configuration workspace
+**User Value**: Users get an organized three-panel workspace that separates spawn navigation, configuration, and asset management into clear, dedicated areas for efficient workflow.
 
-**Description**: Implement the main layout component with left spawn list panel (25%), center unified configuration workspace (50%), and right asset management panel (25%). The center panel serves as a unified workspace for both spawn settings and asset configuration. The right panel includes dynamic two-section layout with resizable dividers. Includes responsive design considerations and panel state management.
+**Summary**: Build the core three-panel layout infrastructure with unified configuration workspace.
 
-**Key Deliverables**:
+**Technical Approach**: Implement the main layout component with left spawn list panel (25%), center unified configuration workspace (50%), and right asset management panel (25%). The center panel serves as a unified workspace for both spawn settings and asset configuration. The right panel includes dynamic two-section layout with resizable dividers. Includes responsive design considerations and panel state management.
+
+**Technical Deliverables**:
 
 - Three-panel layout component with unified configuration workspace concept
 - Panel resizing and responsive behavior
@@ -60,11 +64,13 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 **Status**: Not Started
 **Estimated Effort**: Medium
 
-**Summary**: Implement spawn list with enable/disable, search, and navigation
+**User Value**: Users can efficiently browse, search, and navigate through many spawns with quick enable/disable controls and streamlined spawn creation workflow.
 
-**Description**: Build spawn list component with toggle switches for enable/disable, search/filter functionality, visual indicators for enabled/disabled states, and efficient navigation for handling 100s of spawns. Includes compact list design and spawn selection handling.
+**Summary**: Implement spawn list with enable/disable, search, and navigation.
 
-**Key Deliverables**:
+**Technical Approach**: Build spawn list component with toggle switches for enable/disable, search/filter functionality, visual indicators for enabled/disabled states, and efficient navigation for handling 100s of spawns. Includes compact list design and spawn selection handling.
+
+**Technical Deliverables**:
 
 - Spawn list component for left panel
 - Enable/disable toggle switches with visual states
@@ -84,11 +90,13 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 **Status**: Not Started
 **Estimated Effort**: Large
 
-**Summary**: Implement unified configuration workspace with spawn creation, editing, and asset configuration with explicit manual save workflows
+**User Value**: Users can configure spawn settings and individual asset properties with explicit manual save controls, comprehensive unsaved changes protection, and clear asset inheritance management in a unified workspace.
 
-**Description**: Build unified configuration workspace in center panel with comprehensive manual save/cancel functionality, unsaved changes warnings, and asset inheritance model. The center panel serves dual purposes: spawn settings configuration and individual asset settings configuration. This epic is critical to the "experienced user friendly" vision principle, providing explicit control over changes with clear feedback for streaming configuration management.
+**Summary**: Implement unified configuration workspace with spawn creation, editing, and asset configuration with explicit manual save workflows.
 
-**Key Deliverables**:
+**Technical Approach**: Build unified configuration workspace in center panel with comprehensive manual save/cancel functionality, unsaved changes warnings, and asset inheritance model. The center panel serves dual purposes: spawn settings configuration and individual asset settings configuration. This epic is critical to the "experienced user friendly" vision principle, providing explicit control over changes with clear feedback for streaming configuration management.
+
+**Technical Deliverables**:
 
 - Unified configuration workspace component for center panel with manual save workflow
 - Spawn settings form (name, trigger, duration, etc.) with real-time validation
@@ -108,17 +116,19 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 
 ---
 
-## Epic 5: Asset Integration & Spawn-Specific Settings
+## Epic 5: Asset Management & Customization
 
 **Priority**: 5 (Critical Path)
 **Status**: Not Started
 **Estimated Effort**: Large
 
-**Summary**: Integrate asset library with comprehensive drag & drop workflows and dynamic space management for streamlined asset selection and assignment
+**User Value**: Users can efficiently manage asset libraries, assign assets to spawns with drag & drop, and configure spawn-specific asset settings while maintaining a clean separation between asset selection and configuration.
 
-**Description**: Adapt existing asset components for the right panel with dynamic two-section layout, comprehensive drag & drop workflows, and streamlined asset selection/assignment focus. The right panel focuses purely on asset selection and assignment, with asset configuration handled in the center panel. Includes dynamic space management with resizable dividers and smart defaults optimized for different spawn sizes.
+**Summary**: Integrate asset library with comprehensive drag & drop workflows and dynamic space management for streamlined asset selection and assignment.
 
-**Key Deliverables**:
+**Technical Approach**: Adapt existing asset components for the right panel with dynamic two-section layout, comprehensive drag & drop workflows, and streamlined asset selection/assignment focus. The right panel focuses purely on asset selection and assignment, with asset configuration handled in the center panel. Includes dynamic space management with resizable dividers and smart defaults optimized for different spawn sizes.
+
+**Technical Deliverables**:
 
 - Asset management component for right panel with dynamic two-section layout
 - User-resizable divider between sections with smart defaults (30/70 split)
@@ -145,11 +155,13 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 **Status**: Not Started
 **Estimated Effort**: Medium
 
-**Summary**: Implement active spawn profile management and switching
+**User Value**: Users can create and switch between different spawn profiles for different projects or contexts, with clear active profile tracking and proper context management.
 
-**Description**: Create spawn profile switching with active profile tracking, profile creation/management, and proper context handling. Only one spawn profile should be active at a time, with clear indication of current active profile.
+**Summary**: Implement active spawn profile management and switching.
 
-**Key Deliverables**:
+**Technical Approach**: Create spawn profile switching with active profile tracking, profile creation/management, and proper context handling. Only one spawn profile should be active at a time, with clear indication of current active profile.
+
+**Technical Deliverables**:
 
 - Spawn profile selector in header
 - Active profile tracking and indication
@@ -163,24 +175,26 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 
 ---
 
-## Epic 7: Data Migration & Legacy Cleanup
+## Epic 7: Legacy Cleanup & Terminology Updates
 
 **Priority**: 7
 **Status**: Not Started
 **Estimated Effort**: Medium
 
-**Summary**: Migrate existing data and remove legacy components
+**User Value**: Users experience a clean, updated application with consistent spawn-centric terminology and functionality throughout the interface.
 
-**Description**: Convert existing Configuration data to Spawn Profiles, remove old components and pages, update routing structure, and update all terminology throughout the application from "Configuration/Asset Group" to "Spawn Profile/Spawn".
+**Summary**: Remove legacy components and update terminology throughout the application.
 
-**Key Deliverables**:
+**Technical Approach**: Remove old components and pages, update routing structure, and update all terminology throughout the application from "Configuration/Asset Group" to "Spawn Profile/Spawn". Clean up unused code and ensure consistent terminology.
 
-- Data migration scripts/utilities
+**Technical Deliverables**:
+
 - Remove legacy components (Dashboard, ConfigEditor, etc.)
 - Update routing to new structure
 - Terminology updates throughout codebase
 - Clean up unused services and utilities
 - Update import/export functionality
+- Remove obsolete configuration interfaces and types
 
 **Dependencies**: Epic 1, 2, 3, 4, 5, 6
 **Blocks**: Epic 8
@@ -193,11 +207,13 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 **Status**: Not Started
 **Estimated Effort**: Small
 
-**Summary**: Add final UX enhancements and optimizations
+**User Value**: Users experience a polished, responsive application with keyboard shortcuts, accessibility improvements, and optimized performance for managing large spawn configurations.
 
-**Description**: Performance optimizations for large spawn lists, keyboard shortcuts, foundation for future bulk operations, and final UI polish. Includes accessibility improvements and user experience refinements.
+**Summary**: Add final UX enhancements and optimizations.
 
-**Key Deliverables**:
+**Technical Approach**: Performance optimizations for large spawn lists, keyboard shortcuts, foundation for future bulk operations, and final UI polish. Includes accessibility improvements and user experience refinements.
+
+**Technical Deliverables**:
 
 - Performance optimizations for large data sets
 - Keyboard shortcuts for common actions
@@ -219,7 +235,7 @@ Epic 1 (Foundation)
 ├── Epic 2 (Layout)
 │   ├── Epic 3 (Spawn List)
 │   │   └── Epic 4 (Spawn Editor)
-│   │       └── Epic 5 (Asset Integration)
+│   │       └── Epic 5 (Asset Management)
 │   │           └── Epic 6 (Profile Management)
 │   │               └── Epic 7 (Migration & Cleanup)
 │   │                   └── Epic 8 (Polish)
