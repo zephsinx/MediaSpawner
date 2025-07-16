@@ -10,7 +10,7 @@ Build spawn list component with enable/disable functionality, search/filter capa
 
 ---
 
-## Story 1: Create Basic Spawn List Component
+## Story 1: View All Spawns in My Profile
 
 **Story ID**: MS-16
 **Priority**: High
@@ -22,18 +22,23 @@ As a user, I want to see a list of all spawns in my active profile, so that I ca
 
 **Acceptance Criteria**:
 
-- [ ] Spawn list component renders in left panel (25% width)
-- [ ] Displays spawn information: Name, Asset Count, Status (enabled/disabled)
-- [ ] Compact list design for efficient scanning
-- [ ] Spawn selection highlights the selected spawn
-- [ ] Integrates with panel state management from Epic 2
-- [ ] Empty state when no spawns exist in profile
-- [ ] Loading state while spawns are being fetched
+- [ ] Can see all spawns in my current profile organized in a list
+- [ ] Each spawn shows its name, number of assets, and enabled/disabled status
+- [ ] List design is compact for efficient scanning
+- [ ] Can identify which spawn is currently selected
+- [ ] See clear message when no spawns exist in profile
+- [ ] List shows loading state while spawns are being retrieved
+- [ ] Spawn information updates when I make changes
 
-**Technical Notes**:
+**Technical Task MS-16-T1**: Implement Spawn List Component
 
+- Build spawn list component that renders in left panel (25% width)
 - Use SpawnService from Epic 1 to fetch spawns
-- Integrate with panel state management for selection
+- Integrate with panel state management from Epic 2 for selection
+- Display spawn information: Name, Asset Count, Status (enabled/disabled)
+- Implement compact list design for efficient scanning
+- Add empty state when no spawns exist in profile
+- Add loading state while spawns are being fetched
 - Follow existing component patterns in codebase
 - Consider virtualization for large lists (future optimization)
 
@@ -41,7 +46,7 @@ As a user, I want to see a list of all spawns in my active profile, so that I ca
 
 ---
 
-## Story 2: Implement Enable/Disable Toggle Functionality
+## Story 2: Control Spawn Availability Quickly
 
 **Story ID**: MS-17
 **Priority**: High
@@ -53,18 +58,23 @@ As a user, I want to enable/disable spawns with toggle switches, so that I can q
 
 **Acceptance Criteria**:
 
-- [ ] Toggle switch for each spawn in the list
-- [ ] Visual states: enabled (normal text), disabled (grayed out)
-- [ ] Disabled spawns remain inline (not grouped separately)
-- [ ] Toggle immediately updates spawn status via SpawnService
-- [ ] Visual feedback during toggle operation
-- [ ] Maintains spawn list order regardless of enabled/disabled state
-- [ ] Keyboard accessibility for toggles
+- [ ] Can toggle each spawn on/off with a switch control
+- [ ] Enabled spawns appear normal, disabled spawns are grayed out
+- [ ] Disabled spawns stay in the same list position (not moved to separate section)
+- [ ] Toggle changes take effect immediately
+- [ ] Can see visual feedback while toggle is processing
+- [ ] Spawn list order stays the same regardless of enabled/disabled state
+- [ ] Can use keyboard to operate toggles for accessibility
 
-**Technical Notes**:
+**Technical Task MS-17-T1**: Implement Enable/Disable Toggle System
 
-- Use SpawnService.enableSpawn() and disableSpawn() methods
+- Add toggle switch for each spawn in the list
+- Use SpawnService.enableSpawn() and disableSpawn() methods from Epic 1
+- Implement visual states: enabled (normal text), disabled (grayed out)
+- Ensure disabled spawns remain inline (not grouped separately)
+- Add visual feedback during toggle operation
 - Implement optimistic UI updates with error handling
+- Add keyboard accessibility for toggles
 - Consider subtle disabled badge/icon for additional clarity
 - Ensure toggle switches are touch-friendly for desktop use
 
@@ -72,7 +82,7 @@ As a user, I want to enable/disable spawns with toggle switches, so that I can q
 
 ---
 
-## Story 3: Add Spawn Selection and Navigation
+## Story 3: Select Spawns for Editing
 
 **Story ID**: MS-18
 **Priority**: High
@@ -84,18 +94,23 @@ As a user, I want to select spawns from the list to edit them, so that the spawn
 
 **Acceptance Criteria**:
 
-- [ ] Click spawn to select it (highlighted background)
-- [ ] Selected spawn communicates to center panel via state management
-- [ ] URL updates to reflect selected spawn (/profile/:profileId/spawn/:spawnId)
-- [ ] Keyboard navigation (arrow keys, enter to select)
-- [ ] Maintains selection when switching between spawns
-- [ ] Handles invalid spawn selection gracefully
-- [ ] Clear visual indication of selected spawn
+- [ ] Can click on any spawn to select it
+- [ ] Selected spawn is clearly highlighted with different background
+- [ ] Selection updates the URL to reflect my current spawn
+- [ ] Can navigate with keyboard (arrow keys, enter to select)
+- [ ] My selection is maintained when switching between spawns
+- [ ] System handles invalid selections gracefully with clear feedback
+- [ ] Always know which spawn is currently selected
 
-**Technical Notes**:
+**Technical Task MS-18-T1**: Implement Spawn Selection and Navigation
 
-- Integrate with panel state management from Epic 2
-- Update URL routing to reflect selection
+- Implement click spawn to select with highlighted background
+- Integrate with panel state management from Epic 2 for center panel communication
+- Update URL routing to reflect selected spawn (/profile/:profileId/spawn/:spawnId)
+- Add keyboard navigation (arrow keys, enter to select)
+- Ensure selection is maintained when switching between spawns
+- Handle invalid spawn selection gracefully
+- Add clear visual indication of selected spawn
 - Consider persisting last selected spawn per profile
 - Implement keyboard event handlers for navigation
 
@@ -103,7 +118,7 @@ As a user, I want to select spawns from the list to edit them, so that the spawn
 
 ---
 
-## Story 4: Implement Search and Filter Functionality
+## Story 4: Find Spawns Quickly
 
 **Story ID**: MS-19
 **Priority**: Medium
@@ -115,17 +130,24 @@ As a user, I want to search and filter my spawns, so that I can quickly find spe
 
 **Acceptance Criteria**:
 
-- [ ] Search input at top of spawn list
-- [ ] Real-time filtering as user types
-- [ ] Search by spawn name (case-insensitive)
-- [ ] Filter options: All, Enabled Only, Disabled Only
-- [ ] Clear search functionality
-- [ ] Maintains selection if selected spawn matches filter
-- [ ] Shows result count or "no results" state
-- [ ] Keyboard shortcuts (Ctrl+F to focus search)
+- [ ] Can type in search box to find spawns by name
+- [ ] Search results appear instantly as I type
+- [ ] Can filter to show only enabled spawns, only disabled spawns, or all spawns
+- [ ] Can clear my search to see all spawns again
+- [ ] My selected spawn stays selected if it matches the current filter
+- [ ] Can see how many spawns match my search/filter
+- [ ] Can use keyboard shortcut (Ctrl+F) to jump to search box
 
-**Technical Notes**:
+**Technical Task MS-19-T1**: Implement Search and Filter System
 
+- Add search input at top of spawn list
+- Implement real-time filtering as user types
+- Add search by spawn name (case-insensitive)
+- Create filter options: All, Enabled Only, Disabled Only
+- Add clear search functionality
+- Maintain selection if selected spawn matches filter
+- Show result count or "no results" state
+- Add keyboard shortcuts (Ctrl+F to focus search)
 - Implement client-side filtering for performance
 - Use debounced search input to avoid excessive filtering
 - Consider highlighting search terms in results
@@ -135,7 +157,7 @@ As a user, I want to search and filter my spawns, so that I can quickly find spe
 
 ---
 
-## Story 5: Add "New Spawn" Creation Workflow
+## Story 5: Create New Spawns Easily
 
 **Story ID**: MS-20
 **Priority**: Medium
@@ -147,17 +169,23 @@ As a user, I want to create new spawns directly from the spawn list, so that I c
 
 **Acceptance Criteria**:
 
-- [ ] "New Spawn" button prominently placed in spawn list
-- [ ] Creates new spawn with default settings via SpawnService
-- [ ] Automatically selects newly created spawn
-- [ ] Navigates to spawn editor for immediate configuration
-- [ ] Handles spawn creation errors gracefully
-- [ ] New spawn appears in list immediately
-- [ ] Assigns default name (e.g., "New Spawn 1", "New Spawn 2")
+- [ ] Can see a "New Spawn" button in the spawn list area
+- [ ] Button creates a new spawn with sensible default settings
+- [ ] New spawn is automatically selected after creation
+- [ ] Spawn editor opens immediately so I can configure the new spawn
+- [ ] See clear error message if spawn creation fails
+- [ ] New spawn appears in the list right away
+- [ ] New spawn gets a useful default name like "New Spawn 1"
 
-**Technical Notes**:
+**Technical Task MS-20-T1**: Implement New Spawn Creation Workflow
 
-- Use SpawnService.createSpawn() with sensible defaults
+- Add "New Spawn" button prominently placed in spawn list
+- Use SpawnService.createSpawn() from Epic 1 with sensible defaults
+- Automatically select newly created spawn
+- Navigate to spawn editor for immediate configuration
+- Handle spawn creation errors gracefully
+- Ensure new spawn appears in list immediately
+- Assign default name (e.g., "New Spawn 1", "New Spawn 2")
 - Integrate with panel state to select new spawn
 - Consider inline editing for spawn name after creation
 - Ensure new spawn is visible (not filtered out by search)
@@ -166,7 +194,7 @@ As a user, I want to create new spawns directly from the spawn list, so that I c
 
 ---
 
-## Story 6: Optimize Performance for Large Spawn Lists
+## Story 6: Work Efficiently with Many Spawns
 
 **Story ID**: MS-21
 **Priority**: Medium
@@ -178,16 +206,22 @@ As a user with many spawns, I want the spawn list to remain responsive and fast,
 
 **Acceptance Criteria**:
 
-- [ ] Smooth scrolling with 100+ spawns
-- [ ] Fast search/filter operations
-- [ ] Efficient re-rendering when spawns change
-- [ ] Minimal memory usage for large lists
-- [ ] Quick spawn selection response
-- [ ] Performance benchmarks: <100ms for search, <50ms for selection
-- [ ] Handles spawn list updates without losing scroll position
+- [ ] List scrolls smoothly even with 100+ spawns
+- [ ] Search and filtering feel instant
+- [ ] Clicking on spawns responds immediately
+- [ ] Application doesn't slow down or freeze with large spawn lists
+- [ ] List position is maintained when spawns are updated
+- [ ] No noticeable delays when working with spawn configurations
 
-**Technical Notes**:
+**Technical Task MS-21-T1**: Optimize Large Spawn List Performance
 
+- Ensure smooth scrolling with 100+ spawns
+- Optimize search/filter operations for fast response
+- Implement efficient re-rendering when spawns change
+- Minimize memory usage for large lists
+- Ensure quick spawn selection response
+- Meet performance benchmarks: <100ms for search, <50ms for selection
+- Handle spawn list updates without losing scroll position
 - Consider React.memo for spawn list items
 - Implement efficient filtering algorithms
 - Use React keys properly for list rendering
@@ -198,7 +232,7 @@ As a user with many spawns, I want the spawn list to remain responsive and fast,
 
 ---
 
-## Story 7: Add Spawn Information Display
+## Story 7: See Spawn Details at a Glance
 
 **Story ID**: MS-22
 **Priority**: Low
@@ -210,19 +244,25 @@ As a user, I want to see key information about each spawn in the list, so that I
 
 **Acceptance Criteria**:
 
-- [ ] Display asset count for each spawn
-- [ ] Show abbreviated trigger information (if configured)
-- [ ] Display last modified timestamp
-- [ ] Compact format that doesn't clutter the list
-- [ ] Tooltips for additional information on hover
-- [ ] Consistent formatting across all spawn items
-- [ ] Information updates when spawn is modified
+- [ ] Can see how many assets each spawn contains
+- [ ] Can see basic trigger information if configured
+- [ ] Can see when each spawn was last modified
+- [ ] Information is displayed compactly without cluttering the list
+- [ ] Can hover over spawns to see additional details in tooltips
+- [ ] All spawn information follows consistent formatting
+- [ ] Information updates immediately when I modify spawns
 
-**Technical Notes**:
+**Technical Task MS-22-T1**: Implement Spawn Information Display
 
+- Display asset count for each spawn
+- Show abbreviated trigger information (if configured)
+- Display last modified timestamp
+- Design compact format that doesn't clutter the list
+- Implement hover tooltips for additional information
+- Ensure consistent formatting across all spawn items
+- Update information when spawn is modified
 - Design compact information layout
 - Consider icons for different asset types
-- Implement hover tooltips for detailed information
 - Ensure information display doesn't impact performance
 
 **Dependencies**: Stories 1, 2, 3
