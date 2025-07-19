@@ -2,6 +2,7 @@
 
 ## Epic Overview
 
+**Epic ID**: MS-4
 **Epic**: Spawn Editor & Settings
 **Priority**: 4 (Critical Path)
 **Status**: Not Started

@@ -2,6 +2,7 @@
 
 ## Epic Overview
 
+**Epic ID**: MS-3
 **Epic**: Spawn List & Navigation
 **Priority**: 3 (Critical Path)
 **Status**: Not Started

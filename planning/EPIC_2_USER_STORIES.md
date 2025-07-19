@@ -2,6 +2,7 @@
 
 ## Epic Overview
 
+**Epic ID**: MS-2
 **Epic**: Three-Panel Layout System
 **Priority**: 2 (Critical Path)
 **Status**: Not Started

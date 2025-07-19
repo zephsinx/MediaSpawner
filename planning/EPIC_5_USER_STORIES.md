@@ -1,7 +1,8 @@
-# Epic 5: Asset Integration & Spawn-Specific Settings - User Stories
+# Epic 5: Asset Management & Customization - User Stories
 
 ## Epic Overview
 
+**Epic ID**: MS-5
 **Epic**: Asset Integration & Spawn-Specific Settings
 **Priority**: 5 (Critical Path)
 **Status**: Not Started
@@ -357,7 +358,7 @@ As a user, I want to add new assets to my library, so that I can expand my avail
 
 ## Story 13A: Add Hover and Click Feedback
 
-**Story ID**: MS-53A
+**Story ID**: MS-530
 **Priority**: Low
 **Estimate**: 2 points
 **Status**: Not Started
@@ -373,7 +374,7 @@ As a user, I want clear feedback when I interact with assets, so that I understa
 - [ ] Interactive elements are clearly indicated
 - [ ] Consistent feedback across all assets
 
-**Technical Task MS-53A-T1**: Implement Interactive Feedback
+**Technical Task MS-530-T1**: Implement Interactive Feedback
 
 - Add hover effects on all interactive elements
 - Implement consistent click feedback
@@ -385,7 +386,7 @@ As a user, I want clear feedback when I interact with assets, so that I understa
 
 ## Story 13B: Add Drag & Drop Visual Feedback
 
-**Story ID**: MS-53B
+**Story ID**: MS-531
 **Priority**: Low
 **Estimate**: 3 points
 **Status**: Not Started
@@ -401,7 +402,7 @@ As a user, I want clear visual feedback during drag operations, so that I unders
 - [ ] Drop feedback is immediate and clear
 - [ ] Drag cancellation is visually obvious
 
-**Technical Task MS-53B-T1**: Enhance Drag & Drop Feedback
+**Technical Task MS-531-T1**: Enhance Drag & Drop Feedback
 
 - Implement drag previews and drop zone highlighting
 - Add visual feedback for valid/invalid drop zones

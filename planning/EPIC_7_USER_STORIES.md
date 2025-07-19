@@ -2,6 +2,7 @@
 
 ## Epic Overview
 
+**Epic ID**: MS-7
 **Epic**: Legacy Cleanup & Terminology Updates
 **Priority**: 7
 **Status**: Not Started
