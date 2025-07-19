@@ -13,7 +13,7 @@ Build the core three-panel layout infrastructure with responsive design, panel s
 
 ## Story 1: Navigate with Three-Panel Workspace
 
-**Story ID**: MS-10
+**Story ID**: MS-15
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -48,7 +48,7 @@ As a user, I want a three-panel workspace layout, so that I can see my spawn lis
 
 ## Story 2: Switch Between Spawn Profiles
 
-**Story ID**: MS-11
+**Story ID**: MS-16
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -82,7 +82,7 @@ As a user, I want a header with spawn profile selector and context indicators, s
 
 ## Story 3: Maintain Context Across Panels
 
-**Story ID**: MS-12
+**Story ID**: MS-17
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -119,7 +119,7 @@ As a user, I want my selections and context maintained across the workspace, so 
 
 ## Story 4: Navigate with Bookmarkable URLs
 
-**Story ID**: MS-13
+**Story ID**: MS-18
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -155,7 +155,7 @@ As a user, I want URL routing that reflects my current spawn profile and selecte
 
 ## Story 5: Work on Different Desktop Screens
 
-**Story ID**: MS-14
+**Story ID**: MS-19
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -190,7 +190,7 @@ As a user, I want the layout to work well on different desktop screen sizes, so 
 
 ## Story 6: See Layout Structure During Development
 
-**Story ID**: MS-15
+**Story ID**: MS-20
 **Priority**: Low
 **Estimate**: 2 points
 **Status**: Not Started

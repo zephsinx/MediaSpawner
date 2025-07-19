@@ -13,7 +13,7 @@ Create type definitions and services to support the new spawn-centric architectu
 
 ## Story 1: Set Up Spawn Data Foundation
 
-**Story ID**: MS-100
+**Story ID**: MS-9
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -44,7 +44,7 @@ As a user, I want spawns to have clear properties and structure, so that I can c
 
 ## Story 2: Set Up Spawn Profile Organization
 
-**Story ID**: MS-200
+**Story ID**: MS-10
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -74,7 +74,7 @@ As a user, I want to organize my spawns into profiles, so that I can manage diff
 
 ## Story 3: Manage Individual Spawns
 
-**Story ID**: MS-300
+**Story ID**: MS-11
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -107,7 +107,7 @@ As a user, I want to create, edit, and delete spawns, so that I can build and ma
 
 ## Story 4: Manage Spawn Profiles and Active Selection
 
-**Story ID**: MS-400
+**Story ID**: MS-12
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -140,7 +140,7 @@ As a user, I want to switch between different spawn profiles, so that I can work
 
 ## Story 5: Support Spawn-Specific Asset Settings
 
-**Story ID**: MS-500
+**Story ID**: MS-13
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -170,7 +170,7 @@ As a user, I want assets to have different settings in different spawns, so that
 
 ## Story 6: Optimize Asset Settings Performance
 
-**Story ID**: MS-600
+**Story ID**: MS-14
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started

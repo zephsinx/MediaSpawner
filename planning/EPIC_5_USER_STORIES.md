@@ -13,7 +13,7 @@ Implement right panel asset management with dynamic two-section layout, drag & d
 
 ## Story 1: Set Up Right Panel Infrastructure
 
-**Story ID**: MS-41
+**Story ID**: MS-43
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -43,7 +43,7 @@ As a user, I want the right panel to display asset management sections, so that 
 
 ## Story 2: Show Assets in Current Spawn
 
-**Story ID**: MS-42
+**Story ID**: MS-44
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -72,7 +72,7 @@ As a user, I want to see which assets are assigned to my current spawn, so that 
 
 ## Story 3: Reorder Assets Within Spawn
 
-**Story ID**: MS-43
+**Story ID**: MS-45
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -101,7 +101,7 @@ As a user, I want to reorder assets within my spawn, so that I can control the s
 
 ## Story 4: Display Asset Library
 
-**Story ID**: MS-44
+**Story ID**: MS-46
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -130,7 +130,7 @@ As a user, I want to see all available assets in the library section, so that I 
 
 ## Story 5: Make Asset Library Collapsible
 
-**Story ID**: MS-45
+**Story ID**: MS-47
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -158,7 +158,7 @@ As a user, I want to collapse the asset library when I don't need it, so that I 
 
 ## Story 6: Add Space Control Between Sections
 
-**Story ID**: MS-46
+**Story ID**: MS-48
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -187,7 +187,7 @@ As a user, I want to adjust the space between spawn assets and library sections,
 
 ## Story 7: Assign Assets to Spawn
 
-**Story ID**: MS-47
+**Story ID**: MS-49
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -216,7 +216,7 @@ As a user, I want to drag assets from the library to my spawn, so that I can qui
 
 ## Story 8: Remove Assets from Spawn
 
-**Story ID**: MS-48
+**Story ID**: MS-50
 **Priority**: Medium
 **Estimate**: 2 points
 **Status**: Not Started
@@ -244,7 +244,7 @@ As a user, I want to remove assets from my spawn, so that I can clean up my spaw
 
 ## Story 9: Configure Individual Asset Settings
 
-**Story ID**: MS-49
+**Story ID**: MS-51
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -273,7 +273,7 @@ As a user, I want to configure individual asset settings within my spawn, so tha
 
 ## Story 10: Add Asset Library Search
 
-**Story ID**: MS-50
+**Story ID**: MS-52
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -301,7 +301,7 @@ As a user, I want to search my asset library, so that I can quickly find specifi
 
 ## Story 11: Filter Assets by Type
 
-**Story ID**: MS-51
+**Story ID**: MS-53
 **Priority**: Medium
 **Estimate**: 2 points
 **Status**: Not Started
@@ -329,7 +329,7 @@ As a user, I want to filter assets by type, so that I can focus on specific kind
 
 ## Story 12: Add New Assets to Library
 
-**Story ID**: MS-52
+**Story ID**: MS-54
 **Priority**: Medium
 **Estimate**: 5 points
 **Status**: Not Started
@@ -358,7 +358,7 @@ As a user, I want to add new assets to my library, so that I can expand my avail
 
 ## Story 13A: Add Hover and Click Feedback
 
-**Story ID**: MS-530
+**Story ID**: MS-55
 **Priority**: Low
 **Estimate**: 2 points
 **Status**: Not Started
@@ -386,7 +386,7 @@ As a user, I want clear feedback when I interact with assets, so that I understa
 
 ## Story 13B: Add Drag & Drop Visual Feedback
 
-**Story ID**: MS-531
+**Story ID**: MS-56
 **Priority**: Low
 **Estimate**: 3 points
 **Status**: Not Started
@@ -414,7 +414,7 @@ As a user, I want clear visual feedback during drag operations, so that I unders
 
 ## Story 14: Add Loading and Success States
 
-**Story ID**: MS-54
+**Story ID**: MS-57
 **Priority**: Low
 **Estimate**: 2 points
 **Status**: Not Started
@@ -442,7 +442,7 @@ As a user, I want to see when operations are in progress, so that I know the sys
 
 ## Story 15: Optimize for Large Libraries
 
-**Story ID**: MS-55
+**Story ID**: MS-58
 **Priority**: Low
 **Estimate**: 5 points
 **Status**: Not Started

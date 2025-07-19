@@ -13,7 +13,7 @@ Add final UX enhancements and optimizations with performance optimizations for l
 
 ## Story 1: Optimize Performance for Large Datasets
 
-**Story ID**: MS-73
+**Story ID**: MS-76
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -45,7 +45,7 @@ As a user with many spawns and assets, I want the application to remain fast and
 
 ## Story 2: Add Keyboard Shortcuts for Common Actions
 
-**Story ID**: MS-74
+**Story ID**: MS-77
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -78,7 +78,7 @@ As a power user, I want keyboard shortcuts for common actions, so that I can wor
 
 ## Story 3: Improve Accessibility Support
 
-**Story ID**: MS-75
+**Story ID**: MS-78
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -112,7 +112,7 @@ As a user with accessibility needs, I want the application to work with screen r
 
 ## Story 4: Polish Visual Design
 
-**Story ID**: MS-76
+**Story ID**: MS-79
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -145,7 +145,7 @@ As a user, I want a consistent and polished interface, so that the application f
 
 ## Story 5: Add Multi-Selection Foundation
 
-**Story ID**: MS-77
+**Story ID**: MS-80
 **Priority**: Low
 **Estimate**: 2 points
 **Status**: Not Started
@@ -178,7 +178,7 @@ As a user with many spawns, I want to select multiple spawns at once, so that th
 
 ## Story 6: Improve User Experience Flow
 
-**Story ID**: MS-78
+**Story ID**: MS-81
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -212,7 +212,7 @@ As a user, I want an intuitive experience throughout the application, so that I 
 
 ## Story 7: Add User Documentation
 
-**Story ID**: MS-79
+**Story ID**: MS-82
 **Priority**: Low
 **Estimate**: 2 points
 **Status**: Not Started

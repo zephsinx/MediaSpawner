@@ -13,7 +13,7 @@ Remove legacy components and update terminology throughout the application from 
 
 ## Story 1: Remove Legacy Dashboard Page
 
-**Story ID**: MS-64
+**Story ID**: MS-67
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -44,7 +44,7 @@ As a user, I want the application to use the new spawn-centric interface, so tha
 
 ## Story 2: Remove Legacy Configuration Editor
 
-**Story ID**: MS-65
+**Story ID**: MS-68
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -75,7 +75,7 @@ As a user, I want to use the new unified configuration workspace, so that I have
 
 ## Story 3: Replace Application Layout and Navigation
 
-**Story ID**: MS-66
+**Story ID**: MS-69
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -108,7 +108,7 @@ As a user, I want the new three-panel layout interface, so that I can work effic
 
 ## Story 4: Remove ConfigurationService and Update Dependencies
 
-**Story ID**: MS-67
+**Story ID**: MS-70
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -141,7 +141,7 @@ As a user, I want consistent data management through the new spawn services, so 
 
 ## Story 5: Update Import/Export for Spawn Architecture
 
-**Story ID**: MS-68
+**Story ID**: MS-71
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -175,7 +175,7 @@ As a user, I want to export and import my spawn profiles and configurations, so 
 
 ## Story 6: Integrate Asset Library with Spawn Workflow
 
-**Story ID**: MS-69
+**Story ID**: MS-72
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -207,7 +207,7 @@ As a user, I want the asset library to work seamlessly with the spawn workflow, 
 
 ## Story 7: Update Routing to Spawn-Centric Structure
 
-**Story ID**: MS-70
+**Story ID**: MS-73
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -241,7 +241,7 @@ As a user, I want URLs that reflect the spawn-centric workflow, so that I can bo
 
 ## Story 8: Remove Legacy Type Definitions
 
-**Story ID**: MS-71
+**Story ID**: MS-74
 **Priority**: Low
 **Estimate**: 2 points
 **Status**: Not Started
@@ -273,7 +273,7 @@ As a user, I want a clean and consistent application, so that the underlying cod
 
 ## Story 9: Validate Complete Integration
 
-**Story ID**: MS-72
+**Story ID**: MS-75
 **Priority**: Medium
 **Estimate**: 5 points
 **Status**: Not Started
