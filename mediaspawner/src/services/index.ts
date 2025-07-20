@@ -8,3 +8,4 @@ export { ConfigurationService } from "./configurationService";
 export { ImportExportService } from "./ImportExportService";
 export { SettingsService } from "./settingsService";
 export { SpawnProfileService } from "./spawnProfileService";
+export { SpawnService } from "./spawnService";
