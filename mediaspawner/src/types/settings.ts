@@ -8,6 +8,8 @@
 export interface Settings {
   /** Working directory path for local file assets */
   workingDirectory: string;
+  /** ID of the currently active spawn profile */
+  activeProfileId?: string;
 }
 
 /**
@@ -15,6 +17,7 @@ export interface Settings {
  */
 export const DEFAULT_SETTINGS: Settings = {
   workingDirectory: "",
+  activeProfileId: undefined,
 };
 
 /**

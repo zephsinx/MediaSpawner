@@ -159,4 +159,5 @@ export const CACHE_KEYS = {
   CONFIGURATIONS: "configurations",
   ASSETS: "assets",
   SETTINGS: "settings",
+  PROFILES: "profiles",
 } as const;
