@@ -1,8 +1,11 @@
-import type { MediaAsset } from "../types/media";
+import type { MediaAsset, MediaAssetProperties } from "../types/media";
 import { createMediaAsset } from "../types/media";
+import type { SpawnAssetOverrides, SpawnTrigger } from "../types/spawn";
 import { CacheService, CACHE_KEYS } from "./cacheService";
+import { SpawnService } from "./spawnService";
 
 const STORAGE_KEY = "mediaspawner_assets";
+const SPAWN_ASSET_SETTINGS_KEY = "mediaspawner_spawn_asset_settings";
 
 /**
  * Result of asset validation
@@ -20,6 +23,15 @@ export interface CleanupResult {
   removedAssets: MediaAsset[];
   remainingAssets: MediaAsset[];
   totalRemoved: number;
+}
+
+/**
+ * Result of spawn asset settings operations
+ */
+export interface SpawnAssetSettingsResult {
+  success: boolean;
+  settings?: SpawnAssetOverrides;
+  error?: string;
 }
 
 /**
@@ -390,6 +402,286 @@ export class AssetService {
       removedEntries: 0,
       validAssets: integrity.validAssets,
     };
+  }
+
+  /**
+   * Get spawn-specific asset settings
+   */
+  static getSpawnAssetSettings(
+    spawnId: string,
+    assetId: string
+  ): SpawnAssetOverrides | null {
+    try {
+      const stored = localStorage.getItem(SPAWN_ASSET_SETTINGS_KEY);
+      if (!stored) {
+        return null;
+      }
+
+      const settings = JSON.parse(stored);
+      const key = `${spawnId}:${assetId}`;
+      return settings[key] || null;
+    } catch (error) {
+      console.error("Failed to load spawn asset settings:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Set spawn-specific asset settings
+   */
+  static setSpawnAssetSettings(
+    spawnId: string,
+    assetId: string,
+    settings: SpawnAssetOverrides
+  ): SpawnAssetSettingsResult {
+    try {
+      // Validate that the spawn and asset exist
+      const spawn = SpawnService.getSpawn(spawnId);
+      if (!spawn) {
+        return {
+          success: false,
+          error: `Spawn with ID "${spawnId}" not found`,
+        };
+      }
+
+      const asset = this.getAssetById(assetId);
+      if (!asset) {
+        return {
+          success: false,
+          error: `Asset with ID "${assetId}" not found`,
+        };
+      }
+
+      // Load existing settings
+      const stored = localStorage.getItem(SPAWN_ASSET_SETTINGS_KEY);
+      const allSettings = stored ? JSON.parse(stored) : {};
+
+      // Update settings for this spawn-asset combination
+      const key = `${spawnId}:${assetId}`;
+      allSettings[key] = settings;
+
+      // Save back to localStorage
+      localStorage.setItem(
+        SPAWN_ASSET_SETTINGS_KEY,
+        JSON.stringify(allSettings)
+      );
+
+      return {
+        success: true,
+        settings,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to save spawn asset settings",
+      };
+    }
+  }
+
+  /**
+   * Get resolved asset settings for a specific spawn-asset combination
+   * This implements the inheritance model: Spawn defaults → Asset defaults → SpawnAsset overrides
+   */
+  static getResolvedAssetSettings(
+    spawnId: string,
+    assetId: string
+  ): {
+    duration: number;
+    trigger: SpawnTrigger;
+    properties: MediaAssetProperties;
+  } | null {
+    try {
+      // Get spawn defaults
+      const spawn = SpawnService.getSpawn(spawnId);
+      if (!spawn) {
+        return null;
+      }
+
+      // Get asset defaults
+      const asset = this.getAssetById(assetId);
+      if (!asset) {
+        return null;
+      }
+
+      // Get spawn-specific overrides
+      const overrides = this.getSpawnAssetSettings(spawnId, assetId) || {};
+
+      // Resolve settings with inheritance priority:
+      // 1. SpawnAsset overrides (highest priority)
+      // 2. Asset defaults (medium priority)
+      // 3. Spawn defaults (lowest priority)
+
+      const resolvedSettings = {
+        duration: overrides.duration ?? spawn.duration,
+        trigger: overrides.trigger ?? spawn.trigger,
+        properties: {
+          ...asset.properties,
+          ...(overrides.properties || {}),
+        },
+      };
+
+      return resolvedSettings;
+    } catch (error) {
+      console.error("Failed to resolve asset settings:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Remove spawn-specific asset settings
+   */
+  static removeSpawnAssetSettings(
+    spawnId: string,
+    assetId: string
+  ): SpawnAssetSettingsResult {
+    try {
+      const stored = localStorage.getItem(SPAWN_ASSET_SETTINGS_KEY);
+      if (!stored) {
+        return { success: true };
+      }
+
+      const allSettings = JSON.parse(stored);
+      const key = `${spawnId}:${assetId}`;
+
+      if (allSettings[key]) {
+        delete allSettings[key];
+        localStorage.setItem(
+          SPAWN_ASSET_SETTINGS_KEY,
+          JSON.stringify(allSettings)
+        );
+      }
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to remove spawn asset settings",
+      };
+    }
+  }
+
+  /**
+   * Get all spawn-specific settings for a given spawn
+   */
+  static getSpawnAssetSettingsForSpawn(
+    spawnId: string
+  ): Record<string, SpawnAssetOverrides> {
+    try {
+      const stored = localStorage.getItem(SPAWN_ASSET_SETTINGS_KEY);
+      if (!stored) {
+        return {};
+      }
+
+      const allSettings = JSON.parse(stored);
+      const spawnSettings: Record<string, SpawnAssetOverrides> = {};
+
+      // Filter settings for this specific spawn
+      Object.entries(allSettings).forEach(([key, settings]) => {
+        if (key.startsWith(`${spawnId}:`)) {
+          const assetId = key.split(":")[1];
+          spawnSettings[assetId] = settings as SpawnAssetOverrides;
+        }
+      });
+
+      return spawnSettings;
+    } catch (error) {
+      console.error("Failed to get spawn asset settings for spawn:", error);
+      return {};
+    }
+  }
+
+  /**
+   * Get all spawn-specific settings for a given asset
+   */
+  static getSpawnAssetSettingsForAsset(
+    assetId: string
+  ): Record<string, SpawnAssetOverrides> {
+    try {
+      const stored = localStorage.getItem(SPAWN_ASSET_SETTINGS_KEY);
+      if (!stored) {
+        return {};
+      }
+
+      const allSettings = JSON.parse(stored);
+      const assetSettings: Record<string, SpawnAssetOverrides> = {};
+
+      // Filter settings for this specific asset
+      Object.entries(allSettings).forEach(([key, settings]) => {
+        if (key.endsWith(`:${assetId}`)) {
+          const spawnId = key.split(":")[0];
+          assetSettings[spawnId] = settings as SpawnAssetOverrides;
+        }
+      });
+
+      return assetSettings;
+    } catch (error) {
+      console.error("Failed to get spawn asset settings for asset:", error);
+      return {};
+    }
+  }
+
+  /**
+   * Clear all spawn-specific asset settings
+   */
+  static clearSpawnAssetSettings(): void {
+    try {
+      localStorage.removeItem(SPAWN_ASSET_SETTINGS_KEY);
+    } catch (error) {
+      console.error("Failed to clear spawn asset settings:", error);
+    }
+  }
+
+  /**
+   * Clean up orphaned spawn asset settings (when spawns or assets are deleted)
+   */
+  static cleanupOrphanedSpawnAssetSettings(): {
+    removedSettings: number;
+    remainingSettings: number;
+  } {
+    try {
+      const stored = localStorage.getItem(SPAWN_ASSET_SETTINGS_KEY);
+      if (!stored) {
+        return { removedSettings: 0, remainingSettings: 0 };
+      }
+
+      const allSettings = JSON.parse(stored);
+      const validSettings: Record<string, SpawnAssetOverrides> = {};
+      let removedCount = 0;
+
+      // Check each setting to ensure both spawn and asset still exist
+      Object.entries(allSettings).forEach(([key, settings]) => {
+        const [spawnId, assetId] = key.split(":");
+
+        const spawn = SpawnService.getSpawn(spawnId);
+        const asset = this.getAssetById(assetId);
+
+        if (spawn && asset) {
+          validSettings[key] = settings as SpawnAssetOverrides;
+        } else {
+          removedCount++;
+        }
+      });
+
+      // Save back only valid settings
+      localStorage.setItem(
+        SPAWN_ASSET_SETTINGS_KEY,
+        JSON.stringify(validSettings)
+      );
+
+      return {
+        removedSettings: removedCount,
+        remainingSettings: Object.keys(validSettings).length,
+      };
+    } catch (error) {
+      console.error("Failed to cleanup orphaned spawn asset settings:", error);
+      return { removedSettings: 0, remainingSettings: 0 };
+    }
   }
 
   // Helper methods for validation
