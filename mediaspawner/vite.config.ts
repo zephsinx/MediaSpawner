@@ -10,7 +10,7 @@ export default defineConfig({
     globals: true,
     coverage: {
       provider: "v8",
-      reporter: ["text", "html", "json"],
+      reporter: ["text", "html", "json", "lcov"],
       exclude: ["**/node_modules/**", "**/dist/**"],
     },
   },
