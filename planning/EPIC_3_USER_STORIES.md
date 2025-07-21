@@ -2,6 +2,7 @@
 
 ## Epic Overview
 
+**Epic ID**: MS-3
 **Epic**: Spawn List & Navigation
 **Priority**: 3 (Critical Path)
 **Status**: Not Started
@@ -12,7 +13,7 @@ Build spawn list component with enable/disable functionality, search/filter capa
 
 ## Story 1: View All Spawns in My Profile
 
-**Story ID**: MS-16
+**Story ID**: MS-21
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -48,7 +49,7 @@ As a user, I want to see a list of all spawns in my active profile, so that I ca
 
 ## Story 2: Control Spawn Availability Quickly
 
-**Story ID**: MS-17
+**Story ID**: MS-22
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -84,7 +85,7 @@ As a user, I want to enable/disable spawns with toggle switches, so that I can q
 
 ## Story 3: Select Spawns for Editing
 
-**Story ID**: MS-18
+**Story ID**: MS-23
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -120,7 +121,7 @@ As a user, I want to select spawns from the list to edit them, so that the spawn
 
 ## Story 4: Find Spawns Quickly
 
-**Story ID**: MS-19
+**Story ID**: MS-24
 **Priority**: Medium
 **Estimate**: 5 points
 **Status**: Not Started
@@ -159,7 +160,7 @@ As a user, I want to search and filter my spawns, so that I can quickly find spe
 
 ## Story 5: Create New Spawns Easily
 
-**Story ID**: MS-20
+**Story ID**: MS-25
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -196,7 +197,7 @@ As a user, I want to create new spawns directly from the spawn list, so that I c
 
 ## Story 6: Work Efficiently with Many Spawns
 
-**Story ID**: MS-21
+**Story ID**: MS-26
 **Priority**: Medium
 **Estimate**: 5 points
 **Status**: Not Started
@@ -234,7 +235,7 @@ As a user with many spawns, I want the spawn list to remain responsive and fast,
 
 ## Story 7: See Spawn Details at a Glance
 
-**Story ID**: MS-22
+**Story ID**: MS-27
 **Priority**: Low
 **Estimate**: 3 points
 **Status**: Not Started

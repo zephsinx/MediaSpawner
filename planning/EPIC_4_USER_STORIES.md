@@ -2,6 +2,7 @@
 
 ## Epic Overview
 
+**Epic ID**: MS-4
 **Epic**: Spawn Editor & Settings
 **Priority**: 4 (Critical Path)
 **Status**: Not Started
@@ -12,7 +13,7 @@ Build unified configuration workspace in center panel with comprehensive manual 
 
 ## Story 1: Use Unified Configuration Workspace
 
-**Story ID**: MS-23
+**Story ID**: MS-28
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -50,7 +51,7 @@ As a user, I want a unified configuration workspace in the center panel, so that
 
 ## Story 2: Control When Changes Are Saved
 
-**Story ID**: MS-24
+**Story ID**: MS-29
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -85,7 +86,7 @@ As a user, I want explicit save and cancel controls for spawn editing, so that I
 
 ## Story 3: Get Feedback on Save and Cancel Actions
 
-**Story ID**: MS-25
+**Story ID**: MS-30
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -119,7 +120,7 @@ As a user, I want clear feedback and confirmation for save/cancel actions, so th
 
 ## Story 4: Know When I Have Unsaved Changes
 
-**Story ID**: MS-26
+**Story ID**: MS-31
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -153,7 +154,7 @@ As a user, I want the system to detect when I have unsaved changes, so that I al
 
 ## Story 5: Avoid Losing Work When Navigating
 
-**Story ID**: MS-27
+**Story ID**: MS-32
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -187,7 +188,7 @@ As a user, I want warnings before navigating away from unsaved changes, so that 
 
 ## Story 6: Configure Basic Spawn Properties
 
-**Story ID**: MS-28
+**Story ID**: MS-33
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -221,7 +222,7 @@ As a user, I want a form to configure essential spawn properties, so that I can 
 
 ## Story 7: Configure Advanced Spawn Behavior
 
-**Story ID**: MS-29
+**Story ID**: MS-34
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -254,7 +255,7 @@ As a user, I want to configure advanced spawn behavior like triggers and timing,
 
 ## Story 8: Set Defaults That Assets Will Inherit
 
-**Story ID**: MS-30
+**Story ID**: MS-35
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -290,7 +291,7 @@ As a user, I want to configure default settings that my assets will inherit, so 
 
 ## Story 9: Configure Individual Asset Settings
 
-**Story ID**: MS-38
+**Story ID**: MS-36
 **Priority**: High
 **Estimate**: 4 points
 **Status**: Not Started
@@ -323,7 +324,7 @@ As a user, I want to configure settings for individual assets in my spawn, so th
 
 ## Story 10: Reset Asset Settings to Spawn Defaults
 
-**Story ID**: MS-39
+**Story ID**: MS-37
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -356,7 +357,7 @@ As a user, I want to easily reset asset settings back to spawn defaults, so that
 
 ## Story 11: Switch Between Spawn and Asset Configuration
 
-**Story ID**: MS-40
+**Story ID**: MS-38
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -391,7 +392,7 @@ As a user, I want to smoothly switch between configuring spawn settings and indi
 
 ## Story 12: Get Clear Validation and Error Guidance
 
-**Story ID**: MS-31
+**Story ID**: MS-39
 **Priority**: Medium
 **Estimate**: 5 points
 **Status**: Not Started
@@ -427,7 +428,7 @@ As a user, I want clear validation and error messages throughout the spawn edito
 
 ## Story 13: See Visual Indicators for Unsaved Changes
 
-**Story ID**: MS-32
+**Story ID**: MS-40
 **Priority**: Medium
 **Estimate**: 5 points
 **Status**: Not Started
@@ -463,7 +464,7 @@ As a user, I want clear visual indicators of unsaved changes, so that I always k
 
 ## Story 14: Prevent Accidental Loss of Work
 
-**Story ID**: MS-33
+**Story ID**: MS-41
 **Priority**: Medium
 **Estimate**: 5 points
 **Status**: Not Started
@@ -498,7 +499,7 @@ As a user, I want comprehensive protection against accidentally losing my work, 
 
 ## Story 15: Maintain Manual Control Over Saves
 
-**Story ID**: MS-34
+**Story ID**: MS-42
 **Priority**: Low
 **Estimate**: 3 points
 **Status**: Not Started

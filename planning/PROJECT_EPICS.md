@@ -8,6 +8,7 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 
 ## Epic 1: Spawn Management Foundation
 
+**Story ID**: MS-1
 **Priority**: 1 (Critical Path)
 **Status**: Not Started
 **Estimated Effort**: Medium
@@ -34,6 +35,7 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 
 ## Epic 2: Three-Panel Layout System
 
+**Story ID**: MS-2
 **Priority**: 2 (Critical Path)
 **Status**: Not Started
 **Estimated Effort**: Medium
@@ -60,6 +62,7 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 
 ## Epic 3: Spawn List & Navigation
 
+**Story ID**: MS-3
 **Priority**: 3 (Critical Path)
 **Status**: Not Started
 **Estimated Effort**: Medium
@@ -86,6 +89,7 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 
 ## Epic 4: Spawn Editor & Settings
 
+**Story ID**: MS-4
 **Priority**: 4 (Critical Path)
 **Status**: Not Started
 **Estimated Effort**: Large
@@ -118,6 +122,7 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 
 ## Epic 5: Asset Management & Customization
 
+**Story ID**: MS-5
 **Priority**: 5 (Critical Path)
 **Status**: Not Started
 **Estimated Effort**: Large
@@ -151,6 +156,7 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 
 ## Epic 6: Spawn Profile Management
 
+**Story ID**: MS-6
 **Priority**: 6
 **Status**: Not Started
 **Estimated Effort**: Medium
@@ -177,6 +183,7 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 
 ## Epic 7: Legacy Cleanup & Terminology Updates
 
+**Story ID**: MS-7
 **Priority**: 7
 **Status**: Not Started
 **Estimated Effort**: Medium
@@ -203,6 +210,7 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 
 ## Epic 8: Polish & User Experience
 
+**Story ID**: MS-8
 **Priority**: 8
 **Status**: Not Started
 **Estimated Effort**: Small
