@@ -11,6 +11,17 @@ import { SpawnService } from "./spawnService";
 const STORAGE_KEY = "mediaspawner_assets";
 const SPAWN_ASSET_SETTINGS_KEY = "mediaspawner_spawn_asset_settings";
 
+// New hierarchical storage structure for better performance
+interface SpawnAssetSettingsStructure {
+  spawns: {
+    [spawnId: string]: {
+      assets: {
+        [assetId: string]: SpawnAssetOverrides;
+      };
+    };
+  };
+}
+
 /**
  * Result of asset validation
  */
@@ -424,9 +435,8 @@ export class AssetService {
             return null;
           }
 
-          const settings = JSON.parse(stored);
-          const key = `${spawnId}:${assetId}`;
-          return settings[key] || null;
+          const structure: SpawnAssetSettingsStructure = JSON.parse(stored);
+          return structure.spawns?.[spawnId]?.assets?.[assetId] || null;
         } catch (error) {
           console.error("Failed to load spawn asset settings:", error);
           return null;
@@ -464,19 +474,22 @@ export class AssetService {
         };
       }
 
-      // Load existing settings
+      // Load existing structure
       const stored = localStorage.getItem(SPAWN_ASSET_SETTINGS_KEY);
-      const allSettings = stored ? JSON.parse(stored) : {};
+      const structure: SpawnAssetSettingsStructure = stored
+        ? JSON.parse(stored)
+        : { spawns: {} };
+
+      // Initialize spawn if it doesn't exist
+      if (!structure.spawns[spawnId]) {
+        structure.spawns[spawnId] = { assets: {} };
+      }
 
       // Update settings for this spawn-asset combination
-      const key = `${spawnId}:${assetId}`;
-      allSettings[key] = settings;
+      structure.spawns[spawnId].assets[assetId] = settings;
 
       // Save back to localStorage
-      localStorage.setItem(
-        SPAWN_ASSET_SETTINGS_KEY,
-        JSON.stringify(allSettings)
-      );
+      localStorage.setItem(SPAWN_ASSET_SETTINGS_KEY, JSON.stringify(structure));
 
       // Invalidate related cache entries
       CacheService.invalidateSpawnAssetSettings(spawnId, assetId);
@@ -558,14 +571,19 @@ export class AssetService {
         return { success: true };
       }
 
-      const allSettings = JSON.parse(stored);
-      const key = `${spawnId}:${assetId}`;
+      const structure: SpawnAssetSettingsStructure = JSON.parse(stored);
 
-      if (allSettings[key]) {
-        delete allSettings[key];
+      if (structure.spawns?.[spawnId]?.assets?.[assetId]) {
+        delete structure.spawns[spawnId].assets[assetId];
+
+        // Remove empty spawn entry if no assets remain
+        if (Object.keys(structure.spawns[spawnId].assets).length === 0) {
+          delete structure.spawns[spawnId];
+        }
+
         localStorage.setItem(
           SPAWN_ASSET_SETTINGS_KEY,
-          JSON.stringify(allSettings)
+          JSON.stringify(structure)
         );
 
         // Invalidate related cache entries
@@ -596,21 +614,43 @@ export class AssetService {
         return {};
       }
 
-      const allSettings = JSON.parse(stored);
-      const spawnSettings: Record<string, SpawnAssetOverrides> = {};
-
-      // Filter settings for this specific spawn
-      Object.entries(allSettings).forEach(([key, settings]) => {
-        if (key.startsWith(`${spawnId}:`)) {
-          const assetId = key.split(":")[1];
-          spawnSettings[assetId] = settings as SpawnAssetOverrides;
-        }
-      });
-
-      return spawnSettings;
+      const structure: SpawnAssetSettingsStructure = JSON.parse(stored);
+      return structure.spawns?.[spawnId]?.assets || {};
     } catch (error) {
       console.error("Failed to get spawn asset settings for spawn:", error);
       return {};
+    }
+  }
+
+  /**
+   * Get all spawn-specific settings for a given spawn (optimized for UI rendering)
+   */
+  static getSpawnAssetSettingsForSpawnOptimized(
+    spawnId: string
+  ): Array<{ assetId: string; settings: SpawnAssetOverrides }> {
+    try {
+      const stored = localStorage.getItem(SPAWN_ASSET_SETTINGS_KEY);
+      if (!stored) {
+        return [];
+      }
+
+      const structure: SpawnAssetSettingsStructure = JSON.parse(stored);
+      const spawnData = structure.spawns?.[spawnId];
+
+      if (!spawnData) {
+        return [];
+      }
+
+      return Object.entries(spawnData.assets).map(([assetId, settings]) => ({
+        assetId,
+        settings,
+      }));
+    } catch (error) {
+      console.error(
+        "Failed to get spawn asset settings for spawn (optimized):",
+        error
+      );
+      return [];
     }
   }
 
@@ -626,14 +666,13 @@ export class AssetService {
         return {};
       }
 
-      const allSettings = JSON.parse(stored);
+      const structure: SpawnAssetSettingsStructure = JSON.parse(stored);
       const assetSettings: Record<string, SpawnAssetOverrides> = {};
 
-      // Filter settings for this specific asset
-      Object.entries(allSettings).forEach(([key, settings]) => {
-        if (key.endsWith(`:${assetId}`)) {
-          const spawnId = key.split(":")[0];
-          assetSettings[spawnId] = settings as SpawnAssetOverrides;
+      // Find all spawns that have settings for this asset
+      Object.entries(structure.spawns).forEach(([spawnId, spawnData]) => {
+        if (spawnData.assets[assetId]) {
+          assetSettings[spawnId] = spawnData.assets[assetId];
         }
       });
 
@@ -657,6 +696,53 @@ export class AssetService {
   }
 
   /**
+   * Get statistics about spawn asset settings storage
+   */
+  static getSpawnAssetSettingsStats(): {
+    totalSpawns: number;
+    totalSettings: number;
+    spawnsWithSettings: number;
+    averageSettingsPerSpawn: number;
+  } {
+    try {
+      const stored = localStorage.getItem(SPAWN_ASSET_SETTINGS_KEY);
+      if (!stored) {
+        return {
+          totalSpawns: 0,
+          totalSettings: 0,
+          spawnsWithSettings: 0,
+          averageSettingsPerSpawn: 0,
+        };
+      }
+
+      const structure: SpawnAssetSettingsStructure = JSON.parse(stored);
+      const spawns = Object.keys(structure.spawns);
+      const totalSpawns = spawns.length;
+
+      let totalSettings = 0;
+      spawns.forEach((spawnId) => {
+        totalSettings += Object.keys(structure.spawns[spawnId].assets).length;
+      });
+
+      return {
+        totalSpawns,
+        totalSettings,
+        spawnsWithSettings: totalSpawns,
+        averageSettingsPerSpawn:
+          totalSpawns > 0 ? totalSettings / totalSpawns : 0,
+      };
+    } catch (error) {
+      console.error("Failed to get spawn asset settings stats:", error);
+      return {
+        totalSpawns: 0,
+        totalSettings: 0,
+        spawnsWithSettings: 0,
+        averageSettingsPerSpawn: 0,
+      };
+    }
+  }
+
+  /**
    * Clean up orphaned spawn asset settings (when spawns or assets are deleted)
    */
   static cleanupOrphanedSpawnAssetSettings(): {
@@ -669,36 +755,53 @@ export class AssetService {
         return { removedSettings: 0, remainingSettings: 0 };
       }
 
-      const allSettings = JSON.parse(stored);
-      const validSettings: Record<string, SpawnAssetOverrides> = {};
+      const structure: SpawnAssetSettingsStructure = JSON.parse(stored);
+      const validStructure: SpawnAssetSettingsStructure = { spawns: {} };
       let removedCount = 0;
 
-      // Check each setting to ensure both spawn and asset still exist
-      Object.entries(allSettings).forEach(([key, settings]) => {
-        const [spawnId, assetId] = key.split(":");
-
+      // Check each spawn and its assets to ensure they still exist
+      Object.entries(structure.spawns).forEach(([spawnId, spawnData]) => {
         const spawn = SpawnService.getSpawn(spawnId);
-        const asset = this.getAssetById(assetId);
+        if (!spawn) {
+          // Spawn doesn't exist, count all its assets as removed
+          removedCount += Object.keys(spawnData.assets).length;
+          return;
+        }
 
-        if (spawn && asset) {
-          validSettings[key] = settings as SpawnAssetOverrides;
-        } else {
-          removedCount++;
+        // Check each asset in this spawn
+        const validAssets: Record<string, SpawnAssetOverrides> = {};
+        Object.entries(spawnData.assets).forEach(([assetId, settings]) => {
+          const asset = this.getAssetById(assetId);
+          if (asset) {
+            validAssets[assetId] = settings;
+          } else {
+            removedCount++;
+          }
+        });
+
+        // Only add spawn if it has valid assets
+        if (Object.keys(validAssets).length > 0) {
+          validStructure.spawns[spawnId] = { assets: validAssets };
         }
       });
 
-      // Save back only valid settings
+      // Save back only valid structure
       localStorage.setItem(
         SPAWN_ASSET_SETTINGS_KEY,
-        JSON.stringify(validSettings)
+        JSON.stringify(validStructure)
       );
 
       // Invalidate all spawn-asset settings cache since we've modified the data
       CacheService.invalidateAllSpawnAssetSettings();
 
+      const remainingSettings = Object.values(validStructure.spawns).reduce(
+        (total, spawnData) => total + Object.keys(spawnData.assets).length,
+        0
+      );
+
       return {
         removedSettings: removedCount,
-        remainingSettings: Object.keys(validSettings).length,
+        remainingSettings,
       };
     } catch (error) {
       console.error("Failed to cleanup orphaned spawn asset settings:", error);

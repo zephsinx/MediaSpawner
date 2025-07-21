@@ -115,7 +115,13 @@ describe("AssetService Spawn-Specific Settings", () => {
   describe("getSpawnAssetSettings", () => {
     it("returns correct settings when they exist", () => {
       const settingsData = {
-        "spawn-1:asset-1": mockSpawnAssetSettings,
+        spawns: {
+          "spawn-1": {
+            assets: {
+              "asset-1": mockSpawnAssetSettings,
+            },
+          },
+        },
       };
       localStorageMock.getItem.mockReturnValue(JSON.stringify(settingsData));
 
@@ -129,7 +135,13 @@ describe("AssetService Spawn-Specific Settings", () => {
 
     it("returns null when settings don't exist", () => {
       const settingsData = {
-        "spawn-2:asset-2": mockSpawnAssetSettings,
+        spawns: {
+          "spawn-2": {
+            assets: {
+              "asset-2": mockSpawnAssetSettings,
+            },
+          },
+        },
       };
       localStorageMock.getItem.mockReturnValue(JSON.stringify(settingsData));
 
@@ -192,7 +204,15 @@ describe("AssetService Spawn-Specific Settings", () => {
       expect(result.settings).toEqual(mockSpawnAssetSettings);
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
         "mediaspawner_spawn_asset_settings",
-        JSON.stringify({ "spawn-1:asset-1": mockSpawnAssetSettings })
+        JSON.stringify({
+          spawns: {
+            "spawn-1": {
+              assets: {
+                "asset-1": mockSpawnAssetSettings,
+              },
+            },
+          },
+        })
       );
     });
 
@@ -239,8 +259,18 @@ describe("AssetService Spawn-Specific Settings", () => {
 
     it("updates existing settings correctly", () => {
       const existingSettings = {
-        "spawn-1:asset-1": { duration: 2000 },
-        "spawn-2:asset-2": { duration: 4000 },
+        spawns: {
+          "spawn-1": {
+            assets: {
+              "asset-1": { duration: 2000 },
+            },
+          },
+          "spawn-2": {
+            assets: {
+              "asset-2": { duration: 4000 },
+            },
+          },
+        },
       };
       localStorageMock.getItem.mockReturnValue(
         JSON.stringify(existingSettings)
@@ -260,8 +290,18 @@ describe("AssetService Spawn-Specific Settings", () => {
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
         "mediaspawner_spawn_asset_settings",
         JSON.stringify({
-          "spawn-1:asset-1": newSettings,
-          "spawn-2:asset-2": { duration: 4000 },
+          spawns: {
+            "spawn-1": {
+              assets: {
+                "asset-1": newSettings,
+              },
+            },
+            "spawn-2": {
+              assets: {
+                "asset-2": { duration: 4000 },
+              },
+            },
+          },
         })
       );
     });
@@ -406,8 +446,18 @@ describe("AssetService Spawn-Specific Settings", () => {
   describe("removeSpawnAssetSettings", () => {
     it("successfully removes existing settings", () => {
       const existingSettings = {
-        "spawn-1:asset-1": mockSpawnAssetSettings,
-        "spawn-2:asset-2": { duration: 4000 },
+        spawns: {
+          "spawn-1": {
+            assets: {
+              "asset-1": mockSpawnAssetSettings,
+            },
+          },
+          "spawn-2": {
+            assets: {
+              "asset-2": { duration: 4000 },
+            },
+          },
+        },
       };
       localStorageMock.getItem.mockReturnValue(
         JSON.stringify(existingSettings)
@@ -421,7 +471,15 @@ describe("AssetService Spawn-Specific Settings", () => {
       expect(result.success).toBe(true);
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
         "mediaspawner_spawn_asset_settings",
-        JSON.stringify({ "spawn-2:asset-2": { duration: 4000 } })
+        JSON.stringify({
+          spawns: {
+            "spawn-2": {
+              assets: {
+                "asset-2": { duration: 4000 },
+              },
+            },
+          },
+        })
       );
     });
 
@@ -440,7 +498,13 @@ describe("AssetService Spawn-Specific Settings", () => {
     it("handles localStorage errors gracefully", () => {
       // Provide existing data so the method actually tries to remove something
       const existingSettings = {
-        "spawn-1:asset-1": { duration: 3000 },
+        spawns: {
+          "spawn-1": {
+            assets: {
+              "asset-1": { duration: 3000 },
+            },
+          },
+        },
       };
       localStorageMock.getItem.mockReturnValue(
         JSON.stringify(existingSettings)
@@ -477,9 +541,19 @@ describe("AssetService Spawn-Specific Settings", () => {
   describe("getSpawnAssetSettingsForSpawn", () => {
     it("returns all settings for a specific spawn", () => {
       const allSettings = {
-        "spawn-1:asset-1": { duration: 3000 },
-        "spawn-1:asset-2": { duration: 4000 },
-        "spawn-2:asset-1": { duration: 5000 },
+        spawns: {
+          "spawn-1": {
+            assets: {
+              "asset-1": { duration: 3000 },
+              "asset-2": { duration: 4000 },
+            },
+          },
+          "spawn-2": {
+            assets: {
+              "asset-1": { duration: 5000 },
+            },
+          },
+        },
       };
       localStorageMock.getItem.mockReturnValue(JSON.stringify(allSettings));
 
@@ -517,9 +591,19 @@ describe("AssetService Spawn-Specific Settings", () => {
   describe("getSpawnAssetSettingsForAsset", () => {
     it("returns all settings for a specific asset", () => {
       const allSettings = {
-        "spawn-1:asset-1": { duration: 3000 },
-        "spawn-2:asset-1": { duration: 4000 },
-        "spawn-1:asset-2": { duration: 5000 },
+        spawns: {
+          "spawn-1": {
+            assets: {
+              "asset-1": { duration: 3000 },
+              "asset-2": { duration: 5000 },
+            },
+          },
+          "spawn-2": {
+            assets: {
+              "asset-1": { duration: 4000 },
+            },
+          },
+        },
       };
       localStorageMock.getItem.mockReturnValue(JSON.stringify(allSettings));
 
@@ -584,8 +668,18 @@ describe("AssetService Spawn-Specific Settings", () => {
 
     it("removes settings for deleted spawns", () => {
       const allSettings = {
-        "spawn-1:asset-1": { duration: 3000 },
-        "spawn-2:asset-1": { duration: 4000 },
+        spawns: {
+          "spawn-1": {
+            assets: {
+              "asset-1": { duration: 3000 },
+            },
+          },
+          "spawn-2": {
+            assets: {
+              "asset-1": { duration: 4000 },
+            },
+          },
+        },
       };
       localStorageMock.getItem.mockReturnValue(JSON.stringify(allSettings));
       mockSpawnService.getSpawn
@@ -598,14 +692,28 @@ describe("AssetService Spawn-Specific Settings", () => {
       expect(result.remainingSettings).toBe(1);
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
         "mediaspawner_spawn_asset_settings",
-        JSON.stringify({ "spawn-1:asset-1": { duration: 3000 } })
+        JSON.stringify({
+          spawns: {
+            "spawn-1": {
+              assets: {
+                "asset-1": { duration: 3000 },
+              },
+            },
+          },
+        })
       );
     });
 
     it("removes settings for deleted assets", () => {
       const allSettings = {
-        "spawn-1:asset-1": { duration: 3000 },
-        "spawn-1:asset-2": { duration: 4000 },
+        spawns: {
+          "spawn-1": {
+            assets: {
+              "asset-1": { duration: 3000 },
+              "asset-2": { duration: 4000 },
+            },
+          },
+        },
       };
       localStorageMock.getItem.mockReturnValue(JSON.stringify(allSettings));
       vi.spyOn(AssetService, "getAssetById")
@@ -618,14 +726,32 @@ describe("AssetService Spawn-Specific Settings", () => {
       expect(result.remainingSettings).toBe(1);
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
         "mediaspawner_spawn_asset_settings",
-        JSON.stringify({ "spawn-1:asset-1": { duration: 3000 } })
+        JSON.stringify({
+          spawns: {
+            "spawn-1": {
+              assets: {
+                "asset-1": { duration: 3000 },
+              },
+            },
+          },
+        })
       );
     });
 
     it("keeps settings for valid spawn-asset combinations", () => {
       const allSettings = {
-        "spawn-1:asset-1": { duration: 3000 },
-        "spawn-2:asset-2": { duration: 4000 },
+        spawns: {
+          "spawn-1": {
+            assets: {
+              "asset-1": { duration: 3000 },
+            },
+          },
+          "spawn-2": {
+            assets: {
+              "asset-2": { duration: 4000 },
+            },
+          },
+        },
       };
       localStorageMock.getItem.mockReturnValue(JSON.stringify(allSettings));
 
@@ -713,7 +839,7 @@ describe("AssetService Spawn-Specific Settings", () => {
 
   describe("Edge Cases", () => {
     it("handles empty settings objects", () => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify({}));
+      localStorageMock.getItem.mockReturnValue(JSON.stringify({ spawns: {} }));
 
       const result = AssetService.getSpawnAssetSettings("spawn-1", "asset-1");
 
