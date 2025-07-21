@@ -1,7 +1,11 @@
 import type { MediaAsset, MediaAssetProperties } from "../types/media";
 import { createMediaAsset } from "../types/media";
 import type { SpawnAssetOverrides, SpawnTrigger } from "../types/spawn";
-import { CacheService, CACHE_KEYS } from "./cacheService";
+import {
+  CacheService,
+  CACHE_KEYS,
+  getSpawnAssetCacheKey,
+} from "./cacheService";
 import { SpawnService } from "./spawnService";
 
 const STORAGE_KEY = "mediaspawner_assets";
@@ -412,16 +416,24 @@ export class AssetService {
     assetId: string
   ): SpawnAssetOverrides | null {
     try {
-      const stored = localStorage.getItem(SPAWN_ASSET_SETTINGS_KEY);
-      if (!stored) {
-        return null;
-      }
+      const cacheKey = getSpawnAssetCacheKey(spawnId, assetId);
+      return CacheService.get(cacheKey, () => {
+        try {
+          const stored = localStorage.getItem(SPAWN_ASSET_SETTINGS_KEY);
+          if (!stored) {
+            return null;
+          }
 
-      const settings = JSON.parse(stored);
-      const key = `${spawnId}:${assetId}`;
-      return settings[key] || null;
+          const settings = JSON.parse(stored);
+          const key = `${spawnId}:${assetId}`;
+          return settings[key] || null;
+        } catch (error) {
+          console.error("Failed to load spawn asset settings:", error);
+          return null;
+        }
+      });
     } catch (error) {
-      console.error("Failed to load spawn asset settings:", error);
+      console.error("Failed to get spawn asset settings:", error);
       return null;
     }
   }
@@ -465,6 +477,9 @@ export class AssetService {
         SPAWN_ASSET_SETTINGS_KEY,
         JSON.stringify(allSettings)
       );
+
+      // Invalidate related cache entries
+      CacheService.invalidateSpawnAssetSettings(spawnId, assetId);
 
       return {
         success: true,
@@ -552,6 +567,9 @@ export class AssetService {
           SPAWN_ASSET_SETTINGS_KEY,
           JSON.stringify(allSettings)
         );
+
+        // Invalidate related cache entries
+        CacheService.invalidateSpawnAssetSettings(spawnId, assetId);
       }
 
       return { success: true };
@@ -632,6 +650,7 @@ export class AssetService {
   static clearSpawnAssetSettings(): void {
     try {
       localStorage.removeItem(SPAWN_ASSET_SETTINGS_KEY);
+      CacheService.invalidateAllSpawnAssetSettings();
     } catch (error) {
       console.error("Failed to clear spawn asset settings:", error);
     }
@@ -673,6 +692,9 @@ export class AssetService {
         SPAWN_ASSET_SETTINGS_KEY,
         JSON.stringify(validSettings)
       );
+
+      // Invalidate all spawn-asset settings cache since we've modified the data
+      CacheService.invalidateAllSpawnAssetSettings();
 
       return {
         removedSettings: removedCount,

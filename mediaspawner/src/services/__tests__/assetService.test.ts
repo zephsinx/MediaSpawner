@@ -8,10 +8,13 @@ vi.mock("../cacheService", () => ({
   CacheService: {
     get: vi.fn(),
     invalidate: vi.fn(),
+    invalidateSpawnAssetSettings: vi.fn(),
+    invalidateAllSpawnAssetSettings: vi.fn(),
   },
   CACHE_KEYS: {
     ASSETS: "assets",
   },
+  getSpawnAssetCacheKey: vi.fn(),
 }));
 
 vi.mock("../spawnService", () => ({
@@ -22,11 +25,16 @@ vi.mock("../spawnService", () => ({
 
 // Import after mocking
 import { AssetService } from "../assetService";
-import { CacheService, CACHE_KEYS } from "../cacheService";
+import {
+  CacheService,
+  CACHE_KEYS,
+  getSpawnAssetCacheKey,
+} from "../cacheService";
 import { SpawnService } from "../spawnService";
 
 const mockCacheService = vi.mocked(CacheService);
 const mockSpawnService = vi.mocked(SpawnService);
+const mockGetSpawnAssetCacheKey = vi.mocked(getSpawnAssetCacheKey);
 
 describe("AssetService Spawn-Specific Settings", () => {
   // Test data
@@ -85,6 +93,13 @@ describe("AssetService Spawn-Specific Settings", () => {
     // Default mock implementations
     mockCacheService.get.mockImplementation((_key, fetcher) => fetcher());
     mockCacheService.invalidate.mockImplementation(() => {});
+    mockCacheService.invalidateSpawnAssetSettings.mockImplementation(() => {});
+    mockCacheService.invalidateAllSpawnAssetSettings.mockImplementation(
+      () => {}
+    );
+    mockGetSpawnAssetCacheKey.mockImplementation(
+      (spawnId, assetId) => `cache:${spawnId}:${assetId}`
+    );
     mockSpawnService.getSpawn.mockReturnValue(mockSpawn);
 
     // Default localStorage behavior

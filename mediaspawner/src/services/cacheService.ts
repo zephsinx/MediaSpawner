@@ -89,6 +89,58 @@ export class CacheService {
   }
 
   /**
+   * Invalidate all spawn-asset settings cache entries
+   */
+  static invalidateAllSpawnAssetSettings(): void {
+    const keysToDelete: string[] = [];
+    this.cache.forEach((_, key) => {
+      if (key.startsWith(CACHE_KEYS.SPAWN_ASSET_SETTINGS)) {
+        keysToDelete.push(key);
+      }
+    });
+    this.invalidateMultiple(keysToDelete);
+  }
+
+  /**
+   * Invalidate cache entries for a specific spawn
+   */
+  static invalidateSpawnAssetSettingsForSpawn(spawnId: string): void {
+    const keysToDelete: string[] = [];
+    this.cache.forEach((_, key) => {
+      if (key.includes(`:${spawnId}:`) || key.endsWith(`:${spawnId}`)) {
+        keysToDelete.push(key);
+      }
+    });
+    this.invalidateMultiple(keysToDelete);
+  }
+
+  /**
+   * Invalidate cache entries for a specific asset
+   */
+  static invalidateSpawnAssetSettingsForAsset(assetId: string): void {
+    const keysToDelete: string[] = [];
+    this.cache.forEach((_, key) => {
+      if (key.includes(`:${assetId}`)) {
+        keysToDelete.push(key);
+      }
+    });
+    this.invalidateMultiple(keysToDelete);
+  }
+
+  /**
+   * Invalidate cache entries for a specific spawn-asset combination
+   */
+  static invalidateSpawnAssetSettings(spawnId: string, assetId: string): void {
+    const keysToDelete: string[] = [];
+    this.cache.forEach((_, key) => {
+      if (key.includes(`:${spawnId}:${assetId}`)) {
+        keysToDelete.push(key);
+      }
+    });
+    this.invalidateMultiple(keysToDelete);
+  }
+
+  /**
    * Clear all cache entries
    */
   static clear(): void {
@@ -160,4 +212,32 @@ export const CACHE_KEYS = {
   ASSETS: "assets",
   SETTINGS: "settings",
   PROFILES: "profiles",
+  SPAWN_ASSET_SETTINGS: "spawn_asset_settings",
+  SPAWN_ASSET_SETTINGS_ALL: "spawn_asset_settings_all",
+  SPAWN_ASSET_SETTINGS_SPAWN: "spawn_asset_settings_spawn",
+  SPAWN_ASSET_SETTINGS_ASSET: "spawn_asset_settings_asset",
 } as const;
+
+/**
+ * Generate cache key for specific spawn-asset combination
+ */
+export const getSpawnAssetCacheKey = (
+  spawnId: string,
+  assetId: string
+): string => {
+  return `${CACHE_KEYS.SPAWN_ASSET_SETTINGS}:${spawnId}:${assetId}`;
+};
+
+/**
+ * Generate cache key for all spawn-asset settings for a specific spawn
+ */
+export const getSpawnAssetSpawnCacheKey = (spawnId: string): string => {
+  return `${CACHE_KEYS.SPAWN_ASSET_SETTINGS_SPAWN}:${spawnId}`;
+};
+
+/**
+ * Generate cache key for all spawn-asset settings for a specific asset
+ */
+export const getSpawnAssetAssetCacheKey = (assetId: string): string => {
+  return `${CACHE_KEYS.SPAWN_ASSET_SETTINGS_ASSET}:${assetId}`;
+};
