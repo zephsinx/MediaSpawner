@@ -102,7 +102,7 @@ describe("ThreePanelLayout", () => {
       );
 
       const panels = container.querySelectorAll(".bg-white");
-      expect(panels).toHaveLength(3);
+      expect(panels).toHaveLength(4); // Header + 3 panels
 
       const leftPanel = container.querySelector(".col-span-3");
       const centerPanel = container.querySelector(".col-span-6");
@@ -166,7 +166,9 @@ describe("ThreePanelLayout", () => {
         />
       );
 
-      const gridContainer = container.querySelector(".h-screen");
+      const gridContainer = container.querySelector(
+        ".h-\\[calc\\(100vh-80px\\)\\]"
+      );
       expect(gridContainer).toBeInTheDocument();
     });
 

@@ -1,4 +1,5 @@
 import React from "react";
+import Header from "./Header";
 
 /**
  * Props for the three-panel layout component
@@ -15,7 +16,7 @@ export interface ThreePanelLayoutProps {
 }
 
 /**
- * Three-panel layout component with 25%/50%/25% width distribution
+ * Three-panel layout component with header and 25%/50%/25% width distribution
  *
  * Uses CSS Grid for precise panel control and responsive design.
  * Targets desktop resolutions with minimum panel widths to ensure usability.
@@ -28,7 +29,11 @@ const ThreePanelLayout: React.FC<ThreePanelLayoutProps> = ({
 }) => {
   return (
     <div className={`min-h-screen bg-gray-50 ${className}`}>
-      <div className="grid grid-cols-12 h-screen min-w-[1280px]">
+      {/* Header */}
+      <Header />
+
+      {/* Three-Panel Layout */}
+      <div className="grid grid-cols-12 h-[calc(100vh-80px)] min-w-[1280px]">
         {/* Left Panel - Spawn Navigation (25%) */}
         <div className="col-span-3 bg-white border-r border-gray-200 min-w-[320px] overflow-hidden">
           <div className="h-full">{leftPanel}</div>
