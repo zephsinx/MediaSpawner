@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { SpawnProfileService } from "../../services/spawnProfileService";
 import type { SpawnProfile } from "../../types/spawn";
-import { usePanelState } from "./LayoutContext";
+import { usePanelState } from "../../hooks";
 
 /**
  * Props for the header component

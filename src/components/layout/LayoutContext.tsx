@@ -1,39 +1,7 @@
-import React, { createContext, useContext, useReducer, useEffect } from "react";
+import React, { useReducer, useEffect, useRef } from "react";
 import { SpawnProfileService } from "../../services/spawnProfileService";
-
-/**
- * Layout state interface for panel coordination
- */
-export interface LayoutState {
-  /** Currently active profile ID */
-  activeProfileId: string | undefined;
-
-  /** Currently selected spawn ID */
-  selectedSpawnId: string | undefined;
-
-  /** Center panel mode (spawn settings vs asset settings) */
-  centerPanelMode: "spawn-settings" | "asset-settings";
-
-  /** Whether there are unsaved changes in the workspace */
-  hasUnsavedChanges: boolean;
-
-  /** Per-profile spawn selection persistence */
-  profileSpawnSelections: Record<string, string | undefined>;
-}
-
-/**
- * Layout action types for state management
- */
-export type LayoutAction =
-  | { type: "SET_ACTIVE_PROFILE"; payload: { profileId: string | undefined } }
-  | { type: "SELECT_SPAWN"; payload: { spawnId: string | undefined } }
-  | {
-      type: "SET_CENTER_PANEL_MODE";
-      payload: { mode: "spawn-settings" | "asset-settings" };
-    }
-  | { type: "SET_UNSAVED_CHANGES"; payload: { hasChanges: boolean } }
-  | { type: "CLEAR_CONTEXT" }
-  | { type: "LOAD_STATE_FROM_STORAGE" };
+import { LayoutContext } from "./LayoutContextTypes";
+import type { LayoutState, LayoutAction } from "./LayoutContextTypes";
 
 /**
  * Initial state for the layout context
@@ -45,14 +13,6 @@ const initialState: LayoutState = {
   hasUnsavedChanges: false,
   profileSpawnSelections: {},
 };
-
-/**
- * Layout context for panel state management
- */
-const LayoutContext = createContext<{
-  state: LayoutState;
-  dispatch: React.Dispatch<LayoutAction>;
-} | null>(null);
 
 /**
  * Layout reducer for state management
@@ -156,6 +116,7 @@ export interface LayoutProviderProps {
  */
 export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(layoutReducer, initialState);
+  const hasLoadedProfile = useRef(false);
 
   // Load state from storage on mount
   useEffect(() => {
@@ -174,79 +135,28 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
     }
   }, [state.profileSpawnSelections]);
 
-  // Load active profile on mount and when profiles change
+  // Load active profile on mount only
   useEffect(() => {
-    try {
-      const { activeProfileId } =
-        SpawnProfileService.getProfilesWithActiveInfo();
-      if (activeProfileId && activeProfileId !== state.activeProfileId) {
-        dispatch({
-          type: "SET_ACTIVE_PROFILE",
-          payload: { profileId: activeProfileId },
-        });
+    if (!hasLoadedProfile.current) {
+      try {
+        const { activeProfileId } =
+          SpawnProfileService.getProfilesWithActiveInfo();
+        if (activeProfileId && activeProfileId !== state.activeProfileId) {
+          dispatch({
+            type: "SET_ACTIVE_PROFILE",
+            payload: { profileId: activeProfileId },
+          });
+        }
+        hasLoadedProfile.current = true;
+      } catch (error) {
+        console.error("Failed to load active profile:", error);
       }
-    } catch (error) {
-      console.error("Failed to load active profile:", error);
     }
-  }, []);
+  }, [state.activeProfileId]);
 
   return (
     <LayoutContext.Provider value={{ state, dispatch }}>
       {children}
     </LayoutContext.Provider>
   );
-};
-
-/**
- * Custom hook to use the layout context
- */
-export const useLayoutContext = () => {
-  const context = useContext(LayoutContext);
-  if (!context) {
-    throw new Error("useLayoutContext must be used within a LayoutProvider");
-  }
-  return context;
-};
-
-/**
- * Custom hook for panel-specific state management
- */
-export const usePanelState = () => {
-  const { state, dispatch } = useLayoutContext();
-
-  const setActiveProfile = (profileId: string | undefined) => {
-    dispatch({ type: "SET_ACTIVE_PROFILE", payload: { profileId } });
-  };
-
-  const selectSpawn = (spawnId: string | undefined) => {
-    dispatch({ type: "SELECT_SPAWN", payload: { spawnId } });
-  };
-
-  const setCenterPanelMode = (mode: "spawn-settings" | "asset-settings") => {
-    dispatch({ type: "SET_CENTER_PANEL_MODE", payload: { mode } });
-  };
-
-  const setUnsavedChanges = (hasChanges: boolean) => {
-    dispatch({ type: "SET_UNSAVED_CHANGES", payload: { hasChanges } });
-  };
-
-  const clearContext = () => {
-    dispatch({ type: "CLEAR_CONTEXT" });
-  };
-
-  return {
-    // State
-    activeProfileId: state.activeProfileId,
-    selectedSpawnId: state.selectedSpawnId,
-    centerPanelMode: state.centerPanelMode,
-    hasUnsavedChanges: state.hasUnsavedChanges,
-    profileSpawnSelections: state.profileSpawnSelections,
-
-    // Actions
-    setActiveProfile,
-    selectSpawn,
-    setCenterPanelMode,
-    setUnsavedChanges,
-    clearContext,
-  };
 };

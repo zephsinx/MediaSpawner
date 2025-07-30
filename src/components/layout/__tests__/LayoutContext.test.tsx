@@ -1,6 +1,8 @@
+import React from "react";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { LayoutProvider, usePanelState } from "../LayoutContext";
+import { LayoutProvider } from "../LayoutContext";
+import { usePanelState, useLayoutContext } from "../../../hooks";
 
 // Mock SpawnProfileService
 vi.mock("../../../services/spawnProfileService", () => ({
@@ -51,6 +53,12 @@ const TestComponent = () => {
         data-testid="set-profile-2"
       >
         Set Profile 2
+      </button>
+      <button
+        onClick={() => setActiveProfile(undefined)}
+        data-testid="set-profile-none"
+      >
+        Set No Profile
       </button>
       <button
         onClick={() => selectSpawn("spawn-1")}
@@ -240,6 +248,22 @@ describe("LayoutContext", () => {
       fireEvent.click(screen.getByTestId("set-profile-1"));
       expect(screen.getByTestId("selected-spawn")).toHaveTextContent("spawn-1");
     });
+
+    it("preserves spawn selection when setting same profile", () => {
+      render(
+        <LayoutProvider>
+          <TestComponent />
+        </LayoutProvider>
+      );
+
+      // Select spawn in profile 1
+      fireEvent.click(screen.getByTestId("select-spawn-1"));
+      expect(screen.getByTestId("selected-spawn")).toHaveTextContent("spawn-1");
+
+      // Set the same profile again (should not reset spawn selection)
+      fireEvent.click(screen.getByTestId("set-profile-1"));
+      expect(screen.getByTestId("selected-spawn")).toHaveTextContent("spawn-1");
+    });
   });
 
   describe("Spawn Selection", () => {
@@ -292,6 +316,25 @@ describe("LayoutContext", () => {
       expect(screen.getByTestId("center-mode")).toHaveTextContent(
         "spawn-settings"
       );
+    });
+
+    it("handles spawn selection without active profile", () => {
+      render(
+        <LayoutProvider>
+          <TestComponent />
+        </LayoutProvider>
+      );
+
+      // Set no active profile
+      fireEvent.click(screen.getByTestId("set-profile-none"));
+      expect(screen.getByTestId("active-profile")).toHaveTextContent("none");
+
+      // Select spawn (should not update profileSpawnSelections)
+      fireEvent.click(screen.getByTestId("select-spawn-1"));
+      expect(screen.getByTestId("selected-spawn")).toHaveTextContent("spawn-1");
+
+      // Check that profileSpawnSelections is still empty
+      expect(screen.getByTestId("profile-selections")).toHaveTextContent("{}");
     });
   });
 
@@ -390,6 +433,35 @@ describe("LayoutContext", () => {
           </LayoutProvider>
         )
       ).not.toThrow();
+    });
+
+    it("handles unknown action types gracefully", () => {
+      // Create a test component that dispatches an unknown action
+      const TestUnknownActionComponent = () => {
+        const { dispatch } = useLayoutContext();
+        const { selectedSpawnId } = usePanelState();
+
+        React.useEffect(() => {
+          // Dispatch an unknown action type
+          dispatch({
+            type: "UNKNOWN_ACTION" as never,
+            payload: { hasChanges: false },
+          });
+        }, [dispatch]);
+
+        return (
+          <div data-testid="selected-spawn">{selectedSpawnId || "none"}</div>
+        );
+      };
+
+      render(
+        <LayoutProvider>
+          <TestUnknownActionComponent />
+        </LayoutProvider>
+      );
+
+      // State should remain unchanged (still "none" from initial state)
+      expect(screen.getByTestId("selected-spawn")).toHaveTextContent("none");
     });
   });
 
