@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import ThreePanelLayout from "../ThreePanelLayout";
+import { renderWithLayoutProvider } from "./testUtils";
 
 describe("ThreePanelLayout", () => {
   const mockLeftPanel = <div data-testid="left-panel">Left Panel Content</div>;
@@ -13,7 +14,7 @@ describe("ThreePanelLayout", () => {
 
   describe("Basic Rendering", () => {
     it("renders all three panels with provided content", () => {
-      render(
+      renderWithLayoutProvider(
         <ThreePanelLayout
           leftPanel={mockLeftPanel}
           centerPanel={mockCenterPanel}
@@ -27,7 +28,7 @@ describe("ThreePanelLayout", () => {
     });
 
     it("applies correct CSS classes for grid layout", () => {
-      const { container } = render(
+      const { container } = renderWithLayoutProvider(
         <ThreePanelLayout
           leftPanel={mockLeftPanel}
           centerPanel={mockCenterPanel}
@@ -40,7 +41,7 @@ describe("ThreePanelLayout", () => {
     });
 
     it("applies minimum width constraint to container", () => {
-      const { container } = render(
+      const { container } = renderWithLayoutProvider(
         <ThreePanelLayout
           leftPanel={mockLeftPanel}
           centerPanel={mockCenterPanel}
@@ -55,7 +56,7 @@ describe("ThreePanelLayout", () => {
 
   describe("Panel Width Distribution", () => {
     it("applies correct column spans for 25%/50%/25% distribution", () => {
-      const { container } = render(
+      const { container } = renderWithLayoutProvider(
         <ThreePanelLayout
           leftPanel={mockLeftPanel}
           centerPanel={mockCenterPanel}
@@ -73,7 +74,7 @@ describe("ThreePanelLayout", () => {
     });
 
     it("applies minimum widths to prevent unusable panels", () => {
-      const { container } = render(
+      const { container } = renderWithLayoutProvider(
         <ThreePanelLayout
           leftPanel={mockLeftPanel}
           centerPanel={mockCenterPanel}
@@ -93,7 +94,7 @@ describe("ThreePanelLayout", () => {
 
   describe("Panel Styling", () => {
     it("applies correct background colors and borders", () => {
-      const { container } = render(
+      const { container } = renderWithLayoutProvider(
         <ThreePanelLayout
           leftPanel={mockLeftPanel}
           centerPanel={mockCenterPanel}
@@ -114,7 +115,7 @@ describe("ThreePanelLayout", () => {
     });
 
     it("applies overflow handling to prevent content overflow", () => {
-      const { container } = render(
+      const { container } = renderWithLayoutProvider(
         <ThreePanelLayout
           leftPanel={mockLeftPanel}
           centerPanel={mockCenterPanel}
@@ -129,7 +130,7 @@ describe("ThreePanelLayout", () => {
 
   describe("Optional Props", () => {
     it("applies optional className prop correctly", () => {
-      const { container } = render(
+      const { container } = renderWithLayoutProvider(
         <ThreePanelLayout
           leftPanel={mockLeftPanel}
           centerPanel={mockCenterPanel}
@@ -143,7 +144,7 @@ describe("ThreePanelLayout", () => {
     });
 
     it("works without optional className prop", () => {
-      const { container } = render(
+      const { container } = renderWithLayoutProvider(
         <ThreePanelLayout
           leftPanel={mockLeftPanel}
           centerPanel={mockCenterPanel}
@@ -158,7 +159,7 @@ describe("ThreePanelLayout", () => {
 
   describe("Responsive Design", () => {
     it("maintains full height layout", () => {
-      const { container } = render(
+      const { container } = renderWithLayoutProvider(
         <ThreePanelLayout
           leftPanel={mockLeftPanel}
           centerPanel={mockCenterPanel}
@@ -173,7 +174,7 @@ describe("ThreePanelLayout", () => {
     });
 
     it("ensures panels have proper height containers", () => {
-      const { container } = render(
+      const { container } = renderWithLayoutProvider(
         <ThreePanelLayout
           leftPanel={mockLeftPanel}
           centerPanel={mockCenterPanel}
@@ -214,7 +215,7 @@ describe("ThreePanelLayout", () => {
         </div>
       );
 
-      render(
+      renderWithLayoutProvider(
         <ThreePanelLayout
           leftPanel={complexLeftPanel}
           centerPanel={complexCenterPanel}

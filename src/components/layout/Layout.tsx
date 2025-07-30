@@ -5,14 +5,17 @@ import {
   ConfigurationWorkspacePlaceholder,
   AssetManagementPlaceholder,
 } from "./PanelPlaceholder";
+import { LayoutProvider } from "./LayoutContext";
 
 const Layout: React.FC = () => {
   return (
-    <ThreePanelLayout
-      leftPanel={<SpawnNavigationPlaceholder />}
-      centerPanel={<ConfigurationWorkspacePlaceholder />}
-      rightPanel={<AssetManagementPlaceholder />}
-    />
+    <LayoutProvider>
+      <ThreePanelLayout
+        leftPanel={<SpawnNavigationPlaceholder />}
+        centerPanel={<ConfigurationWorkspacePlaceholder />}
+        rightPanel={<AssetManagementPlaceholder />}
+      />
+    </LayoutProvider>
   );
 };
 

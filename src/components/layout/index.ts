@@ -7,3 +7,10 @@ export {
   ConfigurationWorkspacePlaceholder,
   AssetManagementPlaceholder,
 } from "./PanelPlaceholder";
+export {
+  LayoutProvider,
+  useLayoutContext,
+  usePanelState,
+  type LayoutState,
+  type LayoutAction,
+} from "./LayoutContext";

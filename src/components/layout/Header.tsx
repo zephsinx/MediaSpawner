@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { SpawnProfileService } from "../../services/spawnProfileService";
 import type { SpawnProfile } from "../../types/spawn";
+import { usePanelState } from "./LayoutContext";
 
 /**
  * Props for the header component
@@ -15,27 +16,24 @@ export interface HeaderProps {
  */
 const Header: React.FC<HeaderProps> = ({ className = "" }) => {
   const [profiles, setProfiles] = useState<SpawnProfile[]>([]);
-  const [activeProfileId, setActiveProfileId] = useState<string | undefined>();
+  const { activeProfileId, setActiveProfile } = usePanelState();
 
-  // Load profiles and active profile on mount
+  // Load profiles on mount
   useEffect(() => {
     try {
-      const { profiles: loadedProfiles, activeProfileId: currentActiveId } =
+      const { profiles: loadedProfiles } =
         SpawnProfileService.getProfilesWithActiveInfo();
       setProfiles(loadedProfiles);
-      setActiveProfileId(currentActiveId);
     } catch (error) {
       console.error("Failed to load profiles:", error);
-      // Set default state on error
       setProfiles([]);
-      setActiveProfileId(undefined);
     }
   }, []);
 
   const handleProfileChange = (profileId: string) => {
     const result = SpawnProfileService.setActiveProfile(profileId);
     if (result.success) {
-      setActiveProfileId(profileId);
+      setActiveProfile(profileId);
     } else {
       console.error("Failed to set active profile:", result.error);
     }
