@@ -1,13 +1,15 @@
-# Epic 6: Spawn Profile Management - User Stories
+# Epic 8: Spawn Profiles (Enhancement) - User Stories
 
 ## Epic Overview
 
-**Epic ID**: MS-6
-**Epic**: Spawn Profile Management
-**Priority**: 6
+**Epic ID**: MS-8
+**Epic**: Spawn Profiles (Enhancement)
+**Priority**: 8 (Enhancement)
 **Status**: Not Started
 
-Implement active spawn profile management and switching with profile creation, editing, deletion, and proper context handling. Only one spawn profile should be active at a time, with clear indication of current active profile and context reset when switching profiles.
+**User Value**: 🎁 **Nice-to-have organization for managing multiple projects with profile switching and context management.**
+
+Add profile management for organizing spawns into different projects or contexts, providing enhanced organization for users managing multiple streaming setups.
 
 ---
 
@@ -31,17 +33,17 @@ As a user, I want to switch between different spawn profiles using the header dr
 - [ ] Profile switch completes smoothly without errors
 - [ ] Can see confirmation that profile switch was successful
 
-**Technical Task MS-56-T1**: Make Profile Selector Functional
+**Technical Task MS-59-T1**: Make Profile Selector Functional
 
 - Connect Epic 2's profile selector dropdown to SpawnProfileService from Epic 1
 - Implement profile switching using setActiveProfile() method
 - Integrate with panel state management to reset workspace context
-- Update URL routing to reflect new active profile (/profile/:newProfileId)
+- Update URL routing to reflect new active profile
 - Clear spawn selection state when switching profiles
 - Add success feedback for profile switching
 - Handle profile switching errors gracefully
 
-**Dependencies**: Epic 1 (SpawnProfileService), Epic 2 (header selector, panel state, routing)
+**Dependencies**: Epic 1 (SpawnProfileService), Epic 2 (header selector, panel state, routing), Epic 7 (working spawn system)
 
 ---
 
@@ -64,7 +66,7 @@ As a user, I want to always know which spawn profile is currently active, so tha
 - [ ] Active profile indication updates immediately when switching
 - [ ] Visual styling is consistent with overall application design
 
-**Technical Task MS-57-T1**: Implement Active Profile Indicators
+**Technical Task MS-60-T1**: Implement Active Profile Indicators
 
 - Display active profile name prominently in header
 - Add visual indicators in dropdown for active profile
@@ -98,7 +100,7 @@ As a user, I want to create, edit, and delete spawn profiles, so that I can orga
 - [ ] Profile management interface is clear and easy to use
 - [ ] Changes take effect immediately and persist correctly
 
-**Technical Task MS-58-T1**: Build Profile Management Modal
+**Technical Task MS-61-T1**: Build Profile Management Modal
 
 - Create modal dialog for profile management accessed from header
 - Implement create profile form with name and description fields
@@ -132,7 +134,7 @@ As a new user, I want to have an initial "Default" profile ready to use, so that
 - [ ] Setup happens transparently without user intervention
 - [ ] Default profile persists and can be managed like other profiles
 
-**Technical Task MS-59-T1**: Implement Default Profile Creation
+**Technical Task MS-62-T1**: Implement Default Profile Creation
 
 - Create "Default" profile automatically on application first run
 - Set Default profile as active using SpawnProfileService.setActiveProfile()
@@ -140,7 +142,7 @@ As a new user, I want to have an initial "Default" profile ready to use, so that
 - Handle profile initialization in application startup sequence
 - Store Default profile using same persistence as manual profiles
 - Include proper error handling for profile creation failures
-- Consider migration scenario for existing users
+- Consider migration scenario for users upgrading from pre-profile versions
 
 **Dependencies**: Epic 1 (SpawnProfileService), Story 3
 
@@ -154,7 +156,7 @@ As a new user, I want to have an initial "Default" profile ready to use, so that
 **Status**: Not Started
 
 **User Story**:
-As a user, I want to set a working directory for each profile, so that the applications consuming my spawn configurations can find assets relative to the correct base path for each project.
+As a user, I want to set a working directory for each profile, so that applications consuming my spawn configurations can find assets relative to the correct base path for each project.
 
 **Acceptance Criteria**:
 
@@ -165,7 +167,7 @@ As a user, I want to set a working directory for each profile, so that the appli
 - [ ] Working directory setting is included in profile management interface
 - [ ] Setting validates directory paths appropriately
 
-**Technical Task MS-60-T1**: Add Working Directory Profile Setting
+**Technical Task MS-63-T1**: Add Working Directory Profile Setting
 
 - Add workingDirectory field to SpawnProfile interface in Epic 1
 - Include working directory in profile creation and editing forms
@@ -199,7 +201,7 @@ As a user, I want clear validation when creating or editing profiles, so that I 
 - [ ] Can see which fields have validation errors
 - [ ] Validation works consistently across create and edit operations
 
-**Technical Task MS-61-T1**: Implement Profile Validation
+**Technical Task MS-64-T1**: Implement Profile Validation
 
 - Add profile name validation: required, non-empty, unique across profiles
 - Add working directory path validation with clear error messages
@@ -232,7 +234,7 @@ As a user, I want my active profile remembered when I restart the application, s
 - [ ] Fallback behavior is clear when active profile cannot be restored
 - [ ] Profile persistence works reliably across browser sessions
 
-**Technical Task MS-62-T1**: Integrate with Settings Service
+**Technical Task MS-65-T1**: Integrate with Settings Service
 
 - Store active profile ID in SettingsService for persistence
 - Restore active profile on application startup
@@ -265,7 +267,7 @@ As a user, I want the application to handle unusual profile situations gracefull
 - [ ] Can recover from profile-related errors with helpful instructions
 - [ ] Profile operations remain stable with large numbers of spawns
 
-**Technical Task MS-63-T1**: Implement Edge Case Handling
+**Technical Task MS-66-T1**: Implement Edge Case Handling
 
 - Prevent deletion of last remaining profile with clear messaging
 - Add warning dialog when deleting active profile with switch-first option
@@ -280,6 +282,39 @@ As a user, I want the application to handle unusual profile situations gracefull
 
 ---
 
+## Story 9: Integrate Profiles with Export/Import
+
+**Story ID**: MS-67 (NEW)
+**Priority**: Medium
+**Estimate**: 3 points
+**Status**: Not Started
+
+**User Story**:
+As a user, I want profile export/import to work seamlessly with the spawn export/import system, so that I can backup, share, and manage complete project configurations.
+
+**Acceptance Criteria**:
+
+- [ ] Can export individual profiles with all their spawns
+- [ ] Can import profiles without conflicts with existing profiles
+- [ ] Profile export includes profile-specific settings (working directory, etc.)
+- [ ] Import validates profile data and provides clear error feedback
+- [ ] Can choose to import as new profile or merge with existing
+- [ ] Profile import/export integrates with main export/import workflow
+
+**Technical Task MS-67-T1**: Integrate with Export/Import System
+
+- Extend Epic 7's export/import system to handle profile-level operations
+- Add profile selection to export interface
+- Implement profile import with conflict resolution
+- Validate profile settings during import (working directory, etc.)
+- Add merge vs new profile options for import
+- Integrate profile operations with main export/import workflow
+- Ensure profile export includes complete profile configuration
+
+**Dependencies**: Epic 7 (export/import system), Stories 1, 3, 5
+
+---
+
 ## Story Dependencies
 
 ```text
@@ -290,71 +325,70 @@ Story 1 (Profile Switching)
 │   ├── Story 5 (Working Directory)
 │   └── Story 6 (Profile Validation)
 ├── Story 7 (Profile Persistence) [depends on Stories 1, 4]
-└── Story 8 (Edge Cases) [depends on Stories 1, 3, 7]
+├── Story 8 (Edge Cases) [depends on Stories 1, 3, 7]
+└── Story 9 (Export/Import Integration) [depends on Epic 7, Stories 1, 3, 5]
 ```
 
 ## Definition of Done
 
 Each story is complete when:
 
-- [ ] User story acceptance criteria are met
-- [ ] Technical tasks are implemented and tested
+- [ ] Profile management functionality implemented and tested
 - [ ] Integration with Epic 1 SpawnProfileService works correctly
 - [ ] Integration with Epic 2 header and panel state works
 - [ ] Profile switching properly resets workspace context
 - [ ] Settings integration functions correctly
 - [ ] Profile validation provides clear user feedback
+- [ ] Export/import integration works seamlessly
 - [ ] Edge cases are handled gracefully
 - [ ] TypeScript compilation clean (no errors)
-- [ ] Code is reviewed and follows project standards
-- [ ] Ready for Epic 7 legacy cleanup integration
+- [ ] Ready for Enhanced UX in Epic 9
 
 ## Vision Validation Checklist
 
-- [ ] Active spawn profile management with clear indication ✓ (Stories 1, 2)
-- [ ] Only one profile active at a time ✓ (Stories 1, 2, 7)
-- [ ] Profile switching resets to spawn list view ✓ (Story 1)
+- [ ] Multi-project organization with profile switching ✓ (Stories 1, 2)
 - [ ] Profile creation, editing, and deletion ✓ (Stories 3, 4, 6)
-- [ ] Settings integration for active profile ✓ (Stories 5, 7)
-- [ ] Practical, uncluttered interface ✓ (All stories)
-- [ ] Manual save philosophy maintained ✓ (Stories 3, 6)
-- [ ] Experienced user friendly approach ✓ (All stories)
-
-## Technical Standards
-
-- **Service Integration**: Use Epic 1's SpawnProfileService for all profile operations
-- **State Management**: Integrate with Epic 2's panel state for context reset
-- **Persistence**: Use SettingsService for active profile storage
-- **Validation**: Real-time validation with clear error messages
-- **Error Handling**: Comprehensive error handling with user-friendly feedback
-- **TypeScript**: Strict mode with proper interfaces for all profile data
-- **Modal Design**: Non-intrusive profile management that doesn't disrupt workflow
-
-## Integration Points with Other Epics
-
-- **Epic 1**: Uses SpawnProfileService for all profile CRUD operations and active profile management
-- **Epic 2**: Integrates with header selector, panel state management, and routing system
-- **Epic 3**: Profile switching resets spawn list to "no selection" state
-- **Epic 4**: Profile switching clears unified configuration workspace
-- **Epic 5**: Profile switching resets asset management panel context
-- **Epic 7**: Provides profile management foundation for legacy cleanup
+- [ ] Profile-specific settings (working directory) ✓ (Story 5)
+- [ ] Active profile tracking and persistence ✓ (Stories 2, 7)
+- [ ] Integration with export/import system ✓ (Story 9)
+- [ ] Default profile for immediate usability ✓ (Story 4)
+- [ ] Graceful edge case handling ✓ (Story 8)
 
 ## Critical Success Factors
 
-- **Active Profile Tracking**: Clear indication of current active profile (Stories 1, 2)
-- **Context Reset**: Proper workspace reset when switching profiles (Story 1)
-- **Profile Management Interface**: Non-intrusive modal for profile operations (Story 3)
-- **Default Profile Experience**: Seamless initial user experience (Story 4)
-- **Working Directory Integration**: Profile-level settings override with Settings inheritance (Story 5)
-- **Profile Persistence**: Reliable active profile restoration between sessions (Story 7)
-- **Edge Case Handling**: Graceful handling of unusual profile situations (Story 8)
+- **Seamless Profile Switching**: Context reset and workspace update work smoothly
+- **Profile Management Interface**: Non-intrusive modal that doesn't disrupt workflow
+- **Default Profile Experience**: New users can start immediately without setup
+- **Working Directory Integration**: Profile-level settings override with inheritance
+- **Export/Import Integration**: Profile operations work with backup/restore workflows
+- **Edge Case Handling**: Application remains stable with profile operations
+
+## Integration Points with Other Epics
+
+- **Epic 1**: Uses SpawnProfileService for all profile CRUD operations
+- **Epic 2**: Integrates with header selector, panel state management, and routing
+- **Epic 3**: Profile switching resets spawn list to "no selection" state
+- **Epic 7**: Integrates with export/import system for profile backup/restore
+- **Epic 9**: Provides profile foundation for enhanced UX features
+
+## User Value Delivered
+
+After Epic 8, users get enhanced organization:
+
+- ✅ All core spawn functionality (Epics 3-7)
+- ✅ Multi-project organization with profiles
+- ✅ Profile-specific settings and working directories
+- ✅ Profile backup and sharing through export/import
+- ✅ Seamless context switching between projects
+
+This provides the organizational enhancement that makes MediaSpawner suitable for users managing multiple streaming projects.
 
 ## Notes
 
-- Profile management interface should not interfere with main spawn workflow
-- Working directory setting follows inheritance pattern: Profile overrides Settings default
-- Context reset on profile switching is critical for user understanding
+- Profile management is an enhancement - core functionality works without profiles
+- Design profile interface to not interfere with main spawn workflow
+- Working directory setting follows inheritance pattern from Settings
+- Profile switching must properly reset context for user understanding
 - Default profile provides immediate usability for new users
-- Profile validation prevents common configuration errors
-- Edge case handling ensures application stability with profile operations
-- All profile operations integrate with existing caching and persistence layers
+- Integration with export/import enables profile backup and sharing
+- All profile operations should integrate with existing caching and persistence layers

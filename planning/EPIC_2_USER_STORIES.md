@@ -274,10 +274,11 @@ Each story is complete when:
 
 ## Integration Points with Future Epics
 
-- **Epic 3**: Left panel component slot ready
-- **Epic 4**: Center panel unified configuration workspace infrastructure ready
-- **Epic 5**: Right panel dynamic asset management infrastructure ready
-- **Epic 6**: Header profile management integration ready
+- **Epic 3**: Left panel ready for Core Spawn Management (spawn list and navigation)
+- **Epic 4**: Right panel ready for Asset Assignment (asset library and drag & drop)
+- **Epic 5**: Center panel ready for Asset Configuration (unified workspace)
+- **Epic 6**: Center panel ready for Trigger System configuration
+- **Epic 8**: Header profile management integration ready for Spawn Profiles
 
 ## Notes
 

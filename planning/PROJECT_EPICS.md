@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel layout, focusing on practical functionality and efficient spawn management.
+MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel layout, focusing on delivering core user value early with incremental enhancements.
 
 ---
 
@@ -10,23 +10,19 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 
 **Story ID**: MS-1
 **Priority**: 1 (Critical Path)
-**Status**: Not Started
+**Status**: Completed ✅
 **Estimated Effort**: Medium
 
-**User Value**: Users can create, organize, and manage spawns and spawn profiles with proper data persistence and inheritance behavior, providing the foundation for all spawn-centric workflows.
+**User Value**: Technical foundation that enables all spawn functionality.
 
-**Summary**: Establish core data structures and services that enable users to work with spawns and spawn profiles effectively.
-
-**Technical Approach**: Create type definitions and services to support the new spawn-centric architecture. This includes defining Spawn and SpawnProfile interfaces with enabled/disabled states, implementing SpawnService and SpawnProfileService with active profile management, and extending AssetService for spawn-specific asset settings with inheritance model.
+**Summary**: Establish core data structures and services that enable users to work with spawns effectively.
 
 **Technical Deliverables**:
 
-- New TypeScript type definitions for Spawns and Spawn Profiles
-- Spawn interface with enabled/disabled state and trigger configuration
-- SpawnProfile interface with active profile tracking
-- SpawnService for spawn CRUD operations and enable/disable functionality
-- SpawnProfileService for profile management with active profile setting
-- Extended AssetService for spawn-specific asset settings with inheritance/override model
+- Spawn and SpawnProfile TypeScript interfaces
+- SpawnService for spawn CRUD operations
+- SpawnProfileService for profile management
+- AssetService extensions for spawn-specific settings
 
 **Dependencies**: None
 **Blocks**: All other epics
@@ -37,235 +33,292 @@ MediaSpawner UI redesign to implement a spawn-centric workflow with three-panel 
 
 **Story ID**: MS-2
 **Priority**: 2 (Critical Path)
-**Status**: Not Started
+**Status**: In Progress 🔄
 **Estimated Effort**: Medium
 
-**User Value**: Users get an organized three-panel workspace that separates spawn navigation, configuration, and asset management into clear, dedicated areas for efficient workflow.
+**User Value**: Organized workspace that separates spawn navigation, configuration, and asset management into clear, dedicated areas.
 
-**Summary**: Build the core three-panel layout infrastructure with unified configuration workspace.
-
-**Technical Approach**: Implement the main layout component with left spawn list panel (25%), center unified configuration workspace (50%), and right asset management panel (25%). The center panel serves as a unified workspace for both spawn settings and asset configuration. The right panel includes dynamic two-section layout with resizable dividers. Includes responsive design considerations and panel state management.
+**Summary**: Build the core three-panel layout infrastructure with responsive design and state management.
 
 **Technical Deliverables**:
 
-- Three-panel layout component with unified configuration workspace concept
-- Panel resizing and responsive behavior
+- Three-panel layout component (25% / 50% / 25%)
 - Header with spawn profile selector
-- Basic panel state management for center panel dual-mode (spawn settings/asset settings)
-- Dynamic right panel with resizable divider infrastructure
-- Updated routing structure
+- Panel state management and routing
+- Responsive design for desktop screens
 
 **Dependencies**: Epic 1
-**Blocks**: Epic 3, 4, 5
+**Blocks**: Epic 3, 4
 
 ---
 
-## Epic 3: Spawn List & Navigation
+## Epic 3: Core Spawn Management
 
 **Story ID**: MS-3
-**Priority**: 3 (Critical Path)
+**Priority**: 3 (Critical Path - HIGH VALUE)
 **Status**: Not Started
 **Estimated Effort**: Medium
 
-**User Value**: Users can efficiently browse, search, and navigate through many spawns with quick enable/disable controls and streamlined spawn creation workflow.
+**User Value**: ✨ **Users can create, read, update, and delete spawns with basic metadata and enable/disable functionality - the core workflow!**
 
-**Summary**: Implement spawn list with enable/disable, search, and navigation.
-
-**Technical Approach**: Build spawn list component with toggle switches for enable/disable, search/filter functionality, visual indicators for enabled/disabled states, and efficient navigation for handling 100s of spawns. Includes compact list design and spawn selection handling.
+**Summary**: Implement essential spawn management functionality that makes the application immediately useful.
 
 **Technical Deliverables**:
 
-- Spawn list component for left panel
-- Enable/disable toggle switches with visual states
-- Search and filter functionality
-- Spawn selection and navigation
-- "New Spawn" creation workflow
-- Efficient rendering for large spawn lists
+- Basic spawn list with selection and enable/disable toggles
+- Spawn creation workflow with default settings
+- Basic spawn editor with name, description, enabled state
+- Manual save/cancel workflow with change detection
+- Spawn deletion with confirmation
+
+**Key User Features**:
+
+- Create spawns with names and descriptions
+- Enable/disable spawns with toggle switches
+- Edit spawn properties with manual save controls
+- View all spawns in organized list
 
 **Dependencies**: Epic 1, 2
 **Blocks**: Epic 4
 
 ---
 
-## Epic 4: Spawn Editor & Settings
+## Epic 4: Asset Assignment
 
 **Story ID**: MS-4
-**Priority**: 4 (Critical Path)
+**Priority**: 4 (Critical Path - HIGH VALUE)
 **Status**: Not Started
-**Estimated Effort**: Large
+**Estimated Effort**: Medium
 
-**User Value**: Users can configure spawn settings and individual asset properties with explicit manual save controls, comprehensive unsaved changes protection, and clear asset inheritance management in a unified workspace.
+**User Value**: ✨ **Spawns become functional containers for media assets with support for local files and URLs.**
 
-**Summary**: Implement unified configuration workspace with spawn creation, editing, and asset configuration with explicit manual save workflows.
-
-**Technical Approach**: Build unified configuration workspace in center panel with comprehensive manual save/cancel functionality, unsaved changes warnings, and asset inheritance model. The center panel serves dual purposes: spawn settings configuration and individual asset settings configuration. This epic is critical to the "experienced user friendly" vision principle, providing explicit control over changes with clear feedback for streaming configuration management.
+**Summary**: Enable users to assign assets to spawns, making spawns actually useful for media management.
 
 **Technical Deliverables**:
 
-- Unified configuration workspace component for center panel with manual save workflow
-- Spawn settings form (name, trigger, duration, etc.) with real-time validation
-- Asset settings form component for spawn-specific asset configuration
-- Context switching between spawn settings and asset settings modes
-- Asset settings integration with proper space allocation for complex configurations
-- Comprehensive unsaved changes detection and warning system for both modes
-- Asset inheritance UI showing spawn defaults and override capabilities
-- Explicit save/cancel controls with confirmation dialogs for both spawn and asset settings
-- Form validation and error handling with clear user feedback
-- Dirty state indicators and navigation warnings
-- Auto-save prevention with user control emphasis
-- Clear indication of inherited vs overridden asset properties
+- Asset library display in right panel
+- Drag & drop assignment from library to spawns
+- Support for local file paths and URLs
+- Basic asset validation and type detection
+- Asset removal from spawns
+
+**Key User Features**:
+
+- Add assets to spawns via drag & drop
+- Support both local paths and URLs
+- View assets assigned to each spawn
+- Remove assets from spawns
 
 **Dependencies**: Epic 1, 2, 3
 **Blocks**: Epic 5
 
 ---
 
-## Epic 5: Asset Management & Customization
+## Epic 5: Asset Configuration
 
 **Story ID**: MS-5
-**Priority**: 5 (Critical Path)
+**Priority**: 5 (Critical Path - HIGH VALUE)
 **Status**: Not Started
 **Estimated Effort**: Large
 
-**User Value**: Users can efficiently manage asset libraries, assign assets to spawns with drag & drop, and configure spawn-specific asset settings while maintaining a clean separation between asset selection and configuration.
+**User Value**: ✨ **Fine-grained control over asset behavior with type-specific settings (volume, dimensions, coordinates, etc.).**
 
-**Summary**: Integrate asset library with comprehensive drag & drop workflows and dynamic space management for streamlined asset selection and assignment.
-
-**Technical Approach**: Adapt existing asset components for the right panel with dynamic two-section layout, comprehensive drag & drop workflows, and streamlined asset selection/assignment focus. The right panel focuses purely on asset selection and assignment, with asset configuration handled in the center panel. Includes dynamic space management with resizable dividers and smart defaults optimized for different spawn sizes.
+**Summary**: Implement comprehensive asset configuration with inheritance model and type-specific settings.
 
 **Technical Deliverables**:
 
-- Asset management component for right panel with dynamic two-section layout
-- User-resizable divider between sections with smart defaults (30/70 split)
-- Minimum height constraints (80px top, 200px bottom) and auto-behaviors
-- Asset counter badges on section headers ("Assets in Spawn (3)", "Asset Library (127)")
-- Scroll indicators when sections have more content than visible
-- Collapse/expand buttons for quick space management
-- Detailed collapsible asset library with auto-expand/collapse functionality
-- Comprehensive drag & drop workflows with clear visual feedback (library to spawn, reordering within spawn)
-- Asset reordering within spawns with visual feedback
-- Asset assignment workflows with immediate visual feedback
-- Integration with existing asset validation and preview components
-- Clear drag & drop zones with visual feedback for different spawn sizes
-- Auto-behaviors: expand library for few assets, grow spawn section for many assets
+- Type-specific asset settings forms (volume for audio/video, dimensions/coordinates for visual)
+- Asset inheritance model (spawn defaults with per-asset overrides)
+- Asset settings editor in center panel
+- Reset to defaults functionality
 
-**Dependencies**: Epic 1, 2, 4
+**Key User Features**:
+
+- Configure volume for audio and video files
+- Set dimensions, scale, and coordinates for visual files
+- Per-asset settings that override spawn defaults
+- Reset individual assets to spawn defaults
+
+**Dependencies**: Epic 1, 2, 3, 4
 **Blocks**: Epic 6
 
 ---
 
-## Epic 6: Spawn Profile Management
+## Epic 6: Trigger System
 
 **Story ID**: MS-6
-**Priority**: 6
+**Priority**: 6 (Critical Path - HIGH VALUE)
 **Status**: Not Started
 **Estimated Effort**: Medium
 
-**User Value**: Users can create and switch between different spawn profiles for different projects or contexts, with clear active profile tracking and proper context management.
+**User Value**: ✨ **Spawns become actionable with configurable triggers (commands, channel points, time-based, etc.).**
 
-**Summary**: Implement active spawn profile management and switching.
-
-**Technical Approach**: Create spawn profile switching with active profile tracking, profile creation/management, and proper context handling. Only one spawn profile should be active at a time, with clear indication of current active profile.
+**Summary**: Implement trigger selection and configuration that makes spawns responsive to external events.
 
 **Technical Deliverables**:
 
-- Spawn profile selector in header
-- Active profile tracking and indication
-- Profile creation, editing, and deletion
-- Profile switching with context reset
-- Profile management interface
-- Settings integration for active profile
+- Trigger type selection UI (Command, Channel Point, Time/Date, Subscription, Cheer, etc.)
+- Trigger-specific configuration forms
+- Trigger validation and testing
+- Integration with spawn settings
 
-**Dependencies**: Epic 1, 2, 5
+**Key User Features**:
+
+- Select trigger types from comprehensive list
+- Configure trigger-specific settings (chat commands, channel point rewards, etc.)
+- Time-based triggers (date/time scheduling)
+- Event-based triggers (subscriptions, cheers)
+
+**Dependencies**: Epic 1, 2, 3
 **Blocks**: Epic 7
 
 ---
 
-## Epic 7: Legacy Cleanup & Terminology Updates
+## Epic 7: Export/Import System
 
 **Story ID**: MS-7
-**Priority**: 7
+**Priority**: 7 (Critical Path - HIGH VALUE)
 **Status**: Not Started
 **Estimated Effort**: Medium
 
-**User Value**: Users experience a clean, updated application with consistent spawn-centric terminology and functionality throughout the interface.
+**User Value**: ✨ **Configuration portability with JSON export/import for integration with external systems (OBS, etc.).**
 
-**Summary**: Remove legacy components and update terminology throughout the application.
-
-**Technical Approach**: Remove old components and pages, update routing structure, and update all terminology throughout the application from "Configuration/Asset Group" to "Spawn Profile/Spawn". Clean up unused code and ensure consistent terminology.
+**Summary**: Enable configuration sharing and backup through standardized JSON format.
 
 **Technical Deliverables**:
 
-- Remove legacy components (Dashboard, ConfigEditor, etc.)
-- Update routing to new structure
-- Terminology updates throughout codebase
-- Clean up unused services and utilities
-- Update import/export functionality
-- Remove obsolete configuration interfaces and types
+- JSON export functionality for spawns and profiles
+- JSON import with validation and error handling
+- Configuration file format specification
+- Backup/restore workflow
+
+**Key User Features**:
+
+- Export spawn configurations as JSON files
+- Import configurations from JSON files
+- Validate imported configurations
+- Integration-ready format for external tools
 
 **Dependencies**: Epic 1, 2, 3, 4, 5, 6
 **Blocks**: Epic 8
 
 ---
 
-## Epic 8: Polish & User Experience
+## Epic 8: Spawn Profiles (Enhancement)
 
 **Story ID**: MS-8
-**Priority**: 8
+**Priority**: 8 (Enhancement)
 **Status**: Not Started
-**Estimated Effort**: Small
+**Estimated Effort**: Medium
 
-**User Value**: Users experience a polished, responsive application with keyboard shortcuts, accessibility improvements, and optimized performance for managing large spawn configurations.
+**User Value**: 🎁 **Nice-to-have organization for managing multiple projects with profile switching and context management.**
 
-**Summary**: Add final UX enhancements and optimizations.
-
-**Technical Approach**: Performance optimizations for large spawn lists, keyboard shortcuts, foundation for future bulk operations, and final UI polish. Includes accessibility improvements and user experience refinements.
+**Summary**: Add profile management for organizing spawns into different projects or contexts.
 
 **Technical Deliverables**:
 
-- Performance optimizations for large data sets
-- Keyboard shortcuts for common actions
-- Accessibility improvements
-- Final UI polish and consistency
-- Foundation for bulk operations (future)
-- User experience testing and refinements
-- Documentation updates
+- Profile creation, editing, and deletion
+- Profile switching with context reset
+- Active profile tracking and persistence
+- Profile-specific settings (working directory)
 
-**Dependencies**: Epic 7
-**Blocks**: None
+**Key User Features**:
+
+- Create profiles for different projects
+- Switch between profiles with context reset
+- Profile-specific configuration and settings
+- Remember active profile between sessions
+
+**Dependencies**: Epic 1, 2, 7
+**Blocks**: Epic 9
 
 ---
+
+## Epic 9: Enhanced UX & Polish
+
+**Story ID**: MS-9
+**Priority**: 9 (Polish)
+**Status**: Not Started
+**Estimated Effort**: Large
+
+**User Value**: 🎨 **Enhanced workflow efficiency with search, filters, keyboard shortcuts, and performance optimizations.**
+
+**Summary**: Add advanced UX features and optimizations for power users.
+
+**Technical Deliverables**:
+
+- Search and filtering for spawns and assets
+- Keyboard shortcuts for common actions
+- Performance optimizations for large datasets
+- Accessibility improvements
+- Advanced UI features (collapsible panels, etc.)
+
+**Key User Features**:
+
+- Search spawns and assets by name
+- Filter by type, status, and other criteria
+- Keyboard shortcuts for efficient workflow
+- Smooth performance with large configurations
+
+**Dependencies**: Epic 7, 8
+**Blocks**: None
 
 ## Epic Dependencies Visualization
 
 ```text
-Epic 1 (Foundation)
-├── Epic 2 (Layout)
-│   ├── Epic 3 (Spawn List)
-│   │   └── Epic 4 (Spawn Editor)
-│   │       └── Epic 5 (Asset Management)
-│   │           └── Epic 6 (Profile Management)
-│   │               └── Epic 7 (Migration & Cleanup)
-│   │                   └── Epic 8 (Polish)
+Epic 1 (Foundation) ✅
+├── Epic 2 (Layout) 🔄
+│   ├── Epic 3 (Core Spawn Management) → HIGH VALUE
+│   │   ├── Epic 4 (Asset Assignment) → HIGH VALUE
+│   │   │   ├── Epic 5 (Asset Configuration) → HIGH VALUE
+│   │   │   └── Epic 6 (Trigger System) → HIGH VALUE
+│   │   │       └── Epic 7 (Export/Import) → HIGH VALUE
+│   │   │           ├── Epic 8 (Spawn Profiles) → Enhancement
+│   │   │           └── Epic 9 (Enhanced UX) → Polish
 ```
+
+## Early Value Delivery Timeline
+
+- **After Epic 3**: 🎯 **Core spawn management** - Users can create, edit, and organize spawns
+- **After Epic 4**: 🎯 **Functional spawns** - Users can add assets to spawns (local files + URLs)
+- **After Epic 5**: 🎯 **Powerful spawns** - Users can configure asset behavior (volume, dimensions, etc.)
+- **After Epic 6**: 🎯 **Actionable spawns** - Users can set triggers for spawn activation
+- **After Epic 7**: 🎯 **Exportable spawns** - Users can integrate with external systems via JSON
+- **After Epic 8**: 🎁 **Multi-project support** - Users can organize spawns into profiles
+- **After Epic 9**: 🎨 **Enhanced experience** - Power user features and polish
 
 ## Success Criteria
 
-- [ ] Spawn-centric workflow implemented
+### Core Functionality (Epics 3-7)
+
+- [ ] Complete spawn CRUD operations with manual save controls
+- [ ] Asset assignment with local file and URL support
+- [ ] Type-specific asset configuration (volume, dimensions, coordinates)
+- [ ] Comprehensive trigger system (commands, channel points, time-based, events)
+- [ ] JSON export/import for external integration
 - [ ] Three-panel layout functional and responsive
-- [ ] Efficient navigation for 100s of spawns
-- [ ] Manual save with unsaved changes warnings
 - [ ] Enable/disable spawn functionality
-- [ ] Spawn-specific asset settings with inheritance
-- [ ] Active spawn profile management
-- [ ] All legacy components removed
-- [ ] Data successfully migrated
-- [ ] Performance targets met
 
-## Notes
+### Enhancement Features (Epics 8-9)
 
-- **No backwards compatibility required** - MediaSpawner is in active development
-- **Focus on practical functionality** over visual appeal
-- **Manual save approach** - explicit user control over changes
-- **Scalability target** - Support for 100s of spawns per profile
-- **Asset inheritance model** - Spawn settings inherited by assets with override capability
+- [ ] Multi-profile organization and switching
+- [ ] Search and filtering for spawns and assets
+- [ ] Performance optimization for large datasets
+- [ ] Keyboard shortcuts and accessibility improvements
+- [ ] Professional UI polish and user experience
+
+### Technical Quality
+
+- [ ] Manual save approach with unsaved changes protection
+- [ ] Asset inheritance model working correctly
+- [ ] Scalability target: 100s of spawns, 1000s of assets
+- [ ] Clean architecture with legacy components removed
+
+## Key Design Principles
+
+- **User Value First** - Each epic delivers immediately useful functionality
+- **Incremental Enhancement** - Core features first, nice-to-haves later
+- **Manual Save Philosophy** - Explicit user control over changes
+- **Spawn-Centric Workflow** - Spawns are the primary focus, profiles are organization
+- **Practical over Pretty** - Functionality and usability over visual flourishes
+- **Desktop-Optimized** - Designed for content creators managing streaming setups
