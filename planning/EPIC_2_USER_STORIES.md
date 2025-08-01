@@ -94,24 +94,27 @@ As a user, I want my selections and context maintained across the workspace, so 
 
 - [ ] Selected spawn stays consistent across all panels
 - [ ] Profile switching resets context appropriately
-- [ ] Unsaved changes are tracked across the workspace
+- [ ] Unsaved changes are tracked comprehensively across the workspace
 - [ ] Panel coordination works smoothly (spawn selection affects other panels)
 - [ ] My last selected spawn is remembered for each profile
 - [ ] Context switching feels responsive and predictable
 - [ ] Workspace handles invalid selections gracefully
+- [ ] Unsaved changes warnings work across spawn settings, asset settings, and trigger configurations
+- [ ] Complex cross-panel state interactions (asset selection → configuration changes) are tracked properly
 
-**Technical Task MS-12-T1**: Implement Panel State Management System
+**Technical Task MS-12-T1**: Implement Robust Panel State Management System
 
-- Create React Context for panel state (selected spawn, active profile, etc.)
-- Implement panel communication system (spawn selection, profile changes)
-- Add state persistence for selected spawn per profile using localStorage
-- Build unsaved changes tracking across panels
-- Create center panel mode state management (spawn settings vs asset settings modes)
-- Ensure clear state transitions when switching profiles
-- Add TypeScript interfaces for all state objects including center panel modes
-- Include error handling for invalid state
-- Design state to support future features (multiple selection, etc.)
+- Create React Context for panel state (selected spawn, active profile, etc.) to enable coordinated workspace behavior
+- Implement comprehensive panel communication system (spawn selection, profile changes) for synchronized updates
+- Add state persistence for selected spawn per profile using localStorage for user continuity
+- Build critical unsaved changes tracking across ALL panels and contexts to support manual save philosophy
+- Create center panel mode state management (spawn settings vs asset settings modes) for unified workspace
+- Ensure clear state transitions when switching profiles to prevent data loss
+- Add TypeScript interfaces for all state objects including center panel modes for type safety
+- Include robust error handling for invalid state scenarios
+- Design state to support future features (multiple selection, bulk operations) for extensibility
 - Prepare state structure for future right panel dynamic sections
+- **CRITICAL**: Implement complex cross-panel unsaved changes logic to handle configuration edits across spawn settings, asset settings, and trigger configurations
 
 **Dependencies**: Epic 1 (Spawn/SpawnProfile types)
 

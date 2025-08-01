@@ -13,41 +13,73 @@ Implement comprehensive trigger selection and configuration that enables spawns 
 
 ---
 
-## Story 1: Select Trigger Types
+## Story 1: Research and Define Trigger Types
 
 **Story ID**: MS-60 (NEW)
+**Priority**: High
+**Estimate**: 3 points
+**Status**: Not Started
+
+**User Story**:
+As a user, I want a comprehensive but manageable set of trigger types, so that I can choose the right activation method for my spawns based on common streaming scenarios.
+
+**Acceptance Criteria**:
+
+- [ ] Research and document common Twitch trigger types and their settings
+- [ ] Define trigger data structure that can accommodate trigger-specific settings
+- [ ] Create extensible trigger framework for easy addition of new types
+- [ ] Document trigger types for initial implementation: Command, Channel Point, Subscription, Cheer, Follow, Manual
+- [ ] Define settings structure for each trigger type (sub tiers, bit amounts, etc.)
+- [ ] Plan framework for future trigger types (advanced combinations, other platforms)
+
+**Technical Task MS-60-T1**: Define Trigger Type System Architecture
+
+- Research common Twitch triggers: Commands, Channel Points, Subs, Cheers, Follows, Raids, Gifted Subs
+- Define trigger data structures that accommodate trigger-specific settings (sub months/tiers, bit amounts, command permissions, etc.)
+- Create extensible trigger type system for easy addition of new triggers
+- Document trigger settings schema for each type
+- Plan framework architecture for complex triggers and future platform support
+
+**Dependencies**: Epic 1 (Spawn types)
+
+---
+
+## Story 2: Select Basic Trigger Types
+
+**Story ID**: MS-61 (NEW)
 **Priority**: High
 **Estimate**: 4 points
 **Status**: Not Started
 
 **User Story**:
-As a user, I want to select from different trigger types for my spawns, so that I can make spawns responsive to the right events for my use case.
+As a user, I want to select from basic trigger types for my spawns, so that I can make spawns responsive to the most common streaming events.
 
 **Acceptance Criteria**:
 
-- [ ] Can see list of available trigger types in spawn editor
-- [ ] Can select from: Command, Channel Point Reward, Time/Date, Subscription, Cheer, Follow, Raid, Host
+- [ ] Can see list of basic trigger types in spawn editor
+- [ ] Can select from: Command, Channel Point Reward, Subscription, Cheer, Follow, Manual
 - [ ] Can select "Manual" trigger for manual activation
 - [ ] Selected trigger type determines what configuration options appear
 - [ ] Can change trigger type and see configuration update accordingly
 - [ ] Clear descriptions help me understand what each trigger type does
+- [ ] Get unsaved changes warnings when modifying trigger configurations
 
-**Technical Task MS-60-T1**: Implement Trigger Type Selection
+**Technical Task MS-61-T1**: Implement Basic Trigger Type Selection
 
-- Add trigger type selection dropdown to spawn settings form (Epic 3)
-- Define trigger type enum: Command, ChannelPoint, TimeDate, Subscription, Cheer, Follow, Raid, Host, Manual
-- Implement dynamic configuration panel based on selected trigger type
-- Add clear descriptions and help text for each trigger type
-- Handle trigger type changes with configuration reset confirmation
-- Integrate with Epic 3's spawn editor form structure
+- Add trigger type selection dropdown to spawn settings form (Epic 3) to provide users with clear trigger options
+- Define basic trigger type enum: Command, ChannelPoint, Subscription, Cheer, Follow, Manual to support common streaming scenarios
+- Implement dynamic configuration panel based on selected trigger type to show relevant settings
+- Add clear descriptions and help text for each trigger type to guide user understanding
+- Handle trigger type changes with configuration reset confirmation to prevent data loss
+- Integrate with Epic 3's spawn editor form structure for consistent user experience
 
-**Dependencies**: Epic 1 (Spawn types), Epic 3 (spawn editor)
+**Dependencies**: Epic 1 (Spawn types), Epic 3 (spawn editor), Story 1
 
 ---
 
-## Story 2: Configure Chat Command Triggers
+## Story 3: Configure Chat Command Triggers
 
-**Story ID**: MS-61 (NEW)
+**Story ID**: MS-62 (NEW)
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -64,23 +96,23 @@ As a user, I want to configure chat command triggers, so that my spawns can be a
 - [ ] Can test command format validation
 - [ ] Get clear feedback about command requirements and limitations
 
-**Technical Task MS-61-T1**: Implement Chat Command Configuration
+**Technical Task MS-62-T1**: Implement Chat Command Configuration
 
-- Add command text input with validation (alphanumeric, starts with !, no spaces)
-- Add permission level selection dropdown
-- Add cooldown timer input (seconds/minutes)
-- Add case sensitivity toggle option
-- Implement command format validation with real-time feedback
-- Add help text explaining command requirements and best practices
-- Integrate with spawn settings save/cancel workflow
+- Add command text input with validation (alphanumeric, starts with !, no spaces) to ensure valid chat commands
+- Add permission level selection dropdown to control who can use commands
+- Add cooldown timer input (seconds/minutes) to prevent command spam
+- Add case sensitivity toggle option for flexible command matching
+- Implement command format validation with real-time feedback to guide users
+- Add help text explaining command requirements and best practices for clarity
+- Integrate with spawn settings save/cancel workflow for consistent user experience
 
-**Dependencies**: Epic 3 (spawn editor), Story 1
+**Dependencies**: Epic 3 (spawn editor), Story 2
 
 ---
 
-## Story 3: Configure Channel Point Reward Triggers
+## Story 4: Configure Channel Point Reward Triggers
 
-**Story ID**: MS-62 (NEW)
+**Story ID**: MS-63 (NEW)
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -97,23 +129,23 @@ As a user, I want to configure channel point reward triggers, so that my spawns 
 - [ ] Can test reward name/ID validation
 - [ ] Get guidance on setting up rewards in streaming platform
 
-**Technical Task MS-62-T1**: Implement Channel Point Reward Configuration
+**Technical Task MS-63-T1**: Implement Channel Point Reward Configuration
 
-- Add reward name/ID input with validation
-- Add point cost input with range validation
-- Add user input requirement selection (required, optional, none)
-- Add cooldown and usage limit inputs
-- Implement reward validation with helpful error messages
-- Add guidance text for setting up rewards in streaming platforms
-- Handle various reward ID formats
+- Add reward name/ID input with validation to ensure proper reward identification
+- Add point cost input with range validation for cost-based filtering
+- Add user input requirement selection (required, optional, none) to handle viewer messages
+- Add cooldown and usage limit inputs to prevent reward abuse
+- Implement reward validation with helpful error messages for user guidance
+- Add guidance text for setting up rewards in streaming platforms for external setup help
+- Handle various reward ID formats for platform flexibility
 
-**Dependencies**: Epic 3 (spawn editor), Story 1
+**Dependencies**: Epic 3 (spawn editor), Story 2
 
 ---
 
-## Story 4: Configure Time-Based Triggers
+## Story 5: Configure Event-Based Triggers
 
-**Story ID**: MS-63 (NEW)
+**Story ID**: MS-64 (NEW)
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -130,50 +162,16 @@ As a user, I want to configure time and date-based triggers, so that my spawns c
 - [ ] Can see next scheduled activation time
 - [ ] Can enable/disable scheduled triggers without losing configuration
 
-**Technical Task MS-63-T1**: Implement Time-Based Trigger Configuration
-
-- Add date/time picker for one-time triggers
-- Add recurring schedule options (daily, weekly, monthly patterns)
-- Add time range configuration (start/end times)
-- Add timezone selection with auto-detection
-- Implement next activation time calculation and display
-- Add enable/disable toggle for scheduled triggers
-- Include proper date/time validation and formatting
-
-**Dependencies**: Epic 3 (spawn editor), Story 1
-
----
-
-## Story 5: Configure Event-Based Triggers
-
-**Story ID**: MS-64 (NEW)
-**Priority**: High
-**Estimate**: 4 points
-**Status**: Not Started
-
-**User Story**:
-As a user, I want to configure event-based triggers (subscription, cheer, follow, etc.), so that my spawns can respond to viewer interactions.
-
-**Acceptance Criteria**:
-
-- [ ] Can configure subscription triggers with tier/amount requirements
-- [ ] Can configure cheer triggers with minimum bit amounts
-- [ ] Can configure follow triggers with new follower detection
-- [ ] Can configure raid/host triggers with minimum viewer counts
-- [ ] Can set event-specific cooldowns to prevent spam
-- [ ] Get clear guidance on how each event type works
-
 **Technical Task MS-64-T1**: Implement Event-Based Trigger Configuration
 
-- Add subscription trigger configuration (tier requirements, gift sub handling)
-- Add cheer trigger configuration (minimum bits, cumulative options)
-- Add follow trigger configuration (new follower detection settings)
-- Add raid/host trigger configuration (minimum viewer thresholds)
-- Implement event-specific cooldown controls
-- Add comprehensive help text for each event type
-- Handle various event data formats and edge cases
+- Add subscription trigger configuration (tier requirements, gift sub handling) to support subscriber events
+- Add cheer trigger configuration (minimum bits, cumulative options) for bit-based activation
+- Add follow trigger configuration (new follower detection settings) to welcome new followers
+- Implement event-specific cooldown controls to prevent trigger spam
+- Add comprehensive help text for each event type to guide user setup
+- Handle various event data formats and edge cases for platform compatibility
 
-**Dependencies**: Epic 3 (spawn editor), Story 1
+**Dependencies**: Epic 3 (spawn editor), Story 2
 
 ---
 
@@ -198,15 +196,15 @@ As a user, I want clear validation for my trigger configurations, so that I know
 
 **Technical Task MS-65-T1**: Implement Trigger Configuration Validation
 
-- Add validation for each trigger type's specific requirements
-- Implement real-time validation feedback with clear error messages
-- Add configuration completeness indicators
-- Prevent spawn save when trigger validation fails
-- Create warning system for potentially problematic configurations
-- Add validation for trigger conflicts and overlapping settings
-- Include helpful suggestions for fixing validation errors
+- Add validation for each trigger type's specific requirements to ensure proper configuration
+- Implement real-time validation feedback with clear error messages for immediate user guidance
+- Add configuration completeness indicators to show setup progress
+- Prevent spawn save when trigger validation fails to avoid broken configurations
+- Create warning system for potentially problematic configurations to prevent issues
+- Add validation for trigger conflicts and overlapping settings to avoid conflicts
+- Include helpful suggestions for fixing validation errors to guide resolution
 
-**Dependencies**: Stories 1, 2, 3, 4, 5
+**Dependencies**: Stories 2, 3, 4, 5
 
 ---
 
@@ -231,15 +229,15 @@ As a user, I want to test my trigger configurations, so that I can verify they w
 
 **Technical Task MS-66-T1**: Implement Trigger Testing System
 
-- Add manual trigger activation button for testing
-- Implement trigger event simulation for different trigger types
-- Create trigger activation log/history display
-- Add test mode that doesn't affect live trigger settings
-- Implement trigger timing and cooldown testing
-- Add comprehensive test result feedback and reporting
-- Include test data validation and edge case testing
+- Add manual trigger activation button for testing to allow safe configuration verification
+- Implement trigger event simulation for different trigger types to test without live events
+- Create trigger activation log/history display for debugging and monitoring
+- Add test mode that doesn't affect live trigger settings to prevent accidental activation
+- Implement trigger timing and cooldown testing for performance validation
+- Add comprehensive test result feedback and reporting for clear results
+- Include test data validation and edge case testing for robustness
 
-**Dependencies**: Stories 1, 2, 3, 4, 5, 6
+**Dependencies**: Stories 2, 3, 4, 5, 6
 
 ---
 
@@ -264,25 +262,25 @@ As a user, I want to see trigger status and information in my spawn list, so tha
 
 **Technical Task MS-67-T1**: Implement Trigger Information Display
 
-- Add trigger type icons/indicators to spawn list items (Epic 3)
-- Display abbreviated trigger information (command text, schedule, etc.)
-- Add trigger status indicators (active, cooldown, scheduled, etc.)
-- Implement hover tooltips with detailed trigger information
-- Create visual design that doesn't clutter the spawn list
-- Add color coding or icons for different trigger types
-- Ensure trigger info updates when configurations change
+- Add trigger type icons/indicators to spawn list items (Epic 3) for quick visual recognition
+- Display abbreviated trigger information (command text, schedule, etc.) for at-a-glance understanding
+- Add trigger status indicators (active, cooldown, scheduled, etc.) to show current state
+- Implement hover tooltips with detailed trigger information for comprehensive details
+- Create visual design that doesn't clutter the spawn list to maintain clean interface
+- Add color coding or icons for different trigger types for clear categorization
+- Ensure trigger info updates when configurations change for real-time accuracy
 
-**Dependencies**: Epic 3 (spawn list), Stories 1, 2, 3, 4, 5
+**Dependencies**: Epic 3 (spawn list), Stories 2, 3, 4, 5
 
 ---
 
 ## Story Dependencies
 
 ```text
-Story 1 (Trigger Type Selection)
-├── Story 2 (Chat Command Configuration)
-├── Story 3 (Channel Point Configuration)
-├── Story 4 (Time-Based Configuration)
+Story 1 (Research & Define Trigger Types)
+├── Story 2 (Basic Trigger Type Selection)
+├── Story 3 (Chat Command Configuration)
+├── Story 4 (Channel Point Configuration)
 ├── Story 5 (Event-Based Configuration)
 │   ├── Story 6 (Trigger Validation)
 │   │   └── Story 7 (Trigger Testing)
@@ -303,14 +301,15 @@ Each story is complete when:
 
 ## Vision Validation Checklist
 
-- [ ] Comprehensive trigger types supported ✓ (Stories 1-5)
-- [ ] Chat command triggers (text commands) ✓ (Story 2)
-- [ ] Channel point reward triggers ✓ (Story 3)
-- [ ] Time/date scheduling triggers ✓ (Story 4)
-- [ ] Event-based triggers (sub, cheer, follow, etc.) ✓ (Story 5)
+- [ ] Extensible trigger system with research foundation ✓ (Story 1)
+- [ ] Basic trigger types for common streaming scenarios ✓ (Story 2)
+- [ ] Chat command triggers (text commands) ✓ (Story 3)
+- [ ] Channel point reward triggers ✓ (Story 4)
+- [ ] Event-based triggers (sub, cheer, follow) ✓ (Story 5)
 - [ ] Trigger validation and testing ✓ (Stories 6, 7)
 - [ ] Trigger status visibility ✓ (Story 8)
 - [ ] Manual save workflow maintained ✓ (All stories)
+- [ ] Foundation for future trigger types (time-based, advanced combinations) ✓ (Story 1)
 
 ## Critical Success Factors
 
@@ -335,9 +334,10 @@ After Epic 6, users can:
 - ✅ Create and manage spawns (Epic 3)
 - ✅ Add and configure assets (Epics 4, 5)
 - ✅ Set up actionable triggers for spawns
-- ✅ Respond to chat commands, channel points, events
-- ✅ Schedule time-based spawn activation
+- ✅ Respond to chat commands, channel points, and viewer events
+- ✅ Configure triggers for subscriptions, cheers, and follows
 - ✅ Test and validate trigger configurations
+- ✅ Build foundation for advanced triggers in future epics
 
 This makes spawns truly interactive and responsive to real streaming scenarios, delivering the core "actionable spawns" functionality.
 

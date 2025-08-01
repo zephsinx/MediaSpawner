@@ -160,6 +160,9 @@ As a user, I want to easily reset asset settings back to spawn defaults, so that
 - [ ] Asset settings update immediately when spawn defaults change
 - [ ] Can see inheritance status throughout the asset settings form
 - [ ] Get helpful explanations about inheritance and override behavior
+- [ ] Clear visual distinction shows inherited (grayed/italic) vs overridden (normal/bold) properties
+- [ ] Can see preview of "what this asset will use" combining spawn defaults + overrides
+- [ ] Inheritance indicators update in real-time as I modify spawn defaults
 
 **Technical Task MS-37-T1**: Build Asset Settings Integration with Spawn Defaults
 
@@ -190,8 +193,10 @@ As a user, I want to smoothly switch between configuring spawn settings and indi
 - [ ] My work is preserved when switching between different configuration modes
 - [ ] Can clearly see whether I'm configuring spawn settings or asset settings
 - [ ] Can see breadcrumbs or header showing what I'm currently configuring
-- [ ] Get unsaved changes warnings when switching between modes
+- [ ] Get comprehensive unsaved changes warnings when switching between modes
 - [ ] Can easily return to the previous configuration mode
+- [ ] Unsaved changes detection works across both spawn and asset configuration contexts
+- [ ] Warning dialogs clearly explain what changes will be lost if I switch modes
 
 **Technical Task MS-38-T1**: Implement Context Switching Between Configuration Modes
 
