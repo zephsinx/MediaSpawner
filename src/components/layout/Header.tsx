@@ -56,25 +56,27 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
 
   return (
     <header
-      className={`bg-white border-b border-gray-200 px-6 py-4 ${className}`}
+      className={`bg-white border-b border-gray-200 px-6 py-4 lg:px-8 lg:py-5 xl:px-10 xl:py-6 ${className}`}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between max-w-[2560px] mx-auto">
         {/* Application Title and Branding */}
         <div className="flex items-center">
-          <h1 className="text-xl font-semibold text-gray-800">MediaSpawner</h1>
+          <h1 className="text-xl lg:text-2xl xl:text-3xl font-semibold text-gray-800">
+            MediaSpawner
+          </h1>
         </div>
 
         {/* Spawn Profile Selector and Actions */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 lg:space-x-5 xl:space-x-6">
           {/* Profile Selector */}
-          <div className="flex items-center space-x-3">
-            <label className="text-sm font-medium text-gray-700">
+          <div className="flex items-center space-x-3 lg:space-x-4">
+            <label className="text-sm lg:text-base xl:text-lg font-medium text-gray-700 whitespace-nowrap">
               Active Profile:
             </label>
             <select
               value={activeProfileId || ""}
               onChange={(e) => handleProfileChange(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
+              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px] lg:min-w-[240px] xl:min-w-[280px]"
             >
               {profiles.map((profile) => (
                 <option key={profile.id} value={profile.id}>
@@ -86,24 +88,24 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
           </div>
 
           {/* Profile Management Actions */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 lg:space-x-3 xl:space-x-4">
             <button
               onClick={handleCreateProfile}
-              className="px-3 py-2 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors whitespace-nowrap"
             >
               Create Profile
             </button>
             <button
               onClick={handleEditProfile}
               disabled={!activeProfileId}
-              className="px-3 py-2 text-sm bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
             >
               Edit Profile
             </button>
             <button
               onClick={handleDeleteProfile}
               disabled={!activeProfileId}
-              className="px-3 py-2 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
             >
               Delete Profile
             </button>

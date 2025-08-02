@@ -19,7 +19,7 @@ export interface ThreePanelLayoutProps {
  * Three-panel layout component with header and 25%/50%/25% width distribution
  *
  * Uses CSS Grid for precise panel control and responsive design.
- * Targets desktop resolutions with minimum panel widths to ensure usability.
+ * Optimized for desktop resolutions (1280px-ultrawide) with proper scaling.
  */
 const ThreePanelLayout: React.FC<ThreePanelLayoutProps> = ({
   leftPanel,
@@ -32,21 +32,23 @@ const ThreePanelLayout: React.FC<ThreePanelLayoutProps> = ({
       {/* Header */}
       <Header />
 
-      {/* Three-Panel Layout */}
-      <div className="grid grid-cols-12 h-[calc(100vh-80px)] min-w-[1280px]">
-        {/* Left Panel - Spawn Navigation (25%) */}
-        <div className="col-span-3 bg-white border-r border-gray-200 min-w-[320px] overflow-hidden">
-          <div className="h-full">{leftPanel}</div>
-        </div>
+      {/* Three-Panel Layout Container with ultrawide constraints */}
+      <div className="w-full max-w-[2560px] mx-auto">
+        <div className="grid grid-cols-12 h-[calc(100vh-80px)] min-w-[1280px] px-0 lg:px-2 xl:px-4 2xl:px-6">
+          {/* Left Panel - Spawn Navigation (25%) */}
+          <div className="col-span-3 bg-white border-r border-gray-200 min-w-[320px] lg:min-w-[360px] xl:min-w-[400px] overflow-hidden">
+            <div className="h-full p-3 lg:p-4 xl:p-5">{leftPanel}</div>
+          </div>
 
-        {/* Center Panel - Configuration Workspace (50%) */}
-        <div className="col-span-6 bg-white border-r border-gray-200 min-w-[640px] overflow-hidden">
-          <div className="h-full">{centerPanel}</div>
-        </div>
+          {/* Center Panel - Configuration Workspace (50%) */}
+          <div className="col-span-6 bg-white border-r border-gray-200 min-w-[640px] lg:min-w-[720px] xl:min-w-[800px] overflow-hidden">
+            <div className="h-full p-3 lg:p-4 xl:p-5">{centerPanel}</div>
+          </div>
 
-        {/* Right Panel - Asset Management (25%) */}
-        <div className="col-span-3 bg-white min-w-[320px] overflow-hidden">
-          <div className="h-full">{rightPanel}</div>
+          {/* Right Panel - Asset Management (25%) */}
+          <div className="col-span-3 bg-white min-w-[320px] lg:min-w-[360px] xl:min-w-[400px] overflow-hidden">
+            <div className="h-full p-3 lg:p-4 xl:p-5">{rightPanel}</div>
+          </div>
         </div>
       </div>
     </div>
