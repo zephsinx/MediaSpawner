@@ -125,12 +125,14 @@ As a user, I want my selections and context maintained across the workspace, so 
 **Story ID**: MS-18
 **Priority**: Medium
 **Estimate**: 3 points
-**Status**: Not Started
+**Status**: Won't Do
 
 **User Story**:
 As a user, I want URL routing that reflects my current spawn profile and selected spawn, so that I can bookmark, share, and navigate back to specific states.
 
-**Acceptance Criteria**:
+**Reason for Won't Do**: Bookmarkable URLs provide no real value for typical MediaSpawner workflow (configure spawns → export JSON → close app). Adds complexity without user benefit.
+
+**Acceptance Criteria** (Not Implemented):
 
 - [ ] URL shows which profile and spawn I'm currently viewing
 - [ ] Can bookmark specific spawn configurations and return to them
@@ -196,12 +198,14 @@ As a user, I want the layout to work well on different desktop screen sizes, so 
 **Story ID**: MS-20
 **Priority**: Low
 **Estimate**: 2 points
-**Status**: Not Started
+**Status**: Won't Do
 
 **User Story**:
 As a user, I want to see the workspace structure while features are being developed, so that I can understand the layout and provide feedback before full functionality is ready.
 
-**Acceptance Criteria**:
+**Reason for Won't Do**: Development scaffolding provides no user value. Better to implement actual functionality (Epic 3) immediately after layout foundation.
+
+**Acceptance Criteria** (Not Implemented):
 
 - [ ] Can see placeholders for spawn list area
 - [ ] Can see placeholder for configuration workspace area
@@ -236,9 +240,9 @@ As a user, I want to see the workspace structure while features are being develo
 Story 1 (Layout Component)
 ├── Story 2 (Header)
 ├── Story 3 (State Management)
-│   ├── Story 4 (Routing)
-│   └── Story 5 (Responsive Design)
-└── Story 6 (Placeholders) [depends on all above]
+├── Story 4 (Routing) [WON'T DO - No user value]
+├── Story 5 (Responsive Design)
+└── Story 6 (Placeholders) [WON'T DO - Development scaffolding only]
 ```
 
 ## Definition of Done
@@ -246,13 +250,14 @@ Story 1 (Layout Component)
 Each story is complete when:
 
 - [ ] Component implemented and peer reviewed
-- [ ] Responsive design tested on multiple screen sizes
+- [ ] Responsive design tested on desktop screen sizes (MS-19 only)
 - [ ] TypeScript compilation clean (no errors)
 - [ ] Integration with Epic 1 services works
 - [ ] State management functions correctly
-- [ ] URL routing works as expected
 - [ ] Visual consistency with design vision
 - [ ] Ready for panel content integration (Epics 3, 4, 5)
+
+**Note**: MS-18 (Routing) and MS-20 (Placeholders) marked as Won't Do - no user value.
 
 ## Vision Validation Checklist
 
@@ -260,11 +265,11 @@ Each story is complete when:
 - [ ] Header with spawn profile selector ✓ (Story 2)
 - [ ] Panel state management for spawn selection ✓ (Story 3)
 - [ ] Desktop-optimized design for practical use ✓ (Stories 1, 5)
-- [ ] Routing supports spawn-centric workflow ✓ (Story 4)
-- [ ] Foundation for unified configuration workspace ✓ (Stories 1, 3, 6)
-- [ ] Foundation for dynamic asset management ✓ (Stories 1, 3, 6)
-- [ ] Foundation for future panel interactions ✓ (Stories 3, 6)
-- [ ] Clean, uncluttered interface ✓ (All stories)
+- [ ] Simple routing for core functionality ✓ (Basic implementation without complex URLs)
+- [ ] Foundation for unified configuration workspace ✓ (Stories 1, 3)
+- [ ] Foundation for dynamic asset management ✓ (Stories 1, 3)
+- [ ] Foundation for future panel interactions ✓ (Story 3)
+- [ ] Clean, uncluttered interface ✓ (Implemented stories)
 
 ## Technical Standards
 
