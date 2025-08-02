@@ -4,6 +4,7 @@ import { createAssetGroup } from "../../types/media";
 import type { Configuration, AssetGroup, MediaAsset } from "../../types/media";
 import { AssetList, type AssetTypeFilter } from "../asset-library/AssetList";
 import { PropertyModal } from "./index";
+import { usePanelState } from "../../hooks";
 
 export interface AssetGroupBuilderProps {
   configuration: Configuration;
@@ -159,6 +160,7 @@ export function AssetGroupBuilder({
   onSave,
   onCancel,
 }: AssetGroupBuilderProps) {
+  const { setUnsavedChanges } = usePanelState();
   const [groups, setGroups] = useState<AssetGroup[]>(
     configuration.groups || []
   );
@@ -210,6 +212,13 @@ export function AssetGroupBuilder({
       document.removeEventListener("mousedown", handleDocumentClick);
     };
   }, [selectedAssetId]);
+
+  // Track unsaved changes by comparing current groups with original configuration
+  useEffect(() => {
+    const hasChanges =
+      JSON.stringify(groups) !== JSON.stringify(configuration.groups || []);
+    setUnsavedChanges(hasChanges);
+  }, [groups, configuration.groups, setUnsavedChanges]);
 
   const handleCreateGroup = () => {
     if (!newGroupName.trim()) return;
@@ -283,6 +292,7 @@ export function AssetGroupBuilder({
       ...configuration,
       groups,
     };
+    setUnsavedChanges(false);
     onSave(updatedConfig);
   };
 
@@ -333,7 +343,10 @@ export function AssetGroupBuilder({
             Save Groups
           </button>
           <button
-            onClick={onCancel}
+            onClick={() => {
+              setUnsavedChanges(false);
+              onCancel();
+            }}
             className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
           >
             Cancel

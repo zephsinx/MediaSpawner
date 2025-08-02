@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import type { Configuration } from "../../types/media";
 import { ConfigurationService } from "../../services/configurationService";
+import { usePanelState } from "../../hooks";
 
 export interface ConfigurationFormProps {
   configuration?: Configuration;
@@ -13,6 +14,7 @@ export function ConfigurationForm({
   onSave,
   onCancel,
 }: ConfigurationFormProps) {
+  const { setUnsavedChanges } = usePanelState();
   const [name, setName] = useState(configuration?.name || "");
   const [description, setDescription] = useState(
     configuration?.description || ""
@@ -43,6 +45,16 @@ export function ConfigurationForm({
     setNameError("");
   }, [name, configuration?.id]);
 
+  // Track unsaved changes
+  useEffect(() => {
+    const hasChanges = isEditMode
+      ? name !== (configuration?.name || "") ||
+        description !== (configuration?.description || "")
+      : name.trim() !== "" || description.trim() !== "";
+
+    setUnsavedChanges(hasChanges);
+  }, [name, description, configuration, isEditMode, setUnsavedChanges]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -63,6 +75,7 @@ export function ConfigurationForm({
 
         const success = ConfigurationService.updateConfiguration(updatedConfig);
         if (success) {
+          setUnsavedChanges(false);
           onSave(updatedConfig);
         } else {
           console.error("Failed to update configuration");
@@ -75,6 +88,7 @@ export function ConfigurationForm({
         );
 
         if (newConfig) {
+          setUnsavedChanges(false);
           onSave(newConfig);
         } else {
           console.error("Failed to create configuration");
@@ -148,7 +162,10 @@ export function ConfigurationForm({
           </button>
           <button
             type="button"
-            onClick={onCancel}
+            onClick={() => {
+              setUnsavedChanges(false);
+              onCancel();
+            }}
             disabled={isSubmitting}
             className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:bg-gray-300 transition-colors"
           >

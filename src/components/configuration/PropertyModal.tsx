@@ -3,6 +3,7 @@ import { Modal } from "../common/Modal";
 import { ImagePropertiesForm } from "./ImagePropertiesForm";
 import { VideoPropertiesForm } from "./VideoPropertiesForm";
 import { AudioPropertiesForm } from "./AudioPropertiesForm";
+import { usePanelState } from "../../hooks";
 import type { MediaAsset } from "../../types/media";
 
 export interface PropertyModalProps {
@@ -18,6 +19,7 @@ export function PropertyModal({
   onClose,
   onSave,
 }: PropertyModalProps) {
+  const { setUnsavedChanges } = usePanelState();
   const [workingAsset, setWorkingAsset] = useState<MediaAsset | null>(null);
 
   // Initialize working asset when modal opens with new asset
@@ -27,12 +29,26 @@ export function PropertyModal({
     }
   }, [isOpen, asset]);
 
+  // Track unsaved changes by comparing working asset with original asset
+  useEffect(() => {
+    if (asset && workingAsset && isOpen) {
+      const hasChanges =
+        JSON.stringify(workingAsset.properties) !==
+        JSON.stringify(asset.properties);
+      setUnsavedChanges(hasChanges);
+    } else if (!isOpen) {
+      // Clear unsaved changes when modal is closed
+      setUnsavedChanges(false);
+    }
+  }, [asset, workingAsset, isOpen, setUnsavedChanges]);
+
   const handleAssetChange = (updatedAsset: MediaAsset) => {
     setWorkingAsset(updatedAsset);
   };
 
   const handleSave = () => {
     if (workingAsset) {
+      setUnsavedChanges(false);
       onSave(workingAsset);
     }
     onClose();
@@ -40,6 +56,7 @@ export function PropertyModal({
 
   const handleCancel = () => {
     setWorkingAsset(null);
+    setUnsavedChanges(false);
     onClose();
   };
 

@@ -2,16 +2,17 @@ import React, { useState, useEffect, useRef } from "react";
 import { PathInput } from "./PathInput";
 import { SettingsService } from "../../services/settingsService";
 import { ImportExportService } from "../../services/ImportExportService";
+import { usePanelState } from "../../hooks";
 import type { Settings } from "../../types/settings";
 
 // Constants
 const SUCCESS_MESSAGE_TIMEOUT_MS = 3000;
 
 const SettingsPage: React.FC = () => {
+  const { hasUnsavedChanges, setUnsavedChanges } = usePanelState();
   const [settings, setSettings] = useState<Settings>({ workingDirectory: "" });
   const [workingDirectory, setWorkingDirectory] = useState("");
   const [isWorkingDirValid, setIsWorkingDirValid] = useState(true);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [saveStatus, setSaveStatus] = useState<
     "idle" | "saving" | "saved" | "error"
   >("idle");
@@ -35,9 +36,9 @@ const SettingsPage: React.FC = () => {
 
   // Check for unsaved changes
   useEffect(() => {
-    setHasUnsavedChanges(workingDirectory !== settings.workingDirectory);
+    setUnsavedChanges(workingDirectory !== settings.workingDirectory);
     setSaveStatus("idle");
-  }, [workingDirectory, settings.workingDirectory]);
+  }, [workingDirectory, settings.workingDirectory, setUnsavedChanges]);
 
   const handleWorkingDirectoryChange = (value: string, isValid: boolean) => {
     setWorkingDirectory(value);
@@ -59,6 +60,7 @@ const SettingsPage: React.FC = () => {
     if (result.success) {
       setSettings(result.settings!);
       setSaveStatus("saved");
+      setUnsavedChanges(false);
       setErrorMessage("");
 
       // Clear "saved" status after 3 seconds
@@ -74,6 +76,7 @@ const SettingsPage: React.FC = () => {
   const handleReset = () => {
     const currentSettings = SettingsService.getSettings();
     setWorkingDirectory(currentSettings.workingDirectory);
+    setUnsavedChanges(false);
     setErrorMessage("");
     setSaveStatus("idle");
   };
@@ -87,6 +90,7 @@ const SettingsPage: React.FC = () => {
       const defaultSettings = SettingsService.resetSettings();
       setSettings(defaultSettings);
       setWorkingDirectory(defaultSettings.workingDirectory);
+      setUnsavedChanges(false);
       setErrorMessage("");
       setSaveStatus("idle");
     }

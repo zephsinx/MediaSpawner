@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import type { Configuration, AssetGroup, MediaAsset } from "../../types/media";
 import { createAssetGroup } from "../../types/media";
 import { AssetService } from "../../services/assetService";
+import { usePanelState } from "../../hooks";
 import { ProgressHeader } from "./ProgressHeader";
 import { ConfigSection } from "./ConfigSection";
 import { AssetList } from "../asset-library";
@@ -55,6 +56,8 @@ export function UnifiedConfigurationBuilder({
   onCancel,
   mode = "create",
 }: UnifiedConfigurationBuilderProps) {
+  const { setUnsavedChanges } = usePanelState();
+
   // Constants for timing and validation
   const TIMING_CONSTANTS = {
     DEFAULT_GROUP_DURATION: 5000,
@@ -289,6 +292,31 @@ export function UnifiedConfigurationBuilder({
     }
   }, [state.groups, state.completedSteps.assetsAdded]);
 
+  // Track unsaved changes
+  useEffect(() => {
+    const isEditMode = mode === "edit";
+
+    if (isEditMode && configuration) {
+      // In edit mode, check if current state differs from original configuration
+      const hasChanges =
+        state.configuration.name !== configuration.name ||
+        state.configuration.description !== configuration.description ||
+        state.groups.length !== configuration.groups.length ||
+        JSON.stringify(state.groups) !== JSON.stringify(configuration.groups);
+
+      setUnsavedChanges(hasChanges);
+    } else {
+      // In create mode, check if any meaningful data has been entered
+      const hasContent =
+        state.configuration.name.trim() !== "" ||
+        state.configuration.description.trim() !== "" ||
+        state.groups.length > 0 ||
+        groupForm.name.trim() !== "";
+
+      setUnsavedChanges(hasContent);
+    }
+  }, [state, groupForm, configuration, mode, setUnsavedChanges]);
+
   const handleSave = () => {
     const configToSave: Configuration = {
       id: configuration?.id || crypto.randomUUID(),
@@ -298,6 +326,7 @@ export function UnifiedConfigurationBuilder({
       lastModified: Date.now(),
     };
 
+    setUnsavedChanges(false);
     onSave(configToSave);
   };
 
@@ -465,7 +494,10 @@ export function UnifiedConfigurationBuilder({
 
         <div className="flex justify-end space-x-3 pt-6 border-t">
           <button
-            onClick={onCancel}
+            onClick={() => {
+              setUnsavedChanges(false);
+              onCancel();
+            }}
             className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
           >
             Cancel

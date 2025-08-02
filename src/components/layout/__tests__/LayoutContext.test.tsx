@@ -472,4 +472,101 @@ describe("LayoutContext", () => {
       );
     });
   });
+
+  describe("Cross-Panel Unsaved Changes Integration", () => {
+    it("tracks unsaved changes across different form types", () => {
+      render(
+        <LayoutProvider>
+          <TestComponent />
+        </LayoutProvider>
+      );
+
+      // Initially no unsaved changes
+      expect(screen.getByTestId("unsaved-changes")).toHaveTextContent("false");
+
+      // Simulate configuration form changes
+      fireEvent.click(screen.getByTestId("set-unsaved-true"));
+      expect(screen.getByTestId("unsaved-changes")).toHaveTextContent("true");
+
+      // Simulate profile switching should clear unsaved changes
+      fireEvent.click(screen.getByTestId("set-profile-2"));
+      expect(screen.getByTestId("unsaved-changes")).toHaveTextContent("false");
+    });
+
+    it("maintains unsaved changes state when switching center panel modes", () => {
+      render(
+        <LayoutProvider>
+          <TestComponent />
+        </LayoutProvider>
+      );
+
+      // Set unsaved changes
+      fireEvent.click(screen.getByTestId("set-unsaved-true"));
+      expect(screen.getByTestId("unsaved-changes")).toHaveTextContent("true");
+
+      // Switch center panel mode
+      fireEvent.click(screen.getByTestId("set-asset-mode"));
+      expect(screen.getByTestId("center-mode")).toHaveTextContent(
+        "asset-settings"
+      );
+
+      // Unsaved changes should persist
+      expect(screen.getByTestId("unsaved-changes")).toHaveTextContent("true");
+
+      // Switch back to spawn settings mode
+      fireEvent.click(screen.getByTestId("set-spawn-mode"));
+      expect(screen.getByTestId("center-mode")).toHaveTextContent(
+        "spawn-settings"
+      );
+
+      // Unsaved changes should still persist
+      expect(screen.getByTestId("unsaved-changes")).toHaveTextContent("true");
+    });
+
+    it("tracks complex state interactions with asset selection and configuration changes", () => {
+      render(
+        <LayoutProvider>
+          <TestComponent />
+        </LayoutProvider>
+      );
+
+      // Initially no unsaved changes
+      expect(screen.getByTestId("unsaved-changes")).toHaveTextContent("false");
+
+      // Simulate asset property changes (like from PropertyModal)
+      fireEvent.click(screen.getByTestId("set-unsaved-true"));
+      expect(screen.getByTestId("unsaved-changes")).toHaveTextContent("true");
+
+      // Simulate spawner selection change - should preserve unsaved changes
+      fireEvent.click(screen.getByTestId("select-spawn-1"));
+      expect(screen.getByTestId("selected-spawn")).toHaveTextContent("spawn-1");
+
+      // In this implementation, spawn selection resets center panel mode but preserves unsaved changes
+      expect(screen.getByTestId("center-mode")).toHaveTextContent(
+        "spawn-settings"
+      );
+      expect(screen.getByTestId("unsaved-changes")).toHaveTextContent("true");
+    });
+
+    it("clears unsaved changes appropriately across different contexts", () => {
+      render(
+        <LayoutProvider>
+          <TestComponent />
+        </LayoutProvider>
+      );
+
+      // Set unsaved changes
+      fireEvent.click(screen.getByTestId("set-unsaved-true"));
+      expect(screen.getByTestId("unsaved-changes")).toHaveTextContent("true");
+
+      // Clear context should preserve unsaved changes when not switching profiles
+      fireEvent.click(screen.getByTestId("clear-context"));
+
+      // Context is cleared but unsaved changes should be handled by forms, not by context clearing
+      expect(screen.getByTestId("selected-spawn")).toHaveTextContent("none");
+      expect(screen.getByTestId("center-mode")).toHaveTextContent(
+        "spawn-settings"
+      );
+    });
+  });
 });
