@@ -3,3 +3,4 @@
  */
 
 export { useLayoutContext, usePanelState } from "./useLayout";
+export { useAppInitialization } from "./useAppInitialization";
