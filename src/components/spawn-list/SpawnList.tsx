@@ -26,6 +26,9 @@ const SpawnList: React.FC<SpawnListProps> = ({
   const [spawns, setSpawns] = useState<Spawn[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [processingToggles, setProcessingToggles] = useState<Set<string>>(
+    new Set()
+  );
 
   useEffect(() => {
     const loadSpawns = () => {
@@ -47,6 +50,52 @@ const SpawnList: React.FC<SpawnListProps> = ({
 
   const handleSpawnClick = (spawn: Spawn) => {
     onSpawnClick?.(spawn);
+  };
+
+  const handleToggle = async (spawn: Spawn, enabled: boolean) => {
+    // Add to processing set
+    setProcessingToggles((prev) => new Set(prev).add(spawn.id));
+
+    // Optimistic update
+    const originalSpawns = [...spawns];
+    setSpawns((prev) =>
+      prev.map((s) => (s.id === spawn.id ? { ...s, enabled } : s))
+    );
+
+    try {
+      const result = enabled
+        ? SpawnService.enableSpawn(spawn.id)
+        : SpawnService.disableSpawn(spawn.id);
+
+      if (!result.success) {
+        // Revert optimistic update on error
+        setSpawns(originalSpawns);
+        setError(
+          result.error || `Failed to ${enabled ? "enable" : "disable"} spawn`
+        );
+      } else {
+        // Update with the actual result from service
+        setSpawns((prev) =>
+          prev.map((s) => (s.id === spawn.id ? result.spawn! : s))
+        );
+        setError(null);
+      }
+    } catch (err) {
+      // Revert optimistic update on exception
+      setSpawns(originalSpawns);
+      setError(
+        err instanceof Error
+          ? err.message
+          : `Failed to ${enabled ? "enable" : "disable"} spawn`
+      );
+    } finally {
+      // Remove from processing set
+      setProcessingToggles((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(spawn.id);
+        return newSet;
+      });
+    }
   };
 
   if (isLoading) {
@@ -103,6 +152,13 @@ const SpawnList: React.FC<SpawnListProps> = ({
         </div>
       </div>
 
+      {/* Error message for toggle operations */}
+      {error && (
+        <div className="p-3 bg-red-50 border-b border-red-200">
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
+
       {/* Spawn List */}
       <div className="flex-1 overflow-y-auto">
         {spawns.map((spawn) => (
@@ -111,6 +167,8 @@ const SpawnList: React.FC<SpawnListProps> = ({
             spawn={spawn}
             isSelected={spawn.id === selectedSpawnId}
             onClick={handleSpawnClick}
+            onToggle={handleToggle}
+            isToggleProcessing={processingToggles.has(spawn.id)}
           />
         ))}
       </div>
