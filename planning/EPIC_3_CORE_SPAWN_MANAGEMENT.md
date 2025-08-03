@@ -5,7 +5,7 @@
 **Epic ID**: MS-3
 **Epic**: Core Spawn Management
 **Priority**: 3 (Critical Path - HIGH VALUE)
-**Status**: Not Started
+**Status**: In Progress
 
 **User Value**: ✨ **Users can create, read, update, and delete spawns with basic metadata and enable/disable functionality - the core workflow that makes the application immediately useful!**
 
@@ -18,7 +18,7 @@ Implement essential spawn management functionality including spawn list, creatio
 **Story ID**: MS-21
 **Priority**: High
 **Estimate**: 5 points
-**Status**: Not Started
+**Status**: Completed
 
 **User Story**:
 As a user, I want to see a list of all my spawns, so that I can quickly navigate and select spawns to work with.
