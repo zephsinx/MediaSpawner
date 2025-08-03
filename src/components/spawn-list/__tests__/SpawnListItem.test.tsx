@@ -87,25 +87,164 @@ describe("SpawnListItem", () => {
     });
   });
 
-  describe("Status Indicators", () => {
-    it("renders enabled status indicator correctly", () => {
+  describe("Toggle Button", () => {
+    it("renders toggle button for enabled spawn", () => {
       render(<SpawnListItem spawn={mockSpawn} />);
 
-      const statusDot = screen.getByTitle("Enabled");
-      expect(statusDot).toBeInTheDocument();
-      expect(statusDot).toHaveClass("bg-green-500");
+      const toggleButton = screen.getByRole("button", {
+        name: "Disable Test Spawn",
+      });
+      expect(toggleButton).toBeInTheDocument();
+      expect(toggleButton).toHaveClass("bg-blue-600");
     });
 
-    it("renders disabled status indicator correctly", () => {
+    it("renders toggle button for disabled spawn", () => {
       const disabledSpawn = createMockSpawn({
         enabled: false,
       });
 
       render(<SpawnListItem spawn={disabledSpawn} />);
 
-      const statusDot = screen.getByTitle("Disabled");
-      expect(statusDot).toBeInTheDocument();
-      expect(statusDot).toHaveClass("bg-gray-400");
+      const toggleButton = screen.getByRole("button", {
+        name: "Enable Test Spawn",
+      });
+      expect(toggleButton).toBeInTheDocument();
+      expect(toggleButton).toHaveClass("bg-gray-200");
+    });
+
+    it("shows correct toggle position for enabled spawn", () => {
+      render(<SpawnListItem spawn={mockSpawn} />);
+
+      const toggleThumb = screen
+        .getByRole("button", { name: "Disable Test Spawn" })
+        .querySelector("span");
+      expect(toggleThumb).toHaveClass("translate-x-6");
+    });
+
+    it("shows correct toggle position for disabled spawn", () => {
+      const disabledSpawn = createMockSpawn({
+        enabled: false,
+      });
+
+      render(<SpawnListItem spawn={disabledSpawn} />);
+
+      const toggleThumb = screen
+        .getByRole("button", { name: "Enable Test Spawn" })
+        .querySelector("span");
+      expect(toggleThumb).toHaveClass("translate-x-1");
+    });
+
+    it("calls onToggle when toggle button is clicked", () => {
+      const mockOnToggle = vi.fn();
+      render(<SpawnListItem spawn={mockSpawn} onToggle={mockOnToggle} />);
+
+      const toggleButton = screen.getByRole("button", {
+        name: "Disable Test Spawn",
+      });
+      fireEvent.click(toggleButton);
+
+      expect(mockOnToggle).toHaveBeenCalledWith(mockSpawn, false);
+    });
+
+    it("does not call onToggle when not provided", () => {
+      render(<SpawnListItem spawn={mockSpawn} />);
+
+      const toggleButton = screen.getByRole("button", {
+        name: "Disable Test Spawn",
+      });
+      expect(() => fireEvent.click(toggleButton)).not.toThrow();
+    });
+
+    it("handles keyboard interaction on toggle button", () => {
+      const mockOnToggle = vi.fn();
+      render(<SpawnListItem spawn={mockSpawn} onToggle={mockOnToggle} />);
+
+      const toggleButton = screen.getByRole("button", {
+        name: "Disable Test Spawn",
+      });
+      fireEvent.keyDown(toggleButton, { key: "Enter" });
+
+      expect(mockOnToggle).toHaveBeenCalledWith(mockSpawn, false);
+    });
+
+    it("handles space key on toggle button", () => {
+      const mockOnToggle = vi.fn();
+      render(<SpawnListItem spawn={mockSpawn} onToggle={mockOnToggle} />);
+
+      const toggleButton = screen.getByRole("button", {
+        name: "Disable Test Spawn",
+      });
+      fireEvent.keyDown(toggleButton, { key: " " });
+
+      expect(mockOnToggle).toHaveBeenCalledWith(mockSpawn, false);
+    });
+
+    it("prevents event propagation when toggle is clicked", () => {
+      const mockOnClick = vi.fn();
+      const mockOnToggle = vi.fn();
+      render(
+        <SpawnListItem
+          spawn={mockSpawn}
+          onClick={mockOnClick}
+          onToggle={mockOnToggle}
+        />
+      );
+
+      const toggleButton = screen.getByRole("button", {
+        name: "Disable Test Spawn",
+      });
+      fireEvent.click(toggleButton);
+
+      expect(mockOnToggle).toHaveBeenCalled();
+      expect(mockOnClick).not.toHaveBeenCalled();
+    });
+
+    it("shows loading state when processing", () => {
+      render(<SpawnListItem spawn={mockSpawn} isToggleProcessing={true} />);
+
+      const toggleButton = screen.getByRole("button", {
+        name: "Disable Test Spawn",
+      });
+      expect(toggleButton).toBeDisabled();
+      expect(toggleButton).toHaveClass("opacity-50", "cursor-not-allowed");
+    });
+
+    it("does not call onToggle when processing", () => {
+      const mockOnToggle = vi.fn();
+      render(
+        <SpawnListItem
+          spawn={mockSpawn}
+          onToggle={mockOnToggle}
+          isToggleProcessing={true}
+        />
+      );
+
+      const toggleButton = screen.getByRole("button", {
+        name: "Disable Test Spawn",
+      });
+      fireEvent.click(toggleButton);
+
+      expect(mockOnToggle).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Visual States", () => {
+    it("renders enabled spawn with normal opacity", () => {
+      const { container } = render(<SpawnListItem spawn={mockSpawn} />);
+
+      const listItem = container.firstChild as HTMLElement;
+      expect(listItem).not.toHaveClass("opacity-60");
+    });
+
+    it("renders disabled spawn with reduced opacity", () => {
+      const disabledSpawn = createMockSpawn({
+        enabled: false,
+      });
+
+      const { container } = render(<SpawnListItem spawn={disabledSpawn} />);
+
+      const listItem = container.firstChild as HTMLElement;
+      expect(listItem).toHaveClass("opacity-60");
     });
 
     it("renders status text correctly for enabled spawn", () => {
@@ -153,7 +292,7 @@ describe("SpawnListItem", () => {
   });
 
   describe("User Interactions", () => {
-    it("calls onClick with spawn when clicked", () => {
+    it("calls onClick with spawn when main area is clicked", () => {
       const mockOnClick = vi.fn();
       render(<SpawnListItem spawn={mockSpawn} onClick={mockOnClick} />);
 
@@ -170,7 +309,7 @@ describe("SpawnListItem", () => {
       expect(() => fireEvent.click(listItem!)).not.toThrow();
     });
 
-    it("handles Enter key press", () => {
+    it("handles Enter key press on main area", () => {
       const mockOnClick = vi.fn();
       render(<SpawnListItem spawn={mockSpawn} onClick={mockOnClick} />);
 
@@ -180,7 +319,7 @@ describe("SpawnListItem", () => {
       expect(mockOnClick).toHaveBeenCalledWith(mockSpawn);
     });
 
-    it("handles Space key press", () => {
+    it("handles Space key press on main area", () => {
       const mockOnClick = vi.fn();
       render(<SpawnListItem spawn={mockSpawn} onClick={mockOnClick} />);
 
@@ -222,18 +361,20 @@ describe("SpawnListItem", () => {
   });
 
   describe("Accessibility", () => {
-    it("has proper role attribute", () => {
+    it("has proper role attributes for both buttons", () => {
       render(<SpawnListItem spawn={mockSpawn} />);
 
-      const listItem = screen.getByRole("button");
-      expect(listItem).toBeInTheDocument();
+      const buttons = screen.getAllByRole("button");
+      expect(buttons).toHaveLength(2);
     });
 
-    it("has proper tabIndex", () => {
+    it("has proper tabIndex for main container", () => {
       render(<SpawnListItem spawn={mockSpawn} />);
 
-      const listItem = screen.getByRole("button");
-      expect(listItem).toHaveAttribute("tabIndex", "0");
+      const listItem = screen
+        .getByText("Test Spawn")
+        .closest('[role="button"]');
+      expect(listItem).toHaveAttribute("tabindex", "0");
     });
 
     it("has proper cursor styling", () => {
@@ -241,6 +382,24 @@ describe("SpawnListItem", () => {
 
       const listItem = container.firstChild as HTMLElement;
       expect(listItem).toHaveClass("cursor-pointer");
+    });
+
+    it("has proper aria-label for toggle button", () => {
+      render(<SpawnListItem spawn={mockSpawn} />);
+
+      const toggleButton = screen.getByRole("button", {
+        name: "Disable Test Spawn",
+      });
+      expect(toggleButton).toHaveAttribute("aria-label", "Disable Test Spawn");
+    });
+
+    it("has proper title for toggle button", () => {
+      render(<SpawnListItem spawn={mockSpawn} />);
+
+      const toggleButton = screen.getByRole("button", {
+        name: "Disable Test Spawn",
+      });
+      expect(toggleButton).toHaveAttribute("title", "Disable Test Spawn");
     });
   });
 
