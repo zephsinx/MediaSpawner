@@ -1,8 +1,59 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import Layout from "../Layout";
+import { SpawnService } from "../../../services/spawnService";
+import type { Spawn } from "../../../types/spawn";
+
+// Mock the SpawnService
+vi.mock("../../../services/spawnService", () => ({
+  SpawnService: {
+    getAllSpawns: vi.fn(),
+  },
+}));
+
+// Test spawn data
+const mockSpawns: Spawn[] = [
+  {
+    id: "spawn-1",
+    name: "Test Spawn 1",
+    description: "A test spawn for testing",
+    enabled: true,
+    trigger: {
+      enabled: true,
+      type: "manual",
+      config: { type: "manual" },
+      priority: 0,
+    },
+    duration: 5000,
+    assets: [],
+    lastModified: Date.now(),
+    order: 0,
+  },
+  {
+    id: "spawn-2",
+    name: "Test Spawn 2",
+    description: "Another test spawn",
+    enabled: false,
+    trigger: {
+      enabled: true,
+      type: "manual",
+      config: { type: "manual" },
+      priority: 0,
+    },
+    duration: 3000,
+    assets: [],
+    lastModified: Date.now(),
+    order: 1,
+  },
+];
 
 describe("Layout", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Set default mock return value for all tests
+    vi.mocked(SpawnService.getAllSpawns).mockReturnValue([]);
+  });
+
   describe("Three-Panel Integration", () => {
     it("renders the three-panel layout structure", () => {
       const { container } = render(<Layout />);
@@ -16,14 +67,46 @@ describe("Layout", () => {
       expect(panels).toHaveLength(3);
     });
 
-    it("renders all three placeholder components", () => {
+    it("renders spawn list with spawns when available", () => {
+      // Mock SpawnService to return test spawns
+      vi.mocked(SpawnService.getAllSpawns).mockReturnValue(mockSpawns);
+
       render(<Layout />);
 
-      // Check for spawn navigation placeholder
-      expect(screen.getByText("Spawn List")).toBeInTheDocument();
+      // Check for spawn list header
+      expect(screen.getByText("Spawns")).toBeInTheDocument();
+      expect(screen.getByText("2 spawns")).toBeInTheDocument();
+
+      // Check for spawn items
+      expect(screen.getByText("Test Spawn 1")).toBeInTheDocument();
+      expect(screen.getByText("Test Spawn 2")).toBeInTheDocument();
+      expect(screen.getByText("A test spawn for testing")).toBeInTheDocument();
+      expect(screen.getByText("Another test spawn")).toBeInTheDocument();
+
+      // Check for status indicators
+      expect(screen.getByText("Active")).toBeInTheDocument();
+      expect(screen.getByText("Inactive")).toBeInTheDocument();
+    });
+
+    it("renders empty spawn list when no spawns exist", () => {
+      // Mock SpawnService to return empty array
+      vi.mocked(SpawnService.getAllSpawns).mockReturnValue([]);
+
+      render(<Layout />);
+
+      // Check for empty state
+      expect(screen.getByText("No Spawns Found")).toBeInTheDocument();
       expect(
-        screen.getByText("spawn navigation and management")
+        screen.getByText(
+          "You haven't created any spawns yet. Create your first spawn to get started."
+        )
       ).toBeInTheDocument();
+    });
+
+    it("renders placeholder components for center and right panels", () => {
+      vi.mocked(SpawnService.getAllSpawns).mockReturnValue(mockSpawns);
+
+      render(<Layout />);
 
       // Check for configuration workspace placeholder
       expect(
@@ -40,18 +123,21 @@ describe("Layout", () => {
       ).toBeInTheDocument();
     });
 
-    it("renders placeholder icons correctly", () => {
+    it("renders placeholder icons for center and right panels", () => {
+      vi.mocked(SpawnService.getAllSpawns).mockReturnValue(mockSpawns);
+
       render(<Layout />);
 
-      expect(screen.getAllByText("📋")).toHaveLength(2); // Spawn List (header + content)
+      // Only center and right panels should have placeholder icons now
       expect(screen.getAllByText("⚙️")).toHaveLength(2); // Configuration (header + content)
       expect(screen.getAllByText("📁")).toHaveLength(2); // Asset Management (header + content)
     });
 
-    it("renders 'Coming Soon' messages for all panels", () => {
+    it("renders 'Coming Soon' messages for center and right panels", () => {
+      vi.mocked(SpawnService.getAllSpawns).mockReturnValue(mockSpawns);
+
       render(<Layout />);
 
-      expect(screen.getByText("Spawn List Coming Soon")).toBeInTheDocument();
       expect(
         screen.getByText("Unified Configuration Workspace Coming Soon")
       ).toBeInTheDocument();
