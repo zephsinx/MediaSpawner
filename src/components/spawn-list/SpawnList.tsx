@@ -25,7 +25,8 @@ const SpawnList: React.FC<SpawnListProps> = ({
 }) => {
   const [spawns, setSpawns] = useState<Spawn[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [toggleError, setToggleError] = useState<string | null>(null);
   const [processingToggles, setProcessingToggles] = useState<Set<string>>(
     new Set()
   );
@@ -33,13 +34,15 @@ const SpawnList: React.FC<SpawnListProps> = ({
   useEffect(() => {
     const loadSpawns = () => {
       setIsLoading(true);
-      setError(null);
+      setLoadError(null);
 
       try {
         const allSpawns = SpawnService.getAllSpawns();
         setSpawns(allSpawns);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load spawns");
+        setLoadError(
+          err instanceof Error ? err.message : "Failed to load spawns"
+        );
       } finally {
         setIsLoading(false);
       }
@@ -58,9 +61,13 @@ const SpawnList: React.FC<SpawnListProps> = ({
 
     // Optimistic update
     const originalSpawns = [...spawns];
-    setSpawns((prev) =>
-      prev.map((s) => (s.id === spawn.id ? { ...s, enabled } : s))
-    );
+
+    setSpawns((prev) => {
+      const updated = prev.map((s) =>
+        s.id === spawn.id ? { ...s, enabled } : s
+      );
+      return updated;
+    });
 
     try {
       const result = enabled
@@ -70,20 +77,23 @@ const SpawnList: React.FC<SpawnListProps> = ({
       if (!result.success) {
         // Revert optimistic update on error
         setSpawns(originalSpawns);
-        setError(
+        setToggleError(
           result.error || `Failed to ${enabled ? "enable" : "disable"} spawn`
         );
       } else {
         // Update with the actual result from service
-        setSpawns((prev) =>
-          prev.map((s) => (s.id === spawn.id ? result.spawn! : s))
-        );
-        setError(null);
+        setSpawns((prev) => {
+          const updated = prev.map((s) =>
+            s.id === spawn.id ? result.spawn! : s
+          );
+          return updated;
+        });
+        setToggleError(null);
       }
     } catch (err) {
       // Revert optimistic update on exception
       setSpawns(originalSpawns);
-      setError(
+      setToggleError(
         err instanceof Error
           ? err.message
           : `Failed to ${enabled ? "enable" : "disable"} spawn`
@@ -109,13 +119,13 @@ const SpawnList: React.FC<SpawnListProps> = ({
     );
   }
 
-  if (error) {
+  if (loadError) {
     return (
       <div className={`h-full flex items-center justify-center ${className}`}>
         <div className="text-center">
           <div className="text-red-500 text-2xl mb-2">⚠️</div>
           <p className="text-sm text-gray-600">Failed to load spawns</p>
-          <p className="text-xs text-gray-500 mt-1">{error}</p>
+          <p className="text-xs text-gray-500 mt-1">{loadError}</p>
         </div>
       </div>
     );
@@ -153,9 +163,9 @@ const SpawnList: React.FC<SpawnListProps> = ({
       </div>
 
       {/* Error message for toggle operations */}
-      {error && (
+      {toggleError && (
         <div className="p-3 bg-red-50 border-b border-red-200">
-          <p className="text-sm text-red-700">{error}</p>
+          <p className="text-sm text-red-700">{toggleError}</p>
         </div>
       )}
 
