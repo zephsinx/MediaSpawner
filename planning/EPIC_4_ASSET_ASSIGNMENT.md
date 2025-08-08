@@ -15,7 +15,7 @@ Enable users to assign assets to spawns, supporting both local file paths and UR
 
 ## Story 1: Set Up Asset Management Panel
 
-**Story ID**: MS-43
+**Story ID**: MS-32
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -46,7 +46,7 @@ As a user, I want the right panel to display asset management, so that I can see
 
 ## Story 2: Display Assets in Current Spawn
 
-**Story ID**: MS-44
+**Story ID**: MS-33
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -78,7 +78,7 @@ As a user, I want to see which assets are assigned to my current spawn, so that 
 
 ## Story 3: Display Asset Library
 
-**Story ID**: MS-46
+**Story ID**: MS-34
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -110,7 +110,7 @@ As a user, I want to see all available assets in the library section, so that I 
 
 ## Story 4: Add URL Assets to Library
 
-**Story ID**: MS-47
+**Story ID**: MS-35
 **Priority**: High
 **Estimate**: 4 points
 **Status**: Not Started
@@ -142,7 +142,7 @@ As a user, I want to add assets using URLs, so that I can include web-hosted med
 
 ## Story 5: Assign Assets to Spawns via Drag & Drop
 
-**Story ID**: MS-49
+**Story ID**: MS-36
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -174,7 +174,7 @@ As a user, I want to drag assets from the library to my spawn, so that I can qui
 
 ## Story 5a: Assign Assets to Spawns via Click-to-Add (Initial)
 
-**Story ID**: MS-49a
+**Story ID**: MS-37
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -204,7 +204,7 @@ As a user, I want to add assets to a spawn using a clear button, so that I can b
 
 ## Story 6: Remove Assets from Spawns
 
-**Story ID**: MS-50
+**Story ID**: MS-38
 **Priority**: Medium
 **Estimate**: 2 points
 **Status**: Not Started
@@ -234,7 +234,7 @@ As a user, I want to remove assets from my spawn, so that I can clean up my spaw
 
 ## Story 7: Reorder Assets Within Spawn
 
-**Story ID**: MS-45
+**Story ID**: MS-39
 **Priority**: Medium
 **Estimate**: 5 points
 **Status**: Not Started
@@ -264,7 +264,7 @@ As a user, I want to reorder assets within my spawn, so that I can control the s
 
 ## Story 8: Add Basic Asset Validation
 
-**Story ID**: MS-48
+**Story ID**: MS-40
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -296,7 +296,7 @@ As a user, I want clear validation when adding assets, so that I know immediatel
 
 ## Story 9: Add Upload Assets to Library
 
-**Story ID**: MS-54
+**Story ID**: MS-41
 **Priority**: Low
 **Estimate**: 4 points
 **Status**: Not Started

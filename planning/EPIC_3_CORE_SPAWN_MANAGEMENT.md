@@ -15,7 +15,7 @@ Implement essential spawn management functionality including spawn list, creatio
 
 ## Story 1: View and Navigate Spawns
 
-**Story ID**: MS-21
+**Story ID**: MS-22
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Completed
@@ -48,7 +48,7 @@ As a user, I want to see a list of all my spawns, so that I can quickly navigate
 
 ## Story 2: Enable and Disable Spawns
 
-**Story ID**: MS-22
+**Story ID**: MS-23
 **Priority**: High
 **Estimate**: 3 points
 **Status**: In Progress
@@ -79,7 +79,7 @@ As a user, I want to enable/disable spawns with toggle switches, so that I can q
 
 ## Story 3: Select Spawns for Editing
 
-**Story ID**: MS-23
+**Story ID**: MS-24
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -142,7 +142,7 @@ As a user, I want to create new spawns directly from the spawn list, so that I c
 
 ## Story 5: Basic Spawn Editor Workspace
 
-**Story ID**: MS-28
+**Story ID**: MS-26
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -173,7 +173,7 @@ As a user, I want a dedicated workspace for configuring spawn settings, so that 
 
 ## Story 6: Manual Save and Cancel Controls
 
-**Story ID**: MS-29
+**Story ID**: MS-27
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -207,7 +207,7 @@ As a user, I want explicit save and cancel controls for spawn editing, so that I
 
 ## Story 7: Save Operation Feedback
 
-**Story ID**: MS-30
+**Story ID**: MS-28
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -236,7 +236,7 @@ As a user, I want clear feedback and confirmation for save/cancel actions, so th
 
 ## Story 8: Detect Unsaved Changes
 
-**Story ID**: MS-31
+**Story ID**: MS-29
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -267,7 +267,7 @@ As a user, I want the system to detect when I have unsaved changes, so that I al
 
 ## Story 9: Basic Spawn Properties Form
 
-**Story ID**: MS-33
+**Story ID**: MS-30
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -300,7 +300,7 @@ As a user, I want a form to configure essential spawn properties, so that I can 
 
 ## Story 10: Delete Spawns
 
-**Story ID**: MS-34
+**Story ID**: MS-31
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started

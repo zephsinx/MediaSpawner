@@ -15,7 +15,7 @@ Add advanced UX features and optimizations that enhance the core workflow for us
 
 ## Story 1: Search Spawns and Assets
 
-**Story ID**: MS-76
+**Story ID**: MS-74
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -50,7 +50,7 @@ As a user with many spawns, I want to search spawns and assets by name, so that 
 
 ## Story 2: Filter by Type and Status
 
-**Story ID**: MS-77
+**Story ID**: MS-75
 **Priority**: Medium
 **Estimate**: 4 points
 **Status**: Not Started
@@ -85,7 +85,7 @@ As a user, I want to filter spawns and assets by type and status, so that I can 
 
 ## Story 3: Add Keyboard Shortcuts
 
-**Story ID**: MS-78
+**Story ID**: MS-76
 **Priority**: Medium
 **Estimate**: 4 points
 **Status**: Not Started
@@ -122,7 +122,7 @@ As a power user, I want keyboard shortcuts for common actions, so that I can wor
 
 ## Story 4: Optimize Performance for Large Datasets
 
-**Story ID**: MS-79
+**Story ID**: MS-77
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -156,7 +156,7 @@ As a user with large spawn and asset collections, I want the application to rema
 
 ## Story 5: Improve Accessibility Support
 
-**Story ID**: MS-80
+**Story ID**: MS-78
 **Priority**: Medium
 **Estimate**: 4 points
 **Status**: Not Started
@@ -192,7 +192,7 @@ As a user with accessibility needs, I want the application to work with screen r
 
 ## Story 6: Add Collapsible Asset Library
 
-**Story ID**: MS-81
+**Story ID**: MS-79
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -227,7 +227,7 @@ As a user, I want to collapse the asset library when I don't need it, so that I 
 
 ## Story 7: Add Resizable Panel Dividers
 
-**Story ID**: MS-82
+**Story ID**: MS-80
 **Priority**: Low
 **Estimate**: 4 points
 **Status**: Not Started
@@ -262,7 +262,7 @@ As a user, I want to adjust panel sizes to optimize my workspace, so that I can 
 
 ## Story 8: Add Spawn and Asset Analytics
 
-**Story ID**: MS-83
+**Story ID**: MS-81
 **Priority**: Low
 **Estimate**: 3 points
 **Status**: Not Started
@@ -297,7 +297,7 @@ As a user, I want to see usage analytics for my spawns and assets, so that I can
 
 ## Story 9: Add Bulk Operations Foundation
 
-**Story ID**: MS-84
+**Story ID**: MS-82
 **Priority**: Low
 **Estimate**: 4 points
 **Status**: Not Started

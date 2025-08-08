@@ -15,7 +15,7 @@ Add profile management for organizing spawns into different projects or contexts
 
 ## Story 1: Switch Between Spawn Profiles
 
-**Story ID**: MS-59
+**Story ID**: MS-65
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -48,7 +48,7 @@ As a user, I want to switch between different spawn profiles using the header dr
 
 ## Story 2: See Clear Active Profile Indication
 
-**Story ID**: MS-60
+**Story ID**: MS-66
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -81,7 +81,7 @@ As a user, I want to always know which spawn profile is currently active, so tha
 
 ## Story 3: Create and Manage Profiles
 
-**Story ID**: MS-61
+**Story ID**: MS-67
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -116,7 +116,7 @@ As a user, I want to create, edit, and delete spawn profiles, so that I can orga
 
 ## Story 4: Start with Default Profile
 
-**Story ID**: MS-62
+**Story ID**: MS-68
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Completed ✅
@@ -149,7 +149,7 @@ As a new user, I want to have an initial "Default" profile ready to use, so that
 
 ## Story 5: Configure Profile Working Directory
 
-**Story ID**: MS-63
+**Story ID**: MS-69
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -181,7 +181,7 @@ As a user, I want to set a required Working Folder for each profile, so that app
 
 ## Story 6: Validate Profile Information
 
-**Story ID**: MS-64
+**Story ID**: MS-70
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -215,7 +215,7 @@ As a user, I want clear validation when creating or editing profiles, so that I 
 
 ## Story 7: Remember Active Profile Between Sessions
 
-**Story ID**: MS-65
+**Story ID**: MS-71
 **Priority**: Medium
 **Estimate**: 2 points
 **Status**: Not Started
@@ -247,7 +247,7 @@ As a user, I want my active profile remembered when I restart the application, s
 
 ## Story 8: Handle Profile Edge Cases
 
-**Story ID**: MS-66
+**Story ID**: MS-72
 **Priority**: Low
 **Estimate**: 5 points
 **Status**: Not Started
@@ -281,7 +281,7 @@ As a user, I want the application to handle unusual profile situations gracefull
 
 ## Story 9: Integrate Profiles with Export/Import
 
-**Story ID**: MS-67
+**Story ID**: MS-73
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started

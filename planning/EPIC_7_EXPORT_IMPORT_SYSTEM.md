@@ -15,7 +15,7 @@ Enable comprehensive configuration export and import through standardized, versi
 
 ## Story 1: Export Spawn Configurations as JSON
 
-**Story ID**: MS-68
+**Story ID**: MS-57
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -48,7 +48,7 @@ As a user, I want to export my spawn configurations as JSON files, so that I can
 
 ## Story 2: Define Standardized JSON Format
 
-**Story ID**: MS-69
+**Story ID**: MS-58
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -81,7 +81,7 @@ As a user and external system integrator, I want a clear, standardized JSON form
 
 ## Story 3: Import JSON Configurations
 
-**Story ID**: MS-70
+**Story ID**: MS-59
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -115,7 +115,7 @@ As a user, I want to import spawn configurations from JSON files, so that I can 
 
 ## Story 4: Validate Import Data
 
-**Story ID**: MS-71
+**Story ID**: MS-60
 **Priority**: High
 **Estimate**: 4 points
 **Status**: Not Started
@@ -148,7 +148,7 @@ As a user, I want comprehensive validation when importing configurations, so tha
 
 ## Story 5: Handle Import Conflicts and Errors
 
-**Story ID**: MS-72
+**Story ID**: MS-61
 **Priority**: Medium
 **Estimate**: 4 points
 **Status**: Not Started
@@ -181,7 +181,7 @@ As a user, I want clear options for handling import conflicts and errors, so tha
 
 ## Story 6: Export/Import Profile Settings
 
-**Story ID**: MS-73
+**Story ID**: MS-62
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -214,7 +214,7 @@ As a user, I want to export and import profile-level settings, so that I can bac
 
 ## Story 7: Export for External Tool Integration
 
-**Story ID**: MS-74
+**Story ID**: MS-63
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -247,7 +247,7 @@ As a user, I want to export configurations in formats optimized for external too
 
 ## Story 8: Backup and Restore Workflows
 
-**Story ID**: MS-75
+**Story ID**: MS-64
 **Priority**: Low
 **Estimate**: 3 points
 **Status**: Not Started

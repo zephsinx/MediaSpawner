@@ -15,7 +15,7 @@ Implement comprehensive asset configuration with spawn defaults and per-asset ov
 
 ## Story 1: Configure Audio and Video Settings
 
-**Story ID**: MS-51
+**Story ID**: MS-42
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -47,7 +47,7 @@ As a user, I want to configure volume and playback settings for audio and video 
 
 ## Story 2: Configure Visual Asset Settings
 
-**Story ID**: MS-52
+**Story ID**: MS-43
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -80,7 +80,7 @@ As a user, I want to configure dimensions, scale, and positioning for visual ass
 
 ## Story 3: Set Spawn Default Asset Settings
 
-**Story ID**: MS-35
+**Story ID**: MS-44
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -113,7 +113,7 @@ As a user, I want to configure default settings that my assets will inherit, so 
 
 ## Story 4: Configure Individual Asset Settings
 
-**Story ID**: MS-36
+**Story ID**: MS-45
 **Priority**: High
 **Estimate**: 4 points
 **Status**: Not Started
@@ -145,7 +145,7 @@ As a user, I want to configure settings for individual assets in my spawn, so th
 
 ## Story 5: Reset Asset Settings to Spawn Defaults
 
-**Story ID**: MS-37
+**Story ID**: MS-46
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -179,7 +179,7 @@ As a user, I want to easily reset asset settings back to spawn defaults, so that
 
 ## Story 6: Switch Between Spawn and Asset Configuration
 
-**Story ID**: MS-38
+**Story ID**: MS-47
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -214,7 +214,7 @@ As a user, I want to smoothly switch between configuring spawn settings and indi
 
 ## Story 7: Validate Asset Configuration Settings
 
-**Story ID**: MS-39
+**Story ID**: MS-48
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -247,7 +247,7 @@ As a user, I want clear validation for asset configuration settings, so that I u
 
 ## Story 8: Preview Asset Configuration Changes
 
-**Story ID**: MS-40
+**Story ID**: MS-49
 **Priority**: Medium
 **Estimate**: 4 points
 **Status**: Not Started

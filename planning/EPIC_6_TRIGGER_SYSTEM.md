@@ -15,7 +15,7 @@ Implement comprehensive trigger selection and configuration data structures. Med
 
 ## Story 1: Research and Define Trigger Types
 
-**Story ID**: MS-60
+**Story ID**: MS-50
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -46,7 +46,7 @@ As a user, I want a comprehensive but manageable set of trigger types, so that I
 
 ## Story 2: Select Basic Trigger Types
 
-**Story ID**: MS-61
+**Story ID**: MS-51
 **Priority**: High
 **Estimate**: 4 points
 **Status**: Not Started
@@ -79,7 +79,7 @@ As a user, I want to select from basic trigger types for my spawns, so that I ca
 
 ## Story 3: Configure Chat Command Triggers
 
-**Story ID**: MS-62
+**Story ID**: MS-52
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -112,7 +112,7 @@ As a user, I want to configure chat command triggers, so that my spawns can be a
 
 ## Story 4: Configure Channel Point Reward Triggers
 
-**Story ID**: MS-63
+**Story ID**: MS-53
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -145,7 +145,7 @@ As a user, I want to configure channel point reward triggers, so that my spawns 
 
 ## Story 5: Configure Event-Based Triggers
 
-**Story ID**: MS-64
+**Story ID**: MS-54
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -177,7 +177,7 @@ As a user, I want to configure event-based triggers, so that my spawns can be ac
 
 ## Story 6: Validate Trigger Configurations
 
-**Story ID**: MS-65
+**Story ID**: MS-55
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -216,7 +216,7 @@ Marked Won't Do for this scope. MediaSpawner is configuration-only and does not 
 
 ## Story 8: Display Trigger Status and Information
 
-**Story ID**: MS-67
+**Story ID**: MS-56
 **Priority**: Low
 **Estimate**: 3 points
 **Status**: Not Started
