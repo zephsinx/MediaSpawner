@@ -9,13 +9,13 @@
 
 **User Value**: ✨ **Configuration portability with JSON export/import for integration with external systems (OBS, etc.) and backup/sharing workflows.**
 
-Enable comprehensive configuration export and import through standardized JSON format, providing integration capabilities and configuration portability.
+Enable comprehensive configuration export and import through standardized, versioned JSON format, providing integration capabilities and configuration portability.
 
 ---
 
 ## Story 1: Export Spawn Configurations as JSON
 
-**Story ID**: MS-68 (NEW)
+**Story ID**: MS-68
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -48,7 +48,7 @@ As a user, I want to export my spawn configurations as JSON files, so that I can
 
 ## Story 2: Define Standardized JSON Format
 
-**Story ID**: MS-69 (NEW)
+**Story ID**: MS-69
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -62,7 +62,7 @@ As a user and external system integrator, I want a clear, standardized JSON form
 - [ ] Format supports all asset types (local files, URLs) with type-specific settings
 - [ ] Format includes all trigger types with their specific configurations
 - [ ] Format includes asset inheritance model (spawn defaults and overrides)
-- [ ] Format is versioned for future compatibility
+- [ ] Format is versioned for future compatibility (e.g., schema version 1.0.0)
 - [ ] Format documentation is clear and comprehensive
 
 **Technical Task MS-69-T1**: Design JSON Schema and Documentation
@@ -71,7 +71,7 @@ As a user and external system integrator, I want a clear, standardized JSON form
 - Include spawn metadata (name, description, enabled state, triggers)
 - Include asset configuration (paths/URLs, type-specific settings, inheritance)
 - Include trigger configuration (type, settings, validation rules)
-- Add format versioning for backward/forward compatibility
+- Add format versioning (semantic) for forward evolution
 - Create schema documentation with examples
 - Design schema to be integration-friendly for external tools
 
@@ -81,7 +81,7 @@ As a user and external system integrator, I want a clear, standardized JSON form
 
 ## Story 3: Import JSON Configurations
 
-**Story ID**: MS-70 (NEW)
+**Story ID**: MS-70
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -115,7 +115,7 @@ As a user, I want to import spawn configurations from JSON files, so that I can 
 
 ## Story 4: Validate Import Data
 
-**Story ID**: MS-71 (NEW)
+**Story ID**: MS-71
 **Priority**: High
 **Estimate**: 4 points
 **Status**: Not Started
@@ -148,7 +148,7 @@ As a user, I want comprehensive validation when importing configurations, so tha
 
 ## Story 5: Handle Import Conflicts and Errors
 
-**Story ID**: MS-72 (NEW)
+**Story ID**: MS-72
 **Priority**: Medium
 **Estimate**: 4 points
 **Status**: Not Started
@@ -181,7 +181,7 @@ As a user, I want clear options for handling import conflicts and errors, so tha
 
 ## Story 6: Export/Import Profile Settings
 
-**Story ID**: MS-73 (NEW)
+**Story ID**: MS-73
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -214,7 +214,7 @@ As a user, I want to export and import profile-level settings, so that I can bac
 
 ## Story 7: Export for External Tool Integration
 
-**Story ID**: MS-74 (NEW)
+**Story ID**: MS-74
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -247,7 +247,7 @@ As a user, I want to export configurations in formats optimized for external too
 
 ## Story 8: Backup and Restore Workflows
 
-**Story ID**: MS-75 (NEW)
+**Story ID**: MS-75
 **Priority**: Low
 **Estimate**: 3 points
 **Status**: Not Started

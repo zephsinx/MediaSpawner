@@ -322,3 +322,5 @@ Epic 1 (Foundation) ✅
 - **Spawn-Centric Workflow** - Spawns are the primary focus, profiles are organization
 - **Practical over Pretty** - Functionality and usability over visual flourishes
 - **Desktop-Optimized** - Designed for content creators managing streaming setups
+- **Configuration-Only** - App focuses on authoring JSON config; no runtime simulation/testing
+- **Minimal Routing** - No deep linking or URL-based state requirements

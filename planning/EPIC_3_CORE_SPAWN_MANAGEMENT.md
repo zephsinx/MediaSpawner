@@ -300,7 +300,7 @@ As a user, I want a form to configure essential spawn properties, so that I can 
 
 ## Story 10: Delete Spawns
 
-**Story ID**: MS-34 (NEW)
+**Story ID**: MS-34
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started

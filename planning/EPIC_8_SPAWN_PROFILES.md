@@ -29,7 +29,6 @@ As a user, I want to switch between different spawn profiles using the header dr
 - [ ] Can select different profiles from dropdown list
 - [ ] Profile switching updates the workspace to show new profile's spawns
 - [ ] Workspace resets to "no spawn selected" state after switching
-- [ ] URL updates to reflect the new active profile
 - [ ] Profile switch completes smoothly without errors
 - [ ] Can see confirmation that profile switch was successful
 
@@ -38,7 +37,7 @@ As a user, I want to switch between different spawn profiles using the header dr
 - Connect Epic 2's profile selector dropdown to SpawnProfileService from Epic 1
 - Implement profile switching using setActiveProfile() method
 - Integrate with panel state management to reset workspace context
-- Update URL routing to reflect new active profile
+- Minimal routing only; no deep linking updates required
 - Clear spawn selection state when switching profiles
 - Add success feedback for profile switching
 - Handle profile switching errors gracefully
@@ -156,27 +155,25 @@ As a new user, I want to have an initial "Default" profile ready to use, so that
 **Status**: Not Started
 
 **User Story**:
-As a user, I want to set a working directory for each profile, so that applications consuming my spawn configurations can find assets relative to the correct base path for each project.
+As a user, I want to set a required Working Folder for each profile, so that applications consuming my spawn configurations can find assets relative to the correct base path for each project.
 
 **Acceptance Criteria**:
 
-- [ ] Can set optional working directory path for each profile
-- [ ] Profile working directory overrides global Settings working directory
-- [ ] Can see when profile uses custom working directory vs Settings default
-- [ ] Can clear profile working directory to fall back to Settings default
-- [ ] Working directory setting is included in profile management interface
-- [ ] Setting validates directory paths appropriately
+- [ ] Can set a required Working Folder path for each profile (text input)
+- [ ] Profile Working Folder overrides global Settings working directory
+- [ ] Can see when profile uses Working Folder vs Settings default
+- [ ] Working Folder is included in profile management interface
+- [ ] Setting validates directory path format (no existence checks)
 
-**Technical Task MS-63-T1**: Add Working Directory Profile Setting
+**Technical Task MS-63-T1**: Add Working Folder Profile Setting
 
 - Add workingDirectory field to SpawnProfile interface in Epic 1
-- Include working directory in profile creation and editing forms
-- Add validation for directory path format
+- Include Working Folder input in profile creation and editing forms (required)
+- Add validation for directory path format (no existence checks)
 - Implement inheritance logic: Profile setting overrides Settings default
-- Add clear indication when using custom vs default working directory
+- Add clear indication when using profile Working Folder vs Settings default
 - Integrate with SettingsService for default value fallback
-- Include working directory in profile management modal
-- Handle empty/null values to indicate Settings inheritance
+- Include Working Folder in profile management modal
 
 **Dependencies**: Epic 1 (SpawnProfile types), Story 3
 
@@ -284,7 +281,7 @@ As a user, I want the application to handle unusual profile situations gracefull
 
 ## Story 9: Integrate Profiles with Export/Import
 
-**Story ID**: MS-67 (NEW)
+**Story ID**: MS-67
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started

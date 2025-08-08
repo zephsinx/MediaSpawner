@@ -9,13 +9,13 @@
 
 **User Value**: ✨ **Spawns become actionable with configurable triggers (commands, channel points, time-based, etc.) - making spawns responsive to real-world events!**
 
-Implement comprehensive trigger selection and configuration that enables spawns to respond to various external events and conditions.
+Implement comprehensive trigger selection and configuration data structures. MediaSpawner is configuration-only; no runtime integrations, simulations, or testing are included.
 
 ---
 
 ## Story 1: Research and Define Trigger Types
 
-**Story ID**: MS-60 (NEW)
+**Story ID**: MS-60
 **Priority**: High
 **Estimate**: 3 points
 **Status**: Not Started
@@ -46,7 +46,7 @@ As a user, I want a comprehensive but manageable set of trigger types, so that I
 
 ## Story 2: Select Basic Trigger Types
 
-**Story ID**: MS-61 (NEW)
+**Story ID**: MS-61
 **Priority**: High
 **Estimate**: 4 points
 **Status**: Not Started
@@ -79,7 +79,7 @@ As a user, I want to select from basic trigger types for my spawns, so that I ca
 
 ## Story 3: Configure Chat Command Triggers
 
-**Story ID**: MS-62 (NEW)
+**Story ID**: MS-62
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -112,7 +112,7 @@ As a user, I want to configure chat command triggers, so that my spawns can be a
 
 ## Story 4: Configure Channel Point Reward Triggers
 
-**Story ID**: MS-63 (NEW)
+**Story ID**: MS-63
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -145,13 +145,13 @@ As a user, I want to configure channel point reward triggers, so that my spawns 
 
 ## Story 5: Configure Event-Based Triggers
 
-**Story ID**: MS-64 (NEW)
+**Story ID**: MS-64
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
 
 **User Story**:
-As a user, I want to configure time and date-based triggers, so that my spawns can be activated automatically at specific times or intervals.
+As a user, I want to configure event-based triggers, so that my spawns can be activated by specific platform events.
 
 **Acceptance Criteria**:
 
@@ -177,7 +177,7 @@ As a user, I want to configure time and date-based triggers, so that my spawns c
 
 ## Story 6: Validate Trigger Configurations
 
-**Story ID**: MS-65 (NEW)
+**Story ID**: MS-65
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -208,42 +208,15 @@ As a user, I want clear validation for my trigger configurations, so that I know
 
 ---
 
-## Story 7: Test Trigger Configurations
+## Story 7: (Removed) Test Trigger Configurations
 
-**Story ID**: MS-66 (NEW)
-**Priority**: Medium
-**Estimate**: 4 points
-**Status**: Not Started
-
-**User Story**:
-As a user, I want to test my trigger configurations, so that I can verify they work correctly before relying on them in live streaming.
-
-**Acceptance Criteria**:
-
-- [ ] Can trigger spawns manually to test configuration
-- [ ] Can simulate trigger events to test responses
-- [ ] Can see trigger activation history and logs
-- [ ] Can test trigger validation without affecting live settings
-- [ ] Get clear feedback about test results and any issues
-- [ ] Can test trigger timing and cooldown behavior
-
-**Technical Task MS-66-T1**: Implement Trigger Testing System
-
-- Add manual trigger activation button for testing to allow safe configuration verification
-- Implement trigger event simulation for different trigger types to test without live events
-- Create trigger activation log/history display for debugging and monitoring
-- Add test mode that doesn't affect live trigger settings to prevent accidental activation
-- Implement trigger timing and cooldown testing for performance validation
-- Add comprehensive test result feedback and reporting for clear results
-- Include test data validation and edge case testing for robustness
-
-**Dependencies**: Stories 2, 3, 4, 5, 6
+Marked Won't Do for this scope. MediaSpawner is configuration-only and does not include runtime simulation or testing.
 
 ---
 
 ## Story 8: Display Trigger Status and Information
 
-**Story ID**: MS-67 (NEW)
+**Story ID**: MS-67
 **Priority**: Low
 **Estimate**: 3 points
 **Status**: Not Started
@@ -283,7 +256,6 @@ Story 1 (Research & Define Trigger Types)
 ├── Story 4 (Channel Point Configuration)
 ├── Story 5 (Event-Based Configuration)
 │   ├── Story 6 (Trigger Validation)
-│   │   └── Story 7 (Trigger Testing)
 │   └── Story 8 (Trigger Information Display)
 ```
 
@@ -291,7 +263,7 @@ Story 1 (Research & Define Trigger Types)
 
 Each story is complete when:
 
-- [ ] Trigger configuration implemented and tested
+- [ ] Trigger configuration implemented and reviewed (config-only)
 - [ ] Integration with Epic 3 spawn editor works correctly
 - [ ] Trigger validation provides clear feedback
 - [ ] All specified trigger types supported
@@ -336,7 +308,7 @@ After Epic 6, users can:
 - ✅ Set up actionable triggers for spawns
 - ✅ Respond to chat commands, channel points, and viewer events
 - ✅ Configure triggers for subscriptions, cheers, and follows
-- ✅ Test and validate trigger configurations
+
 - ✅ Build foundation for advanced triggers in future epics
 
 This makes spawns truly interactive and responsive to real streaming scenarios, delivering the core "actionable spawns" functionality.

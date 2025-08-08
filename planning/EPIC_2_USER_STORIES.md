@@ -130,7 +130,7 @@ As a user, I want my selections and context maintained across the workspace, so 
 **User Story**:
 As a user, I want URL routing that reflects my current spawn profile and selected spawn, so that I can bookmark, share, and navigate back to specific states.
 
-**Reason for Won't Do**: Bookmarkable URLs provide no real value for typical MediaSpawner workflow (configure spawns → export JSON → close app). Adds complexity without user benefit.
+**Reason for Won't Do**: Minimal routing only. Bookmarkable URLs provide no real value for typical MediaSpawner workflow (configure spawns → export JSON → close app) and add complexity without user benefit.
 
 **Acceptance Criteria** (Not Implemented):
 
@@ -265,7 +265,7 @@ Each story is complete when:
 - [ ] Header with spawn profile selector ✓ (Story 2)
 - [ ] Panel state management for spawn selection ✓ (Story 3)
 - [ ] Desktop-optimized design for practical use ✓ (Stories 1, 5)
-- [ ] Simple routing for core functionality ✓ (Basic implementation without complex URLs)
+- [ ] Minimal routing for core functionality ✓ (No deep linking)
 - [ ] Foundation for unified configuration workspace ✓ (Stories 1, 3)
 - [ ] Foundation for dynamic asset management ✓ (Stories 1, 3)
 - [ ] Foundation for future panel interactions ✓ (Story 3)

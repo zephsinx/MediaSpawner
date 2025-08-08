@@ -15,7 +15,7 @@ Implement comprehensive asset configuration with spawn defaults and per-asset ov
 
 ## Story 1: Configure Audio and Video Settings
 
-**Story ID**: MS-51 (NEW)
+**Story ID**: MS-51
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -47,7 +47,7 @@ As a user, I want to configure volume and playback settings for audio and video 
 
 ## Story 2: Configure Visual Asset Settings
 
-**Story ID**: MS-52 (NEW)
+**Story ID**: MS-52
 **Priority**: High
 **Estimate**: 5 points
 **Status**: Not Started
@@ -214,7 +214,7 @@ As a user, I want to smoothly switch between configuring spawn settings and indi
 
 ## Story 7: Validate Asset Configuration Settings
 
-**Story ID**: MS-39 (NEW)
+**Story ID**: MS-39
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
@@ -247,7 +247,7 @@ As a user, I want clear validation for asset configuration settings, so that I u
 
 ## Story 8: Preview Asset Configuration Changes
 
-**Story ID**: MS-40 (NEW)
+**Story ID**: MS-40
 **Priority**: Medium
 **Estimate**: 4 points
 **Status**: Not Started

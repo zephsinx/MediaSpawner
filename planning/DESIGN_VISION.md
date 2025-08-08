@@ -30,6 +30,7 @@ Spawn Profile (organizational container)
 - **Practical over pretty** - ease of use trumps visual appeal
 - **Experienced user friendly** - quick workflows without hand-holding
 - **Manual save with warnings** - explicit control over changes
+- **Configuration-only scope** - MediaSpawner creates JSON configs only; no runtime execution, simulation, or testing
 
 ## Target UI Design: Three-Panel Layout
 
@@ -117,6 +118,7 @@ Spawn Profile (organizational container)
 **Dynamic Two-Section Layout**:
 
 1. **Top Section**: Assets in Current Spawn
+
    - List of assets assigned to selected spawn
    - Drag to reorder assets
    - Click asset to configure spawn-specific settings (opens in center panel)
@@ -177,12 +179,14 @@ Spawn Profile (organizational container)
 - **Storage**: Browser localStorage with JSON serialization
 - **Assets**: File paths and URLs only (no file content stored)
 - **Caching**: Service layer with cache invalidation
+- **Validation**: Format/type detection only (no local file existence checks)
 
 ### Spawn Profile Management
 
 - **Active Profile**: Single active profile setting
 - **Profile Switching**: Resets to spawn list view
 - **Cross-Profile Operations**: Moving/copying spawns (future consideration)
+- **Working Folder (required)**: Each profile has a required Working Folder text setting used as the root for local file paths
 
 ### Asset Settings Architecture
 
@@ -223,13 +227,12 @@ Spawn Profile (organizational container)
 - **ConfigurationService** → **SpawnProfileService**
 - **AssetService** (enhance for spawn-specific settings)
 - New: **SpawnService** for spawn-specific operations
-- Routing updates for new navigation structure
+- Minimal routing only (no deep linking)
 
 ### Migration Considerations
 
 - Rename existing Configuration data to SpawnProfile
 - Asset Group data becomes Spawn data
-- Maintain backward compatibility during transition
 - Update all terminology in UI and code
 
 ## Key Design Decisions & Rationale

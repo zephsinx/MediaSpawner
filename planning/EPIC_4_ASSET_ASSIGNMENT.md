@@ -9,7 +9,7 @@
 
 **User Value**: ✨ **Spawns become functional containers for media assets with support for local files and URLs - making spawns actually useful for media management!**
 
-Enable users to assign assets to spawns through an intuitive drag & drop interface, supporting both local file paths and URLs.
+Enable users to assign assets to spawns, supporting both local file paths and URLs. Start with a simple "Add to Spawn" button workflow, then add drag & drop later.
 
 ---
 
@@ -110,7 +110,7 @@ As a user, I want to see all available assets in the library section, so that I 
 
 ## Story 4: Add URL Assets to Library
 
-**Story ID**: MS-47 (NEW)
+**Story ID**: MS-47
 **Priority**: High
 **Estimate**: 4 points
 **Status**: Not Started
@@ -169,6 +169,36 @@ As a user, I want to drag assets from the library to my spawn, so that I can qui
 - Add visual feedback during drag operations
 
 **Dependencies**: Epic 1 (SpawnService), Stories 2, 3, 4
+
+---
+
+## Story 5a: Assign Assets to Spawns via Click-to-Add (Initial)
+
+**Story ID**: MS-49a
+**Priority**: High
+**Estimate**: 3 points
+**Status**: Not Started
+
+**User Story**:
+As a user, I want to add assets to a spawn using a clear button, so that I can build spawns without relying on drag & drop.
+
+**Acceptance Criteria**:
+
+- [ ] Each library asset has an "Add to Spawn" control
+- [ ] Clicking the control adds the asset to the selected spawn immediately
+- [ ] Prevents duplicate assignments to the same spawn
+- [ ] Shows success feedback after assignment
+- [ ] Works for both local file and URL assets
+
+**Technical Task MS-49a-T1**: Implement Click-to-Add Assignment
+
+- Add action control to each library item
+- Use SpawnService to assign assets to the selected spawn
+- Handle duplicate prevention and errors gracefully
+- Provide clear success/error feedback
+- Integrate with panel state to target the current spawn
+
+**Dependencies**: Epic 1 (SpawnService), Stories 2, 3
 
 ---
 
@@ -234,27 +264,27 @@ As a user, I want to reorder assets within my spawn, so that I can control the s
 
 ## Story 8: Add Basic Asset Validation
 
-**Story ID**: MS-48 (NEW)
+**Story ID**: MS-48
 **Priority**: Medium
 **Estimate**: 3 points
 **Status**: Not Started
 
 **User Story**:
-As a user, I want clear validation when adding assets, so that I know immediately if an asset is valid and usable.
+As a user, I want clear validation when adding assets, so that I know immediately if an asset input looks valid.
 
 **Acceptance Criteria**:
 
-- [ ] Local file paths are validated for existence and accessibility
-- [ ] URLs are validated for proper format and accessibility
+- [ ] Local file paths are validated for format only (no existence checks)
+- [ ] URLs are validated for proper format only (no fetch/accessibility checks required)
 - [ ] Asset types are detected automatically (image, video, audio)
 - [ ] Clear error messages explain validation failures
-- [ ] Invalid assets cannot be added to spawns
+- [ ] Invalid assets cannot be added to library or spawns
 - [ ] Validation happens before assets are added to library
 
 **Technical Task MS-48-T1**: Implement Asset Validation System
 
-- Add file path validation for local assets
-- Add URL validation with accessibility checks
+- Add file path format validation for local assets
+- Add URL format validation (no network checks)
 - Implement automatic asset type detection
 - Create clear error messaging for validation failures
 - Prevent invalid assets from being added to library or spawns
@@ -266,7 +296,7 @@ As a user, I want clear validation when adding assets, so that I know immediatel
 
 ## Story 9: Add Upload Assets to Library
 
-**Story ID**: MS-54 (NEW)
+**Story ID**: MS-54
 **Priority**: Low
 **Estimate**: 4 points
 **Status**: Not Started
@@ -307,7 +337,8 @@ Story 1 (Right Panel Infrastructure)
 │   ├── Story 4 (URL Asset Support)
 │   ├── Story 8 (Asset Validation)
 │   └── Story 9 (Add Assets to Library)
-└── Story 5 (Assign Assets) [depends on Stories 2, 3, 4]
+├── Story 5a (Click-to-Add Assignment) [depends on Stories 2, 3]
+└── Story 5 (Drag & Drop Assignment) [depends on Stories 2, 3, 4]
 ```
 
 ## Definition of Done
