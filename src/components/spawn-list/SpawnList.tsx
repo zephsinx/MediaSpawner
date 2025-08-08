@@ -71,8 +71,8 @@ const SpawnList: React.FC<SpawnListProps> = ({
 
     try {
       const result = enabled
-        ? SpawnService.enableSpawn(spawn.id)
-        : SpawnService.disableSpawn(spawn.id);
+        ? await SpawnService.enableSpawn(spawn.id)
+        : await SpawnService.disableSpawn(spawn.id);
 
       if (!result.success) {
         // Revert optimistic update on error

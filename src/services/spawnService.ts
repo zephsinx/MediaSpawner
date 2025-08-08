@@ -270,7 +270,7 @@ export class SpawnService {
   /**
    * Enable a spawn in the active profile
    */
-  static enableSpawn(id: string): SpawnOperationResult {
+  static async enableSpawn(id: string): Promise<SpawnOperationResult> {
     try {
       const activeProfile = SpawnProfileService.getActiveProfile();
       if (!activeProfile) {
@@ -337,7 +337,7 @@ export class SpawnService {
   /**
    * Disable a spawn in the active profile
    */
-  static disableSpawn(id: string): SpawnOperationResult {
+  static async disableSpawn(id: string): Promise<SpawnOperationResult> {
     try {
       const activeProfile = SpawnProfileService.getActiveProfile();
       if (!activeProfile) {

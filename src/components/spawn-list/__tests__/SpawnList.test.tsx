@@ -115,7 +115,7 @@ describe("SpawnList", () => {
 
     // Create fresh mocks for this test
     const mockGetAllSpawns = vi.fn().mockReturnValue([disabledSpawn]);
-    const mockEnableSpawn = vi.fn().mockReturnValue({
+    const mockEnableSpawn = vi.fn().mockResolvedValue({
       success: true,
       spawn: { ...disabledSpawn, enabled: true },
     });
@@ -154,7 +154,7 @@ describe("SpawnList", () => {
 
     // Create fresh mocks for this test
     const mockGetAllSpawns = vi.fn().mockReturnValue([enabledSpawn]);
-    const mockDisableSpawn = vi.fn().mockReturnValue({
+    const mockDisableSpawn = vi.fn().mockResolvedValue({
       success: true,
       spawn: { ...enabledSpawn, enabled: false },
     });
@@ -196,7 +196,7 @@ describe("SpawnList", () => {
 
     // Create completely fresh mocks
     const mockGetAllSpawns = vi.fn().mockReturnValue([disabledSpawn]);
-    const mockEnableSpawn = vi.fn().mockReturnValue({
+    const mockEnableSpawn = vi.fn().mockResolvedValue({
       success: false,
       error: "Failed to enable spawn",
     });
@@ -222,10 +222,12 @@ describe("SpawnList", () => {
     // Verify service was called
     expect(mockEnableSpawn).toHaveBeenCalledWith("spawn-disabled");
 
-    // Verify error message is displayed in the error section
-    expect(screen.getByText("Failed to enable spawn")).toBeInTheDocument();
+    // Verify error message is displayed in the error section (async render)
+    expect(
+      await screen.findByText("Failed to enable spawn")
+    ).toBeInTheDocument();
 
     // Verify spawn remains disabled (optimistic update reverted)
-    expect(screen.getByText("Inactive")).toBeInTheDocument();
+    expect(await screen.findByText("Inactive")).toBeInTheDocument();
   });
 });
