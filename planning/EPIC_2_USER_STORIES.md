@@ -5,7 +5,7 @@
 **Epic ID**: MS-2
 **Epic**: Three-Panel Layout System
 **Priority**: 2 (Critical Path)
-**Status**: Not Started
+**Status**: Completed
 
 Build the core three-panel layout infrastructure with responsive design, panel state management, and header integration for spawn profile management.
 
@@ -13,10 +13,10 @@ Build the core three-panel layout infrastructure with responsive design, panel s
 
 ## Story 1: Navigate with Three-Panel Workspace
 
-**Story ID**: MS-15
+**Story ID**: MS-16
 **Priority**: High
 **Estimate**: 5 points
-**Status**: Not Started
+**Status**: Completed
 
 **User Story**:
 As a user, I want a three-panel workspace layout, so that I can see my spawn list, configuration workspace, and asset management in organized sections.
@@ -48,10 +48,10 @@ As a user, I want a three-panel workspace layout, so that I can see my spawn lis
 
 ## Story 2: Switch Between Spawn Profiles
 
-**Story ID**: MS-16
+**Story ID**: MS-17
 **Priority**: High
 **Estimate**: 3 points
-**Status**: Not Started
+**Status**: Completed
 
 **User Story**:
 As a user, I want a header with spawn profile selector and context indicators, so that I always know which profile I'm working in and can switch profiles easily.
@@ -82,10 +82,10 @@ As a user, I want a header with spawn profile selector and context indicators, s
 
 ## Story 3: Maintain Context Across Panels
 
-**Story ID**: MS-17
+**Story ID**: MS-18
 **Priority**: High
 **Estimate**: 5 points
-**Status**: Not Started
+**Status**: Completed
 
 **User Story**:
 As a user, I want my selections and context maintained across the workspace, so that panels stay coordinated when I switch profiles, select spawns, or make changes.
@@ -94,24 +94,27 @@ As a user, I want my selections and context maintained across the workspace, so 
 
 - [ ] Selected spawn stays consistent across all panels
 - [ ] Profile switching resets context appropriately
-- [ ] Unsaved changes are tracked across the workspace
+- [ ] Unsaved changes are tracked comprehensively across the workspace
 - [ ] Panel coordination works smoothly (spawn selection affects other panels)
 - [ ] My last selected spawn is remembered for each profile
 - [ ] Context switching feels responsive and predictable
 - [ ] Workspace handles invalid selections gracefully
+- [ ] Unsaved changes warnings work across spawn settings, asset settings, and trigger configurations
+- [ ] Complex cross-panel state interactions (asset selection → configuration changes) are tracked properly
 
-**Technical Task MS-12-T1**: Implement Panel State Management System
+**Technical Task MS-12-T1**: Implement Robust Panel State Management System
 
-- Create React Context for panel state (selected spawn, active profile, etc.)
-- Implement panel communication system (spawn selection, profile changes)
-- Add state persistence for selected spawn per profile using localStorage
-- Build unsaved changes tracking across panels
-- Create center panel mode state management (spawn settings vs asset settings modes)
-- Ensure clear state transitions when switching profiles
-- Add TypeScript interfaces for all state objects including center panel modes
-- Include error handling for invalid state
-- Design state to support future features (multiple selection, etc.)
+- Create React Context for panel state (selected spawn, active profile, etc.) to enable coordinated workspace behavior
+- Implement comprehensive panel communication system (spawn selection, profile changes) for synchronized updates
+- Add state persistence for selected spawn per profile using localStorage for user continuity
+- Build critical unsaved changes tracking across ALL panels and contexts to support manual save philosophy
+- Create center panel mode state management (spawn settings vs asset settings modes) for unified workspace
+- Ensure clear state transitions when switching profiles to prevent data loss
+- Add TypeScript interfaces for all state objects including center panel modes for type safety
+- Include robust error handling for invalid state scenarios
+- Design state to support future features (multiple selection, bulk operations) for extensibility
 - Prepare state structure for future right panel dynamic sections
+- **CRITICAL**: Implement complex cross-panel unsaved changes logic to handle configuration edits across spawn settings, asset settings, and trigger configurations
 
 **Dependencies**: Epic 1 (Spawn/SpawnProfile types)
 
@@ -119,15 +122,17 @@ As a user, I want my selections and context maintained across the workspace, so 
 
 ## Story 4: Navigate with Bookmarkable URLs
 
-**Story ID**: MS-18
+**Story ID**: MS-19
 **Priority**: Medium
 **Estimate**: 3 points
-**Status**: Not Started
+**Status**: Won't Do
 
 **User Story**:
 As a user, I want URL routing that reflects my current spawn profile and selected spawn, so that I can bookmark, share, and navigate back to specific states.
 
-**Acceptance Criteria**:
+**Reason for Won't Do**: Minimal routing only. Bookmarkable URLs provide no real value for typical MediaSpawner workflow (configure spawns → export JSON → close app) and add complexity without user benefit.
+
+**Acceptance Criteria** (Not Implemented):
 
 - [ ] URL shows which profile and spawn I'm currently viewing
 - [ ] Can bookmark specific spawn configurations and return to them
@@ -155,10 +160,10 @@ As a user, I want URL routing that reflects my current spawn profile and selecte
 
 ## Story 5: Work on Different Desktop Screens
 
-**Story ID**: MS-19
+**Story ID**: MS-20
 **Priority**: Medium
 **Estimate**: 3 points
-**Status**: Not Started
+**Status**: Completed
 
 **User Story**:
 As a user, I want the layout to work well on different desktop screen sizes, so that I can manage spawns effectively on various desktop monitors and resolutions.
@@ -190,15 +195,17 @@ As a user, I want the layout to work well on different desktop screen sizes, so 
 
 ## Story 6: See Layout Structure During Development
 
-**Story ID**: MS-20
+**Story ID**: MS-21
 **Priority**: Low
 **Estimate**: 2 points
-**Status**: Not Started
+**Status**: Won't Do
 
 **User Story**:
 As a user, I want to see the workspace structure while features are being developed, so that I can understand the layout and provide feedback before full functionality is ready.
 
-**Acceptance Criteria**:
+**Reason for Won't Do**: Development scaffolding provides no user value. Better to implement actual functionality (Epic 3) immediately after layout foundation.
+
+**Acceptance Criteria** (Not Implemented):
 
 - [ ] Can see placeholders for spawn list area
 - [ ] Can see placeholder for configuration workspace area
@@ -233,9 +240,9 @@ As a user, I want to see the workspace structure while features are being develo
 Story 1 (Layout Component)
 ├── Story 2 (Header)
 ├── Story 3 (State Management)
-│   ├── Story 4 (Routing)
-│   └── Story 5 (Responsive Design)
-└── Story 6 (Placeholders) [depends on all above]
+├── Story 4 (Routing) [WON'T DO - No user value]
+├── Story 5 (Responsive Design)
+└── Story 6 (Placeholders) [WON'T DO - Development scaffolding only]
 ```
 
 ## Definition of Done
@@ -243,13 +250,14 @@ Story 1 (Layout Component)
 Each story is complete when:
 
 - [ ] Component implemented and peer reviewed
-- [ ] Responsive design tested on multiple screen sizes
+- [ ] Responsive design tested on desktop screen sizes (MS-19 only)
 - [ ] TypeScript compilation clean (no errors)
 - [ ] Integration with Epic 1 services works
 - [ ] State management functions correctly
-- [ ] URL routing works as expected
 - [ ] Visual consistency with design vision
 - [ ] Ready for panel content integration (Epics 3, 4, 5)
+
+**Note**: MS-18 (Routing) and MS-20 (Placeholders) marked as Won't Do - no user value.
 
 ## Vision Validation Checklist
 
@@ -257,11 +265,11 @@ Each story is complete when:
 - [ ] Header with spawn profile selector ✓ (Story 2)
 - [ ] Panel state management for spawn selection ✓ (Story 3)
 - [ ] Desktop-optimized design for practical use ✓ (Stories 1, 5)
-- [ ] Routing supports spawn-centric workflow ✓ (Story 4)
-- [ ] Foundation for unified configuration workspace ✓ (Stories 1, 3, 6)
-- [ ] Foundation for dynamic asset management ✓ (Stories 1, 3, 6)
-- [ ] Foundation for future panel interactions ✓ (Stories 3, 6)
-- [ ] Clean, uncluttered interface ✓ (All stories)
+- [ ] Minimal routing for core functionality ✓ (No deep linking)
+- [ ] Foundation for unified configuration workspace ✓ (Stories 1, 3)
+- [ ] Foundation for dynamic asset management ✓ (Stories 1, 3)
+- [ ] Foundation for future panel interactions ✓ (Story 3)
+- [ ] Clean, uncluttered interface ✓ (Implemented stories)
 
 ## Technical Standards
 
@@ -274,10 +282,11 @@ Each story is complete when:
 
 ## Integration Points with Future Epics
 
-- **Epic 3**: Left panel component slot ready
-- **Epic 4**: Center panel unified configuration workspace infrastructure ready
-- **Epic 5**: Right panel dynamic asset management infrastructure ready
-- **Epic 6**: Header profile management integration ready
+- **Epic 3**: Left panel ready for Core Spawn Management (spawn list and navigation)
+- **Epic 4**: Right panel ready for Asset Assignment (asset library and drag & drop)
+- **Epic 5**: Center panel ready for Asset Configuration (unified workspace)
+- **Epic 6**: Center panel ready for Trigger System configuration
+- **Epic 8**: Header profile management integration ready for Spawn Profiles
 
 ## Notes
 
