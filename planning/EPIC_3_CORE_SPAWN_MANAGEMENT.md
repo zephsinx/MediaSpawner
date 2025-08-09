@@ -145,7 +145,7 @@ As a user, I want to create new spawns directly from the spawn list, so that I c
 **Story ID**: MS-26
 **Priority**: High
 **Estimate**: 5 points
-**Status**: Not Started
+**Status**: Completed
 
 **User Story**:
 As a user, I want a dedicated workspace for configuring spawn settings, so that I can edit spawn properties in a clear, organized interface.
@@ -176,7 +176,7 @@ As a user, I want a dedicated workspace for configuring spawn settings, so that 
 **Story ID**: MS-27
 **Priority**: High
 **Estimate**: 5 points
-**Status**: Not Started
+**Status**: Completed
 
 **User Story**:
 As a user, I want explicit save and cancel controls for spawn editing, so that I have complete control over when changes are permanently saved.

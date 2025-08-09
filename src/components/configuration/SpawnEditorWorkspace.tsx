@@ -1,17 +1,25 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { usePanelState } from "../../hooks/useLayout";
 import { SpawnService } from "../../services/spawnService";
 import type { Spawn } from "../../types/spawn";
 
 const SpawnEditorWorkspace: React.FC = () => {
-  const { selectedSpawnId } = usePanelState();
+  const { selectedSpawnId, setUnsavedChanges } = usePanelState();
   const [selectedSpawn, setSelectedSpawn] = useState<Spawn | null>(null);
+  const [name, setName] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const prevSpawnIdRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     let isActive = true;
     const load = async () => {
       if (!selectedSpawnId) {
         if (isActive) setSelectedSpawn(null);
+        setName("");
+        setDescription("");
         return;
       }
       const allSpawns = await SpawnService.getAllSpawns();
@@ -23,6 +31,67 @@ const SpawnEditorWorkspace: React.FC = () => {
       isActive = false;
     };
   }, [selectedSpawnId]);
+
+  useEffect(() => {
+    if (selectedSpawn) {
+      setName(selectedSpawn.name);
+      setDescription(selectedSpawn.description || "");
+      // Clear messages only if changing to a different spawn
+      if (prevSpawnIdRef.current !== selectedSpawn.id) {
+        setSaveError(null);
+        setSaveSuccess(null);
+      }
+      setIsSaving(false);
+      prevSpawnIdRef.current = selectedSpawn.id;
+    }
+  }, [selectedSpawn]);
+
+  const isDirty = useMemo(() => {
+    if (!selectedSpawn) return false;
+    return (
+      name !== (selectedSpawn.name || "") ||
+      (description || "") !== (selectedSpawn.description || "")
+    );
+  }, [name, description, selectedSpawn]);
+
+  useEffect(() => {
+    // Only update when dirty state changes to avoid unnecessary context re-renders
+    setUnsavedChanges(!!isDirty);
+  }, [isDirty, setUnsavedChanges]);
+
+  const isNameValid = name.trim().length > 0;
+  const isSaveDisabled = !isDirty || !isNameValid || isSaving || !selectedSpawn;
+
+  const handleCancel = () => {
+    if (!selectedSpawn) return;
+    setName(selectedSpawn.name);
+    setDescription(selectedSpawn.description || "");
+    setSaveError(null);
+    setSaveSuccess(null);
+  };
+
+  const handleSave = async () => {
+    if (!selectedSpawn || isSaveDisabled) return;
+    setIsSaving(true);
+    setSaveError(null);
+    setSaveSuccess(null);
+    try {
+      const result = await SpawnService.updateSpawn(selectedSpawn.id, {
+        name: name.trim(),
+        description: description.trim() || undefined,
+      });
+      if (!result.success || !result.spawn) {
+        setSaveError(result.error || "Failed to save spawn");
+        return;
+      }
+      setSelectedSpawn(result.spawn);
+      setSaveSuccess("Changes saved");
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Failed to save spawn");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const formatDate = (ms: number | undefined) => {
     if (!ms) return "-";
@@ -55,13 +124,48 @@ const SpawnEditorWorkspace: React.FC = () => {
     <div className="h-full flex flex-col">
       <div className="p-4 border-b border-gray-200 bg-gray-50">
         <h2 className="text-lg font-semibold text-gray-800">Spawn Editor</h2>
-        <p className="text-sm text-gray-600">
-          {selectedSpawn
-            ? `Editing: ${selectedSpawn.name}`
-            : "Loading spawn..."}
-        </p>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mt-1">
+          <p className="text-sm text-gray-600">
+            {selectedSpawn
+              ? `Editing: ${selectedSpawn.name}`
+              : "Loading spawn..."}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="px-3 py-1.5 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+              aria-label="Cancel edits"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaveDisabled}
+              className={`px-3 py-1.5 rounded-md text-white ${
+                isSaveDisabled
+                  ? "bg-blue-300 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700"
+              }`}
+              aria-label="Save spawn"
+            >
+              {isSaving ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </div>
       </div>
       <div className="flex-1 p-4">
+        {saveError && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-sm text-red-700 rounded">
+            {saveError}
+          </div>
+        )}
+        {saveSuccess && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 text-sm text-green-700 rounded">
+            {saveSuccess}
+          </div>
+        )}
         {selectedSpawn ? (
           <div className="max-w-2xl space-y-5">
             <section className="bg-white border border-gray-200 rounded-lg p-4">
@@ -79,9 +183,13 @@ const SpawnEditorWorkspace: React.FC = () => {
                   <input
                     id="spawn-name"
                     type="text"
-                    value={selectedSpawn.name}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-md ${
+                      isNameValid
+                        ? "border-gray-300 bg-white"
+                        : "border-red-300 bg-white"
+                    }`}
                   />
                 </div>
                 <div>
@@ -108,10 +216,10 @@ const SpawnEditorWorkspace: React.FC = () => {
                   </label>
                   <textarea
                     id="spawn-description"
-                    value={selectedSpawn.description || ""}
-                    disabled
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 resize-none"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700"
                   />
                 </div>
               </div>

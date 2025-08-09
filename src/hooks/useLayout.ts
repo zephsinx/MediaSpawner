@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useCallback } from "react";
 import { LayoutContext } from "../components/layout/LayoutContextTypes";
 
 /**
@@ -18,25 +18,37 @@ export const useLayoutContext = () => {
 export const usePanelState = () => {
   const { state, dispatch } = useLayoutContext();
 
-  const setActiveProfile = (profileId: string | undefined) => {
-    dispatch({ type: "SET_ACTIVE_PROFILE", payload: { profileId } });
-  };
+  const setActiveProfile = useCallback(
+    (profileId: string | undefined) => {
+      dispatch({ type: "SET_ACTIVE_PROFILE", payload: { profileId } });
+    },
+    [dispatch]
+  );
 
-  const selectSpawn = (spawnId: string | undefined) => {
-    dispatch({ type: "SELECT_SPAWN", payload: { spawnId } });
-  };
+  const selectSpawn = useCallback(
+    (spawnId: string | undefined) => {
+      dispatch({ type: "SELECT_SPAWN", payload: { spawnId } });
+    },
+    [dispatch]
+  );
 
-  const setCenterPanelMode = (mode: "spawn-settings" | "asset-settings") => {
-    dispatch({ type: "SET_CENTER_PANEL_MODE", payload: { mode } });
-  };
+  const setCenterPanelMode = useCallback(
+    (mode: "spawn-settings" | "asset-settings") => {
+      dispatch({ type: "SET_CENTER_PANEL_MODE", payload: { mode } });
+    },
+    [dispatch]
+  );
 
-  const setUnsavedChanges = (hasChanges: boolean) => {
-    dispatch({ type: "SET_UNSAVED_CHANGES", payload: { hasChanges } });
-  };
+  const setUnsavedChanges = useCallback(
+    (hasChanges: boolean) => {
+      dispatch({ type: "SET_UNSAVED_CHANGES", payload: { hasChanges } });
+    },
+    [dispatch]
+  );
 
-  const clearContext = () => {
+  const clearContext = useCallback(() => {
     dispatch({ type: "CLEAR_CONTEXT" });
-  };
+  }, [dispatch]);
 
   return {
     // State

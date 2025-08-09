@@ -4,6 +4,7 @@ import {
   screen,
   waitForElementToBeRemoved,
   act,
+  fireEvent,
 } from "@testing-library/react";
 import Layout from "../Layout";
 import { SpawnService } from "../../../services/spawnService";
@@ -14,6 +15,7 @@ vi.mock("../../../services/spawnService", () => ({
   SpawnService: {
     getAllSpawns: vi.fn(),
     createSpawn: vi.fn(),
+    updateSpawn: vi.fn(),
   },
 }));
 
@@ -134,6 +136,111 @@ describe("Layout", () => {
         await screen.findByDisplayValue("Test Spawn 2")
       ).toBeInTheDocument();
       expect(screen.getByDisplayValue("Disabled")).toBeInTheDocument();
+    });
+
+    it("enables Save when dirty and valid, disables when invalid, and saves successfully", async () => {
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
+      vi.mocked(SpawnService.updateSpawn).mockResolvedValue({
+        success: true,
+        spawn: { ...mockSpawns[0], name: "Saved Name" },
+      });
+
+      await act(async () => {
+        render(<Layout />);
+      });
+      const loading = screen.queryByText("Loading spawns...");
+      if (loading) {
+        await waitForElementToBeRemoved(loading);
+      }
+
+      await act(async () => {
+        screen.getByText("Test Spawn 1").click();
+      });
+
+      const nameInput = await screen.findByLabelText("Name");
+      const saveBtn = screen.getByRole("button", { name: "Save spawn" });
+      const cancelBtn = screen.getByRole("button", { name: "Cancel edits" });
+
+      // Initially disabled (not dirty)
+      expect(saveBtn).toBeDisabled();
+      expect(cancelBtn).toBeEnabled();
+
+      await act(async () => {
+        fireEvent.change(nameInput, { target: { value: "Saved Name" } });
+      });
+      expect(saveBtn).not.toBeDisabled();
+
+      // Invalid (blank) -> disabled
+      await act(async () => {
+        fireEvent.change(nameInput, { target: { value: "" } });
+      });
+      expect(saveBtn).toBeDisabled();
+
+      // Valid again and save
+      await act(async () => {
+        fireEvent.change(nameInput, { target: { value: "Saved Name" } });
+        fireEvent.click(saveBtn);
+      });
+
+      expect(await screen.findByText("Changes saved")).toBeInTheDocument();
+      // Save should reset dirty (button disabled again without further edits)
+      expect(saveBtn).toBeDisabled();
+    });
+
+    it("cancels edits and reverts to last saved values", async () => {
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
+
+      await act(async () => {
+        render(<Layout />);
+      });
+      const loading = screen.queryByText("Loading spawns...");
+      if (loading) {
+        await waitForElementToBeRemoved(loading);
+      }
+
+      await act(async () => {
+        screen.getByText("Test Spawn 1").click();
+      });
+
+      const nameInput = await screen.findByLabelText("Name");
+      const cancelBtn = screen.getByRole("button", { name: "Cancel edits" });
+
+      await act(async () => {
+        fireEvent.change(nameInput, { target: { value: "Temp Name" } });
+        fireEvent.click(cancelBtn);
+      });
+
+      expect((nameInput as HTMLInputElement).value).toBe("Test Spawn 1");
+    });
+
+    it("shows error when save fails", async () => {
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
+      vi.mocked(SpawnService.updateSpawn).mockResolvedValue({
+        success: false,
+        error: "Save failed",
+      });
+
+      await act(async () => {
+        render(<Layout />);
+      });
+      const loading = screen.queryByText("Loading spawns...");
+      if (loading) {
+        await waitForElementToBeRemoved(loading);
+      }
+
+      await act(async () => {
+        screen.getByText("Test Spawn 1").click();
+      });
+
+      const nameInput = await screen.findByLabelText("Name");
+      const saveBtn = screen.getByRole("button", { name: "Save spawn" });
+
+      await act(async () => {
+        fireEvent.change(nameInput, { target: { value: "Bad Name" } });
+        fireEvent.click(saveBtn);
+      });
+
+      expect(await screen.findByText("Save failed")).toBeInTheDocument();
     });
 
     it("renders empty spawn list when no spawns exist", async () => {
