@@ -13,6 +13,7 @@ import type { Spawn } from "../../../types/spawn";
 vi.mock("../../../services/spawnService", () => ({
   SpawnService: {
     getAllSpawns: vi.fn(),
+    createSpawn: vi.fn(),
   },
 }));
 
@@ -157,6 +158,38 @@ describe("Layout", () => {
       expect(screen.getByText("Dynamic Asset Management")).toBeInTheDocument();
       expect(
         screen.getByText("asset library and management tools")
+      ).toBeInTheDocument();
+    });
+
+    it("creates and auto-selects new spawn via header button in list", async () => {
+      // First call: initial spawns; second call: include newly created spawn for editor resolution
+      const created = {
+        ...mockSpawns[0],
+        id: "spawn-3",
+        name: "New Spawn 1",
+      } as Spawn;
+      vi.mocked(SpawnService.getAllSpawns)
+        .mockResolvedValueOnce(mockSpawns)
+        .mockResolvedValue([...mockSpawns, created]);
+      vi.mocked(SpawnService.createSpawn).mockResolvedValue({
+        success: true,
+        spawn: created,
+      });
+
+      await act(async () => {
+        render(<Layout />);
+      });
+      const loading = screen.queryByText("Loading spawns...");
+      if (loading) {
+        await waitForElementToBeRemoved(loading);
+      }
+
+      await act(async () => {
+        screen.getByRole("button", { name: "Create New Spawn" }).click();
+      });
+
+      expect(
+        await screen.findByText(/Editing: New Spawn 1/)
       ).toBeInTheDocument();
     });
 

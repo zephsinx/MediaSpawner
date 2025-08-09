@@ -27,6 +27,8 @@ const SpawnList: React.FC<SpawnListProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [toggleError, setToggleError] = useState<string | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState<boolean>(false);
   const [processingToggles, setProcessingToggles] = useState<Set<string>>(
     new Set()
   );
@@ -113,6 +115,56 @@ const SpawnList: React.FC<SpawnListProps> = ({
     }
   };
 
+  const generateDefaultName = (existing: string[]): string => {
+    const base = "New Spawn";
+    let i = 1;
+    const set = new Set(existing);
+    while (set.has(`${base} ${i}`)) i += 1;
+    return `${base} ${i}`;
+  };
+
+  const handleCreateSpawn = async () => {
+    try {
+      setIsCreating(true);
+      setCreateError(null);
+      const existingNames = spawns.map((s) => s.name);
+      let candidate = generateDefaultName(existingNames);
+      let attempt = 0;
+      const maxAttempts = 50;
+      // Try until success or non-duplicate error
+      // Avoid scope creep: simple bounded retry loop for rare race conditions
+      // Rely on service defaults for other fields
+      while (attempt < maxAttempts) {
+        const result = await SpawnService.createSpawn(candidate);
+        if (result.success && result.spawn) {
+          // Update local state immediately
+          setSpawns((prev) => [...prev, result.spawn!]);
+          // Request selection upstream
+          onSpawnClick?.(result.spawn!);
+          setIsCreating(false);
+          return;
+        }
+        // If duplicate name error, bump and retry; otherwise surface error
+        if (result.error && /already exists/i.test(result.error)) {
+          attempt += 1;
+          candidate = generateDefaultName([...existingNames, candidate]);
+          continue;
+        } else {
+          setCreateError(result.error || "Failed to create spawn");
+          setIsCreating(false);
+          return;
+        }
+      }
+      setCreateError("Failed to generate a unique name for the new spawn");
+    } catch (err) {
+      setCreateError(
+        err instanceof Error ? err.message : "Failed to create spawn"
+      );
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className={`h-full flex items-center justify-center ${className}`}>
@@ -166,16 +218,54 @@ const SpawnList: React.FC<SpawnListProps> = ({
 
   if (spawns.length === 0) {
     return (
-      <div className={`h-full flex items-center justify-center ${className}`}>
-        <div className="text-center">
-          <div className="text-gray-400 text-4xl mb-3">📋</div>
-          <h3 className="text-lg font-medium text-gray-700 mb-2">
-            No Spawns Found
-          </h3>
-          <p className="text-sm text-gray-500 max-w-xs">
-            You haven't created any spawns yet. Create your first spawn to get
-            started.
-          </p>
+      <div className={`h-full flex flex-col ${className}`}>
+        <div className="p-4 border-b border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800">Spawns</h2>
+              <p className="text-sm text-gray-600">0 spawns</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleCreateSpawn}
+                disabled={isCreating}
+                className={`inline-flex items-center px-3 py-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors ${
+                  isCreating ? "opacity-60 cursor-not-allowed" : ""
+                }`}
+                aria-label="Create New Spawn"
+              >
+                {isCreating && (
+                  <span className="mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                )}
+                New Spawn
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {(toggleError || createError) && (
+          <div className="p-3 bg-red-50 border-b border-red-200">
+            {toggleError && (
+              <p className="text-sm text-red-700">{toggleError}</p>
+            )}
+            {createError && (
+              <p className="text-sm text-red-700">{createError}</p>
+            )}
+          </div>
+        )}
+
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-gray-400 text-4xl mb-3">📋</div>
+            <h3 className="text-lg font-medium text-gray-700 mb-2">
+              No Spawns Found
+            </h3>
+            <p className="text-sm text-gray-500 max-w-xs">
+              You haven't created any spawns yet. Create your first spawn to get
+              started.
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -192,13 +282,30 @@ const SpawnList: React.FC<SpawnListProps> = ({
               {spawns.length} spawn{spawns.length !== 1 ? "s" : ""}
             </p>
           </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCreateSpawn}
+              disabled={isCreating}
+              className={`inline-flex items-center px-3 py-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors ${
+                isCreating ? "opacity-60 cursor-not-allowed" : ""
+              }`}
+              aria-label="Create New Spawn"
+            >
+              {isCreating && (
+                <span className="mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              )}
+              New Spawn
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Error message for toggle operations */}
-      {toggleError && (
+      {/* Error banners */}
+      {(toggleError || createError) && (
         <div className="p-3 bg-red-50 border-b border-red-200">
-          <p className="text-sm text-red-700">{toggleError}</p>
+          {toggleError && <p className="text-sm text-red-700">{toggleError}</p>}
+          {createError && <p className="text-sm text-red-700">{createError}</p>}
         </div>
       )}
 

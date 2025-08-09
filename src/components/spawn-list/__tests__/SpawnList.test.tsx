@@ -15,6 +15,7 @@ vi.mock("../../../services/spawnService", () => ({
     getAllSpawns: vi.fn(),
     enableSpawn: vi.fn(),
     disableSpawn: vi.fn(),
+    createSpawn: vi.fn(),
   },
 }));
 
@@ -102,9 +103,9 @@ describe("SpawnList", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("📋")).toBeInTheDocument();
 
-    // Verify the header is not displayed (since there are no spawns)
-    expect(screen.queryByText("Spawns")).not.toBeInTheDocument();
-    expect(screen.queryByText("0 spawns")).not.toBeInTheDocument();
+    // Header is displayed in empty state (with New Spawn button)
+    expect(screen.getByText("Spawns")).toBeInTheDocument();
+    expect(screen.getByText("0 spawns")).toBeInTheDocument();
   });
 
   it("shows error state when service throws an error", async () => {
@@ -478,6 +479,75 @@ describe("SpawnList", () => {
     expect(onSpawnClick).toHaveBeenCalledWith(
       expect.objectContaining({ id: "s2" })
     );
+  });
+
+  it("creates a new spawn, appends it to the list, and calls onSpawnClick for selection", async () => {
+    const items = [
+      createMockSpawn({
+        id: "s1",
+        name: "Existing 1",
+        enabled: true,
+        assets: [],
+      }),
+    ];
+    vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(items);
+
+    const newSpawn = createMockSpawn({
+      id: "s2",
+      name: "New Spawn 1",
+      enabled: true,
+      assets: [],
+    });
+    vi.mocked(SpawnService.createSpawn).mockResolvedValue({
+      success: true,
+      spawn: newSpawn,
+    });
+
+    const onSpawnClick = vi.fn();
+
+    await act(async () => {
+      render(<SpawnList onSpawnClick={onSpawnClick} />);
+    });
+
+    const loading = screen.queryByText("Loading spawns...");
+    if (loading) {
+      await waitForElementToBeRemoved(loading);
+    }
+
+    // Click New Spawn button
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Create New Spawn" }));
+    });
+
+    // New row appears
+    expect(await screen.findByText("New Spawn 1")).toBeInTheDocument();
+    // Selection callback invoked
+    expect(onSpawnClick).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "s2" })
+    );
+  });
+
+  it("shows error when creation fails", async () => {
+    vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([]);
+    vi.mocked(SpawnService.createSpawn).mockResolvedValue({
+      success: false,
+      error: "No active profile",
+    });
+
+    await act(async () => {
+      render(<SpawnList />);
+    });
+
+    const loading = screen.queryByText("Loading spawns...");
+    if (loading) {
+      await waitForElementToBeRemoved(loading);
+    }
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Create New Spawn" }));
+    });
+
+    expect(await screen.findByText("No active profile")).toBeInTheDocument();
   });
 
   it("shows toggle error banner on failure and clears after a successful toggle", async () => {
