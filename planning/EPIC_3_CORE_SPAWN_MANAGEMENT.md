@@ -303,7 +303,7 @@ As a user, I want a form to configure essential spawn properties, so that I can 
 **Story ID**: MS-31
 **Priority**: Medium
 **Estimate**: 3 points
-**Status**: Not Started
+**Status**: Completed
 
 **User Story**:
 As a user, I want to delete spawns I no longer need, so that I can keep my spawn list clean and organized.

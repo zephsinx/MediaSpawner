@@ -16,6 +16,7 @@ vi.mock("../../../services/spawnService", () => ({
     getAllSpawns: vi.fn(),
     createSpawn: vi.fn(),
     updateSpawn: vi.fn(),
+    deleteSpawn: vi.fn(),
   },
 }));
 
@@ -347,6 +348,81 @@ describe("Layout", () => {
         screen.getByText("Discard changes").click();
       });
       expect((nameInput as HTMLInputElement).value).toBe("Test Spawn 1");
+    });
+
+    it("deletes a spawn and clears selection; list updates", async () => {
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
+      vi.mocked(SpawnService.deleteSpawn).mockResolvedValue({
+        success: true,
+        spawn: mockSpawns[0],
+      });
+
+      await act(async () => {
+        render(<Layout />);
+      });
+      const loading = screen.queryByText("Loading spawns...");
+      if (loading) {
+        await waitForElementToBeRemoved(loading);
+      }
+
+      // Select first spawn
+      await act(async () => {
+        screen.getByText("Test Spawn 1").click();
+      });
+
+      // Click Delete then confirm
+      await act(async () => {
+        screen.getByRole("button", { name: "Delete spawn" }).click();
+      });
+      expect(
+        screen.getByRole("dialog", { name: "Delete Spawn?" })
+      ).toBeInTheDocument();
+
+      // Click the dialog's Delete (second button)
+      await act(async () => {
+        const dialog = screen.getByRole("dialog", { name: "Delete Spawn?" });
+        const buttons = dialog.querySelectorAll("button");
+        (buttons[1] as HTMLButtonElement).click();
+      });
+
+      // List should no longer contain the deleted item
+      expect(screen.queryByText("Test Spawn 1")).not.toBeInTheDocument();
+      // Center panel should show guidance (no selection)
+      expect(
+        screen.getByText("Select a spawn to edit its settings")
+      ).toBeInTheDocument();
+    });
+
+    it("shows deletion error and keeps item when delete fails", async () => {
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
+      vi.mocked(SpawnService.deleteSpawn).mockResolvedValue({
+        success: false,
+        error: "Cannot delete",
+      });
+
+      await act(async () => {
+        render(<Layout />);
+      });
+      const loading = screen.queryByText("Loading spawns...");
+      if (loading) {
+        await waitForElementToBeRemoved(loading);
+      }
+
+      await act(async () => {
+        screen.getByText("Test Spawn 1").click();
+      });
+
+      await act(async () => {
+        screen.getByRole("button", { name: "Delete spawn" }).click();
+      });
+      await act(async () => {
+        const dialog = screen.getByRole("dialog", { name: "Delete Spawn?" });
+        const buttons = dialog.querySelectorAll("button");
+        (buttons[1] as HTMLButtonElement).click();
+      });
+
+      expect(screen.getByText("Cannot delete")).toBeInTheDocument();
+      expect(screen.getByText("Test Spawn 1")).toBeInTheDocument();
     });
 
     it("renders empty spawn list when no spawns exist", async () => {

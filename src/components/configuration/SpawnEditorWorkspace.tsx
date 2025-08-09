@@ -6,7 +6,7 @@ import { ConfirmDialog } from "../common/ConfirmDialog";
 import { deepEqual } from "../../utils/deepEqual";
 
 const SpawnEditorWorkspace: React.FC = () => {
-  const { selectedSpawnId, setUnsavedChanges } = usePanelState();
+  const { selectedSpawnId, setUnsavedChanges, selectSpawn } = usePanelState();
   const [selectedSpawn, setSelectedSpawn] = useState<Spawn | null>(null);
   const [name, setName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
@@ -17,6 +17,8 @@ const SpawnEditorWorkspace: React.FC = () => {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const prevSpawnIdRef = useRef<string | undefined>(undefined);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     let isActive = true;
@@ -170,6 +172,19 @@ const SpawnEditorWorkspace: React.FC = () => {
               : "Loading spawn..."}
           </p>
           <div className="flex items-center gap-2">
+            {selectedSpawn && (
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteError(null);
+                  setShowDeleteDialog(true);
+                }}
+                className="px-3 py-1.5 rounded-md text-white bg-red-600 hover:bg-red-700"
+                aria-label="Delete spawn"
+              >
+                Delete
+              </button>
+            )}
             <button
               type="button"
               onClick={handleCancel}
@@ -215,6 +230,53 @@ const SpawnEditorWorkspace: React.FC = () => {
           }}
           onCancel={() => setShowDiscardDialog(false)}
         />
+        <ConfirmDialog
+          isOpen={showDeleteDialog}
+          title="Delete Spawn?"
+          message="This action cannot be undone. The spawn will be permanently deleted."
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="danger"
+          onConfirm={async () => {
+            if (!selectedSpawn) {
+              setShowDeleteDialog(false);
+              return;
+            }
+            try {
+              const res = await SpawnService.deleteSpawn(selectedSpawn.id);
+              if (!res.success) {
+                setDeleteError(res.error || "Failed to delete spawn");
+                setShowDeleteDialog(false);
+                return;
+              }
+              // Notify list to remove and clear selection
+              window.dispatchEvent(
+                new CustomEvent<{ id: string }>("mediaspawner:spawn-deleted", {
+                  detail: { id: selectedSpawn.id },
+                })
+              );
+              setSelectedSpawn(null);
+              setName("");
+              setDescription("");
+              setSaveError(null);
+              setSaveSuccess(null);
+              setShowDeleteDialog(false);
+              // Clear selection in layout context so center panel returns to guidance
+              selectSpawn(undefined);
+            } catch (e) {
+              setDeleteError(
+                e instanceof Error ? e.message : "Failed to delete spawn"
+              );
+              setShowDeleteDialog(false);
+            }
+          }}
+          onCancel={() => setShowDeleteDialog(false)}
+        />
+        {deleteError && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-sm text-red-700 rounded">
+            {deleteError}
+          </div>
+        )}
         {saveError && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 text-sm text-red-700 rounded">
             {saveError}

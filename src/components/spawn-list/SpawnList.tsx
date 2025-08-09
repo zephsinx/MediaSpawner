@@ -53,6 +53,32 @@ const SpawnList: React.FC<SpawnListProps> = ({
     loadSpawns();
   }, []);
 
+  // Respond to external spawn deletion events to keep list in sync
+  useEffect(() => {
+    const handleDeleted = (e: Event) => {
+      const ce = e as CustomEvent<{ id?: string }>;
+      const id = ce.detail?.id;
+      if (id) {
+        setSpawns((prev) => prev.filter((s) => s.id !== id));
+      } else {
+        // Fallback: reload list
+        SpawnService.getAllSpawns()
+          .then(setSpawns)
+          .catch(() => void 0);
+      }
+    };
+    window.addEventListener(
+      "mediaspawner:spawn-deleted" as unknown as keyof WindowEventMap,
+      handleDeleted as EventListener
+    );
+    return () => {
+      window.removeEventListener(
+        "mediaspawner:spawn-deleted" as unknown as keyof WindowEventMap,
+        handleDeleted as EventListener
+      );
+    };
+  }, []);
+
   // Keyboard navigation state and refs must be declared unconditionally
   const [, setFocusedIndex] = useState<number>(-1);
   const focusedIndexRef = useRef<number>(-1);
