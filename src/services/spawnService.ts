@@ -30,7 +30,10 @@ export class SpawnService {
   /**
    * Create a new spawn in the active profile
    */
-  static createSpawn(name: string, description?: string): SpawnOperationResult {
+  static async createSpawn(
+    name: string,
+    description?: string
+  ): Promise<SpawnOperationResult> {
     try {
       const activeProfile = SpawnProfileService.getActiveProfile();
       if (!activeProfile) {
@@ -102,7 +105,7 @@ export class SpawnService {
   /**
    * Get a specific spawn by ID from the active profile
    */
-  static getSpawn(id: string): Spawn | null {
+  static async getSpawn(id: string): Promise<Spawn | null> {
     try {
       const activeProfile = SpawnProfileService.getActiveProfile();
       if (!activeProfile) {
@@ -119,12 +122,12 @@ export class SpawnService {
   /**
    * Update an existing spawn in the active profile
    */
-  static updateSpawn(
+  static async updateSpawn(
     id: string,
     updates: Partial<
       Pick<Spawn, "name" | "description" | "trigger" | "duration" | "assets">
     >
-  ): SpawnOperationResult {
+  ): Promise<SpawnOperationResult> {
     try {
       const activeProfile = SpawnProfileService.getActiveProfile();
       if (!activeProfile) {
@@ -209,7 +212,7 @@ export class SpawnService {
   /**
    * Delete a spawn from the active profile
    */
-  static deleteSpawn(id: string): SpawnOperationResult {
+  static async deleteSpawn(id: string): Promise<SpawnOperationResult> {
     try {
       const activeProfile = SpawnProfileService.getActiveProfile();
       if (!activeProfile) {
@@ -404,7 +407,7 @@ export class SpawnService {
   /**
    * Get all spawns from the active profile
    */
-  static getAllSpawns(): Spawn[] {
+  static async getAllSpawns(): Promise<Spawn[]> {
     try {
       const activeProfile = SpawnProfileService.getActiveProfile();
       return activeProfile?.spawns || [];
@@ -417,7 +420,7 @@ export class SpawnService {
   /**
    * Get all enabled spawns from the active profile
    */
-  static getEnabledSpawns(): Spawn[] {
+  static async getEnabledSpawns(): Promise<Spawn[]> {
     try {
       const activeProfile = SpawnProfileService.getActiveProfile();
       return activeProfile?.spawns.filter((spawn) => spawn.enabled) || [];
@@ -430,12 +433,12 @@ export class SpawnService {
   /**
    * Get spawn statistics for the active profile
    */
-  static getSpawnStats(): {
+  static async getSpawnStats(): Promise<{
     totalSpawns: number;
     enabledSpawns: number;
     disabledSpawns: number;
     hasActiveProfile: boolean;
-  } {
+  }> {
     try {
       const activeProfile = SpawnProfileService.getActiveProfile();
       if (!activeProfile) {

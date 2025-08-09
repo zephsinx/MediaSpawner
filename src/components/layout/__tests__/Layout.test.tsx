@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import {
+  render,
+  screen,
+  waitForElementToBeRemoved,
+  act,
+} from "@testing-library/react";
 import Layout from "../Layout";
 import { SpawnService } from "../../../services/spawnService";
 import type { Spawn } from "../../../types/spawn";
@@ -50,13 +55,17 @@ const mockSpawns: Spawn[] = [
 describe("Layout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Set default mock return value for all tests
-    vi.mocked(SpawnService.getAllSpawns).mockReturnValue([]);
+    // Set default mock return value for all tests (async)
+    vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([]);
   });
 
   describe("Three-Panel Integration", () => {
-    it("renders the three-panel layout structure", () => {
-      const { container } = render(<Layout />);
+    it("renders the three-panel layout structure", async () => {
+      let container!: HTMLElement;
+      await act(async () => {
+        const r = render(<Layout />);
+        container = r.container as unknown as HTMLElement;
+      });
 
       // Check that the grid layout is applied
       const gridContainer = container.querySelector(".grid.grid-cols-12");
@@ -67,35 +76,47 @@ describe("Layout", () => {
       expect(panels).toHaveLength(3);
     });
 
-    it("renders spawn list with spawns when available", () => {
+    it("renders spawn list with spawns when available", async () => {
       // Mock SpawnService to return test spawns
-      vi.mocked(SpawnService.getAllSpawns).mockReturnValue(mockSpawns);
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
 
-      render(<Layout />);
+      await act(async () => {
+        render(<Layout />);
+      });
+      const loading1 = screen.queryByText("Loading spawns...");
+      if (loading1) {
+        await waitForElementToBeRemoved(loading1);
+      }
 
       // Check for spawn list header
-      expect(screen.getByText("Spawns")).toBeInTheDocument();
-      expect(screen.getByText("2 spawns")).toBeInTheDocument();
+      expect(await screen.findByText("Spawns")).toBeInTheDocument();
+      expect(await screen.findByText("2 spawns")).toBeInTheDocument();
 
       // Check for spawn items
-      expect(screen.getByText("Test Spawn 1")).toBeInTheDocument();
-      expect(screen.getByText("Test Spawn 2")).toBeInTheDocument();
+      expect(await screen.findByText("Test Spawn 1")).toBeInTheDocument();
+      expect(await screen.findByText("Test Spawn 2")).toBeInTheDocument();
       expect(screen.getByText("A test spawn for testing")).toBeInTheDocument();
       expect(screen.getByText("Another test spawn")).toBeInTheDocument();
 
       // Check for status indicators
-      expect(screen.getByText("Active")).toBeInTheDocument();
-      expect(screen.getByText("Inactive")).toBeInTheDocument();
+      expect(await screen.findByText("Active")).toBeInTheDocument();
+      expect(await screen.findByText("Inactive")).toBeInTheDocument();
     });
 
-    it("renders empty spawn list when no spawns exist", () => {
+    it("renders empty spawn list when no spawns exist", async () => {
       // Mock SpawnService to return empty array
-      vi.mocked(SpawnService.getAllSpawns).mockReturnValue([]);
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([]);
 
-      render(<Layout />);
+      await act(async () => {
+        render(<Layout />);
+      });
+      const loading2 = screen.queryByText("Loading spawns...");
+      if (loading2) {
+        await waitForElementToBeRemoved(loading2);
+      }
 
       // Check for empty state
-      expect(screen.getByText("No Spawns Found")).toBeInTheDocument();
+      expect(await screen.findByText("No Spawns Found")).toBeInTheDocument();
       expect(
         screen.getByText(
           "You haven't created any spawns yet. Create your first spawn to get started."
@@ -103,10 +124,16 @@ describe("Layout", () => {
       ).toBeInTheDocument();
     });
 
-    it("renders placeholder components for center and right panels", () => {
-      vi.mocked(SpawnService.getAllSpawns).mockReturnValue(mockSpawns);
+    it("renders placeholder components for center and right panels", async () => {
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
 
-      render(<Layout />);
+      await act(async () => {
+        render(<Layout />);
+      });
+      const loading3 = screen.queryByText("Loading spawns...");
+      if (loading3) {
+        await waitForElementToBeRemoved(loading3);
+      }
 
       // Check for configuration workspace placeholder
       expect(
@@ -123,20 +150,32 @@ describe("Layout", () => {
       ).toBeInTheDocument();
     });
 
-    it("renders placeholder icons for center and right panels", () => {
-      vi.mocked(SpawnService.getAllSpawns).mockReturnValue(mockSpawns);
+    it("renders placeholder icons for center and right panels", async () => {
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
 
-      render(<Layout />);
+      await act(async () => {
+        render(<Layout />);
+      });
+      const loading4 = screen.queryByText("Loading spawns...");
+      if (loading4) {
+        await waitForElementToBeRemoved(loading4);
+      }
 
       // Only center and right panels should have placeholder icons now
       expect(screen.getAllByText("⚙️")).toHaveLength(2); // Configuration (header + content)
       expect(screen.getAllByText("📁")).toHaveLength(2); // Asset Management (header + content)
     });
 
-    it("renders 'Coming Soon' messages for center and right panels", () => {
-      vi.mocked(SpawnService.getAllSpawns).mockReturnValue(mockSpawns);
+    it("renders 'Coming Soon' messages for center and right panels", async () => {
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
 
-      render(<Layout />);
+      await act(async () => {
+        render(<Layout />);
+      });
+      const loading5 = screen.queryByText("Loading spawns...");
+      if (loading5) {
+        await waitForElementToBeRemoved(loading5);
+      }
 
       expect(
         screen.getByText("Unified Configuration Workspace Coming Soon")
@@ -148,8 +187,12 @@ describe("Layout", () => {
   });
 
   describe("Layout Structure", () => {
-    it("applies correct width distribution", () => {
-      const { container } = render(<Layout />);
+    it("applies correct width distribution", async () => {
+      let container!: HTMLElement;
+      await act(async () => {
+        const r = render(<Layout />);
+        container = r.container as unknown as HTMLElement;
+      });
 
       const leftPanel = container.querySelector(".col-span-3");
       const centerPanel = container.querySelector(".col-span-6");
@@ -160,8 +203,12 @@ describe("Layout", () => {
       expect(rightPanel).toBeInTheDocument();
     });
 
-    it("applies minimum width constraints", () => {
-      const { container } = render(<Layout />);
+    it("applies minimum width constraints", async () => {
+      let container!: HTMLElement;
+      await act(async () => {
+        const r = render(<Layout />);
+        container = r.container as unknown as HTMLElement;
+      });
 
       const leftPanel = container.querySelector(".min-w-\\[320px\\]");
       const centerPanel = container.querySelector(".min-w-\\[640px\\]");
@@ -172,8 +219,12 @@ describe("Layout", () => {
       expect(rightPanel).toBeInTheDocument();
     });
 
-    it("applies proper styling to panels", () => {
-      const { container } = render(<Layout />);
+    it("applies proper styling to panels", async () => {
+      let container!: HTMLElement;
+      await act(async () => {
+        const r = render(<Layout />);
+        container = r.container as unknown as HTMLElement;
+      });
 
       const panels = container.querySelectorAll(".bg-white");
       expect(panels).toHaveLength(4); // Header + 3 panels
@@ -187,8 +238,12 @@ describe("Layout", () => {
   });
 
   describe("Responsive Design", () => {
-    it("maintains full height layout", () => {
-      const { container } = render(<Layout />);
+    it("maintains full height layout", async () => {
+      let container!: HTMLElement;
+      await act(async () => {
+        const r = render(<Layout />);
+        container = r.container as unknown as HTMLElement;
+      });
 
       const gridContainer = container.querySelector(
         ".h-\\[calc\\(100vh-80px\\)\\]"
@@ -196,15 +251,23 @@ describe("Layout", () => {
       expect(gridContainer).toBeInTheDocument();
     });
 
-    it("applies minimum container width", () => {
-      const { container } = render(<Layout />);
+    it("applies minimum container width", async () => {
+      let container!: HTMLElement;
+      await act(async () => {
+        const r = render(<Layout />);
+        container = r.container as unknown as HTMLElement;
+      });
 
       const gridContainer = container.querySelector(".min-w-\\[1280px\\]");
       expect(gridContainer).toBeInTheDocument();
     });
 
-    it("ensures panels have proper height containers", () => {
-      const { container } = render(<Layout />);
+    it("ensures panels have proper height containers", async () => {
+      let container!: HTMLElement;
+      await act(async () => {
+        const r = render(<Layout />);
+        container = r.container as unknown as HTMLElement;
+      });
 
       const panelContainers = container.querySelectorAll(".h-full");
       expect(panelContainers).toHaveLength(6); // 3 panels + 3 placeholder containers
@@ -212,15 +275,23 @@ describe("Layout", () => {
   });
 
   describe("Background and Container Styling", () => {
-    it("applies correct background to main container", () => {
-      const { container } = render(<Layout />);
+    it("applies correct background to main container", async () => {
+      let container!: HTMLElement;
+      await act(async () => {
+        const r = render(<Layout />);
+        container = r.container as unknown as HTMLElement;
+      });
 
       const mainContainer = container.firstChild as HTMLElement;
       expect(mainContainer).toHaveClass("min-h-screen", "bg-gray-50");
     });
 
-    it("applies overflow handling to prevent content overflow", () => {
-      const { container } = render(<Layout />);
+    it("applies overflow handling to prevent content overflow", async () => {
+      let container!: HTMLElement;
+      await act(async () => {
+        const r = render(<Layout />);
+        container = r.container as unknown as HTMLElement;
+      });
 
       const panels = container.querySelectorAll(".overflow-hidden");
       expect(panels).toHaveLength(3);

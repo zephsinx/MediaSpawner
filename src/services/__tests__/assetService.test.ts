@@ -191,10 +191,10 @@ describe("AssetService Spawn-Specific Settings", () => {
       vi.spyOn(AssetService, "getAssetById").mockReturnValue(mockAsset);
     });
 
-    it("successfully saves settings when spawn and asset exist", () => {
+    it("successfully saves settings when spawn and asset exist", async () => {
       localStorageMock.getItem.mockReturnValue(null);
 
-      const result = AssetService.setSpawnAssetSettings(
+      const result = await AssetService.setSpawnAssetSettings(
         "spawn-1",
         "asset-1",
         mockSpawnAssetSettings
@@ -216,10 +216,10 @@ describe("AssetService Spawn-Specific Settings", () => {
       );
     });
 
-    it("returns error when spawn doesn't exist", () => {
-      mockSpawnService.getSpawn.mockReturnValue(null);
+    it("returns error when spawn doesn't exist", async () => {
+      mockSpawnService.getSpawn.mockResolvedValue(null);
 
-      const result = AssetService.setSpawnAssetSettings(
+      const result = await AssetService.setSpawnAssetSettings(
         "invalid-spawn",
         "asset-1",
         mockSpawnAssetSettings
@@ -229,10 +229,10 @@ describe("AssetService Spawn-Specific Settings", () => {
       expect(result.error).toBe('Spawn with ID "invalid-spawn" not found');
     });
 
-    it("returns error when asset doesn't exist", () => {
+    it("returns error when asset doesn't exist", async () => {
       vi.spyOn(AssetService, "getAssetById").mockReturnValue(undefined);
 
-      const result = AssetService.setSpawnAssetSettings(
+      const result = await AssetService.setSpawnAssetSettings(
         "spawn-1",
         "invalid-asset",
         mockSpawnAssetSettings
@@ -242,12 +242,12 @@ describe("AssetService Spawn-Specific Settings", () => {
       expect(result.error).toBe('Asset with ID "invalid-asset" not found');
     });
 
-    it("handles localStorage write errors", () => {
+    it("handles localStorage write errors", async () => {
       localStorageMock.setItem.mockImplementation(() => {
         throw new Error("localStorage write error");
       });
 
-      const result = AssetService.setSpawnAssetSettings(
+      const result = await AssetService.setSpawnAssetSettings(
         "spawn-1",
         "asset-1",
         mockSpawnAssetSettings
@@ -257,7 +257,7 @@ describe("AssetService Spawn-Specific Settings", () => {
       expect(result.error).toBe("localStorage write error");
     });
 
-    it("updates existing settings correctly", () => {
+    it("updates existing settings correctly", async () => {
       const existingSettings = {
         spawns: {
           "spawn-1": {
@@ -280,7 +280,7 @@ describe("AssetService Spawn-Specific Settings", () => {
         duration: 3000,
         properties: { volume: 0.9 },
       };
-      const result = AssetService.setSpawnAssetSettings(
+      const result = await AssetService.setSpawnAssetSettings(
         "spawn-1",
         "asset-1",
         newSettings
@@ -306,10 +306,10 @@ describe("AssetService Spawn-Specific Settings", () => {
       );
     });
 
-    it("handles JSON parsing errors in existing settings", () => {
+    it("handles JSON parsing errors in existing settings", async () => {
       localStorageMock.getItem.mockReturnValue("invalid json");
 
-      const result = AssetService.setSpawnAssetSettings(
+      const result = await AssetService.setSpawnAssetSettings(
         "spawn-1",
         "asset-1",
         mockSpawnAssetSettings
@@ -328,8 +328,8 @@ describe("AssetService Spawn-Specific Settings", () => {
       vi.spyOn(AssetService, "getSpawnAssetSettings").mockReturnValue(null);
     });
 
-    it("returns spawn defaults when no overrides exist", () => {
-      const result = AssetService.getResolvedAssetSettings(
+    it("returns spawn defaults when no overrides exist", async () => {
+      const result = await AssetService.getResolvedAssetSettings(
         "spawn-1",
         "asset-1"
       );
@@ -341,12 +341,12 @@ describe("AssetService Spawn-Specific Settings", () => {
       });
     });
 
-    it("returns overrides when they exist (highest priority)", () => {
+    it("returns overrides when they exist (highest priority)", async () => {
       vi.spyOn(AssetService, "getSpawnAssetSettings").mockReturnValue(
         mockSpawnAssetSettings
       );
 
-      const result = AssetService.getResolvedAssetSettings(
+      const result = await AssetService.getResolvedAssetSettings(
         "spawn-1",
         "asset-1"
       );
@@ -362,10 +362,10 @@ describe("AssetService Spawn-Specific Settings", () => {
       });
     });
 
-    it("returns null when spawn doesn't exist", () => {
-      mockSpawnService.getSpawn.mockReturnValue(null);
+    it("returns null when spawn doesn't exist", async () => {
+      mockSpawnService.getSpawn.mockResolvedValue(null);
 
-      const result = AssetService.getResolvedAssetSettings(
+      const result = await AssetService.getResolvedAssetSettings(
         "invalid-spawn",
         "asset-1"
       );
@@ -373,10 +373,10 @@ describe("AssetService Spawn-Specific Settings", () => {
       expect(result).toBeNull();
     });
 
-    it("returns null when asset doesn't exist", () => {
+    it("returns null when asset doesn't exist", async () => {
       vi.spyOn(AssetService, "getAssetById").mockReturnValue(undefined);
 
-      const result = AssetService.getResolvedAssetSettings(
+      const result = await AssetService.getResolvedAssetSettings(
         "spawn-1",
         "invalid-asset"
       );
@@ -384,7 +384,7 @@ describe("AssetService Spawn-Specific Settings", () => {
       expect(result).toBeNull();
     });
 
-    it("handles missing spawn defaults gracefully", () => {
+    it("handles missing spawn defaults gracefully", async () => {
       const spawnWithoutDefaults = {
         ...mockSpawn,
         duration: undefined as unknown as number,
@@ -392,7 +392,7 @@ describe("AssetService Spawn-Specific Settings", () => {
       };
       mockSpawnService.getSpawn.mockReturnValue(spawnWithoutDefaults);
 
-      const result = AssetService.getResolvedAssetSettings(
+      const result = await AssetService.getResolvedAssetSettings(
         "spawn-1",
         "asset-1"
       );
@@ -404,7 +404,7 @@ describe("AssetService Spawn-Specific Settings", () => {
       });
     });
 
-    it("handles missing asset defaults gracefully", () => {
+    it("handles missing asset defaults gracefully", async () => {
       const assetWithoutDefaults = {
         ...mockAsset,
         properties: undefined as unknown as MediaAssetProperties,
@@ -413,7 +413,7 @@ describe("AssetService Spawn-Specific Settings", () => {
         assetWithoutDefaults
       );
 
-      const result = AssetService.getResolvedAssetSettings(
+      const result = await AssetService.getResolvedAssetSettings(
         "spawn-1",
         "asset-1"
       );
@@ -425,12 +425,12 @@ describe("AssetService Spawn-Specific Settings", () => {
       });
     });
 
-    it("handles errors gracefully", () => {
+    it("handles errors gracefully", async () => {
       mockSpawnService.getSpawn.mockImplementation(() => {
         throw new Error("Spawn service error");
       });
 
-      const result = AssetService.getResolvedAssetSettings(
+      const result = await AssetService.getResolvedAssetSettings(
         "spawn-1",
         "asset-1"
       );
@@ -666,7 +666,7 @@ describe("AssetService Spawn-Specific Settings", () => {
       vi.spyOn(AssetService, "getAssetById").mockReturnValue(mockAsset);
     });
 
-    it("removes settings for deleted spawns", () => {
+    it("removes settings for deleted spawns", async () => {
       const allSettings = {
         spawns: {
           "spawn-1": {
@@ -683,10 +683,10 @@ describe("AssetService Spawn-Specific Settings", () => {
       };
       localStorageMock.getItem.mockReturnValue(JSON.stringify(allSettings));
       mockSpawnService.getSpawn
-        .mockReturnValueOnce(mockSpawn) // spawn-1 exists
-        .mockReturnValueOnce(null); // spawn-2 doesn't exist
+        .mockResolvedValueOnce(mockSpawn) // spawn-1 exists
+        .mockResolvedValueOnce(null); // spawn-2 doesn't exist
 
-      const result = AssetService.cleanupOrphanedSpawnAssetSettings();
+      const result = await AssetService.cleanupOrphanedSpawnAssetSettings();
 
       expect(result.removedSettings).toBe(1);
       expect(result.remainingSettings).toBe(1);
@@ -704,7 +704,7 @@ describe("AssetService Spawn-Specific Settings", () => {
       );
     });
 
-    it("removes settings for deleted assets", () => {
+    it("removes settings for deleted assets", async () => {
       const allSettings = {
         spawns: {
           "spawn-1": {
@@ -720,7 +720,7 @@ describe("AssetService Spawn-Specific Settings", () => {
         .mockReturnValueOnce(mockAsset) // asset-1 exists
         .mockReturnValueOnce(undefined); // asset-2 doesn't exist
 
-      const result = AssetService.cleanupOrphanedSpawnAssetSettings();
+      const result = await AssetService.cleanupOrphanedSpawnAssetSettings();
 
       expect(result.removedSettings).toBe(1);
       expect(result.remainingSettings).toBe(1);
@@ -738,7 +738,7 @@ describe("AssetService Spawn-Specific Settings", () => {
       );
     });
 
-    it("keeps settings for valid spawn-asset combinations", () => {
+    it("keeps settings for valid spawn-asset combinations", async () => {
       const allSettings = {
         spawns: {
           "spawn-1": {
@@ -755,7 +755,7 @@ describe("AssetService Spawn-Specific Settings", () => {
       };
       localStorageMock.getItem.mockReturnValue(JSON.stringify(allSettings));
 
-      const result = AssetService.cleanupOrphanedSpawnAssetSettings();
+      const result = await AssetService.cleanupOrphanedSpawnAssetSettings();
 
       expect(result.removedSettings).toBe(0);
       expect(result.remainingSettings).toBe(2);
@@ -765,21 +765,21 @@ describe("AssetService Spawn-Specific Settings", () => {
       );
     });
 
-    it("returns correct counts when no settings exist", () => {
+    it("returns correct counts when no settings exist", async () => {
       localStorageMock.getItem.mockReturnValue(null);
 
-      const result = AssetService.cleanupOrphanedSpawnAssetSettings();
+      const result = await AssetService.cleanupOrphanedSpawnAssetSettings();
 
       expect(result.removedSettings).toBe(0);
       expect(result.remainingSettings).toBe(0);
     });
 
-    it("handles localStorage errors gracefully", () => {
+    it("handles localStorage errors gracefully", async () => {
       localStorageMock.getItem.mockImplementation(() => {
         throw new Error("localStorage error");
       });
 
-      const result = AssetService.cleanupOrphanedSpawnAssetSettings();
+      const result = await AssetService.cleanupOrphanedSpawnAssetSettings();
 
       expect(result.removedSettings).toBe(0);
       expect(result.remainingSettings).toBe(0);
@@ -789,10 +789,10 @@ describe("AssetService Spawn-Specific Settings", () => {
       );
     });
 
-    it("handles JSON parsing errors", () => {
+    it("handles JSON parsing errors", async () => {
       localStorageMock.getItem.mockReturnValue("invalid json");
 
-      const result = AssetService.cleanupOrphanedSpawnAssetSettings();
+      const result = await AssetService.cleanupOrphanedSpawnAssetSettings();
 
       expect(result.removedSettings).toBe(0);
       expect(result.remainingSettings).toBe(0);
@@ -818,20 +818,20 @@ describe("AssetService Spawn-Specific Settings", () => {
       );
     });
 
-    it("works correctly with SpawnService.getSpawn()", () => {
+    it("works correctly with SpawnService.getSpawn()", async () => {
       vi.spyOn(AssetService, "getAssetById").mockReturnValue(mockAsset);
       vi.spyOn(AssetService, "getSpawnAssetSettings").mockReturnValue(null);
 
-      AssetService.getResolvedAssetSettings("spawn-1", "asset-1");
+      await AssetService.getResolvedAssetSettings("spawn-1", "asset-1");
 
       expect(mockSpawnService.getSpawn).toHaveBeenCalledWith("spawn-1");
     });
 
-    it("works correctly with AssetService.getAssetById()", () => {
+    it("works correctly with AssetService.getAssetById()", async () => {
       vi.spyOn(AssetService, "getAssetById").mockReturnValue(mockAsset);
       vi.spyOn(AssetService, "getSpawnAssetSettings").mockReturnValue(null);
 
-      AssetService.getResolvedAssetSettings("spawn-1", "asset-1");
+      await AssetService.getResolvedAssetSettings("spawn-1", "asset-1");
 
       expect(AssetService.getAssetById).toHaveBeenCalledWith("asset-1");
     });

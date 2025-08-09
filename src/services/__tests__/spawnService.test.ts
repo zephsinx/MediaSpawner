@@ -134,11 +134,14 @@ describe("SpawnService", () => {
   });
 
   describe("createSpawn", () => {
-    it("creates spawn successfully with name and description", () => {
+    it("creates spawn successfully with name and description", async () => {
       const localStorage = getLocalStorageMock();
       localStorage.setItem.mockImplementation(() => {});
 
-      const result = SpawnService.createSpawn("New Spawn", "New description");
+      const result = await SpawnService.createSpawn(
+        "New Spawn",
+        "New description"
+      );
 
       expect(result.success).toBe(true);
       expect(result.spawn).toBeDefined();
@@ -155,11 +158,11 @@ describe("SpawnService", () => {
       );
     });
 
-    it("creates spawn successfully with name only", () => {
+    it("creates spawn successfully with name only", async () => {
       const localStorage = getLocalStorageMock();
       localStorage.setItem.mockImplementation(() => {});
 
-      const result = SpawnService.createSpawn("New Spawn");
+      const result = await SpawnService.createSpawn("New Spawn");
 
       expect(result.success).toBe(true);
       expect(mockCreateSpawn).toHaveBeenCalledWith("New Spawn", undefined);
@@ -168,7 +171,7 @@ describe("SpawnService", () => {
     it("fails when no active profile exists", async () => {
       mockSpawnProfileService.getActiveProfile.mockReturnValue(null);
 
-      const result = SpawnService.createSpawn("New Spawn");
+      const result = await SpawnService.createSpawn("New Spawn");
 
       expect(result.success).toBe(false);
       expect(result.error).toBe(
@@ -176,22 +179,22 @@ describe("SpawnService", () => {
       );
     });
 
-    it("fails when spawn name is empty", () => {
-      const result = SpawnService.createSpawn("");
+    it("fails when spawn name is empty", async () => {
+      const result = await SpawnService.createSpawn("");
 
       expect(result.success).toBe(false);
       expect(result.error).toBe("Spawn name is required");
     });
 
-    it("fails when spawn name is whitespace only", () => {
-      const result = SpawnService.createSpawn("   ");
+    it("fails when spawn name is whitespace only", async () => {
+      const result = await SpawnService.createSpawn("   ");
 
       expect(result.success).toBe(false);
       expect(result.error).toBe("Spawn name is required");
     });
 
-    it("fails when spawn name already exists in profile", () => {
-      const result = SpawnService.createSpawn("Test Spawn");
+    it("fails when spawn name already exists in profile", async () => {
+      const result = await SpawnService.createSpawn("Test Spawn");
 
       expect(result.success).toBe(false);
       expect(result.error).toBe(
@@ -199,13 +202,13 @@ describe("SpawnService", () => {
       );
     });
 
-    it("fails when spawn validation fails", () => {
+    it("fails when spawn validation fails", async () => {
       mockValidateSpawn.mockReturnValue({
         isValid: false,
         errors: ["Invalid spawn data"],
       });
 
-      const result = SpawnService.createSpawn("New Spawn");
+      const result = await SpawnService.createSpawn("New Spawn");
 
       expect(result.success).toBe(false);
       expect(result.error).toBe("Invalid spawn data: Invalid spawn data");
@@ -217,19 +220,19 @@ describe("SpawnService", () => {
         throw new Error("Storage error");
       });
 
-      const result = SpawnService.createSpawn("New Spawn");
+      const result = await SpawnService.createSpawn("New Spawn");
 
       expect(result.success).toBe(false);
       expect(result.error).toBe("Storage error");
     });
 
-    it("fails when profile validation fails", () => {
+    it("fails when profile validation fails", async () => {
       mockValidateSpawnProfile.mockReturnValue({
         isValid: false,
         errors: ["Invalid profile"],
       });
 
-      const result = SpawnService.createSpawn("New Spawn");
+      const result = await SpawnService.createSpawn("New Spawn");
 
       expect(result.success).toBe(false);
       expect(result.error).toBe("Invalid profile data: Invalid profile");
@@ -240,7 +243,7 @@ describe("SpawnService", () => {
         throw new Error("Unexpected error");
       });
 
-      const result = SpawnService.createSpawn("New Spawn");
+      const result = await SpawnService.createSpawn("New Spawn");
 
       expect(result.success).toBe(false);
       expect(result.error).toBe("Unexpected error");
@@ -248,32 +251,32 @@ describe("SpawnService", () => {
   });
 
   describe("getSpawn", () => {
-    it("returns spawn when found in active profile", () => {
-      const result = SpawnService.getSpawn("spawn-1");
+    it("returns spawn when found in active profile", async () => {
+      const result = await SpawnService.getSpawn("spawn-1");
 
       expect(result).toEqual(mockSpawn);
     });
 
-    it("returns null when spawn not found", () => {
-      const result = SpawnService.getSpawn("non-existent");
+    it("returns null when spawn not found", async () => {
+      const result = await SpawnService.getSpawn("non-existent");
 
       expect(result).toBeNull();
     });
 
-    it("returns null when no active profile", () => {
+    it("returns null when no active profile", async () => {
       mockSpawnProfileService.getActiveProfile.mockReturnValue(null);
 
-      const result = SpawnService.getSpawn("spawn-1");
+      const result = await SpawnService.getSpawn("spawn-1");
 
       expect(result).toBeNull();
     });
 
-    it("handles exceptions gracefully", () => {
+    it("handles exceptions gracefully", async () => {
       mockSpawnProfileService.getActiveProfile.mockImplementation(() => {
         throw new Error("Profile error");
       });
 
-      const result = SpawnService.getSpawn("spawn-1");
+      const result = await SpawnService.getSpawn("spawn-1");
 
       expect(result).toBeNull();
       expect(console.error).toHaveBeenCalledWith(
@@ -284,11 +287,11 @@ describe("SpawnService", () => {
   });
 
   describe("updateSpawn", () => {
-    it("updates spawn name successfully", () => {
+    it("updates spawn name successfully", async () => {
       const localStorage = getLocalStorageMock();
       localStorage.setItem.mockImplementation(() => {});
 
-      const result = SpawnService.updateSpawn("spawn-1", {
+      const result = await SpawnService.updateSpawn("spawn-1", {
         name: "Updated Name",
       });
 
@@ -297,11 +300,11 @@ describe("SpawnService", () => {
       expect(result.spawn?.lastModified).toBe(1234567890000);
     });
 
-    it("updates spawn description successfully", () => {
+    it("updates spawn description successfully", async () => {
       const localStorage = getLocalStorageMock();
       localStorage.setItem.mockImplementation(() => {});
 
-      const result = SpawnService.updateSpawn("spawn-1", {
+      const result = await SpawnService.updateSpawn("spawn-1", {
         description: "Updated description",
       });
 
@@ -309,7 +312,7 @@ describe("SpawnService", () => {
       expect(result.spawn?.description).toBe("Updated description");
     });
 
-    it("updates spawn trigger successfully", () => {
+    it("updates spawn trigger successfully", async () => {
       const localStorage = getLocalStorageMock();
       localStorage.setItem.mockImplementation(() => {});
 
@@ -320,7 +323,7 @@ describe("SpawnService", () => {
         priority: 1,
       };
 
-      const result = SpawnService.updateSpawn("spawn-1", {
+      const result = await SpawnService.updateSpawn("spawn-1", {
         trigger: newTrigger,
       });
 
@@ -328,11 +331,13 @@ describe("SpawnService", () => {
       expect(result.spawn?.trigger).toEqual(newTrigger);
     });
 
-    it("updates spawn duration successfully", () => {
+    it("updates spawn duration successfully", async () => {
       const localStorage = getLocalStorageMock();
       localStorage.setItem.mockImplementation(() => {});
 
-      const result = SpawnService.updateSpawn("spawn-1", { duration: 10000 });
+      const result = await SpawnService.updateSpawn("spawn-1", {
+        duration: 10000,
+      });
 
       expect(result.success).toBe(true);
       expect(result.spawn?.duration).toBe(10000);
@@ -341,7 +346,9 @@ describe("SpawnService", () => {
     it("fails when no active profile exists", async () => {
       mockSpawnProfileService.getActiveProfile.mockReturnValue(null);
 
-      const result = SpawnService.updateSpawn("spawn-1", { name: "New Name" });
+      const result = await SpawnService.updateSpawn("spawn-1", {
+        name: "New Name",
+      });
 
       expect(result.success).toBe(false);
       expect(result.error).toBe(
@@ -349,8 +356,8 @@ describe("SpawnService", () => {
       );
     });
 
-    it("fails when spawn not found", () => {
-      const result = SpawnService.updateSpawn("non-existent", {
+    it("fails when spawn not found", async () => {
+      const result = await SpawnService.updateSpawn("non-existent", {
         name: "New Name",
       });
 
@@ -360,7 +367,7 @@ describe("SpawnService", () => {
       );
     });
 
-    it("fails when name conflicts with existing spawn", () => {
+    it("fails when name conflicts with existing spawn", async () => {
       // Add another spawn to the profile
       const secondSpawn = { ...mockSpawn, id: "spawn-2", name: "Second Spawn" };
       mockSpawnProfileService.getActiveProfile.mockReturnValue({
@@ -368,7 +375,7 @@ describe("SpawnService", () => {
         spawns: [mockSpawn, secondSpawn],
       });
 
-      const result = SpawnService.updateSpawn("spawn-1", {
+      const result = await SpawnService.updateSpawn("spawn-1", {
         name: "Second Spawn",
       });
 
@@ -378,24 +385,26 @@ describe("SpawnService", () => {
       );
     });
 
-    it("allows updating to same name", () => {
+    it("allows updating to same name", async () => {
       const localStorage = getLocalStorageMock();
       localStorage.setItem.mockImplementation(() => {});
 
-      const result = SpawnService.updateSpawn("spawn-1", {
+      const result = await SpawnService.updateSpawn("spawn-1", {
         name: "Test Spawn",
       });
 
       expect(result.success).toBe(true);
     });
 
-    it("fails when validation fails", () => {
+    it("fails when validation fails", async () => {
       mockValidateSpawn.mockReturnValue({
         isValid: false,
         errors: ["Invalid duration"],
       });
 
-      const result = SpawnService.updateSpawn("spawn-1", { duration: -1000 });
+      const result = await SpawnService.updateSpawn("spawn-1", {
+        duration: -1000,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error).toBe("Invalid spawn data: Invalid duration");
@@ -407,7 +416,9 @@ describe("SpawnService", () => {
         throw new Error("Storage error");
       });
 
-      const result = SpawnService.updateSpawn("spawn-1", { name: "New Name" });
+      const result = await SpawnService.updateSpawn("spawn-1", {
+        name: "New Name",
+      });
 
       expect(result.success).toBe(false);
       expect(result.error).toBe("Storage error");
@@ -418,7 +429,9 @@ describe("SpawnService", () => {
         throw new Error("Unexpected error");
       });
 
-      const result = SpawnService.updateSpawn("spawn-1", { name: "New Name" });
+      const result = await SpawnService.updateSpawn("spawn-1", {
+        name: "New Name",
+      });
 
       expect(result.success).toBe(false);
       expect(result.error).toBe("Unexpected error");
@@ -426,11 +439,11 @@ describe("SpawnService", () => {
   });
 
   describe("deleteSpawn", () => {
-    it("deletes spawn successfully", () => {
+    it("deletes spawn successfully", async () => {
       const localStorage = getLocalStorageMock();
       localStorage.setItem.mockImplementation(() => {});
 
-      const result = SpawnService.deleteSpawn("spawn-1");
+      const result = await SpawnService.deleteSpawn("spawn-1");
 
       expect(result.success).toBe(true);
       expect(result.spawn).toEqual(mockSpawn);
@@ -440,7 +453,7 @@ describe("SpawnService", () => {
       );
     });
 
-    it("reorders remaining spawns correctly", () => {
+    it("reorders remaining spawns correctly", async () => {
       const localStorage = getLocalStorageMock();
       localStorage.setItem.mockImplementation(() => {});
 
@@ -461,7 +474,7 @@ describe("SpawnService", () => {
         spawns: [mockSpawn, secondSpawn, thirdSpawn],
       });
 
-      SpawnService.deleteSpawn("spawn-1");
+      await SpawnService.deleteSpawn("spawn-1");
 
       // Verify the saved data has reordered spawns
       const savedData = JSON.parse(localStorage.setItem.mock.calls[0][1]);
@@ -473,7 +486,7 @@ describe("SpawnService", () => {
     it("fails when no active profile exists", async () => {
       mockSpawnProfileService.getActiveProfile.mockReturnValue(null);
 
-      const result = SpawnService.deleteSpawn("spawn-1");
+      const result = await SpawnService.deleteSpawn("spawn-1");
 
       expect(result.success).toBe(false);
       expect(result.error).toBe(
@@ -481,8 +494,8 @@ describe("SpawnService", () => {
       );
     });
 
-    it("fails when spawn not found", () => {
-      const result = SpawnService.deleteSpawn("non-existent");
+    it("fails when spawn not found", async () => {
+      const result = await SpawnService.deleteSpawn("non-existent");
 
       expect(result.success).toBe(false);
       expect(result.error).toBe(
@@ -496,7 +509,7 @@ describe("SpawnService", () => {
         throw new Error("Storage error");
       });
 
-      const result = SpawnService.deleteSpawn("spawn-1");
+      const result = await SpawnService.deleteSpawn("spawn-1");
 
       expect(result.success).toBe(false);
       expect(result.error).toBe("Storage error");
@@ -507,7 +520,7 @@ describe("SpawnService", () => {
         throw new Error("Unexpected error");
       });
 
-      const result = SpawnService.deleteSpawn("spawn-1");
+      const result = await SpawnService.deleteSpawn("spawn-1");
 
       expect(result.success).toBe(false);
       expect(result.error).toBe("Unexpected error");
@@ -659,36 +672,36 @@ describe("SpawnService", () => {
   });
 
   describe("getAllSpawns", () => {
-    it("returns all spawns from active profile", () => {
-      const result = SpawnService.getAllSpawns();
+    it("returns all spawns from active profile", async () => {
+      const result = await SpawnService.getAllSpawns();
 
       expect(result).toEqual([mockSpawn]);
     });
 
-    it("returns empty array when no active profile", () => {
+    it("returns empty array when no active profile", async () => {
       mockSpawnProfileService.getActiveProfile.mockReturnValue(null);
 
-      const result = SpawnService.getAllSpawns();
+      const result = await SpawnService.getAllSpawns();
 
       expect(result).toEqual([]);
     });
 
-    it("returns empty array when active profile has no spawns", () => {
+    it("returns empty array when active profile has no spawns", async () => {
       mockSpawnProfileService.getActiveProfile.mockReturnValue(
         mockEmptyProfile
       );
 
-      const result = SpawnService.getAllSpawns();
+      const result = await SpawnService.getAllSpawns();
 
       expect(result).toEqual([]);
     });
 
-    it("handles exceptions gracefully", () => {
+    it("handles exceptions gracefully", async () => {
       mockSpawnProfileService.getActiveProfile.mockImplementation(() => {
         throw new Error("Profile error");
       });
 
-      const result = SpawnService.getAllSpawns();
+      const result = await SpawnService.getAllSpawns();
 
       expect(result).toEqual([]);
       expect(console.error).toHaveBeenCalledWith(
@@ -699,7 +712,7 @@ describe("SpawnService", () => {
   });
 
   describe("getEnabledSpawns", () => {
-    it("returns only enabled spawns", () => {
+    it("returns only enabled spawns", async () => {
       const disabledSpawn = {
         ...mockSpawn,
         id: "spawn-2",
@@ -711,38 +724,38 @@ describe("SpawnService", () => {
         spawns: [mockSpawn, disabledSpawn],
       });
 
-      const result = SpawnService.getEnabledSpawns();
+      const result = await SpawnService.getEnabledSpawns();
 
       expect(result).toEqual([mockSpawn]);
       expect(result).toHaveLength(1);
     });
 
-    it("returns empty array when no enabled spawns", () => {
+    it("returns empty array when no enabled spawns", async () => {
       const disabledSpawn = { ...mockSpawn, enabled: false };
       mockSpawnProfileService.getActiveProfile.mockReturnValue({
         ...mockActiveProfile,
         spawns: [disabledSpawn],
       });
 
-      const result = SpawnService.getEnabledSpawns();
+      const result = await SpawnService.getEnabledSpawns();
 
       expect(result).toEqual([]);
     });
 
-    it("returns empty array when no active profile", () => {
+    it("returns empty array when no active profile", async () => {
       mockSpawnProfileService.getActiveProfile.mockReturnValue(null);
 
-      const result = SpawnService.getEnabledSpawns();
+      const result = await SpawnService.getEnabledSpawns();
 
       expect(result).toEqual([]);
     });
 
-    it("handles exceptions gracefully", () => {
+    it("handles exceptions gracefully", async () => {
       mockSpawnProfileService.getActiveProfile.mockImplementation(() => {
         throw new Error("Profile error");
       });
 
-      const result = SpawnService.getEnabledSpawns();
+      const result = await SpawnService.getEnabledSpawns();
 
       expect(result).toEqual([]);
       expect(console.error).toHaveBeenCalledWith(
@@ -753,7 +766,7 @@ describe("SpawnService", () => {
   });
 
   describe("getSpawnStats", () => {
-    it("returns correct statistics for profile with spawns", () => {
+    it("returns correct statistics for profile with spawns", async () => {
       const disabledSpawn = {
         ...mockSpawn,
         id: "spawn-2",
@@ -765,7 +778,7 @@ describe("SpawnService", () => {
         spawns: [mockSpawn, disabledSpawn],
       });
 
-      const result = SpawnService.getSpawnStats();
+      const result = await SpawnService.getSpawnStats();
 
       expect(result).toEqual({
         totalSpawns: 2,
@@ -775,12 +788,12 @@ describe("SpawnService", () => {
       });
     });
 
-    it("returns correct statistics for empty profile", () => {
+    it("returns correct statistics for empty profile", async () => {
       mockSpawnProfileService.getActiveProfile.mockReturnValue(
         mockEmptyProfile
       );
 
-      const result = SpawnService.getSpawnStats();
+      const result = await SpawnService.getSpawnStats();
 
       expect(result).toEqual({
         totalSpawns: 0,
@@ -790,10 +803,10 @@ describe("SpawnService", () => {
       });
     });
 
-    it("returns correct statistics when no active profile", () => {
+    it("returns correct statistics when no active profile", async () => {
       mockSpawnProfileService.getActiveProfile.mockReturnValue(null);
 
-      const result = SpawnService.getSpawnStats();
+      const result = await SpawnService.getSpawnStats();
 
       expect(result).toEqual({
         totalSpawns: 0,
@@ -803,12 +816,12 @@ describe("SpawnService", () => {
       });
     });
 
-    it("handles exceptions gracefully", () => {
+    it("handles exceptions gracefully", async () => {
       mockSpawnProfileService.getActiveProfile.mockImplementation(() => {
         throw new Error("Profile error");
       });
 
-      const result = SpawnService.getSpawnStats();
+      const result = await SpawnService.getSpawnStats();
 
       expect(result).toEqual({
         totalSpawns: 0,
@@ -824,29 +837,29 @@ describe("SpawnService", () => {
   });
 
   describe("edge cases for private updateProfileSpawns method", () => {
-    it("fails when profile ID not found in profiles array", () => {
+    it("fails when profile ID not found in profiles array", async () => {
       // Mock getAllProfiles to return a different profile than the active one
       mockSpawnProfileService.getAllProfiles.mockReturnValue([
         { ...mockActiveProfile, id: "different-profile-id" },
       ]);
 
-      const result = SpawnService.createSpawn("New Spawn");
+      const result = await SpawnService.createSpawn("New Spawn");
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Profile with ID "profile-1" not found');
     });
 
-    it("fails when profiles array is empty", () => {
+    it("fails when profiles array is empty", async () => {
       // Mock getAllProfiles to return empty array
       mockSpawnProfileService.getAllProfiles.mockReturnValue([]);
 
-      const result = SpawnService.createSpawn("New Spawn");
+      const result = await SpawnService.createSpawn("New Spawn");
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Profile with ID "profile-1" not found');
     });
 
-    it("fails when profile validation fails in updateProfileSpawns", () => {
+    it("fails when profile validation fails in updateProfileSpawns", async () => {
       const localStorage = getLocalStorageMock();
       localStorage.setItem.mockImplementation(() => {});
 
@@ -856,7 +869,7 @@ describe("SpawnService", () => {
         errors: ["Invalid profile data"],
       });
 
-      const result = SpawnService.createSpawn("New Spawn");
+      const result = await SpawnService.createSpawn("New Spawn");
 
       expect(result.success).toBe(false);
       expect(result.error).toBe("Invalid profile data: Invalid profile data");

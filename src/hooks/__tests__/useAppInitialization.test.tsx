@@ -120,6 +120,7 @@ describe("useAppInitialization", () => {
   });
 
   it("should handle initialization exceptions", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     // Mock that profiles haven't been initialized
     localStorageMock.getItem.mockReturnValue(null);
 
@@ -138,5 +139,6 @@ describe("useAppInitialization", () => {
     });
 
     expect(result.current.error).toBe("Initialization failed");
+    errorSpy.mockRestore();
   });
 });

@@ -451,14 +451,14 @@ export class AssetService {
   /**
    * Set spawn-specific asset settings
    */
-  static setSpawnAssetSettings(
+  static async setSpawnAssetSettings(
     spawnId: string,
     assetId: string,
     settings: SpawnAssetOverrides
-  ): SpawnAssetSettingsResult {
+  ): Promise<SpawnAssetSettingsResult> {
     try {
       // Validate that the spawn and asset exist
-      const spawn = SpawnService.getSpawn(spawnId);
+      const spawn = await SpawnService.getSpawn(spawnId);
       if (!spawn) {
         return {
           success: false,
@@ -513,17 +513,17 @@ export class AssetService {
    * Get resolved asset settings for a specific spawn-asset combination
    * This implements the inheritance model: Spawn defaults → Asset defaults → SpawnAsset overrides
    */
-  static getResolvedAssetSettings(
+  static async getResolvedAssetSettings(
     spawnId: string,
     assetId: string
-  ): {
+  ): Promise<{
     duration: number;
     trigger: SpawnTrigger;
     properties: MediaAssetProperties;
-  } | null {
+  } | null> {
     try {
       // Get spawn defaults
-      const spawn = SpawnService.getSpawn(spawnId);
+      const spawn = await SpawnService.getSpawn(spawnId);
       if (!spawn) {
         return null;
       }
@@ -745,14 +745,14 @@ export class AssetService {
   /**
    * Clean up orphaned spawn asset settings (when spawns or assets are deleted)
    */
-  static cleanupOrphanedSpawnAssetSettings(): {
+  static async cleanupOrphanedSpawnAssetSettings(): Promise<{
     removedSettings: number;
     remainingSettings: number;
-  } {
+  }> {
     try {
       const stored = localStorage.getItem(SPAWN_ASSET_SETTINGS_KEY);
       if (!stored) {
-        return { removedSettings: 0, remainingSettings: 0 };
+        return Promise.resolve({ removedSettings: 0, remainingSettings: 0 });
       }
 
       const structure: SpawnAssetSettingsStructure = JSON.parse(stored);
@@ -760,30 +760,25 @@ export class AssetService {
       let removedCount = 0;
 
       // Check each spawn and its assets to ensure they still exist
-      Object.entries(structure.spawns).forEach(([spawnId, spawnData]) => {
-        const spawn = SpawnService.getSpawn(spawnId);
+      for (const [spawnId, spawnData] of Object.entries(structure.spawns)) {
+        const spawn = await SpawnService.getSpawn(spawnId);
         if (!spawn) {
-          // Spawn doesn't exist, count all its assets as removed
           removedCount += Object.keys(spawnData.assets).length;
-          return;
+          continue;
         }
-
-        // Check each asset in this spawn
         const validAssets: Record<string, SpawnAssetOverrides> = {};
-        Object.entries(spawnData.assets).forEach(([assetId, settings]) => {
+        for (const [assetId, settings] of Object.entries(spawnData.assets)) {
           const asset = this.getAssetById(assetId);
           if (asset) {
             validAssets[assetId] = settings;
           } else {
             removedCount++;
           }
-        });
-
-        // Only add spawn if it has valid assets
+        }
         if (Object.keys(validAssets).length > 0) {
           validStructure.spawns[spawnId] = { assets: validAssets };
         }
-      });
+      }
 
       // Save back only valid structure
       localStorage.setItem(
@@ -799,13 +794,13 @@ export class AssetService {
         0
       );
 
-      return {
+      return Promise.resolve({
         removedSettings: removedCount,
         remainingSettings,
-      };
+      });
     } catch (error) {
       console.error("Failed to cleanup orphaned spawn asset settings:", error);
-      return { removedSettings: 0, remainingSettings: 0 };
+      return Promise.resolve({ removedSettings: 0, remainingSettings: 0 });
     }
   }
 

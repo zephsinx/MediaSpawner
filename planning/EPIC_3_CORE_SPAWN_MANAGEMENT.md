@@ -51,7 +51,7 @@ As a user, I want to see a list of all my spawns, so that I can quickly navigate
 **Story ID**: MS-23
 **Priority**: High
 **Estimate**: 3 points
-**Status**: In Progress
+**Status**: Completed
 
 **User Story**:
 As a user, I want to enable/disable spawns with toggle switches, so that I can quickly control which spawns are active without editing them.

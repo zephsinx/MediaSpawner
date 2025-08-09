@@ -32,12 +32,12 @@ const SpawnList: React.FC<SpawnListProps> = ({
   );
 
   useEffect(() => {
-    const loadSpawns = () => {
+    const loadSpawns = async () => {
       setIsLoading(true);
       setLoadError(null);
 
       try {
-        const allSpawns = SpawnService.getAllSpawns();
+        const allSpawns = await SpawnService.getAllSpawns();
         setSpawns(allSpawns);
       } catch (err) {
         setLoadError(
