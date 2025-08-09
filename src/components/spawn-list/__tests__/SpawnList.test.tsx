@@ -909,6 +909,62 @@ describe("SpawnList", () => {
         expect.objectContaining({ id: "s1" })
       );
     });
+
+    it("reloads list when spawn-deleted event has no id (fallback reload)", async () => {
+      const first = [
+        createMockSpawn({ id: "a", name: "A", enabled: true, assets: [] }),
+      ];
+      const second = [
+        createMockSpawn({ id: "b", name: "B", enabled: false, assets: [] }),
+      ];
+      vi.mocked(SpawnService.getAllSpawns)
+        .mockResolvedValueOnce(first)
+        .mockResolvedValueOnce(second);
+
+      await act(async () => {
+        render(<SpawnList />);
+      });
+      const loading = screen.queryByText("Loading spawns...");
+      if (loading) {
+        await waitForElementToBeRemoved(loading);
+      }
+      expect(await screen.findByText("A")).toBeInTheDocument();
+
+      // Dispatch event without detail.id to trigger fallback reload
+      await act(async () => {
+        window.dispatchEvent(
+          new CustomEvent("mediaspawner:spawn-deleted" as unknown as string)
+        );
+      });
+
+      // Next render should show the updated list
+      expect(await screen.findByText("B")).toBeInTheDocument();
+      expect(screen.queryByText("A")).not.toBeInTheDocument();
+    });
+
+    it("shows fallback message when createSpawn rejects with non-Error", async () => {
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([]);
+      vi.mocked(SpawnService.createSpawn).mockRejectedValue("weird");
+
+      await act(async () => {
+        render(<SpawnList />);
+      });
+      const loading = screen.queryByText("Loading spawns...");
+      if (loading) {
+        await waitForElementToBeRemoved(loading);
+      }
+
+      const btn = screen.getByRole("button", { name: "Create New Spawn" });
+      await act(async () => {
+        fireEvent.click(btn);
+      });
+
+      expect(
+        await screen.findByText("Failed to create spawn")
+      ).toBeInTheDocument();
+      // Button should be re-enabled after failure
+      expect(btn).not.toBeDisabled();
+    });
   });
 
   it("uses fallback error message when toggle returns success: false without error", async () => {
