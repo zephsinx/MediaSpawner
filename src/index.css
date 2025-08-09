@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+/* Base styles for MediaSpawner */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+#root {
+  min-height: 100vh;
+}
