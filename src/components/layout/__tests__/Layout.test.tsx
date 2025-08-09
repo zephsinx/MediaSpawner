@@ -210,6 +210,11 @@ describe("Layout", () => {
         fireEvent.click(cancelBtn);
       });
 
+      // With MS-28, cancel prompts for confirmation when dirty
+      await act(async () => {
+        screen.getByText("Discard changes").click();
+      });
+
       expect((nameInput as HTMLInputElement).value).toBe("Test Spawn 1");
     });
 
@@ -241,6 +246,52 @@ describe("Layout", () => {
       });
 
       expect(await screen.findByText("Save failed")).toBeInTheDocument();
+    });
+
+    it("shows confirm dialog on cancel when dirty and discards or keeps edits as chosen", async () => {
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
+
+      await act(async () => {
+        render(<Layout />);
+      });
+      const loading = screen.queryByText("Loading spawns...");
+      if (loading) {
+        await waitForElementToBeRemoved(loading);
+      }
+
+      await act(async () => {
+        screen.getByText("Test Spawn 1").click();
+      });
+
+      const nameInput = await screen.findByLabelText("Name");
+      const cancelBtn = screen.getByRole("button", { name: "Cancel edits" });
+
+      await act(async () => {
+        fireEvent.change(nameInput, { target: { value: "Dirty Name" } });
+        fireEvent.click(cancelBtn);
+      });
+
+      // Confirm dialog visible
+      expect(
+        screen.getByRole("dialog", { name: "Discard Unsaved Changes?" })
+      ).toBeInTheDocument();
+      expect(screen.getByText("Keep editing")).toBeInTheDocument();
+      expect(screen.getByText("Discard changes")).toBeInTheDocument();
+
+      // Keep editing
+      await act(async () => {
+        screen.getByText("Keep editing").click();
+      });
+      expect((nameInput as HTMLInputElement).value).toBe("Dirty Name");
+
+      // Open again and discard
+      await act(async () => {
+        fireEvent.click(cancelBtn);
+      });
+      await act(async () => {
+        screen.getByText("Discard changes").click();
+      });
+      expect((nameInput as HTMLInputElement).value).toBe("Test Spawn 1");
     });
 
     it("renders empty spawn list when no spawns exist", async () => {

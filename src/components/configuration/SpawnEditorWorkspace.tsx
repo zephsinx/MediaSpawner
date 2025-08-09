@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { usePanelState } from "../../hooks/useLayout";
 import { SpawnService } from "../../services/spawnService";
 import type { Spawn } from "../../types/spawn";
+import { ConfirmDialog } from "../common/ConfirmDialog";
 
 const SpawnEditorWorkspace: React.FC = () => {
   const { selectedSpawnId, setUnsavedChanges } = usePanelState();
@@ -12,6 +13,7 @@ const SpawnEditorWorkspace: React.FC = () => {
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const prevSpawnIdRef = useRef<string | undefined>(undefined);
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -64,6 +66,10 @@ const SpawnEditorWorkspace: React.FC = () => {
 
   const handleCancel = () => {
     if (!selectedSpawn) return;
+    if (isDirty) {
+      setShowDiscardDialog(true);
+      return;
+    }
     setName(selectedSpawn.name);
     setDescription(selectedSpawn.description || "");
     setSaveError(null);
@@ -156,6 +162,26 @@ const SpawnEditorWorkspace: React.FC = () => {
         </div>
       </div>
       <div className="flex-1 p-4">
+        <ConfirmDialog
+          isOpen={showDiscardDialog}
+          title="Discard Unsaved Changes?"
+          message="You have unsaved changes. If you discard now, your edits will be lost."
+          confirmText="Discard changes"
+          cancelText="Keep editing"
+          variant="warning"
+          onConfirm={() => {
+            if (!selectedSpawn) {
+              setShowDiscardDialog(false);
+              return;
+            }
+            setName(selectedSpawn.name);
+            setDescription(selectedSpawn.description || "");
+            setSaveError(null);
+            setSaveSuccess(null);
+            setShowDiscardDialog(false);
+          }}
+          onCancel={() => setShowDiscardDialog(false)}
+        />
         {saveError && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 text-sm text-red-700 rounded">
             {saveError}
