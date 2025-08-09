@@ -24,6 +24,15 @@ const SpawnEditorWorkspace: React.FC = () => {
     };
   }, [selectedSpawnId]);
 
+  const formatDate = (ms: number | undefined) => {
+    if (!ms) return "-";
+    try {
+      return new Date(ms).toLocaleString();
+    } catch {
+      return String(ms);
+    }
+  };
+
   if (!selectedSpawnId) {
     return (
       <div className="h-full flex flex-col">
@@ -53,9 +62,134 @@ const SpawnEditorWorkspace: React.FC = () => {
         </p>
       </div>
       <div className="flex-1 p-4">
-        <div className="text-gray-500 text-sm">
-          Basic editor workspace will appear here in MS-26.
-        </div>
+        {selectedSpawn ? (
+          <div className="max-w-2xl space-y-5">
+            <section className="bg-white border border-gray-200 rounded-lg p-4">
+              <h3 className="text-base font-semibold text-gray-800 mb-3">
+                Basic Details
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="spawn-name"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Name
+                  </label>
+                  <input
+                    id="spawn-name"
+                    type="text"
+                    value={selectedSpawn.name}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="spawn-enabled"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Status
+                  </label>
+                  <input
+                    id="spawn-enabled"
+                    type="text"
+                    value={selectedSpawn.enabled ? "Enabled" : "Disabled"}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label
+                    htmlFor="spawn-description"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Description
+                  </label>
+                  <textarea
+                    id="spawn-description"
+                    value={selectedSpawn.description || ""}
+                    disabled
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 resize-none"
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section className="bg-white border border-gray-200 rounded-lg p-4">
+              <h3 className="text-base font-semibold text-gray-800 mb-3">
+                Metadata
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="spawn-id"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    ID
+                  </label>
+                  <input
+                    id="spawn-id"
+                    type="text"
+                    value={selectedSpawn.id}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="spawn-modified"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Last Modified
+                  </label>
+                  <input
+                    id="spawn-modified"
+                    type="text"
+                    value={formatDate(selectedSpawn.lastModified)}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="spawn-duration"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Duration (ms)
+                  </label>
+                  <input
+                    id="spawn-duration"
+                    type="number"
+                    value={selectedSpawn.duration ?? 0}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="spawn-assets"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Assets
+                  </label>
+                  <input
+                    id="spawn-assets"
+                    type="text"
+                    value={`${selectedSpawn.assets.length} item${
+                      selectedSpawn.assets.length === 1 ? "" : "s"
+                    }`}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
+                  />
+                </div>
+              </div>
+            </section>
+          </div>
+        ) : (
+          <div className="text-gray-500 text-sm">Loading spawn...</div>
+        )}
       </div>
     </div>
   );

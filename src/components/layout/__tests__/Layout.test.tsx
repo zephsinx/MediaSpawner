@@ -104,6 +104,38 @@ describe("Layout", () => {
       expect(await screen.findByText("Inactive")).toBeInTheDocument();
     });
 
+    it("center panel shows spawn details when a spawn is selected and updates on selection change", async () => {
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
+
+      await act(async () => {
+        render(<Layout />);
+      });
+      const loading = screen.queryByText("Loading spawns...");
+      if (loading) {
+        await waitForElementToBeRemoved(loading);
+      }
+
+      // Select first spawn
+      await act(async () => {
+        screen.getByText("Test Spawn 1").click();
+      });
+
+      expect(
+        await screen.findByDisplayValue("Test Spawn 1")
+      ).toBeInTheDocument();
+      expect(screen.getByDisplayValue("Enabled")).toBeInTheDocument();
+
+      // Select second spawn
+      await act(async () => {
+        screen.getByText("Test Spawn 2").click();
+      });
+
+      expect(
+        await screen.findByDisplayValue("Test Spawn 2")
+      ).toBeInTheDocument();
+      expect(screen.getByDisplayValue("Disabled")).toBeInTheDocument();
+    });
+
     it("renders empty spawn list when no spawns exist", async () => {
       // Mock SpawnService to return empty array
       vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([]);
