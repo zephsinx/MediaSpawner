@@ -82,7 +82,7 @@ As a user, I want to enable/disable spawns with toggle switches, so that I can q
 **Story ID**: MS-24
 **Priority**: High
 **Estimate**: 5 points
-**Status**: Not Started
+**Status**: Completed
 
 **User Story**:
 As a user, I want to select spawns from the list to edit them, so that the spawn editor loads the selected spawn's configuration.
@@ -112,7 +112,7 @@ As a user, I want to select spawns from the list to edit them, so that the spawn
 **Story ID**: MS-25
 **Priority**: High
 **Estimate**: 3 points
-**Status**: Not Started
+**Status**: Completed
 
 **User Story**:
 As a user, I want to create new spawns directly from the spawn list, so that I can quickly add spawns with sensible defaults.
