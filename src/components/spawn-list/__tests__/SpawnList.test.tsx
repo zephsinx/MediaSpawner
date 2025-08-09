@@ -653,6 +653,264 @@ describe("SpawnList", () => {
     expect(screen.getByText("Inactive")).toBeInTheDocument();
   });
 
+  describe("Additional coverage", () => {
+    it("shows fallback load error for non-Error rejection", async () => {
+      const mockGetAllSpawns = vi.fn().mockRejectedValue("oops");
+      vi.mocked(SpawnService.getAllSpawns).mockImplementation(mockGetAllSpawns);
+
+      await act(async () => {
+        render(<SpawnList />);
+      });
+
+      const msgs = await screen.findAllByText("Failed to load spawns");
+      expect(msgs.length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText("⚠️")).toBeInTheDocument();
+    });
+
+    it("retries on duplicate name and succeeds with incremented name", async () => {
+      const items = [
+        createMockSpawn({
+          id: "e1",
+          name: "Existing 1",
+          enabled: true,
+          assets: [],
+        }),
+      ];
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(items);
+
+      vi.mocked(SpawnService.createSpawn)
+        .mockResolvedValueOnce({ success: false, error: "already exists" })
+        .mockResolvedValueOnce({
+          success: true,
+          spawn: createMockSpawn({
+            id: "s2",
+            name: "New Spawn 2",
+            enabled: true,
+            assets: [],
+          }),
+        });
+
+      const onSpawnClick = vi.fn();
+
+      await act(async () => {
+        render(<SpawnList onSpawnClick={onSpawnClick} />);
+      });
+      const loading = screen.queryByText("Loading spawns...");
+      if (loading) {
+        await waitForElementToBeRemoved(loading);
+      }
+
+      await act(async () => {
+        fireEvent.click(
+          screen.getByRole("button", { name: "Create New Spawn" })
+        );
+      });
+
+      expect(await screen.findByText("New Spawn 2")).toBeInTheDocument();
+      expect(onSpawnClick).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "New Spawn 2" })
+      );
+    });
+
+    it("shows creation error when createSpawn throws", async () => {
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([]);
+      vi.mocked(SpawnService.createSpawn).mockRejectedValue(
+        new Error("boom create")
+      );
+
+      await act(async () => {
+        render(<SpawnList />);
+      });
+      const loading = screen.queryByText("Loading spawns...");
+      if (loading) {
+        await waitForElementToBeRemoved(loading);
+      }
+
+      await act(async () => {
+        fireEvent.click(
+          screen.getByRole("button", { name: "Create New Spawn" })
+        );
+      });
+
+      expect(await screen.findByText("boom create")).toBeInTheDocument();
+    });
+
+    it("supports ArrowUp from initial state to select last item", async () => {
+      const items = [
+        createMockSpawn({ id: "s1", name: "First", enabled: true, assets: [] }),
+        createMockSpawn({
+          id: "s2",
+          name: "Second",
+          enabled: true,
+          assets: [],
+        }),
+        createMockSpawn({ id: "s3", name: "Third", enabled: true, assets: [] }),
+      ];
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(items);
+
+      const onSpawnClick = vi.fn();
+
+      await act(async () => {
+        render(<SpawnList onSpawnClick={onSpawnClick} />);
+      });
+      const loading = screen.queryByText("Loading spawns...");
+      if (loading) {
+        await waitForElementToBeRemoved(loading);
+      }
+
+      const listbox = screen.getByRole("listbox", { name: "Spawns" });
+      await act(async () => {
+        fireEvent.keyDown(listbox, { key: "ArrowUp" });
+        fireEvent.keyDown(listbox, { key: "Enter" });
+      });
+
+      expect(onSpawnClick).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "s3" })
+      );
+    });
+
+    it("renders both toggle and create error banners together", async () => {
+      const base = createMockSpawn({
+        id: "sid",
+        name: "Row",
+        enabled: true,
+        assets: [],
+      });
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([base]);
+
+      vi.mocked(SpawnService.disableSpawn).mockResolvedValue({
+        success: false,
+        error: "toggle fail",
+      });
+      vi.mocked(SpawnService.createSpawn).mockResolvedValue({
+        success: false,
+        error: "create fail",
+      });
+
+      await act(async () => {
+        render(<SpawnList />);
+      });
+      const loading = screen.queryByText("Loading spawns...");
+      if (loading) {
+        await waitForElementToBeRemoved(loading);
+      }
+
+      // Trigger toggle error
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Disable Row" }));
+      });
+
+      // Trigger create error
+      await act(async () => {
+        fireEvent.click(
+          screen.getByRole("button", { name: "Create New Spawn" })
+        );
+      });
+
+      expect(await screen.findByText("toggle fail")).toBeInTheDocument();
+      expect(await screen.findByText("create fail")).toBeInTheDocument();
+    });
+
+    it("disables create button and shows spinner while creating, then appends and selects", async () => {
+      const items = [
+        createMockSpawn({
+          id: "s1",
+          name: "Existing",
+          enabled: true,
+          assets: [],
+        }),
+      ];
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(items);
+
+      // deferred create
+      type CreateResult = { success: boolean; spawn?: Spawn; error?: string };
+      const deferred = () => {
+        let resolve!: (v: CreateResult) => void;
+        let reject!: (r?: unknown) => void;
+        const promise: Promise<CreateResult> = new Promise((res, rej) => {
+          resolve = res;
+          reject = rej;
+        });
+        return { promise, resolve, reject };
+      };
+      const d = deferred();
+      vi.mocked(SpawnService.createSpawn).mockImplementation(
+        async () => d.promise
+      );
+
+      const onSpawnClick = vi.fn();
+
+      await act(async () => {
+        render(<SpawnList onSpawnClick={onSpawnClick} />);
+      });
+      const loading = screen.queryByText("Loading spawns...");
+      if (loading) {
+        await waitForElementToBeRemoved(loading);
+      }
+
+      const btn = screen.getByRole("button", { name: "Create New Spawn" });
+      await act(async () => {
+        fireEvent.click(btn);
+      });
+
+      expect(btn).toBeDisabled();
+      // Spinner exists inside button
+      expect(btn.querySelector(".animate-spin")).not.toBeNull();
+
+      // Resolve creation
+      const created = createMockSpawn({
+        id: "s2",
+        name: "New Spawn 1",
+        enabled: true,
+        assets: [],
+      });
+      await act(async () => {
+        d.resolve({ success: true, spawn: created });
+      });
+
+      expect(await screen.findByText("New Spawn 1")).toBeInTheDocument();
+      expect(onSpawnClick).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "s2" })
+      );
+    });
+
+    it("creates from empty state and selects new spawn", async () => {
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([]);
+      const created = createMockSpawn({
+        id: "s1",
+        name: "New Spawn 1",
+        enabled: true,
+        assets: [],
+      });
+      vi.mocked(SpawnService.createSpawn).mockResolvedValue({
+        success: true,
+        spawn: created,
+      });
+
+      const onSpawnClick = vi.fn();
+
+      await act(async () => {
+        render(<SpawnList onSpawnClick={onSpawnClick} />);
+      });
+
+      const loading = screen.queryByText("Loading spawns...");
+      if (loading) {
+        await waitForElementToBeRemoved(loading);
+      }
+
+      await act(async () => {
+        fireEvent.click(
+          screen.getByRole("button", { name: "Create New Spawn" })
+        );
+      });
+
+      expect(await screen.findByText("New Spawn 1")).toBeInTheDocument();
+      expect(onSpawnClick).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "s1" })
+      );
+    });
+  });
+
   it("uses fallback error message when toggle returns success: false without error", async () => {
     const s = createMockSpawn({
       id: "s1",
