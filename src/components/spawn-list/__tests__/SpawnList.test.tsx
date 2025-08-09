@@ -447,6 +447,39 @@ describe("SpawnList", () => {
     expect(otherRow).not.toHaveClass("bg-blue-50", "border-blue-200");
   });
 
+  it("supports arrow key navigation and Enter to select via onSpawnClick", async () => {
+    const items = [
+      createMockSpawn({ id: "s1", name: "First", enabled: true, assets: [] }),
+      createMockSpawn({ id: "s2", name: "Second", enabled: true, assets: [] }),
+      createMockSpawn({ id: "s3", name: "Third", enabled: true, assets: [] }),
+    ];
+    vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(items);
+
+    const onSpawnClick = vi.fn();
+
+    await act(async () => {
+      render(<SpawnList onSpawnClick={onSpawnClick} />);
+    });
+
+    const loading = screen.queryByText("Loading spawns...");
+    if (loading) {
+      await waitForElementToBeRemoved(loading);
+    }
+
+    const listbox = screen.getByRole("listbox", { name: "Spawns" });
+
+    await act(async () => {
+      fireEvent.keyDown(listbox, { key: "ArrowDown" });
+      fireEvent.keyDown(listbox, { key: "ArrowDown" });
+      fireEvent.keyDown(listbox, { key: "Enter" });
+    });
+
+    expect(onSpawnClick).toHaveBeenCalledTimes(1);
+    expect(onSpawnClick).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "s2" })
+    );
+  });
+
   it("shows toggle error banner on failure and clears after a successful toggle", async () => {
     const s = createMockSpawn({
       id: "s1",

@@ -17,6 +17,8 @@ export interface SpawnListItemProps {
   isToggleProcessing?: boolean;
   /** Optional className for additional styling */
   className?: string;
+  /** Optional ref to the root element for keyboard focus management */
+  itemRef?: React.Ref<HTMLDivElement>;
 }
 
 /**
@@ -29,6 +31,7 @@ const SpawnListItem: React.FC<SpawnListItemProps> = ({
   onToggle,
   isToggleProcessing = false,
   className = "",
+  itemRef,
 }) => {
   const handleClick = () => {
     onClick?.(spawn);
@@ -50,6 +53,7 @@ const SpawnListItem: React.FC<SpawnListItemProps> = ({
 
   return (
     <div
+      ref={itemRef}
       className={`p-3 border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50 ${
         isSelected ? "bg-blue-50 border-blue-200" : ""
       } ${!spawn.enabled ? "opacity-60" : ""} ${className}`}

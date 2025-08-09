@@ -124,7 +124,7 @@ describe("Layout", () => {
       ).toBeInTheDocument();
     });
 
-    it("renders placeholder components for center and right panels", async () => {
+    it("shows spawn editor header and guidance when no selection, and updates after selecting a spawn", async () => {
       vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
 
       await act(async () => {
@@ -135,22 +135,32 @@ describe("Layout", () => {
         await waitForElementToBeRemoved(loading3);
       }
 
-      // Check for configuration workspace placeholder
+      // Center panel should show Spawn Editor prompt when no selection
+      expect(screen.getByText("Spawn Editor")).toBeInTheDocument();
       expect(
-        screen.getByText("Unified Configuration Workspace")
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText("spawn configuration and settings management")
+        screen.getByText("Select a spawn to edit its settings")
       ).toBeInTheDocument();
 
-      // Check for asset management placeholder
+      // Click a spawn to select it
+      const row = screen.getByText("Test Spawn 1");
+      await act(async () => {
+        row.click();
+      });
+
+      // Center panel should reflect selection
+      expect(screen.getByText("Spawn Editor")).toBeInTheDocument();
+      expect(
+        await screen.findByText(/Editing: Test Spawn 1/)
+      ).toBeInTheDocument();
+
+      // Right panel placeholder remains
       expect(screen.getByText("Dynamic Asset Management")).toBeInTheDocument();
       expect(
         screen.getByText("asset library and management tools")
       ).toBeInTheDocument();
     });
 
-    it("renders placeholder icons for center and right panels", async () => {
+    it("renders right panel placeholder icon and content while center shows Spawn Editor", async () => {
       vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
 
       await act(async () => {
@@ -161,12 +171,15 @@ describe("Layout", () => {
         await waitForElementToBeRemoved(loading4);
       }
 
-      // Only center and right panels should have placeholder icons now
-      expect(screen.getAllByText("⚙️")).toHaveLength(2); // Configuration (header + content)
-      expect(screen.getAllByText("📁")).toHaveLength(2); // Asset Management (header + content)
+      // Right panel placeholder icon/content
+      expect(screen.getAllByText("📁")).toHaveLength(2);
+      expect(screen.getByText("Dynamic Asset Management")).toBeInTheDocument();
+
+      // Center panel now shows Spawn Editor (no ⚙️ placeholder)
+      expect(screen.getByText("Spawn Editor")).toBeInTheDocument();
     });
 
-    it("renders 'Coming Soon' messages for center and right panels", async () => {
+    it("keeps right panel 'Coming Soon' while center shows Spawn Editor", async () => {
       vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
 
       await act(async () => {
@@ -178,11 +191,9 @@ describe("Layout", () => {
       }
 
       expect(
-        screen.getByText("Unified Configuration Workspace Coming Soon")
-      ).toBeInTheDocument();
-      expect(
         screen.getByText("Dynamic Asset Management Coming Soon")
       ).toBeInTheDocument();
+      expect(screen.getByText("Spawn Editor")).toBeInTheDocument();
     });
   });
 

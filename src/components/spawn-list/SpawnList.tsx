@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { Spawn } from "../../types/spawn";
 import { SpawnService } from "../../services/spawnService";
 import SpawnListItem from "./SpawnListItem";
@@ -50,6 +50,11 @@ const SpawnList: React.FC<SpawnListProps> = ({
 
     loadSpawns();
   }, []);
+
+  // Keyboard navigation state and refs must be declared unconditionally
+  const [, setFocusedIndex] = useState<number>(-1);
+  const focusedIndexRef = useRef<number>(-1);
+  const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   const handleSpawnClick = (spawn: Spawn) => {
     onSpawnClick?.(spawn);
@@ -131,6 +136,34 @@ const SpawnList: React.FC<SpawnListProps> = ({
     );
   }
 
+  const handleListKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (spawns.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const current = focusedIndexRef.current;
+      const next = Math.min(spawns.length - 1, Math.max(0, current + 1));
+      focusedIndexRef.current = next;
+      setFocusedIndex(next);
+      itemRefs.current[next]?.focus();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const current = focusedIndexRef.current;
+      const next = Math.max(
+        0,
+        current === -1 ? spawns.length - 1 : current - 1
+      );
+      focusedIndexRef.current = next;
+      setFocusedIndex(next);
+      itemRefs.current[next]?.focus();
+    } else if (e.key === "Enter") {
+      const index = focusedIndexRef.current;
+      if (index >= 0 && index < spawns.length) {
+        e.preventDefault();
+        handleSpawnClick(spawns[index]);
+      }
+    }
+  };
+
   if (spawns.length === 0) {
     return (
       <div className={`h-full flex items-center justify-center ${className}`}>
@@ -170,8 +203,14 @@ const SpawnList: React.FC<SpawnListProps> = ({
       )}
 
       {/* Spawn List */}
-      <div className="flex-1 overflow-y-auto">
-        {spawns.map((spawn) => (
+      <div
+        className="flex-1 overflow-y-auto"
+        role="listbox"
+        aria-label="Spawns"
+        onKeyDown={handleListKeyDown}
+        tabIndex={0}
+      >
+        {spawns.map((spawn, index) => (
           <SpawnListItem
             key={spawn.id}
             spawn={spawn}
@@ -179,6 +218,10 @@ const SpawnList: React.FC<SpawnListProps> = ({
             onClick={handleSpawnClick}
             onToggle={handleToggle}
             isToggleProcessing={processingToggles.has(spawn.id)}
+            itemRef={(el) => {
+              itemRefs.current[index] = el;
+            }}
+            className="outline-none"
           />
         ))}
       </div>

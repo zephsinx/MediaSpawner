@@ -100,7 +100,7 @@ describe("AssetService Spawn-Specific Settings", () => {
     mockGetSpawnAssetCacheKey.mockImplementation(
       (spawnId, assetId) => `cache:${spawnId}:${assetId}`
     );
-    mockSpawnService.getSpawn.mockReturnValue(mockSpawn);
+    mockSpawnService.getSpawn.mockResolvedValue(mockSpawn);
 
     // Default localStorage behavior
     localStorageMock.getItem.mockReturnValue(null);
@@ -390,7 +390,7 @@ describe("AssetService Spawn-Specific Settings", () => {
         duration: undefined as unknown as number,
         trigger: undefined as unknown as SpawnTrigger,
       };
-      mockSpawnService.getSpawn.mockReturnValue(spawnWithoutDefaults);
+      mockSpawnService.getSpawn.mockResolvedValue(spawnWithoutDefaults);
 
       const result = await AssetService.getResolvedAssetSettings(
         "spawn-1",
