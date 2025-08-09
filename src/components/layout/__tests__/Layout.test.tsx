@@ -138,6 +138,54 @@ describe("Layout", () => {
       expect(screen.getByDisplayValue("Disabled")).toBeInTheDocument();
     });
 
+    it("dirty reflects edits across fields and resets after save/cancel", async () => {
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
+      vi.mocked(SpawnService.updateSpawn).mockResolvedValue({
+        success: true,
+        spawn: { ...mockSpawns[0], name: "Clean" },
+      });
+
+      await act(async () => {
+        render(<Layout />);
+      });
+      const loading = screen.queryByText("Loading spawns...");
+      if (loading) {
+        await waitForElementToBeRemoved(loading);
+      }
+
+      await act(async () => {
+        screen.getByText("Test Spawn 1").click();
+      });
+
+      const nameInput = await screen.findByLabelText("Name");
+      const saveBtn = screen.getByRole("button", { name: "Save spawn" });
+      const cancelBtn = screen.getByRole("button", { name: "Cancel edits" });
+
+      // Change to become dirty
+      await act(async () => {
+        fireEvent.change(nameInput, { target: { value: "Dirty" } });
+      });
+      expect(saveBtn).not.toBeDisabled();
+
+      // Save resets dirty
+      await act(async () => {
+        fireEvent.click(saveBtn);
+      });
+      expect(await screen.findByText("Changes saved")).toBeInTheDocument();
+      expect(saveBtn).toBeDisabled();
+
+      // Make dirty again and cancel via dialog
+      await act(async () => {
+        fireEvent.change(nameInput, { target: { value: "Dirty2" } });
+        fireEvent.click(cancelBtn);
+      });
+      await act(async () => {
+        screen.getByText("Discard changes").click();
+      });
+      expect((nameInput as HTMLInputElement).value).toBe("Clean");
+      expect(saveBtn).toBeDisabled();
+    });
+
     it("enables Save when dirty and valid, disables when invalid, and saves successfully", async () => {
       vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
       vi.mocked(SpawnService.updateSpawn).mockResolvedValue({

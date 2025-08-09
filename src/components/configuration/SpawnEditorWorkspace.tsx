@@ -3,6 +3,7 @@ import { usePanelState } from "../../hooks/useLayout";
 import { SpawnService } from "../../services/spawnService";
 import type { Spawn } from "../../types/spawn";
 import { ConfirmDialog } from "../common/ConfirmDialog";
+import { deepEqual } from "../../utils/deepEqual";
 
 const SpawnEditorWorkspace: React.FC = () => {
   const { selectedSpawnId, setUnsavedChanges } = usePanelState();
@@ -50,10 +51,28 @@ const SpawnEditorWorkspace: React.FC = () => {
 
   const isDirty = useMemo(() => {
     if (!selectedSpawn) return false;
-    return (
-      name !== (selectedSpawn.name || "") ||
-      (description || "") !== (selectedSpawn.description || "")
-    );
+    const draft: Partial<Spawn> = {
+      name: name,
+      description: description || undefined,
+      enabled: selectedSpawn.enabled,
+      duration: selectedSpawn.duration,
+      trigger: selectedSpawn.trigger,
+      assets: selectedSpawn.assets,
+      id: selectedSpawn.id,
+    };
+    const baseline: Partial<Spawn> = {
+      name: selectedSpawn.name,
+      description: selectedSpawn.description,
+      enabled: selectedSpawn.enabled,
+      duration: selectedSpawn.duration,
+      trigger: selectedSpawn.trigger,
+      assets: selectedSpawn.assets,
+      id: selectedSpawn.id,
+    };
+    // Ignore non-editing metadata like lastModified, order
+    return !deepEqual(draft, baseline, {
+      ignoreKeys: new Set(["lastModified", "order"]),
+    });
   }, [name, description, selectedSpawn]);
 
   useEffect(() => {
