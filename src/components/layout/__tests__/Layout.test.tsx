@@ -125,7 +125,11 @@ describe("Layout", () => {
       expect(
         await screen.findByDisplayValue("Test Spawn 1")
       ).toBeInTheDocument();
-      expect(screen.getByDisplayValue("Enabled")).toBeInTheDocument();
+      // Enabled is now a checkbox; look for the checkbox and its label text
+      const enabledCheckbox = screen.getByLabelText(
+        "Enabled"
+      ) as HTMLInputElement;
+      expect(enabledCheckbox.checked).toBe(true);
 
       // Select second spawn
       await act(async () => {
@@ -135,7 +139,10 @@ describe("Layout", () => {
       expect(
         await screen.findByDisplayValue("Test Spawn 2")
       ).toBeInTheDocument();
-      expect(screen.getByDisplayValue("Disabled")).toBeInTheDocument();
+      const enabledCheckbox2 = screen.getByLabelText(
+        "Enabled"
+      ) as HTMLInputElement;
+      expect(enabledCheckbox2.checked).toBe(false);
     });
 
     it("dirty reflects edits across fields and resets after save/cancel", async () => {

@@ -125,7 +125,10 @@ export class SpawnService {
   static async updateSpawn(
     id: string,
     updates: Partial<
-      Pick<Spawn, "name" | "description" | "trigger" | "duration" | "assets">
+      Pick<
+        Spawn,
+        "name" | "description" | "trigger" | "duration" | "assets" | "enabled"
+      >
     >
   ): Promise<SpawnOperationResult> {
     try {

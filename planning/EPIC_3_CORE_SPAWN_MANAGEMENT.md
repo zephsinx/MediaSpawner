@@ -210,7 +210,7 @@ As a user, I want explicit save and cancel controls for spawn editing, so that I
 **Story ID**: MS-28
 **Priority**: High
 **Estimate**: 3 points
-**Status**: Not Started
+**Status**: Completed
 
 **User Story**:
 As a user, I want clear feedback and confirmation for save/cancel actions, so that I can confidently manage my spawn editing workflow.
@@ -239,7 +239,7 @@ As a user, I want clear feedback and confirmation for save/cancel actions, so th
 **Story ID**: MS-29
 **Priority**: High
 **Estimate**: 5 points
-**Status**: Not Started
+**Status**: Completed
 
 **User Story**:
 As a user, I want the system to detect when I have unsaved changes, so that I always know when my work needs to be saved.
@@ -252,7 +252,7 @@ As a user, I want the system to detect when I have unsaved changes, so that I al
 - [ ] Change tracking performs well even with many form fields
 - [ ] Change detection integrates smoothly with the save/cancel system
 
-**Technical Task MS-31-T1**: Build Unsaved Changes Detection
+**Technical Task MS-29-T1**: Build Unsaved Changes Detection
 
 - Implement unsaved changes detection across all form fields
 - Add deep comparison between original and current spawn state
@@ -270,7 +270,7 @@ As a user, I want the system to detect when I have unsaved changes, so that I al
 **Story ID**: MS-30
 **Priority**: High
 **Estimate**: 5 points
-**Status**: Not Started
+**Status**: Completed
 
 **User Story**:
 As a user, I want a form to configure essential spawn properties, so that I can set up the basic information for my spawns.
@@ -284,7 +284,7 @@ As a user, I want a form to configure essential spawn properties, so that I can 
 - [ ] Get immediate feedback when I enter invalid information
 - [ ] Form styling is clean and matches the overall application design
 
-**Technical Task MS-33-T1**: Create Basic Spawn Settings Form
+**Technical Task MS-30-T1**: Create Basic Spawn Settings Form
 
 - Add spawn name field with required validation and uniqueness checking
 - Add spawn description field (optional)
@@ -316,7 +316,7 @@ As a user, I want to delete spawns I no longer need, so that I can keep my spawn
 - [ ] Can see clear feedback when deletion succeeds or fails
 - [ ] Cannot accidentally delete spawns without confirmation
 
-**Technical Task MS-34-T1**: Implement Spawn Deletion
+**Technical Task MS-31-T1**: Implement Spawn Deletion
 
 - Add delete button in spawn editor
 - Use SpawnService.deleteSpawn() from Epic 1

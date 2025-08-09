@@ -10,6 +10,8 @@ const SpawnEditorWorkspace: React.FC = () => {
   const [selectedSpawn, setSelectedSpawn] = useState<Spawn | null>(null);
   const [name, setName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
+  const [enabled, setEnabled] = useState<boolean>(true);
+  const [allSpawnsCache, setAllSpawnsCache] = useState<Spawn[]>([]);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -26,6 +28,7 @@ const SpawnEditorWorkspace: React.FC = () => {
         return;
       }
       const allSpawns = await SpawnService.getAllSpawns();
+      setAllSpawnsCache(allSpawns);
       const found = allSpawns.find((s) => s.id === selectedSpawnId) || null;
       if (isActive) setSelectedSpawn(found);
     };
@@ -39,6 +42,7 @@ const SpawnEditorWorkspace: React.FC = () => {
     if (selectedSpawn) {
       setName(selectedSpawn.name);
       setDescription(selectedSpawn.description || "");
+      setEnabled(!!selectedSpawn.enabled);
       // Clear messages only if changing to a different spawn
       if (prevSpawnIdRef.current !== selectedSpawn.id) {
         setSaveError(null);
@@ -54,7 +58,7 @@ const SpawnEditorWorkspace: React.FC = () => {
     const draft: Partial<Spawn> = {
       name: name,
       description: description || undefined,
-      enabled: selectedSpawn.enabled,
+      enabled: enabled,
       duration: selectedSpawn.duration,
       trigger: selectedSpawn.trigger,
       assets: selectedSpawn.assets,
@@ -73,14 +77,23 @@ const SpawnEditorWorkspace: React.FC = () => {
     return !deepEqual(draft, baseline, {
       ignoreKeys: new Set(["lastModified", "order"]),
     });
-  }, [name, description, selectedSpawn]);
+  }, [name, description, enabled, selectedSpawn]);
 
   useEffect(() => {
     // Only update when dirty state changes to avoid unnecessary context re-renders
     setUnsavedChanges(!!isDirty);
   }, [isDirty, setUnsavedChanges]);
 
-  const isNameValid = name.trim().length > 0;
+  const trimmedName = name.trim();
+  const isNameNonEmpty = trimmedName.length > 0;
+  const isNameUnique = useMemo(() => {
+    if (!selectedSpawn) return true;
+    const lower = trimmedName.toLowerCase();
+    return !allSpawnsCache.some(
+      (s) => s.id !== selectedSpawn.id && s.name.toLowerCase() === lower
+    );
+  }, [allSpawnsCache, selectedSpawn, trimmedName]);
+  const isNameValid = isNameNonEmpty && isNameUnique;
   const isSaveDisabled = !isDirty || !isNameValid || isSaving || !selectedSpawn;
 
   const handleCancel = () => {
@@ -102,8 +115,9 @@ const SpawnEditorWorkspace: React.FC = () => {
     setSaveSuccess(null);
     try {
       const result = await SpawnService.updateSpawn(selectedSpawn.id, {
-        name: name.trim(),
+        name: trimmedName,
         description: description.trim() || undefined,
+        enabled: enabled,
       });
       if (!result.success || !result.spawn) {
         setSaveError(result.error || "Failed to save spawn");
@@ -236,21 +250,37 @@ const SpawnEditorWorkspace: React.FC = () => {
                         : "border-red-300 bg-white"
                     }`}
                   />
+                  {!trimmedName && (
+                    <p className="mt-1 text-xs text-red-600">
+                      Name is required
+                    </p>
+                  )}
+                  {trimmedName && !isNameValid && (
+                    <p className="mt-1 text-xs text-red-600">
+                      Name must be unique
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label
                     htmlFor="spawn-enabled"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Status
+                    Enabled
                   </label>
-                  <input
-                    id="spawn-enabled"
-                    type="text"
-                    value={selectedSpawn.enabled ? "Enabled" : "Disabled"}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
-                  />
+                  <div className="flex items-center h-[42px]">
+                    <input
+                      id="spawn-enabled"
+                      type="checkbox"
+                      checked={enabled}
+                      onChange={(e) => setEnabled(e.target.checked)}
+                      aria-label="Enabled"
+                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">
+                      {enabled ? "Enabled" : "Disabled"}
+                    </span>
+                  </div>
                 </div>
                 <div className="md:col-span-2">
                   <label
