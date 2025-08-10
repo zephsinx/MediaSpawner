@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, act } from "@testing-library/react";
+import {
+  render,
+  screen,
+  act,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react";
 import { LayoutProvider } from "../../layout";
 import AssetManagementPanel from "../AssetManagementPanel";
 
@@ -7,6 +13,7 @@ import AssetManagementPanel from "../AssetManagementPanel";
 vi.mock("../../../services/assetService", () => ({
   AssetService: {
     getAssets: vi.fn(),
+    addAsset: vi.fn(),
   },
 }));
 
@@ -69,6 +76,57 @@ describe("AssetLibrarySection (MS-34)", () => {
     // Source indicators
     expect(screen.getAllByText("🌐").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("📁").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("adds a URL asset with format validation and updates count", async () => {
+    // In-memory library to simulate AssetService behavior
+    const library: MediaAsset[] = [];
+    vi.mocked(AssetService.getAssets).mockImplementation(() => library);
+    vi.mocked(AssetService.addAsset).mockImplementation(
+      (type: MediaAsset["type"], name: string, path: string) => {
+        const created = makeAsset({ id: "n1", type, name, path, isUrl: true });
+        library.push(created);
+        return created;
+      }
+    );
+
+    render(
+      <LayoutProvider>
+        <AssetManagementPanel />
+      </LayoutProvider>
+    );
+
+    // Open add URL
+    await act(async () => {
+      screen.getByRole("button", { name: "Add URL Asset" }).click();
+    });
+
+    // Invalid format
+    const input = screen.getByLabelText("Asset URL") as HTMLInputElement;
+    input.focus();
+    await act(async () => {
+      fireEvent.change(input, { target: { value: "notaurl" } });
+    });
+    await act(async () => {
+      screen.getByText("Add").click();
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent("Invalid URL format");
+
+    // Valid add
+    await act(async () => {
+      fireEvent.change(input, {
+        target: { value: "https://example.com/file.png" },
+      });
+      screen.getByText("Add").click();
+    });
+
+    expect(AssetService.addAsset).toHaveBeenCalled();
+    // Count updates to (1)
+    await waitFor(() => {
+      const headerAfter = screen.getByLabelText("Asset Library")
+        .previousElementSibling as HTMLElement | null;
+      expect(headerAfter?.textContent || "").toMatch(/\(1\)|\(\s*1\s*\)/);
+    });
   });
 
   it("refreshes when mediaspawner:assets-updated is dispatched", async () => {

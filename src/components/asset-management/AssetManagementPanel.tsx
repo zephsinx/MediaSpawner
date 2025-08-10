@@ -5,6 +5,7 @@ import { AssetService } from "../../services/assetService";
 import type { Spawn, SpawnAsset } from "../../types/spawn";
 import type { MediaAsset } from "../../types/media";
 import { MediaPreview } from "../common/MediaPreview";
+import { detectAssetTypeFromPath } from "../../utils/assetTypeDetection";
 
 /**
  * AssetManagementPanel renders the right-panel structure for Epic 4 (MS-32):
@@ -153,6 +154,10 @@ function SpawnAssetsSection() {
 
 function AssetLibrarySection() {
   const [assets, setAssets] = useState<MediaAsset[]>([]);
+  const [isAddingUrl, setIsAddingUrl] = useState<boolean>(false);
+  const [urlInput, setUrlInput] = useState<string>("");
+  const [addError, setAddError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   useEffect(() => {
     // Initial load
@@ -175,13 +180,118 @@ function AssetLibrarySection() {
   const getTypeIcon = (type: MediaAsset["type"]) =>
     type === "image" ? "🖼️" : type === "video" ? "🎥" : "🎵";
 
+  const validateUrlFormat = (value: string): string | null => {
+    const trimmed = value.trim();
+    if (!trimmed) return "URL is required";
+    try {
+      const u = new URL(trimmed);
+      if (u.protocol !== "http:" && u.protocol !== "https:") {
+        return "Only http/https URLs are supported";
+      }
+      return null;
+    } catch {
+      return "Invalid URL format";
+    }
+  };
+
+  const handleAddUrl = async () => {
+    const error = validateUrlFormat(urlInput);
+    if (error) {
+      setAddError(error);
+      return;
+    }
+    const trimmed = urlInput.trim();
+
+    // Duplicate prevention by path for URL assets
+    const existing = AssetService.getAssets();
+    if (existing.some((a) => a.isUrl && a.path === trimmed)) {
+      setAddError("Asset with this URL already exists");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setAddError(null);
+    try {
+      const type = detectAssetTypeFromPath(trimmed);
+      const name = trimmed.split("/").pop() || trimmed;
+      AssetService.addAsset(type, name, trimmed);
+      setUrlInput("");
+      setIsAddingUrl(false);
+      setAssets(AssetService.getAssets());
+      window.dispatchEvent(
+        new Event(
+          "mediaspawner:assets-updated" as unknown as keyof WindowEventMap
+        )
+      );
+    } catch (e) {
+      setAddError(e instanceof Error ? e.message : "Failed to add URL asset");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="px-3 py-2 lg:px-4 lg:py-3 bg-gray-50 border-b border-gray-200">
-        <h2 className="text-sm lg:text-base font-semibold text-gray-800">
-          <span>Asset Library</span>
-          <span className="ml-2 text-gray-600">({assets.length})</span>
-        </h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm lg:text-base font-semibold text-gray-800">
+            <span>Asset Library</span>
+            <span className="ml-2 text-gray-600">({assets.length})</span>
+          </h2>
+          {!isAddingUrl ? (
+            <button
+              type="button"
+              className="text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+              onClick={() => {
+                setAddError(null);
+                setUrlInput("");
+                setIsAddingUrl(true);
+              }}
+              aria-label="Add URL Asset"
+            >
+              Add URL
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <input
+                type="url"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                placeholder="https://example.com/media.png"
+                className="w-64 px-2 py-1 border border-gray-300 rounded text-sm"
+                aria-label="Asset URL"
+              />
+              <button
+                type="button"
+                className={`text-xs px-2 py-1 rounded text-white ${
+                  isSubmitting
+                    ? "bg-blue-300 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
+                onClick={handleAddUrl}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Adding…" : "Add"}
+              </button>
+              <button
+                type="button"
+                className="text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                onClick={() => {
+                  setIsAddingUrl(false);
+                  setAddError(null);
+                  setUrlInput("");
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
+        {addError && (
+          <div className="mt-2 text-xs text-red-600" role="alert">
+            {addError}
+          </div>
+        )}
       </div>
       <div
         className="flex-1 overflow-auto p-3 lg:p-4"
