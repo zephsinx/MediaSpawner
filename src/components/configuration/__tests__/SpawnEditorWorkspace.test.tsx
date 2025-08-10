@@ -130,6 +130,12 @@ describe("SpawnEditorWorkspace", () => {
       });
     });
 
+    // Ensure dirty state has propagated before triggering cancel
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Save spawn" })
+      ).not.toBeDisabled()
+    );
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Cancel edits" }));
     });

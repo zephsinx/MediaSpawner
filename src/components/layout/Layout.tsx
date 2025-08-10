@@ -1,10 +1,10 @@
 import React from "react";
 import ThreePanelLayout from "./ThreePanelLayout";
-import { AssetManagementPlaceholder } from "./PanelPlaceholder";
 import { LayoutProvider } from "./LayoutContext";
 import { SpawnList } from "../spawn-list";
 import { usePanelState } from "../../hooks/useLayout";
 import { SpawnEditorWorkspace } from "../configuration";
+import AssetManagementPanel from "../asset-management/AssetManagementPanel";
 
 const LayoutContent: React.FC = () => {
   const { selectedSpawnId, selectSpawn } = usePanelState();
@@ -18,7 +18,7 @@ const LayoutContent: React.FC = () => {
         />
       }
       centerPanel={<SpawnEditorWorkspace />}
-      rightPanel={<AssetManagementPlaceholder />}
+      rightPanel={<AssetManagementPanel />}
     />
   );
 };

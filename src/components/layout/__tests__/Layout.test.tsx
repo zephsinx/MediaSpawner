@@ -475,11 +475,9 @@ describe("Layout", () => {
         await screen.findByText(/Editing: Test Spawn 1/)
       ).toBeInTheDocument();
 
-      // Right panel placeholder remains
-      expect(screen.getByText("Dynamic Asset Management")).toBeInTheDocument();
-      expect(
-        screen.getByText("asset library and management tools")
-      ).toBeInTheDocument();
+      // Right panel shows AssetManagementPanel structure
+      expect(screen.getByText("Assets in Current Spawn")).toBeInTheDocument();
+      expect(screen.getByText("Asset Library")).toBeInTheDocument();
     });
 
     it("creates and auto-selects new spawn via header button in list", async () => {
@@ -525,9 +523,9 @@ describe("Layout", () => {
         await waitForElementToBeRemoved(loading4);
       }
 
-      // Right panel placeholder icon/content
-      expect(screen.getAllByText("📁")).toHaveLength(2);
-      expect(screen.getByText("Dynamic Asset Management")).toBeInTheDocument();
+      // Right panel shows AssetManagementPanel structure
+      expect(screen.getByText("Assets in Current Spawn")).toBeInTheDocument();
+      expect(screen.getByText("Asset Library")).toBeInTheDocument();
 
       // Center panel now shows Spawn Editor (no ⚙️ placeholder)
       expect(screen.getByText("Spawn Editor")).toBeInTheDocument();
@@ -544,9 +542,8 @@ describe("Layout", () => {
         await waitForElementToBeRemoved(loading5);
       }
 
-      expect(
-        screen.getByText("Dynamic Asset Management Coming Soon")
-      ).toBeInTheDocument();
+      expect(screen.getByText("Assets in Current Spawn")).toBeInTheDocument();
+      expect(screen.getByText("Asset Library")).toBeInTheDocument();
       expect(screen.getByText("Spawn Editor")).toBeInTheDocument();
     });
   });
@@ -659,7 +656,8 @@ describe("Layout", () => {
       });
 
       const panels = container.querySelectorAll(".overflow-hidden");
-      expect(panels).toHaveLength(3);
+      // Includes the three outer panel containers plus internal overflow containers
+      expect(panels.length).toBeGreaterThanOrEqual(3);
     });
   });
 });
