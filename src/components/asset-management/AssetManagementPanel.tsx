@@ -151,6 +151,90 @@ function SpawnAssetsSection() {
   );
 }
 
+function AssetLibrarySection() {
+  const [assets, setAssets] = useState<MediaAsset[]>([]);
+
+  useEffect(() => {
+    // Initial load
+    setAssets(AssetService.getAssets());
+
+    // Listen for external updates to refresh list
+    const handler = () => setAssets(AssetService.getAssets());
+    window.addEventListener(
+      "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
+      handler as EventListener
+    );
+    return () => {
+      window.removeEventListener(
+        "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
+        handler as EventListener
+      );
+    };
+  }, []);
+
+  const getTypeIcon = (type: MediaAsset["type"]) =>
+    type === "image" ? "🖼️" : type === "video" ? "🎥" : "🎵";
+
+  return (
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="px-3 py-2 lg:px-4 lg:py-3 bg-gray-50 border-b border-gray-200">
+        <h2 className="text-sm lg:text-base font-semibold text-gray-800">
+          <span>Asset Library</span>
+          <span className="ml-2 text-gray-600">({assets.length})</span>
+        </h2>
+      </div>
+      <div
+        className="flex-1 overflow-auto p-3 lg:p-4"
+        role="region"
+        aria-label="Asset Library"
+      >
+        {assets.length === 0 ? (
+          <div className="h-full flex items-center justify-center text-gray-500 text-sm">
+            No assets in library
+          </div>
+        ) : (
+          <ul role="list" className="space-y-2">
+            {assets.map((asset) => (
+              <li
+                role="listitem"
+                key={asset.id}
+                className="border border-gray-200 rounded-md bg-white p-2"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-16 h-16 flex-shrink-0">
+                    <MediaPreview asset={asset} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className="text-sm font-medium text-gray-900 truncate"
+                      title={asset.name}
+                    >
+                      {asset.name}
+                    </div>
+                    <div className="text-xs text-gray-600 flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 capitalize bg-gray-100 text-gray-700 px-2 py-0.5 rounded">
+                        <span>{getTypeIcon(asset.type)}</span>
+                        <span>{asset.type}</span>
+                      </span>
+                      <span className="text-gray-400">•</span>
+                      <span
+                        className="text-gray-500"
+                        title={asset.isUrl ? "URL asset" : "Local file"}
+                      >
+                        {asset.isUrl ? "🌐" : "📁"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
 const AssetManagementPanel: React.FC = () => {
   const bottomHeaderId = "asset-library-header";
 
@@ -166,15 +250,7 @@ const AssetManagementPanel: React.FC = () => {
         aria-labelledby={bottomHeaderId}
         className="flex flex-col overflow-hidden flex-[7] min-h-[200px]"
       >
-        <div
-          id={bottomHeaderId}
-          className="px-3 py-2 lg:px-4 lg:py-3 bg-gray-50 border-b border-gray-200"
-        >
-          <h2 className="text-sm lg:text-base font-semibold text-gray-800">
-            Asset Library
-          </h2>
-        </div>
-        <div className="flex-1 overflow-auto p-3 lg:p-4"></div>
+        <AssetLibrarySection />
       </section>
     </div>
   );

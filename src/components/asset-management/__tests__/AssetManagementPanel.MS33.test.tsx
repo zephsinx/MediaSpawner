@@ -13,6 +13,7 @@ vi.mock("../../../services/spawnService", () => ({
 vi.mock("../../../services/assetService", () => ({
   AssetService: {
     getAssetById: vi.fn(),
+    getAssets: vi.fn(),
   },
 }));
 
@@ -78,6 +79,8 @@ describe("AssetManagementPanel (MS-33)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockState.selectedSpawnId = undefined;
+    // Default library to empty to prevent undefined length errors from AssetLibrarySection
+    vi.mocked(AssetService.getAssets).mockReturnValue([] as MediaAsset[]);
   });
 
   it("shows empty state when no spawn is selected", () => {
@@ -109,7 +112,7 @@ describe("AssetManagementPanel (MS-33)", () => {
       await screen.findByText("No assets assigned to this spawn")
     ).toBeInTheDocument();
     expect(screen.getByText("Assets in Current Spawn")).toBeInTheDocument();
-    expect(screen.getByText("(0)")).toBeInTheDocument();
+    expect(screen.getAllByText("(0)").length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders assets sorted by order with name and type", async () => {
