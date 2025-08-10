@@ -27,6 +27,7 @@ function SpawnAssetsSection() {
   const [removeError, setRemoveError] = useState<string | null>(null);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [isRemoving, setIsRemoving] = useState<boolean>(false);
+  const [isDragOver, setIsDragOver] = useState<boolean>(false);
 
   useEffect(() => {
     let isActive = true;
@@ -153,6 +154,55 @@ function SpawnAssetsSection() {
     }
   };
 
+  const handleDragOver: React.DragEventHandler<HTMLDivElement> = (e) => {
+    e.preventDefault();
+    try {
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = "copy";
+      }
+    } catch {
+      // ignore
+    }
+    setIsDragOver(true);
+  };
+
+  const handleDragEnter: React.DragEventHandler<HTMLDivElement> = (e) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave: React.DragEventHandler<HTMLDivElement> = (e) => {
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsDragOver(false);
+  };
+
+  const handleDrop: React.DragEventHandler<HTMLDivElement> = async (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (!selectedSpawnId) return;
+    try {
+      const assetId = e.dataTransfer?.getData("text/mediaspawner-asset-id");
+      if (!assetId) return;
+      const current = await SpawnService.getSpawn(selectedSpawnId);
+      if (!current) return;
+      if (current.assets.some((sa) => sa.assetId === assetId)) return;
+      const newOrder = current.assets.length;
+      const newSpawnAsset: SpawnAsset = createSpawnAsset(assetId, newOrder);
+      const result = await SpawnService.updateSpawn(selectedSpawnId, {
+        assets: [...current.assets, newSpawnAsset],
+      });
+      if (!result.success) return;
+      window.dispatchEvent(
+        new CustomEvent(
+          "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+          { detail: { spawnId: selectedSpawnId } } as CustomEventInit
+        )
+      );
+    } catch {
+      // silent per UX pattern
+    }
+  };
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="px-3 py-2 lg:px-4 lg:py-3 bg-gray-50 border-b border-gray-200">
@@ -164,9 +214,15 @@ function SpawnAssetsSection() {
         </h2>
       </div>
       <div
-        className="flex-1 overflow-auto p-3 lg:p-4"
+        className={`flex-1 overflow-auto p-3 lg:p-4 ${
+          isDragOver ? "ring-2 ring-blue-500 rounded-md bg-blue-50/30" : ""
+        }`}
         role="region"
         aria-label="Assets in Current Spawn"
+        onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
         {removeError && (
           <div className="mb-2 text-xs text-red-600" role="alert">
