@@ -7,6 +7,7 @@ import type { MediaAsset } from "../../types/media";
 import { MediaPreview } from "../common/MediaPreview";
 import { detectAssetTypeFromPath } from "../../utils/assetTypeDetection";
 import { createSpawnAsset } from "../../types/spawn";
+import { ConfirmDialog } from "../common/ConfirmDialog";
 
 /**
  * AssetManagementPanel renders the right-panel structure for Epic 4 (MS-32):
@@ -23,6 +24,9 @@ function SpawnAssetsSection() {
   const [spawn, setSpawn] = useState<Spawn | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+  const [isRemoving, setIsRemoving] = useState<boolean>(false);
 
   useEffect(() => {
     let isActive = true;
@@ -116,6 +120,39 @@ function SpawnAssetsSection() {
   const getTypeIcon = (type: MediaAsset["type"]) =>
     type === "image" ? "🖼️" : type === "video" ? "🎥" : "🎵";
 
+  const handleConfirmRemove = async () => {
+    if (!selectedSpawnId || !spawn || !confirmRemoveId) return;
+    setIsRemoving(true);
+    setRemoveError(null);
+    try {
+      const remaining = spawn.assets.filter((sa) => sa.id !== confirmRemoveId);
+      const reindexed: SpawnAsset[] = remaining.map((sa, idx) => ({
+        ...sa,
+        order: idx,
+      }));
+      const result = await SpawnService.updateSpawn(selectedSpawnId, {
+        assets: reindexed,
+      });
+      if (!result.success) {
+        setRemoveError(result.error || "Failed to remove asset from spawn");
+        return;
+      }
+      window.dispatchEvent(
+        new CustomEvent(
+          "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+          { detail: { spawnId: selectedSpawnId } } as CustomEventInit
+        )
+      );
+    } catch (e) {
+      setRemoveError(
+        e instanceof Error ? e.message : "Failed to remove asset from spawn"
+      );
+    } finally {
+      setIsRemoving(false);
+      setConfirmRemoveId(null);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="px-3 py-2 lg:px-4 lg:py-3 bg-gray-50 border-b border-gray-200">
@@ -131,6 +168,11 @@ function SpawnAssetsSection() {
         role="region"
         aria-label="Assets in Current Spawn"
       >
+        {removeError && (
+          <div className="mb-2 text-xs text-red-600" role="alert">
+            {removeError}
+          </div>
+        )}
         {!spawn || spawn.assets.length === 0 || resolvedAssets.length === 0 ? (
           renderEmptyState()
         ) : (
@@ -163,12 +205,37 @@ function SpawnAssetsSection() {
                       </span>
                     </div>
                   </div>
+                  <div className="flex items-center">
+                    <button
+                      type="button"
+                      className={`text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 ${
+                        isRemoving
+                          ? "opacity-50 cursor-not-allowed"
+                          : "hover:bg-gray-50"
+                      }`}
+                      aria-label="Remove from Spawn"
+                      onClick={() => setConfirmRemoveId(spawnAsset.id)}
+                      disabled={isRemoving}
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
               </li>
             ))}
           </ul>
         )}
       </div>
+      <ConfirmDialog
+        isOpen={Boolean(confirmRemoveId)}
+        title="Remove asset from spawn?"
+        message="This will remove the asset from the current spawn. The asset will remain available in the library."
+        confirmText={isRemoving ? "Removing…" : "Remove"}
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={handleConfirmRemove}
+        onCancel={() => setConfirmRemoveId(null)}
+      />
     </div>
   );
 }
