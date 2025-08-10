@@ -6,6 +6,7 @@ import type { Spawn, SpawnAsset } from "../../types/spawn";
 import type { MediaAsset } from "../../types/media";
 import { MediaPreview } from "../common/MediaPreview";
 import { detectAssetTypeFromPath } from "../../utils/assetTypeDetection";
+import { createSpawnAsset } from "../../types/spawn";
 
 /**
  * AssetManagementPanel renders the right-panel structure for Epic 4 (MS-32):
@@ -43,8 +44,28 @@ function SpawnAssetsSection() {
       }
     };
     load();
+
+    const onSpawnUpdated = (evt: Event) => {
+      const detail = (evt as CustomEvent).detail as
+        | { spawnId?: string }
+        | undefined;
+      if (!detail || !detail.spawnId) return;
+      if (detail.spawnId === selectedSpawnId) {
+        void load();
+      }
+    };
+
+    window.addEventListener(
+      "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+      onSpawnUpdated as EventListener
+    );
+
     return () => {
       isActive = false;
+      window.removeEventListener(
+        "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+        onSpawnUpdated as EventListener
+      );
     };
   }, [selectedSpawnId]);
 
@@ -158,6 +179,9 @@ function AssetLibrarySection() {
   const [urlInput, setUrlInput] = useState<string>("");
   const [addError, setAddError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const { selectedSpawnId } = usePanelState();
+  const [assigningAssetId, setAssigningAssetId] = useState<string | null>(null);
+  const [lastAddedAssetId, setLastAddedAssetId] = useState<string | null>(null);
 
   useEffect(() => {
     // Initial load
@@ -227,6 +251,54 @@ function AssetLibrarySection() {
       setAddError(e instanceof Error ? e.message : "Failed to add URL asset");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleAddToSpawn = async (asset: MediaAsset) => {
+    if (!selectedSpawnId) return;
+    setAssigningAssetId(asset.id);
+    setAddError(null);
+    try {
+      const spawn = await SpawnService.getSpawn(selectedSpawnId);
+      if (!spawn) {
+        setAddError("Failed to load selected spawn");
+        return;
+      }
+
+      const isDuplicate = spawn.assets.some((sa) => sa.assetId === asset.id);
+      if (isDuplicate) {
+        setAddError("Asset already exists in this spawn");
+        return;
+      }
+
+      const newOrder = spawn.assets.length;
+      const newSpawnAsset: SpawnAsset = createSpawnAsset(asset.id, newOrder);
+      const result = await SpawnService.updateSpawn(selectedSpawnId, {
+        assets: [...spawn.assets, newSpawnAsset],
+      });
+      if (!result.success) {
+        setAddError(result.error || "Failed to add asset to spawn");
+        return;
+      }
+
+      setLastAddedAssetId(asset.id);
+      window.dispatchEvent(
+        new CustomEvent(
+          "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+          { detail: { spawnId: selectedSpawnId } } as CustomEventInit
+        )
+      );
+
+      window.setTimeout(
+        () => setLastAddedAssetId((id) => (id === asset.id ? null : id)),
+        1200
+      );
+    } catch (e) {
+      setAddError(
+        e instanceof Error ? e.message : "Failed to add asset to spawn"
+      );
+    } finally {
+      setAssigningAssetId(null);
     }
   };
 
@@ -334,6 +406,27 @@ function AssetLibrarySection() {
                         {asset.isUrl ? "🌐" : "📁"}
                       </span>
                     </div>
+                  </div>
+                  <div className="flex items-center">
+                    <button
+                      type="button"
+                      className={`text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 ${
+                        !selectedSpawnId || assigningAssetId === asset.id
+                          ? "opacity-50 cursor-not-allowed"
+                          : "hover:bg-gray-50"
+                      }`}
+                      aria-label="Add to Spawn"
+                      onClick={() => handleAddToSpawn(asset)}
+                      disabled={
+                        !selectedSpawnId || assigningAssetId === asset.id
+                      }
+                    >
+                      {lastAddedAssetId === asset.id
+                        ? "Added"
+                        : assigningAssetId === asset.id
+                        ? "Adding…"
+                        : "Add to Spawn"}
+                    </button>
                   </div>
                 </div>
               </li>
