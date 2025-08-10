@@ -1,11 +1,16 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { LayoutProvider } from "../../layout";
 import AssetManagementPanel from "../AssetManagementPanel";
 
 describe("AssetManagementPanel (MS-32)", () => {
   describe("Basic Rendering", () => {
     it("renders two sections with correct headers", () => {
-      render(<AssetManagementPanel />);
+      render(
+        <LayoutProvider>
+          <AssetManagementPanel />
+        </LayoutProvider>
+      );
 
       expect(screen.getByText("Assets in Current Spawn")).toBeInTheDocument();
       expect(screen.getByText("Asset Library")).toBeInTheDocument();
@@ -14,13 +19,21 @@ describe("AssetManagementPanel (MS-32)", () => {
 
   describe("Layout and Styling", () => {
     it("applies flex column layout and overflow handling to container", () => {
-      const { container } = render(<AssetManagementPanel />);
+      const { container } = render(
+        <LayoutProvider>
+          <AssetManagementPanel />
+        </LayoutProvider>
+      );
       const root = container.firstChild as HTMLElement;
       expect(root).toHaveClass("h-full", "flex", "flex-col", "overflow-hidden");
     });
 
     it("applies min-heights and border separation to sections", () => {
-      const { container } = render(<AssetManagementPanel />);
+      const { container } = render(
+        <LayoutProvider>
+          <AssetManagementPanel />
+        </LayoutProvider>
+      );
       const sections = container.querySelectorAll("section");
       expect(sections).toHaveLength(2);
 
@@ -32,7 +45,11 @@ describe("AssetManagementPanel (MS-32)", () => {
     });
 
     it("uses sticky-like headers and scrollable content areas", () => {
-      const { container } = render(<AssetManagementPanel />);
+      const { container } = render(
+        <LayoutProvider>
+          <AssetManagementPanel />
+        </LayoutProvider>
+      );
       const headers = container.querySelectorAll(
         ".bg-gray-50.border-b.border-gray-200"
       );
