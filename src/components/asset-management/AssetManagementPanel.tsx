@@ -24,6 +24,8 @@ function SpawnAssetsSection() {
   const [spawn, setSpawn] = useState<Spawn | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [removeError, setRemoveError] = useState<string | null>(null);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [isRemoving, setIsRemoving] = useState<boolean>(false);
@@ -120,6 +122,32 @@ function SpawnAssetsSection() {
   const getTypeIcon = (type: MediaAsset["type"]) =>
     type === "image" ? "🖼️" : type === "video" ? "🎥" : "🎵";
 
+  const handleReorder = async (fromIndex: number, toIndex: number) => {
+    if (!spawn || fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return;
+    const current = [...spawn.assets].sort((a, b) => a.order - b.order);
+    if (fromIndex >= current.length || toIndex >= current.length) return;
+    const moved = current.splice(fromIndex, 1)[0];
+    current.splice(toIndex, 0, moved);
+    const reindexed: SpawnAsset[] = current.map((sa, idx) => ({
+      ...sa,
+      order: idx,
+    }));
+    if (!selectedSpawnId) return;
+    const result = await SpawnService.updateSpawn(selectedSpawnId, {
+      assets: reindexed,
+    });
+    if (!result.success) {
+      setRemoveError(result.error || "Failed to reorder assets");
+      return;
+    }
+    window.dispatchEvent(
+      new CustomEvent(
+        "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+        { detail: { spawnId: selectedSpawnId } } as CustomEventInit
+      )
+    );
+  };
+
   const handleConfirmRemove = async () => {
     if (!selectedSpawnId || !spawn || !confirmRemoveId) return;
     setIsRemoving(true);
@@ -177,13 +205,51 @@ function SpawnAssetsSection() {
           renderEmptyState()
         ) : (
           <ul role="list" className="space-y-2">
-            {resolvedAssets.map(({ baseAsset, spawnAsset }) => (
+            {resolvedAssets.map(({ baseAsset, spawnAsset }, index) => (
               <li
                 role="listitem"
                 key={spawnAsset.id}
-                className="border border-gray-200 rounded-md bg-white p-2"
+                className={`border border-gray-200 rounded-md bg-white p-2 ${
+                  draggingId === spawnAsset.id ? "opacity-70" : ""
+                }`}
+                draggable
+                onDragStart={(e) => {
+                  setDraggingId(spawnAsset.id);
+                  e.dataTransfer.setData("text/plain", String(index));
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                  setDragOverIndex(index);
+                }}
+                onDragLeave={() =>
+                  setDragOverIndex((cur) => (cur === index ? null : cur))
+                }
+                onDrop={async (e) => {
+                  e.preventDefault();
+                  const fromIndexStr = e.dataTransfer.getData("text/plain");
+                  const fromIndex = Number(fromIndexStr);
+                  const toIndex = index;
+                  setDraggingId(null);
+                  setDragOverIndex(null);
+                  if (!Number.isNaN(fromIndex)) {
+                    await handleReorder(fromIndex, toIndex);
+                  }
+                }}
+                onDragEnd={() => {
+                  setDraggingId(null);
+                  setDragOverIndex(null);
+                }}
               >
                 <div className="flex items-center gap-3">
+                  <div
+                    className="w-4 text-gray-400 cursor-grab select-none"
+                    title="Drag to reorder"
+                    aria-hidden
+                  >
+                    ⋮⋮
+                  </div>
                   <div className="w-16 h-16 flex-shrink-0 overflow-hidden rounded">
                     <MediaPreview
                       asset={baseAsset}
@@ -225,6 +291,9 @@ function SpawnAssetsSection() {
                     </button>
                   </div>
                 </div>
+                {dragOverIndex === index && draggingId !== null && (
+                  <div className="mt-2 h-0.5 bg-blue-500 rounded" aria-hidden />
+                )}
               </li>
             ))}
           </ul>

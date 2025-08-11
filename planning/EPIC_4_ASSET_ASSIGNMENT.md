@@ -145,7 +145,7 @@ As a user, I want to add assets using URLs, so that I can include web-hosted med
 **Story ID**: MS-36
 **Priority**: High
 **Estimate**: 5 points
-**Status**: Not Started
+**Status**: Not Started (Deferred)
 
 **User Story**:
 As a user, I want to drag assets from the library to my spawn, so that I can quickly build my spawn configuration.
