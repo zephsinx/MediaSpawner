@@ -53,6 +53,32 @@ const SpawnList: React.FC<SpawnListProps> = ({
     loadSpawns();
   }, []);
 
+  // Listen for external spawn updates to keep list in sync (name, enabled, etc.)
+  useEffect(() => {
+    const handleUpdated = (e: Event) => {
+      const ce = e as CustomEvent<{ spawnId?: string; updatedSpawn?: Spawn }>;
+      const updatedSpawn = ce.detail?.updatedSpawn;
+      if (updatedSpawn) {
+        setSpawns((prev) =>
+          prev.map((s) => (s.id === updatedSpawn.id ? updatedSpawn : s))
+        );
+        return;
+      }
+      // If no payload provided, ignore to avoid clobbering optimistic UI with stale data
+      // Other panels (editor) will send updatedSpawn payloads when needed
+    };
+    window.addEventListener(
+      "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+      handleUpdated as EventListener
+    );
+    return () => {
+      window.removeEventListener(
+        "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+        handleUpdated as EventListener
+      );
+    };
+  }, []);
+
   // Respond to external spawn deletion events to keep list in sync
   useEffect(() => {
     const handleDeleted = (e: Event) => {
@@ -122,6 +148,13 @@ const SpawnList: React.FC<SpawnListProps> = ({
           return updated;
         });
         setToggleError(null);
+        // Notify other panels (editor, right panel) to refresh if they show this spawn
+        window.dispatchEvent(
+          new CustomEvent(
+            "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+            { detail: { spawnId: spawn.id } } as CustomEventInit
+          )
+        );
       }
     } catch (err) {
       // Revert optimistic update on exception
