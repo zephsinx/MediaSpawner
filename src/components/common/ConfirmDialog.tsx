@@ -9,6 +9,7 @@ export interface ConfirmDialogProps {
   variant?: "danger" | "warning" | "info";
   onConfirm: () => void;
   onCancel: () => void;
+  extraContent?: React.ReactNode;
 }
 
 export function ConfirmDialog({
@@ -20,6 +21,7 @@ export function ConfirmDialog({
   variant = "danger",
   onConfirm,
   onCancel,
+  extraContent,
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
@@ -133,6 +135,9 @@ export function ConfirmDialog({
             {message}
           </p>
         </div>
+
+        {/* Optional extra content (e.g., checkboxes) */}
+        {extraContent && <div className="mb-3">{extraContent}</div>}
 
         {/* Actions */}
         <div className="flex space-x-3 justify-end">

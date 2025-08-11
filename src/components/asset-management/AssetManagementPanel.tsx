@@ -5,7 +5,10 @@ import { AssetService } from "../../services/assetService";
 import type { Spawn, SpawnAsset } from "../../types/spawn";
 import type { MediaAsset } from "../../types/media";
 import { MediaPreview } from "../common/MediaPreview";
-import { detectAssetTypeFromPath } from "../../utils/assetTypeDetection";
+import {
+  detectAssetTypeFromPath,
+  getSupportedExtensions,
+} from "../../utils/assetTypeDetection";
 import { validateUrlFormat } from "../../utils/assetValidation";
 import { createSpawnAsset } from "../../types/spawn";
 import { ConfirmDialog } from "../common/ConfirmDialog";
@@ -30,6 +33,7 @@ function SpawnAssetsSection() {
   const [removeError, setRemoveError] = useState<string | null>(null);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [isRemoving, setIsRemoving] = useState<boolean>(false);
+  const [skipRemoveConfirm, setSkipRemoveConfirm] = useState<boolean>(false);
 
   useEffect(() => {
     let isActive = true;
@@ -149,12 +153,12 @@ function SpawnAssetsSection() {
     );
   };
 
-  const handleConfirmRemove = async () => {
-    if (!selectedSpawnId || !spawn || !confirmRemoveId) return;
+  const performRemove = async (removeId: string) => {
+    if (!selectedSpawnId || !spawn) return;
     setIsRemoving(true);
     setRemoveError(null);
     try {
-      const remaining = spawn.assets.filter((sa) => sa.id !== confirmRemoveId);
+      const remaining = spawn.assets.filter((sa) => sa.id !== removeId);
       const reindexed: SpawnAsset[] = remaining.map((sa, idx) => ({
         ...sa,
         order: idx,
@@ -180,6 +184,11 @@ function SpawnAssetsSection() {
       setIsRemoving(false);
       setConfirmRemoveId(null);
     }
+  };
+
+  const handleConfirmRemove = async () => {
+    if (!confirmRemoveId) return;
+    await performRemove(confirmRemoveId);
   };
 
   return (
@@ -285,7 +294,15 @@ function SpawnAssetsSection() {
                           : "hover:bg-gray-50"
                       }`}
                       aria-label="Remove from Spawn"
-                      onClick={() => setConfirmRemoveId(spawnAsset.id)}
+                      onClick={() => {
+                        if (skipRemoveConfirm) {
+                          // Remove immediately without opening modal
+                          void performRemove(spawnAsset.id);
+                        } else {
+                          // Open modal
+                          setConfirmRemoveId(spawnAsset.id);
+                        }
+                      }}
                       disabled={isRemoving}
                     >
                       Remove
@@ -307,8 +324,26 @@ function SpawnAssetsSection() {
         confirmText={isRemoving ? "Removing…" : "Remove"}
         cancelText="Cancel"
         variant="danger"
-        onConfirm={handleConfirmRemove}
+        onConfirm={() => {
+          if (skipRemoveConfirm && confirmRemoveId) {
+            // Persist skip and remove; dialog will close via performRemove
+            void performRemove(confirmRemoveId);
+          } else {
+            void handleConfirmRemove();
+          }
+        }}
         onCancel={() => setConfirmRemoveId(null)}
+        extraContent={
+          <label className="flex items-center gap-2 text-xs text-gray-700">
+            <input
+              type="checkbox"
+              className="h-3 w-3"
+              checked={skipRemoveConfirm}
+              onChange={(e) => setSkipRemoveConfirm(e.target.checked)}
+            />
+            Don’t ask again (this session)
+          </label>
+        }
       />
     </div>
   );
@@ -319,10 +354,12 @@ function AssetLibrarySection() {
   const [isAddingUrl, setIsAddingUrl] = useState<boolean>(false);
   const [urlInput, setUrlInput] = useState<string>("");
   const [addError, setAddError] = useState<string | null>(null);
+  const [filesError, setFilesError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const { selectedSpawnId } = usePanelState();
   const [assigningAssetId, setAssigningAssetId] = useState<string | null>(null);
   const [lastAddedAssetId, setLastAddedAssetId] = useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     // Initial load
@@ -386,6 +423,60 @@ function AssetLibrarySection() {
     }
   };
 
+  const supportedAccept = React.useMemo(() => {
+    const all = getSupportedExtensions();
+    return all.map((ext) => `.${ext}`).join(",");
+  }, []);
+
+  const handleFilesSelected: React.ChangeEventHandler<HTMLInputElement> = (
+    e
+  ) => {
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+    const existing = AssetService.getAssets();
+    const errors: string[] = [];
+    for (let i = 0; i < fileList.length; i += 1) {
+      const f = fileList[i];
+      const filename = f.name.trim();
+      if (!filename) {
+        errors.push("Skipped an unnamed file");
+        continue;
+      }
+      // Duplicate prevention by filename for local assets
+      if (existing.some((a) => a.isUrl === false && a.path === filename)) {
+        errors.push(`${filename}: already in library`);
+        continue;
+      }
+      const type = detectAssetTypeFromPath(filename);
+      // Basic format-only validation via extension mapping already used by detector
+      const ext = filename.split(".").pop()?.toLowerCase();
+      if (!ext || !getSupportedExtensions().includes(ext)) {
+        errors.push(`${filename}: unsupported file type`);
+        continue;
+      }
+      const name = filename;
+      AssetService.addAsset(type, name, filename);
+    }
+    setAssets(AssetService.getAssets());
+    window.dispatchEvent(
+      new Event(
+        "mediaspawner:assets-updated" as unknown as keyof WindowEventMap
+      )
+    );
+    // Compose error summary
+    if (errors.length > 0) {
+      setFilesError(
+        `${errors.length} file(s) skipped: ${errors.slice(0, 3).join("; ")}${
+          errors.length > 3 ? "…" : ""
+        }`
+      );
+    } else {
+      setFilesError(null);
+    }
+    // Reset input so the same files can be reselected
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handleAddToSpawn = async (asset: MediaAsset) => {
     if (!selectedSpawnId) return;
     setAssigningAssetId(asset.id);
@@ -442,26 +533,51 @@ function AssetLibrarySection() {
             <span>Asset Library</span>
             <span className="ml-2 text-gray-600">({assets.length})</span>
           </h2>
-          {!isAddingUrl && (
+          <div className="flex items-center gap-2">
             <button
               type="button"
               className="text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-              onClick={() => {
-                setAddError(null);
-                setUrlInput("");
-                setIsAddingUrl(true);
-              }}
-              aria-label="Add URL Asset"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="Add local assets"
             >
-              Add URL
+              Add Asset
             </button>
-          )}
+            {!isAddingUrl && (
+              <button
+                type="button"
+                className="text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                onClick={() => {
+                  setAddError(null);
+                  setUrlInput("");
+                  setIsAddingUrl(true);
+                }}
+                aria-label="Add URL Asset"
+              >
+                Add URL
+              </button>
+            )}
+          </div>
         </div>
         {addError && (
           <div className="mt-2 text-xs text-red-600" role="alert">
             {addError}
           </div>
         )}
+        {filesError && (
+          <div className="mt-2 text-xs text-orange-700" role="alert">
+            {filesError}
+          </div>
+        )}
+        {/* Hidden file input for local assets (kept inside header container to preserve sibling order for tests) */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept={supportedAccept}
+          onChange={handleFilesSelected}
+          className="hidden"
+          aria-hidden
+        />
       </div>
       {isAddingUrl && (
         <div className="px-3 lg:px-4 py-2 bg-gray-50 border-b border-gray-200">
