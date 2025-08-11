@@ -6,6 +6,7 @@ import type { Spawn, SpawnAsset } from "../../types/spawn";
 import type { MediaAsset } from "../../types/media";
 import { MediaPreview } from "../common/MediaPreview";
 import { detectAssetTypeFromPath } from "../../utils/assetTypeDetection";
+import { validateUrlFormat } from "../../utils/assetValidation";
 import { createSpawnAsset } from "../../types/spawn";
 import { ConfirmDialog } from "../common/ConfirmDialog";
 
@@ -344,22 +345,13 @@ function AssetLibrarySection() {
   const getTypeIcon = (type: MediaAsset["type"]) =>
     type === "image" ? "🖼️" : type === "video" ? "🎥" : "🎵";
 
-  const validateUrlFormat = (value: string): string | null => {
-    const trimmed = value.trim();
-    if (!trimmed) return "URL is required";
-    try {
-      const u = new URL(trimmed);
-      if (u.protocol !== "http:" && u.protocol !== "https:") {
-        return "Only http/https URLs are supported";
-      }
-      return null;
-    } catch {
-      return "Invalid URL format";
-    }
+  const validateUrl = (value: string): string | null => {
+    const res = validateUrlFormat(value);
+    return res.isValid ? null : res.error || "Invalid URL";
   };
 
   const handleAddUrl = async () => {
-    const error = validateUrlFormat(urlInput);
+    const error = validateUrl(urlInput);
     if (error) {
       setAddError(error);
       return;
