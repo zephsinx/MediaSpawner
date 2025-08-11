@@ -184,8 +184,12 @@ function SpawnAssetsSection() {
                 className="border border-gray-200 rounded-md bg-white p-2"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-16 h-16 flex-shrink-0">
-                    <MediaPreview asset={baseAsset} />
+                  <div className="w-16 h-16 flex-shrink-0 overflow-hidden rounded">
+                    <MediaPreview
+                      asset={baseAsset}
+                      className="h-full"
+                      fit="contain"
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div
@@ -377,7 +381,7 @@ function AssetLibrarySection() {
             <span>Asset Library</span>
             <span className="ml-2 text-gray-600">({assets.length})</span>
           </h2>
-          {!isAddingUrl ? (
+          {!isAddingUrl && (
             <button
               type="button"
               className="text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
@@ -390,16 +394,26 @@ function AssetLibrarySection() {
             >
               Add URL
             </button>
-          ) : (
+          )}
+        </div>
+        {addError && (
+          <div className="mt-2 text-xs text-red-600" role="alert">
+            {addError}
+          </div>
+        )}
+      </div>
+      {isAddingUrl && (
+        <div className="px-3 lg:px-4 py-2 bg-gray-50 border-b border-gray-200">
+          <div className="w-full flex flex-col sm:flex-row sm:items-center gap-2">
+            <input
+              type="url"
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              placeholder="https://example.com/media.png"
+              className="flex-1 min-w-0 sm:w-96 max-w-full px-2 py-1 border border-gray-300 rounded text-sm"
+              aria-label="Asset URL"
+            />
             <div className="flex items-center gap-2">
-              <input
-                type="url"
-                value={urlInput}
-                onChange={(e) => setUrlInput(e.target.value)}
-                placeholder="https://example.com/media.png"
-                className="w-64 px-2 py-1 border border-gray-300 rounded text-sm"
-                aria-label="Asset URL"
-              />
               <button
                 type="button"
                 className={`text-xs px-2 py-1 rounded text-white ${
@@ -424,14 +438,9 @@ function AssetLibrarySection() {
                 Cancel
               </button>
             </div>
-          )}
-        </div>
-        {addError && (
-          <div className="mt-2 text-xs text-red-600" role="alert">
-            {addError}
           </div>
-        )}
-      </div>
+        </div>
+      )}
       <div
         className="flex-1 overflow-auto p-3 lg:p-4"
         role="region"
@@ -450,8 +459,12 @@ function AssetLibrarySection() {
                 className="border border-gray-200 rounded-md bg-white p-2"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-16 h-16 flex-shrink-0">
-                    <MediaPreview asset={asset} />
+                  <div className="w-16 h-16 flex-shrink-0 overflow-hidden rounded">
+                    <MediaPreview
+                      asset={asset}
+                      className="h-full"
+                      fit="contain"
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div
