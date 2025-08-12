@@ -18,7 +18,7 @@ Enable users to assign assets to spawns, supporting both local file paths and UR
 **Story ID**: MS-32
 **Priority**: High
 **Estimate**: 3 points
-**Status**: Not Started
+**Status**: Completed
 
 **User Story**:
 As a user, I want the right panel to display asset management, so that I can see spawn assets and available library assets in organized areas.
@@ -49,7 +49,7 @@ As a user, I want the right panel to display asset management, so that I can see
 **Story ID**: MS-33
 **Priority**: High
 **Estimate**: 3 points
-**Status**: Not Started
+**Status**: Completed
 
 **User Story**:
 As a user, I want to see which assets are assigned to my current spawn, so that I understand what will appear when I trigger this spawn.
@@ -81,7 +81,7 @@ As a user, I want to see which assets are assigned to my current spawn, so that 
 **Story ID**: MS-34
 **Priority**: High
 **Estimate**: 3 points
-**Status**: Not Started
+**Status**: Completed
 
 **User Story**:
 As a user, I want to see all available assets in the library section, so that I can choose assets to add to my spawn.
@@ -113,7 +113,7 @@ As a user, I want to see all available assets in the library section, so that I 
 **Story ID**: MS-35
 **Priority**: High
 **Estimate**: 4 points
-**Status**: Not Started
+**Status**: Completed
 
 **User Story**:
 As a user, I want to add assets using URLs, so that I can include web-hosted media in my spawns without downloading files locally.
@@ -145,7 +145,7 @@ As a user, I want to add assets using URLs, so that I can include web-hosted med
 **Story ID**: MS-36
 **Priority**: High
 **Estimate**: 5 points
-**Status**: Not Started
+**Status**: Not Started (Deferred)
 
 **User Story**:
 As a user, I want to drag assets from the library to my spawn, so that I can quickly build my spawn configuration.

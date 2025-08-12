@@ -8,6 +8,7 @@ export interface MediaPreviewProps {
   className?: string;
   onLoad?: () => void;
   onError?: () => void;
+  fit?: "cover" | "contain";
 }
 
 /**
@@ -44,6 +45,7 @@ export function MediaPreview({
   className = "",
   onLoad,
   onError,
+  fit = "cover",
 }: MediaPreviewProps) {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
@@ -104,7 +106,9 @@ export function MediaPreview({
           <img
             src={asset.path}
             alt={asset.name}
-            className="w-full h-full object-cover"
+            className={`w-full h-full ${
+              fit === "contain" ? "object-contain" : "object-cover"
+            }`}
             onLoad={handleLoad}
             onError={handleError}
           />
@@ -119,7 +123,9 @@ export function MediaPreview({
       >
         <video
           src={asset.path}
-          className="w-full h-full object-cover"
+          className={`w-full h-full ${
+            fit === "contain" ? "object-contain" : "object-cover"
+          }`}
           muted
           preload="metadata"
           autoPlay={false} // Explicitly paused by default

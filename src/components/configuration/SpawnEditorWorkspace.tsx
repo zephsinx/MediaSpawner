@@ -3,7 +3,6 @@ import { usePanelState } from "../../hooks/useLayout";
 import { SpawnService } from "../../services/spawnService";
 import type { Spawn } from "../../types/spawn";
 import { ConfirmDialog } from "../common/ConfirmDialog";
-import { deepEqual } from "../../utils/deepEqual";
 
 const SpawnEditorWorkspace: React.FC = () => {
   const { selectedSpawnId, setUnsavedChanges, selectSpawn } = usePanelState();
@@ -35,8 +34,30 @@ const SpawnEditorWorkspace: React.FC = () => {
       if (isActive) setSelectedSpawn(found);
     };
     load();
+    const onUpdated = (evt: Event) => {
+      const detail = (evt as CustomEvent).detail as
+        | { spawnId?: string; updatedSpawn?: Spawn }
+        | undefined;
+      if (!detail || !detail.spawnId) return;
+      if (detail.spawnId !== selectedSpawnId) return;
+      if (detail.updatedSpawn) {
+        setSelectedSpawn(detail.updatedSpawn);
+        setName(detail.updatedSpawn.name);
+        setDescription(detail.updatedSpawn.description || "");
+        return;
+      }
+      void load();
+    };
+    window.addEventListener(
+      "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+      onUpdated as EventListener
+    );
     return () => {
       isActive = false;
+      window.removeEventListener(
+        "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+        onUpdated as EventListener
+      );
     };
   }, [selectedSpawnId]);
 
@@ -57,29 +78,10 @@ const SpawnEditorWorkspace: React.FC = () => {
 
   const isDirty = useMemo(() => {
     if (!selectedSpawn) return false;
-    const draft: Partial<Spawn> = {
-      name: name,
-      description: description || undefined,
-      enabled: enabled,
-      duration: selectedSpawn.duration,
-      trigger: selectedSpawn.trigger,
-      assets: selectedSpawn.assets,
-      id: selectedSpawn.id,
-    };
-    const baseline: Partial<Spawn> = {
-      name: selectedSpawn.name,
-      description: selectedSpawn.description,
-      enabled: selectedSpawn.enabled,
-      duration: selectedSpawn.duration,
-      trigger: selectedSpawn.trigger,
-      assets: selectedSpawn.assets,
-      id: selectedSpawn.id,
-    };
-    // Ignore non-editing metadata like lastModified, order
-    return !deepEqual(draft, baseline, {
-      ignoreKeys: new Set(["lastModified", "order"]),
-    });
-  }, [name, description, enabled, selectedSpawn]);
+    const baselineName = selectedSpawn.name;
+    const baselineDesc = selectedSpawn.description || "";
+    return name !== baselineName || description !== baselineDesc;
+  }, [name, description, selectedSpawn]);
 
   useEffect(() => {
     // Only update when dirty state changes to avoid unnecessary context re-renders
@@ -119,18 +121,55 @@ const SpawnEditorWorkspace: React.FC = () => {
       const result = await SpawnService.updateSpawn(selectedSpawn.id, {
         name: trimmedName,
         description: description.trim() || undefined,
-        enabled: enabled,
       });
       if (!result.success || !result.spawn) {
         setSaveError(result.error || "Failed to save spawn");
         return;
       }
+      // Sync form fields immediately so dirty resets without waiting for effects
+      setName(result.spawn.name);
+      setDescription(result.spawn.description || "");
       setSelectedSpawn(result.spawn);
       setSaveSuccess("Changes saved");
+      // Notify other panels and list of updates (e.g., name change)
+      window.dispatchEvent(
+        new CustomEvent(
+          "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+          {
+            detail: { spawnId: result.spawn.id, updatedSpawn: result.spawn },
+          } as CustomEventInit
+        )
+      );
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Failed to save spawn");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // Immediate enabled toggle behavior
+  const handleEnabledImmediate = async (next: boolean) => {
+    if (!selectedSpawn) return;
+    setEnabled(next);
+    try {
+      const result = next
+        ? await SpawnService.enableSpawn(selectedSpawn.id)
+        : await SpawnService.disableSpawn(selectedSpawn.id);
+      if (!result.success || !result.spawn) {
+        setEnabled(!next);
+        return;
+      }
+      setSelectedSpawn(result.spawn);
+      window.dispatchEvent(
+        new CustomEvent(
+          "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+          {
+            detail: { spawnId: result.spawn.id, updatedSpawn: result.spawn },
+          } as CustomEventInit
+        )
+      );
+    } catch {
+      setEnabled(!next);
     }
   };
 
@@ -290,9 +329,25 @@ const SpawnEditorWorkspace: React.FC = () => {
         {selectedSpawn ? (
           <div className="max-w-2xl space-y-5">
             <section className="bg-white border border-gray-200 rounded-lg p-4">
-              <h3 className="text-base font-semibold text-gray-800 mb-3">
-                Basic Details
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-semibold text-gray-800">
+                  Basic Details
+                </h3>
+                <label
+                  htmlFor="spawn-enabled"
+                  className="flex items-center cursor-pointer select-none"
+                >
+                  <input
+                    id="spawn-enabled"
+                    type="checkbox"
+                    checked={enabled}
+                    onChange={(e) => handleEnabledImmediate(e.target.checked)}
+                    aria-label="Enabled"
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Enabled</span>
+                </label>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label
@@ -322,27 +377,6 @@ const SpawnEditorWorkspace: React.FC = () => {
                       Name must be unique
                     </p>
                   )}
-                </div>
-                <div>
-                  <label
-                    htmlFor="spawn-enabled"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Enabled
-                  </label>
-                  <div className="flex items-center h-[42px]">
-                    <input
-                      id="spawn-enabled"
-                      type="checkbox"
-                      checked={enabled}
-                      onChange={(e) => setEnabled(e.target.checked)}
-                      aria-label="Enabled"
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">
-                      {enabled ? "Enabled" : "Disabled"}
-                    </span>
-                  </div>
                 </div>
                 <div className="md:col-span-2">
                   <label

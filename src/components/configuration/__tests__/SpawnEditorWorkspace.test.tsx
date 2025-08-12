@@ -86,9 +86,11 @@ describe("SpawnEditorWorkspace", () => {
         target: { value: "A2" },
       });
     });
-    // Ensure input reflects change and Save becomes enabled
-    expect((screen.getByLabelText("Name") as HTMLInputElement).value).toBe(
-      "A2"
+    // Ensure input reflects change and Save becomes enabled (allow async state to settle)
+    await waitFor(() =>
+      expect((screen.getByLabelText("Name") as HTMLInputElement).value).toBe(
+        "A2"
+      )
     );
     await waitFor(() =>
       expect(
@@ -130,6 +132,12 @@ describe("SpawnEditorWorkspace", () => {
       });
     });
 
+    // Ensure dirty state has propagated before triggering cancel
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Save spawn" })
+      ).not.toBeDisabled()
+    );
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Cancel edits" }));
     });
