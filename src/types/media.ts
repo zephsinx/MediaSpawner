@@ -40,6 +40,12 @@ export interface MediaAssetProperties {
 
   /** Whether the asset should loop for videos and audio */
   loop?: boolean;
+
+  /** Whether playback should start automatically (where supported) */
+  autoplay?: boolean;
+
+  /** Whether audio should start muted */
+  muted?: boolean;
 }
 
 /**
@@ -271,12 +277,16 @@ export const getDefaultProperties = (
         position: { x: 0, y: 0 },
         volume: 0.5,
         loop: false,
+        autoplay: false,
+        muted: false,
       };
     case "audio":
       return {
         ...baseProperties,
         volume: 0.5,
         loop: false,
+        autoplay: false,
+        muted: false,
       };
     default:
       return baseProperties;

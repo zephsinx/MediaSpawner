@@ -14,6 +14,10 @@ export const AudioPropertiesForm = memo(function AudioPropertiesForm({
     (asset.properties.volume || 0.5) * 100
   );
   const [loop, setLoop] = useState<boolean>(asset.properties.loop || false);
+  const [autoplay, setAutoplay] = useState<boolean>(
+    asset.properties.autoplay || false
+  );
+  const [muted, setMuted] = useState<boolean>(asset.properties.muted || false);
 
   // Stable reference for onChange to prevent re-render loops
   const stableOnChange = useCallback(
@@ -27,7 +31,15 @@ export const AudioPropertiesForm = memo(function AudioPropertiesForm({
   useEffect(() => {
     setVolume((asset.properties.volume || 0.5) * 100);
     setLoop(asset.properties.loop || false);
-  }, [asset.id, asset.properties.loop, asset.properties.volume]);
+    setAutoplay(asset.properties.autoplay || false);
+    setMuted(asset.properties.muted || false);
+  }, [
+    asset.id,
+    asset.properties.loop,
+    asset.properties.volume,
+    asset.properties.autoplay,
+    asset.properties.muted,
+  ]);
 
   // Update asset when values change (optimized dependencies)
   useEffect(() => {
@@ -37,10 +49,12 @@ export const AudioPropertiesForm = memo(function AudioPropertiesForm({
         ...asset.properties,
         volume: volume / 100, // Convert percentage back to 0-1 range
         loop,
+        autoplay,
+        muted,
       },
     };
     stableOnChange(updatedAsset);
-  }, [volume, loop, stableOnChange, asset]);
+  }, [volume, loop, autoplay, muted, stableOnChange, asset]);
 
   const handleNumberChange = (
     value: string,
@@ -57,6 +71,8 @@ export const AudioPropertiesForm = memo(function AudioPropertiesForm({
   const handleReset = () => {
     setVolume(50);
     setLoop(false);
+    setAutoplay(false);
+    setMuted(false);
   };
 
   return (
@@ -73,7 +89,10 @@ export const AudioPropertiesForm = memo(function AudioPropertiesForm({
 
       {/* Volume Control */}
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-2">
+        <label
+          className="block text-xs font-medium text-gray-700 mb-2"
+          htmlFor={`volume-${asset.id}`}
+        >
           Volume: {volume}%
         </label>
         <div className="flex items-center space-x-3">
@@ -81,9 +100,11 @@ export const AudioPropertiesForm = memo(function AudioPropertiesForm({
             type="range"
             min="0"
             max="100"
+            id={`volume-${asset.id}`}
             value={volume}
             onChange={(e) => setVolume(parseInt(e.target.value, 10))}
             className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+            aria-describedby={`volume-help-${asset.id}`}
           />
           <input
             type="number"
@@ -94,29 +115,64 @@ export const AudioPropertiesForm = memo(function AudioPropertiesForm({
               handleNumberChange(e.target.value, setVolume, 0, 100)
             }
             className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+            aria-describedby={`volume-help-${asset.id}`}
           />
         </div>
+        <p id={`volume-help-${asset.id}`} className="sr-only">
+          0 is silent; 100 is maximum volume.
+        </p>
       </div>
 
-      {/* Loop Control */}
-      <div className="flex items-center space-x-2">
-        <input
-          type="checkbox"
-          id={`loop-${asset.id}`}
-          checked={loop}
-          onChange={(e) => setLoop(e.target.checked)}
-          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-        />
-        <label
-          htmlFor={`loop-${asset.id}`}
-          className="text-xs font-medium text-gray-700"
-        >
-          Loop audio playback
-        </label>
-      </div>
+      <fieldset className="mt-2">
+        <legend className="text-xs font-medium text-gray-700 mb-1">
+          Playback options
+        </legend>
+        <div className="flex flex-col gap-2">
+          <label
+            htmlFor={`loop-${asset.id}`}
+            className="inline-flex items-center gap-2 text-xs text-gray-700"
+          >
+            <input
+              type="checkbox"
+              id={`loop-${asset.id}`}
+              checked={loop}
+              onChange={(e) => setLoop(e.target.checked)}
+              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+            />
+            Loop
+          </label>
+          <label
+            htmlFor={`autoplay-${asset.id}`}
+            className="inline-flex items-center gap-2 text-xs text-gray-700"
+          >
+            <input
+              type="checkbox"
+              id={`autoplay-${asset.id}`}
+              checked={autoplay}
+              onChange={(e) => setAutoplay(e.target.checked)}
+              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+            />
+            Autoplay
+          </label>
+          <label
+            htmlFor={`muted-${asset.id}`}
+            className="inline-flex items-center gap-2 text-xs text-gray-700"
+          >
+            <input
+              type="checkbox"
+              id={`muted-${asset.id}`}
+              checked={muted}
+              onChange={(e) => setMuted(e.target.checked)}
+              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+            />
+            Muted
+          </label>
+        </div>
+      </fieldset>
 
       <div className="text-xs text-gray-500">
-        Volume: {volume}% • Loop: {loop ? "On" : "Off"}
+        Volume: {volume}% • Loop: {loop ? "On" : "Off"} • Autoplay:{" "}
+        {autoplay ? "On" : "Off"} • Muted: {muted ? "On" : "Off"}
       </div>
     </div>
   );

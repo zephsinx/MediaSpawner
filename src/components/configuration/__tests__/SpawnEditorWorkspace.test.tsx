@@ -77,14 +77,17 @@ describe("SpawnEditorWorkspace", () => {
 
     const { rerender } = render(<SpawnEditorWorkspace />);
 
-    // Wait for editor to show A
+    // Wait for editor to show A and the Name input to be populated
     expect(await screen.findByText("Editing: A")).toBeInTheDocument();
+    const initialNameInput = await screen.findByLabelText("Name");
+    await waitFor(() =>
+      expect((initialNameInput as HTMLInputElement).value).toBe("A")
+    );
 
     // Change name to enable save
     await act(async () => {
-      fireEvent.change(screen.getByLabelText("Name"), {
-        target: { value: "A2" },
-      });
+      const nameInput = screen.getByLabelText("Name");
+      fireEvent.input(nameInput, { target: { value: "A2" } });
     });
     // Ensure input reflects change and Save becomes enabled (allow async state to settle)
     await waitFor(() =>
