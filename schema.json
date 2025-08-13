@@ -164,6 +164,14 @@
                     "type": "number",
                     "minimum": 0
                 },
+                "positionMode": {
+                    "type": "string",
+                    "enum": [
+                        "absolute",
+                        "relative",
+                        "centered"
+                    ]
+                },
                 "x": {
                     "type": "number"
                 },

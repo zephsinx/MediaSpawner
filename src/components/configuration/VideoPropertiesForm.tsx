@@ -18,6 +18,10 @@ export const VideoPropertiesForm = memo(function VideoPropertiesForm({
   );
   const [x, setX] = useState<number>(asset.properties.position?.x || 0);
   const [y, setY] = useState<number>(asset.properties.position?.y || 0);
+  const [scale, setScale] = useState<number>(asset.properties.scale ?? 1);
+  const [positionMode, setPositionMode] = useState<
+    "absolute" | "relative" | "centered"
+  >(asset.properties.positionMode ?? "absolute");
   const [volume, setVolume] = useState<number>(
     (asset.properties.volume || 0.5) * 100
   );
@@ -42,6 +46,8 @@ export const VideoPropertiesForm = memo(function VideoPropertiesForm({
       height: asset.properties.dimensions?.height || 100,
       x: asset.properties.position?.x || 0,
       y: asset.properties.position?.y || 0,
+      scale: asset.properties.scale ?? 1,
+      positionMode: asset.properties.positionMode ?? "absolute",
       volume: (asset.properties.volume || 0.5) * 100,
       loop: asset.properties.loop || false,
       autoplay: asset.properties.autoplay || false,
@@ -52,6 +58,8 @@ export const VideoPropertiesForm = memo(function VideoPropertiesForm({
       asset.properties.dimensions?.height,
       asset.properties.position?.x,
       asset.properties.position?.y,
+      asset.properties.scale,
+      asset.properties.positionMode,
       asset.properties.volume,
       asset.properties.loop,
       asset.properties.autoplay,
@@ -65,6 +73,8 @@ export const VideoPropertiesForm = memo(function VideoPropertiesForm({
     setHeight(assetProperties.height);
     setX(assetProperties.x);
     setY(assetProperties.y);
+    setScale(assetProperties.scale);
+    setPositionMode(assetProperties.positionMode);
     setVolume(assetProperties.volume);
     setLoop(assetProperties.loop);
     setAutoplay(assetProperties.autoplay);
@@ -79,6 +89,8 @@ export const VideoPropertiesForm = memo(function VideoPropertiesForm({
         ...asset.properties,
         dimensions: { width, height },
         position: { x, y },
+        scale,
+        positionMode,
         volume: volume / 100, // Convert percentage back to 0-1 range
         loop,
         autoplay,
@@ -91,6 +103,8 @@ export const VideoPropertiesForm = memo(function VideoPropertiesForm({
     height,
     x,
     y,
+    scale,
+    positionMode,
     volume,
     loop,
     autoplay,
@@ -116,6 +130,8 @@ export const VideoPropertiesForm = memo(function VideoPropertiesForm({
     setHeight(100);
     setX(0);
     setY(0);
+    setScale(1);
+    setPositionMode("absolute");
     setVolume(50);
     setLoop(false);
     setAutoplay(false);
@@ -289,10 +305,69 @@ export const VideoPropertiesForm = memo(function VideoPropertiesForm({
         </div>
       </fieldset>
 
+      {/* Position Mode */}
+      <div>
+        <label className="block text-xs font-medium text-gray-700 mb-1">
+          Position Mode
+        </label>
+        <select
+          value={positionMode}
+          onChange={(e) =>
+            setPositionMode(
+              e.target.value as "absolute" | "relative" | "centered"
+            )
+          }
+          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent bg-white"
+        >
+          <option value="absolute">Absolute (px)</option>
+          <option value="relative">Relative (%)</option>
+          <option value="centered">Centered</option>
+        </select>
+      </div>
+
+      {/* Scale */}
+      <div>
+        <label className="block text-xs font-medium text-gray-700 mb-1">
+          Scale
+        </label>
+        <div className="flex items-center gap-3">
+          <input
+            type="range"
+            min={0}
+            max={2}
+            step={0.01}
+            value={Math.min(scale, 2)}
+            onChange={(e) => setScale(parseFloat(e.target.value))}
+            className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+            aria-describedby={`scale-help-${asset.id}`}
+          />
+          <input
+            type="number"
+            min={0}
+            step={0.1}
+            value={scale}
+            onChange={(e) => {
+              const n = parseFloat(e.target.value);
+              if (!Number.isNaN(n) && n >= 0) setScale(n);
+            }}
+            className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+            aria-describedby={`scale-help-${asset.id}`}
+          />
+        </div>
+        <p
+          id={`scale-help-${asset.id}`}
+          className="text-[10px] text-gray-500 mt-1"
+        >
+          Slider covers 0–200%. Enter any non-negative factor manually (e.g.,
+          2.5).
+        </p>
+      </div>
+
       <div className="text-xs text-gray-500">
-        Dimensions: {width} × {height} px • Position: ({x}, {y}) • Volume:{" "}
-        {volume}% • Loop: {loop ? "On" : "Off"} • Autoplay:{" "}
-        {autoplay ? "On" : "Off"} • Muted: {muted ? "On" : "Off"}
+        Dimensions: {width} × {height} px • Position: ({x}, {y}) • Mode:{" "}
+        {positionMode} • Scale: {Math.round(scale * 100)}% • Volume: {volume}% •
+        Loop: {loop ? "On" : "Off"} • Autoplay: {autoplay ? "On" : "Off"} •
+        Muted: {muted ? "On" : "Off"}
       </div>
     </div>
   );

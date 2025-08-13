@@ -250,7 +250,7 @@ As a user, I want clear validation for asset configuration settings, so that I u
 **Story ID**: MS-49
 **Priority**: Medium
 **Estimate**: 4 points
-**Status**: Not Started
+**Status**: Won't Do
 
 **User Story**:
 As a user, I want to preview how my asset configuration changes will affect the asset, so that I can see the results before saving.

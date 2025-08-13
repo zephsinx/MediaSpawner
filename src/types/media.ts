@@ -35,6 +35,12 @@ export interface MediaAssetProperties {
   /** Position coordinates for images and videos */
   position?: Position;
 
+  /** Scale factor for images and videos (1.0 = 100%) */
+  scale?: number;
+
+  /** Positioning mode for images and videos */
+  positionMode?: "absolute" | "relative" | "centered";
+
   /** Volume level for videos and audio (0-1) */
   volume?: number;
 
@@ -269,12 +275,16 @@ export const getDefaultProperties = (
         ...baseProperties,
         dimensions: { width: 100, height: 100 },
         position: { x: 0, y: 0 },
+        scale: 1,
+        positionMode: "absolute",
       };
     case "video":
       return {
         ...baseProperties,
         dimensions: { width: 200, height: 150 },
         position: { x: 0, y: 0 },
+        scale: 1,
+        positionMode: "absolute",
         volume: 0.5,
         loop: false,
         autoplay: false,
