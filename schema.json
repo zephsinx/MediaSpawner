@@ -88,6 +88,9 @@
                     "items": {
                         "$ref": "#/$defs/SpawnAsset"
                     }
+                },
+                "defaultProperties": {
+                    "$ref": "#/$defs/AssetSettings"
                 }
             },
             "required": [

@@ -148,6 +148,9 @@ export interface Spawn {
   /** Array of spawn-specific asset instances */
   assets: SpawnAsset[];
 
+  /** Optional spawn-wide default settings for assets */
+  defaultProperties?: Partial<MediaAssetProperties>;
+
   /** Timestamp of last modification (Unix timestamp in milliseconds) */
   lastModified: number;
 
