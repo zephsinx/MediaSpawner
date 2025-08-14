@@ -24,7 +24,8 @@ type ResolvedSpawnAsset = {
 };
 
 function SpawnAssetsSection() {
-  const { selectedSpawnId } = usePanelState();
+  const { selectedSpawnId, selectSpawnAsset, setCenterPanelMode } =
+    usePanelState();
   const [spawn, setSpawn] = useState<Spawn | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -286,6 +287,16 @@ function SpawnAssetsSection() {
                     </div>
                   </div>
                   <div className="flex items-center">
+                    <button
+                      type="button"
+                      className={`mr-2 text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50`}
+                      onClick={() => {
+                        selectSpawnAsset(spawnAsset.id);
+                        setCenterPanelMode("asset-settings");
+                      }}
+                    >
+                      Configure
+                    </button>
                     <button
                       type="button"
                       className={`text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 ${

@@ -9,6 +9,7 @@ import type { LayoutState, LayoutAction } from "./LayoutContextTypes";
 const initialState: LayoutState = {
   activeProfileId: undefined,
   selectedSpawnId: undefined,
+  selectedSpawnAssetId: undefined,
   centerPanelMode: "spawn-settings",
   hasUnsavedChanges: false,
   profileSpawnSelections: {},
@@ -51,8 +52,17 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
       return {
         ...state,
         selectedSpawnId: spawnId,
+        selectedSpawnAssetId: undefined,
         profileSpawnSelections: newProfileSpawnSelections,
         centerPanelMode: "spawn-settings", // Reset to spawn settings when selecting spawn
+      };
+    }
+
+    case "SELECT_SPAWN_ASSET": {
+      const { spawnAssetId } = action.payload;
+      return {
+        ...state,
+        selectedSpawnAssetId: spawnAssetId,
       };
     }
 

@@ -3,9 +3,18 @@ import { usePanelState } from "../../hooks/useLayout";
 import { SpawnService } from "../../services/spawnService";
 import type { Spawn } from "../../types/spawn";
 import { ConfirmDialog } from "../common/ConfirmDialog";
+import AssetSettingsForm from "./asset-settings/AssetSettingsForm";
 
 const SpawnEditorWorkspace: React.FC = () => {
-  const { selectedSpawnId, setUnsavedChanges, selectSpawn } = usePanelState();
+  const {
+    selectedSpawnId,
+    selectedSpawnAssetId,
+    centerPanelMode,
+    setUnsavedChanges,
+    selectSpawn,
+    setCenterPanelMode,
+    selectSpawnAsset,
+  } = usePanelState();
   const [selectedSpawn, setSelectedSpawn] = useState<Spawn | null>(null);
   const [name, setName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
@@ -197,6 +206,24 @@ const SpawnEditorWorkspace: React.FC = () => {
           </div>
         </div>
       </div>
+    );
+  }
+
+  // Asset settings mode
+  if (
+    centerPanelMode === "asset-settings" &&
+    selectedSpawnId &&
+    selectedSpawnAssetId
+  ) {
+    return (
+      <AssetSettingsForm
+        spawnId={selectedSpawnId}
+        spawnAssetId={selectedSpawnAssetId}
+        onBack={() => {
+          setCenterPanelMode("spawn-settings");
+          selectSpawnAsset(undefined);
+        }}
+      />
     );
   }
 

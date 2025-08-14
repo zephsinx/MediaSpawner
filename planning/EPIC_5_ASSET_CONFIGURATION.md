@@ -123,12 +123,15 @@ As a user, I want to configure settings for individual assets in my spawn, so th
 
 **Acceptance Criteria**:
 
-- [ ] Can click spawn asset to open its configuration
-- [ ] Configuration opens in center panel with type-specific settings
-- [ ] Can see which settings are inherited from spawn defaults vs customized
-- [ ] Can override individual properties like volume, dimensions, positioning
-- [ ] Settings form shows the same save and cancel behavior as spawn settings
-- [ ] Form validation helps me enter correct values for all asset properties
+- [ ] Can click a spawn asset to open its configuration in the center panel with type-specific fields
+- [ ] Each field shows its inherited value by default and is read-only until an explicit "Override" toggle is enabled
+- [ ] When not overridden, the field clearly indicates it is inherited (and from spawn defaults); when overridden, it is editable and visually distinguished
+- [ ] On open, existing overrides are pre-populated; non-overridden fields display inherited values and inherited state
+- [ ] Save persists only per-asset overrides scoped to the selected spawn; the global asset library remains unchanged
+- [ ] Settings form uses the same save and cancel behavior as spawn settings, including dirty-state tracking
+- [ ] Field-level helper text is available for guidance; strict validation rules and error blocking are covered in Story MS-48
+- [ ] Works for both local files and URL-based assets
+- [ ] Resetting individual or all fields to defaults is handled in Story MS-46 and is not required in this story
 
 **Technical Task MS-36-T1**: Create Individual Asset Configuration Workflow
 
