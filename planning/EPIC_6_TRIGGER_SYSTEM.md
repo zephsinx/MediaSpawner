@@ -7,9 +7,9 @@
 **Priority**: 6 (Critical Path - HIGH VALUE)
 **Status**: Not Started
 
-**User Value**: ✨ **Spawns become actionable with configurable triggers (commands, channel points, time-based, etc.) - making spawns responsive to real-world events!**
+**User Value**: ✨ **Spawns become actionable with configurable triggers (commands, channel points, time-based, etc.) - making spawns responsive to real-world events**
 
-Implement comprehensive trigger selection and configuration data structures. MediaSpawner is configuration-only; no runtime integrations, simulations, or testing are included.
+Implement comprehensive trigger selection and configuration data structures. MediaSpawner is configuration-only; no runtime integrations or simulations included.
 
 ---
 

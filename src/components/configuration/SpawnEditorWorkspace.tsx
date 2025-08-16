@@ -73,6 +73,7 @@ const SpawnEditorWorkspace: React.FC = () => {
   const [draftDefaults, setDraftDefaults] = useState<
     Partial<MediaAssetProperties>
   >({});
+  const [showMetadata, setShowMetadata] = useState<boolean>(true);
 
   useEffect(() => {
     let isActive = true;
@@ -625,17 +626,6 @@ const SpawnEditorWorkspace: React.FC = () => {
                   </label>
                   <div className="flex items-center gap-2">
                     <input
-                      type="checkbox"
-                      checked={!!defaultsEnabled.dimensions}
-                      onChange={(e) =>
-                        setDefaultsEnabled((prev) => ({
-                          ...prev,
-                          dimensions: e.target.checked,
-                        }))
-                      }
-                      aria-label="Enable default for dimensions"
-                    />
-                    <input
                       type="number"
                       min={1}
                       value={draftDefaults.dimensions?.height ?? ""}
@@ -693,17 +683,6 @@ const SpawnEditorWorkspace: React.FC = () => {
                     Y Position (px)
                   </label>
                   <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={!!defaultsEnabled.position}
-                      onChange={(e) =>
-                        setDefaultsEnabled((prev) => ({
-                          ...prev,
-                          position: e.target.checked,
-                        }))
-                      }
-                      aria-label="Enable default for position"
-                    />
                     <input
                       type="number"
                       min={0}
@@ -841,73 +820,85 @@ const SpawnEditorWorkspace: React.FC = () => {
             </section>
 
             <section className="bg-white border border-gray-200 rounded-lg p-4">
-              <h3 className="text-base font-semibold text-gray-800 mb-3">
-                Metadata
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="spawn-id"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    ID
-                  </label>
-                  <input
-                    id="spawn-id"
-                    type="text"
-                    value={selectedSpawn.id}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="spawn-modified"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Last Modified
-                  </label>
-                  <input
-                    id="spawn-modified"
-                    type="text"
-                    value={formatDate(selectedSpawn.lastModified)}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="spawn-duration"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Duration (ms)
-                  </label>
-                  <input
-                    id="spawn-duration"
-                    type="number"
-                    value={selectedSpawn.duration ?? 0}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="spawn-assets"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Assets
-                  </label>
-                  <input
-                    id="spawn-assets"
-                    type="text"
-                    value={`${selectedSpawn.assets.length} item${
-                      selectedSpawn.assets.length === 1 ? "" : "s"
-                    }`}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
-                  />
-                </div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-semibold text-gray-800">
+                  Metadata
+                </h3>
+                <button
+                  type="button"
+                  className="text-sm text-gray-700 border border-gray-300 rounded px-2 py-1 bg-white hover:bg-gray-50"
+                  onClick={() => setShowMetadata((v) => !v)}
+                  aria-label="Toggle metadata"
+                >
+                  {showMetadata ? "Hide" : "Show"}
+                </button>
               </div>
+              {showMetadata && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="spawn-id"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      ID
+                    </label>
+                    <input
+                      id="spawn-id"
+                      type="text"
+                      value={selectedSpawn.id}
+                      disabled
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="spawn-modified"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Last Modified
+                    </label>
+                    <input
+                      id="spawn-modified"
+                      type="text"
+                      value={formatDate(selectedSpawn.lastModified)}
+                      disabled
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="spawn-duration"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Duration (ms)
+                    </label>
+                    <input
+                      id="spawn-duration"
+                      type="number"
+                      value={selectedSpawn.duration ?? 0}
+                      disabled
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="spawn-assets"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Assets
+                    </label>
+                    <input
+                      id="spawn-assets"
+                      type="text"
+                      value={`${selectedSpawn.assets.length} item${
+                        selectedSpawn.assets.length === 1 ? "" : "s"
+                      }`}
+                      disabled
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
+                    />
+                  </div>
+                </div>
+              )}
             </section>
           </div>
         ) : (
