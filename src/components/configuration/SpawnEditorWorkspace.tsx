@@ -12,6 +12,7 @@ const SpawnEditorWorkspace: React.FC = () => {
     selectedSpawnAssetId,
     centerPanelMode,
     setUnsavedChanges,
+    hasUnsavedChanges,
     selectSpawn,
     setCenterPanelMode,
     selectSpawnAsset,
@@ -28,6 +29,21 @@ const SpawnEditorWorkspace: React.FC = () => {
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const switchPendingRef = useRef<{
+    mode: "spawn-settings" | "asset-settings";
+    spawnAssetId?: string;
+  } | null>(null);
+  const [showModeSwitchDialog, setShowModeSwitchDialog] = useState(false);
+
+  const assetDraftCacheRef = useRef<
+    Record<
+      string,
+      {
+        overrideEnabled: Partial<Record<keyof MediaAssetProperties, boolean>>;
+        draftValues: Partial<MediaAssetProperties>;
+      }
+    >
+  >({});
 
   type FieldKey = keyof MediaAssetProperties;
   const DEFAULT_FIELDS: FieldKey[] = [
@@ -85,6 +101,37 @@ const SpawnEditorWorkspace: React.FC = () => {
       );
     };
   }, [selectedSpawnId]);
+
+  useEffect(() => {
+    const onRequestSwitch = (evt: Event) => {
+      const detail = (evt as CustomEvent).detail as
+        | { mode: "spawn-settings" | "asset-settings"; spawnAssetId?: string }
+        | undefined;
+      if (!detail) return;
+      if (hasUnsavedChanges) {
+        switchPendingRef.current = detail;
+        setShowModeSwitchDialog(true);
+        return;
+      }
+      if (detail.mode === "asset-settings" && detail.spawnAssetId) {
+        selectSpawnAsset(detail.spawnAssetId);
+        setCenterPanelMode("asset-settings");
+      } else if (detail.mode === "spawn-settings") {
+        setCenterPanelMode("spawn-settings");
+        selectSpawnAsset(undefined);
+      }
+    };
+    window.addEventListener(
+      "mediaspawner:request-center-switch" as unknown as keyof WindowEventMap,
+      onRequestSwitch as EventListener
+    );
+    return () => {
+      window.removeEventListener(
+        "mediaspawner:request-center-switch" as unknown as keyof WindowEventMap,
+        onRequestSwitch as EventListener
+      );
+    };
+  }, [selectSpawnAsset, setCenterPanelMode, hasUnsavedChanges]);
 
   useEffect(() => {
     if (selectedSpawn) {
@@ -282,8 +329,20 @@ const SpawnEditorWorkspace: React.FC = () => {
         spawnId={selectedSpawnId}
         spawnAssetId={selectedSpawnAssetId}
         onBack={() => {
-          setCenterPanelMode("spawn-settings");
-          selectSpawnAsset(undefined);
+          window.dispatchEvent(
+            new CustomEvent(
+              "mediaspawner:request-center-switch" as unknown as keyof WindowEventMap,
+              {
+                detail: { mode: "spawn-settings" },
+              } as CustomEventInit
+            )
+          );
+        }}
+        getCachedDraft={() =>
+          assetDraftCacheRef.current[selectedSpawnAssetId] || undefined
+        }
+        setCachedDraft={(draft) => {
+          assetDraftCacheRef.current[selectedSpawnAssetId] = draft;
         }}
       />
     );
@@ -366,6 +425,31 @@ const SpawnEditorWorkspace: React.FC = () => {
             setShowDiscardDialog(false);
           }}
           onCancel={() => setShowDiscardDialog(false)}
+        />
+        <ConfirmDialog
+          isOpen={showModeSwitchDialog}
+          title="Unsaved Changes"
+          message="Switching modes will not save your changes. Continue?"
+          confirmText="Switch"
+          cancelText="Stay"
+          variant="warning"
+          onConfirm={() => {
+            const pending = switchPendingRef.current;
+            setShowModeSwitchDialog(false);
+            if (!pending) return;
+            if (pending.mode === "asset-settings" && pending.spawnAssetId) {
+              selectSpawnAsset(pending.spawnAssetId);
+              setCenterPanelMode("asset-settings");
+            } else if (pending.mode === "spawn-settings") {
+              setCenterPanelMode("spawn-settings");
+              selectSpawnAsset(undefined);
+            }
+            switchPendingRef.current = null;
+          }}
+          onCancel={() => {
+            switchPendingRef.current = null;
+            setShowModeSwitchDialog(false);
+          }}
         />
         <ConfirmDialog
           isOpen={showDeleteDialog}
