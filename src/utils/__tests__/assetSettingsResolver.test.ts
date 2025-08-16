@@ -1,31 +1,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import type { MediaAsset, MediaAssetProperties } from "../../types/media";
+import type { MediaAssetProperties } from "../../types/media";
 import type { Spawn } from "../../types/spawn";
 import {
   resolveEffectiveProperties,
   buildOverridesDiff,
 } from "../assetSettingsResolver";
 
-const baseAssetFactory = (
-  props: Partial<MediaAssetProperties> = {}
-): MediaAsset => ({
-  id: "asset-1",
-  type: "video",
-  name: "Base Video",
-  path: "video.mp4",
-  isUrl: false,
-  properties: {
-    dimensions: { width: 200, height: 100 },
-    position: { x: 10, y: 20 },
-    scale: 1,
-    positionMode: "absolute",
-    volume: 0.3,
-    loop: false,
-    autoplay: false,
-    muted: false,
-    ...props,
-  },
-});
+// Base asset fallback removed; tests no longer rely on base asset properties
 
 const spawnFactory = (defaults: Partial<MediaAssetProperties> = {}): Spawn => ({
   id: "spawn-1",
@@ -45,11 +26,9 @@ describe("assetSettingsResolver", () => {
     // nothing to reset
   });
 
-  it("uses override over spawn default and base asset", () => {
-    const base = baseAssetFactory({ volume: 0.2 });
+  it("uses override over spawn default", () => {
     const spawn = spawnFactory({ volume: 0.4 });
     const { effective, sourceMap } = resolveEffectiveProperties({
-      base,
       spawn,
       overrides: { volume: 0.8 },
     });
@@ -58,10 +37,8 @@ describe("assetSettingsResolver", () => {
   });
 
   it("falls back to spawn default when no override present", () => {
-    const base = baseAssetFactory({ volume: 0.2 });
     const spawn = spawnFactory({ volume: 0.5 });
     const { effective, sourceMap } = resolveEffectiveProperties({
-      base,
       spawn,
       overrides: {},
     });
@@ -69,27 +46,23 @@ describe("assetSettingsResolver", () => {
     expect(sourceMap.volume).toBe("spawn-default");
   });
 
-  it("falls back to base asset when neither override nor spawn default present", () => {
-    const base = baseAssetFactory({ scale: 1.25 });
+  it("returns undefined when neither override nor spawn default present", () => {
     const spawn = spawnFactory({});
     const { effective, sourceMap } = resolveEffectiveProperties({
-      base,
       spawn,
       overrides: {},
     });
-    expect(effective.scale).toBe(1.25);
-    expect(sourceMap.scale).toBe("base-asset");
+    expect(effective.scale).toBeUndefined();
+    expect(sourceMap.scale).toBe("none");
   });
 
   it("handles structured fields (dimensions, position)", () => {
-    const base = baseAssetFactory({ dimensions: { width: 300, height: 150 } });
     const spawn = spawnFactory({});
     const { effective } = resolveEffectiveProperties({
-      base,
       spawn,
       overrides: {},
     });
-    expect(effective.dimensions).toEqual({ width: 300, height: 150 });
+    expect(effective.dimensions).toBeUndefined();
   });
 
   it("buildOverridesDiff returns only keys different from spawn defaults", () => {

@@ -98,22 +98,20 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
   }, [spawnId, spawnAssetId]);
 
   const effective = useMemo(() => {
-    if (!spawn || !spawnAsset || !baseAsset) return null;
+    if (!spawn || !spawnAsset) return null;
     return resolveEffectiveProperties({
-      base: baseAsset,
       spawn,
       overrides: spawnAsset.overrides?.properties,
     });
-  }, [spawn, spawnAsset, baseAsset]);
+  }, [spawn, spawnAsset]);
 
   const inheritedOnly = useMemo(() => {
-    if (!spawn || !baseAsset) return null;
+    if (!spawn) return null;
     return resolveEffectiveProperties({
-      base: baseAsset,
       spawn,
       overrides: undefined,
     });
-  }, [spawn, baseAsset]);
+  }, [spawn]);
 
   // Initialize draft when context target changes (avoid loops on referential changes)
   const initKeyRef = useRef<string | null>(null);
@@ -152,14 +150,13 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
       const nextSpawn: Spawn | null = detail.updatedSpawn
         ? detail.updatedSpawn
         : await SpawnService.getSpawn(spawnId);
-      if (!nextSpawn || !spawnAsset || !baseAsset) return;
+      if (!nextSpawn || !spawnAsset) return;
       const nextSpawnAsset =
         nextSpawn.assets.find((a) => a.id === spawnAssetId) || null;
       if (!nextSpawnAsset) return;
       setSpawn(nextSpawn);
       setSpawnAsset(nextSpawnAsset);
       const nextEffective = resolveEffectiveProperties({
-        base: baseAsset,
         spawn: nextSpawn,
         overrides: nextSpawnAsset.overrides?.properties,
       });

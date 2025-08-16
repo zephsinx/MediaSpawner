@@ -20,9 +20,6 @@ export interface MediaAsset {
 
   /** Whether this asset is a URL (true) or local file (false) */
   isUrl: boolean;
-
-  /** Configurable properties specific to the asset type */
-  properties: MediaAssetProperties;
 }
 
 /**
@@ -257,51 +254,13 @@ export const createMediaAsset = (
     name,
     path: storedPath,
     isUrl,
-    properties: getDefaultProperties(type),
   };
 };
 
 /**
  * Get default properties for a given asset type
  */
-export const getDefaultProperties = (
-  type: MediaAsset["type"]
-): MediaAssetProperties => {
-  const baseProperties: MediaAssetProperties = {};
-
-  switch (type) {
-    case "image":
-      return {
-        ...baseProperties,
-        dimensions: { width: 100, height: 100 },
-        position: { x: 0, y: 0 },
-        scale: 1,
-        positionMode: "absolute",
-      };
-    case "video":
-      return {
-        ...baseProperties,
-        dimensions: { width: 200, height: 150 },
-        position: { x: 0, y: 0 },
-        scale: 1,
-        positionMode: "absolute",
-        volume: 0.5,
-        loop: false,
-        autoplay: false,
-        muted: false,
-      };
-    case "audio":
-      return {
-        ...baseProperties,
-        volume: 0.5,
-        loop: false,
-        autoplay: false,
-        muted: false,
-      };
-    default:
-      return baseProperties;
-  }
-};
+// Removed base asset default properties: assets no longer carry behavioral properties
 
 /**
  * Helper function to create a new asset group with default configuration

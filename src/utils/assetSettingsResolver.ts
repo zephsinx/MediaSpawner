@@ -1,22 +1,18 @@
-import type { MediaAsset, MediaAssetProperties } from "../types/media";
+import type { MediaAssetProperties } from "../types/media";
 import type { Spawn } from "../types/spawn";
 
 export interface EffectivePropertiesResult {
   effective: MediaAssetProperties;
   sourceMap: Partial<
-    Record<
-      keyof MediaAssetProperties,
-      "override" | "spawn-default" | "base-asset"
-    >
+    Record<keyof MediaAssetProperties, "override" | "spawn-default" | "none">
   >;
 }
 
 export function resolveEffectiveProperties(args: {
-  base: MediaAsset;
   spawn: Spawn;
   overrides?: Partial<MediaAssetProperties> | undefined;
 }): EffectivePropertiesResult {
-  const { base, spawn, overrides } = args;
+  const { spawn, overrides } = args;
   const result: Partial<MediaAssetProperties> = {};
   const sourceMap: EffectivePropertiesResult["sourceMap"] = {};
 
@@ -31,16 +27,18 @@ export function resolveEffectiveProperties(args: {
     const overrideVal: MediaAssetProperties[K] | undefined = overrides?.[key];
     const spawnVal: MediaAssetProperties[K] | undefined =
       spawn.defaultProperties?.[key];
-    const baseVal: MediaAssetProperties[K] | undefined = base.properties[
-      key as keyof MediaAssetProperties
-    ] as MediaAssetProperties[K] | undefined;
 
     let chosen: MediaAssetProperties[K] | undefined;
     if (mergeFn) {
-      chosen = mergeFn({ overrideVal, spawnVal, baseVal });
+      // merge without base asset fallback
+      chosen = mergeFn({
+        overrideVal,
+        spawnVal,
+        baseVal: undefined as unknown as MediaAssetProperties[K],
+      });
       if (chosen === overrideVal) sourceMap[key] = "override";
       else if (chosen === spawnVal) sourceMap[key] = "spawn-default";
-      else sourceMap[key] = "base-asset";
+      else sourceMap[key] = "none";
     } else {
       if (overrideVal !== undefined) {
         sourceMap[key] = "override";
@@ -49,8 +47,8 @@ export function resolveEffectiveProperties(args: {
         sourceMap[key] = "spawn-default";
         chosen = spawnVal;
       } else {
-        sourceMap[key] = "base-asset";
-        chosen = baseVal;
+        sourceMap[key] = "none";
+        chosen = undefined as unknown as MediaAssetProperties[K];
       }
     }
     (result as Record<string, unknown>)[key as string] = chosen as unknown;
@@ -65,11 +63,11 @@ export function resolveEffectiveProperties(args: {
   consider("muted");
 
   // Structured fields with deep merge fallback (first defined wins)
-  consider("dimensions", ({ overrideVal, spawnVal, baseVal }) => {
-    return overrideVal ?? spawnVal ?? baseVal ?? undefined;
+  consider("dimensions", ({ overrideVal, spawnVal }) => {
+    return overrideVal ?? spawnVal ?? undefined;
   });
-  consider("position", ({ overrideVal, spawnVal, baseVal }) => {
-    return overrideVal ?? spawnVal ?? baseVal ?? undefined;
+  consider("position", ({ overrideVal, spawnVal }) => {
+    return overrideVal ?? spawnVal ?? undefined;
   });
 
   return { effective: result as MediaAssetProperties, sourceMap };
