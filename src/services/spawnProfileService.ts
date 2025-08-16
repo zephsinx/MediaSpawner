@@ -76,6 +76,13 @@ export class SpawnProfileService {
   }
 
   /**
+   * Replace all profiles in storage. Intended for cross-profile maintenance operations.
+   */
+  static replaceProfiles(profiles: SpawnProfile[]): ProfileOperationResult {
+    return this.saveProfiles(profiles);
+  }
+
+  /**
    * Get the currently active profile
    */
   static getActiveProfile(): SpawnProfile | null {

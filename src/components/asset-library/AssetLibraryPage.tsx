@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { AssetList, type AssetTypeFilter } from "./AssetList";
 import { AssetPreview } from "./AssetPreview";
 import { FileReferenceInput } from "../common/FileReferenceInput";
@@ -11,6 +12,7 @@ import { detectAssetTypeFromPath } from "../../utils/assetTypeDetection";
 import type { MediaAsset } from "../../types/media";
 
 const AssetLibraryPage: React.FC = () => {
+  const navigate = useNavigate();
   const [assets, setAssets] = useState<MediaAsset[]>([]);
   const [previewAsset, setPreviewAsset] = useState<MediaAsset | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -117,6 +119,12 @@ const AssetLibraryPage: React.FC = () => {
           </p>
         </div>
         <div className="flex space-x-3">
+          <button
+            onClick={() => navigate("/")}
+            className="px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded hover:bg-gray-50 transition-colors"
+          >
+            Back to Editor
+          </button>
           <button
             onClick={() => setShowMaintenance(!showMaintenance)}
             className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"

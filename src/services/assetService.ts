@@ -7,6 +7,7 @@ import {
   getSpawnAssetCacheKey,
 } from "./cacheService";
 import { SpawnService } from "./spawnService";
+import { SpawnProfileService } from "./spawnProfileService";
 
 const STORAGE_KEY = "mediaspawner_assets";
 const SPAWN_ASSET_SETTINGS_KEY = "mediaspawner_spawn_asset_settings";
@@ -110,6 +111,36 @@ export class AssetService {
 
     if (filteredAssets.length !== initialLength) {
       this.saveAssets(filteredAssets);
+      try {
+        // Remove this asset from all spawns across all profiles
+        const profiles = SpawnProfileService.getAllProfiles();
+        let changed = false;
+        const updated = profiles.map((p) => {
+          const newSpawns = p.spawns.map((s) => ({
+            ...s,
+            assets: s.assets.filter((sa) => sa.assetId !== assetId),
+          }));
+          if (
+            newSpawns.some(
+              (s, i) => s.assets.length !== p.spawns[i].assets.length
+            )
+          ) {
+            changed = true;
+          }
+          return { ...p, spawns: newSpawns, lastModified: Date.now() };
+        });
+        if (changed) {
+          SpawnProfileService.replaceProfiles(updated);
+          // Best-effort notify: fire a generic update event; panels reload by spawn id when needed
+          window.dispatchEvent(
+            new Event(
+              "mediaspawner:assets-updated" as unknown as keyof WindowEventMap
+            )
+          );
+        }
+      } catch {
+        // Non-fatal: asset list is still updated
+      }
       return true;
     }
 
@@ -884,8 +915,7 @@ export class AssetService {
       typeof record.path === "string" &&
       typeof record.type === "string" &&
       ["image", "video", "audio"].includes(record.type as string) &&
-      typeof record.isUrl === "boolean" &&
-      typeof record.properties === "object"
+      typeof record.isUrl === "boolean"
     );
   }
 }
