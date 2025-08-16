@@ -8,6 +8,12 @@ import {
   buildOverridesDiff,
 } from "../../../utils/assetSettingsResolver";
 import { usePanelState } from "../../../hooks/useLayout";
+import {
+  validateVolumePercent,
+  validateDimensionsValues,
+  validatePositionValues,
+  validateScaleValue,
+} from "../../../utils/assetValidation";
 
 export interface AssetSettingsFormProps {
   spawnId: string;
@@ -48,6 +54,9 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
   const [draftValues, setDraftValues] = useState<Partial<MediaAssetProperties>>(
     {}
   );
+  const [validationErrors, setValidationErrors] = useState<
+    Partial<Record<FieldKey, string>>
+  >({});
 
   useEffect(() => {
     let active = true;
@@ -161,6 +170,13 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
   const setField = (key: FieldKey, value: MediaAssetProperties[FieldKey]) => {
     setDraftValues((prev) => ({ ...prev, [key]: value }));
     setUnsavedChanges(true);
+    // Live-validate only when override is enabled for the field
+    if (overrideEnabled[key]) {
+      setValidationErrors((prev) => ({
+        ...prev,
+        [key]: getFieldError(key, { ...draftValues, [key]: value }),
+      }));
+    }
   };
 
   const setToggle = (key: FieldKey, enable: boolean) => {
@@ -170,6 +186,16 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
       setDraftValues((prev) => ({
         ...prev,
         [key]: inheritedOnly.effective[key],
+      }));
+      setValidationErrors((prev) => {
+        const next = { ...prev };
+        delete (next as Record<string, unknown>)[key];
+        return next;
+      });
+    } else if (enable) {
+      setValidationErrors((prev) => ({
+        ...prev,
+        [key]: getFieldError(key, draftValues),
       }));
     }
   };
@@ -199,6 +225,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
     setOverrideEnabled(nextToggles);
     setDraftValues(inheritedOnly.effective);
     setUnsavedChanges(true);
+    setValidationErrors({});
   };
 
   const handleSave = async () => {
@@ -266,6 +293,37 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
     }
   };
 
+  const getFieldError = (
+    key: FieldKey,
+    values: Partial<MediaAssetProperties>
+  ): string | undefined => {
+    switch (key) {
+      case "volume": {
+        const pct = Math.round(((values.volume ?? 0.5) as number) * 100);
+        const res = validateVolumePercent(pct);
+        return res.isValid ? undefined : res.error;
+      }
+      case "dimensions": {
+        const res = validateDimensionsValues(values.dimensions);
+        return res.isValid ? undefined : res.error;
+      }
+      case "position": {
+        const res = validatePositionValues(values.position);
+        return res.isValid ? undefined : res.error;
+      }
+      case "scale": {
+        const res = validateScaleValue(values.scale as number | undefined);
+        return res.isValid ? undefined : res.error;
+      }
+      default:
+        return undefined;
+    }
+  };
+
+  const hasValidationErrors = useMemo(() => {
+    return Object.values(validationErrors).some(Boolean);
+  }, [validationErrors]);
+
   if (!spawn || !spawnAsset || !baseAsset || !effective) {
     return (
       <div className="h-full flex flex-col">
@@ -327,9 +385,9 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
             <button
               type="button"
               onClick={handleSave}
-              disabled={isSaving}
+              disabled={isSaving || hasValidationErrors}
               className={`px-3 py-1.5 rounded-md text-white ${
-                isSaving
+                isSaving || hasValidationErrors
                   ? "bg-blue-300 cursor-not-allowed"
                   : "bg-blue-600 hover:bg-blue-700"
               }`}
@@ -390,7 +448,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       }
                       disabled={!overrideEnabled.dimensions}
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                      aria-describedby="dimensions-help"
+                      aria-describedby="dimensions-help dimensions-error"
                     />
                     <button
                       type="button"
@@ -416,6 +474,15 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       ? "Inherited from Spawn Defaults"
                       : "Inherited from Asset"}
                   </p>
+                  {overrideEnabled.dimensions &&
+                    validationErrors.dimensions && (
+                      <p
+                        id="dimensions-error"
+                        className="text-xs text-red-600 mt-1"
+                      >
+                        {validationErrors.dimensions}
+                      </p>
+                    )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -476,7 +543,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       }
                       disabled={!overrideEnabled.position}
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                      aria-describedby="position-help"
+                      aria-describedby="position-help position-error"
                     />
                     <button
                       type="button"
@@ -502,6 +569,14 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       ? "Inherited from Spawn Defaults"
                       : "Inherited from Asset"}
                   </p>
+                  {overrideEnabled.position && validationErrors.position && (
+                    <p
+                      id="position-error"
+                      className="text-xs text-red-600 mt-1"
+                    >
+                      {validationErrors.position}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -559,7 +634,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       }
                       disabled={!overrideEnabled.scale}
                       className="w-24 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                      aria-describedby="scale-help"
+                      aria-describedby="scale-help scale-error"
                     />
                     <button
                       type="button"
@@ -588,6 +663,11 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       ? "Inherited from Spawn Defaults"
                       : "Inherited from Asset"}
                   </p>
+                  {overrideEnabled.scale && validationErrors.scale && (
+                    <p id="scale-error" className="text-xs text-red-600 mt-1">
+                      {validationErrors.scale}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -674,7 +754,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       }
                       disabled={!overrideEnabled.volume}
                       className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                      aria-describedby="volume-help"
+                      aria-describedby="volume-help volume-error"
                     />
                     <input
                       type="number"
@@ -686,7 +766,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       }
                       disabled={!overrideEnabled.volume}
                       className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                      aria-describedby="volume-help"
+                      aria-describedby="volume-help volume-error"
                     />
                     <button
                       type="button"
@@ -715,6 +795,11 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       ? "Inherited from Spawn Defaults"
                       : "Inherited from Asset"}
                   </p>
+                  {overrideEnabled.volume && validationErrors.volume && (
+                    <p id="volume-error" className="text-xs text-red-600 mt-1">
+                      {validationErrors.volume}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-4">
