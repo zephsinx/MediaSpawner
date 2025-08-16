@@ -19,6 +19,16 @@ export interface AssetSettingsFormProps {
   spawnId: string;
   spawnAssetId: string;
   onBack: () => void;
+  getCachedDraft?: () =>
+    | {
+        overrideEnabled: Partial<Record<keyof MediaAssetProperties, boolean>>;
+        draftValues: Partial<MediaAssetProperties>;
+      }
+    | undefined;
+  setCachedDraft?: (draft: {
+    overrideEnabled: Partial<Record<keyof MediaAssetProperties, boolean>>;
+    draftValues: Partial<MediaAssetProperties>;
+  }) => void;
 }
 
 type FieldKey = keyof MediaAssetProperties;
@@ -38,6 +48,8 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
   spawnId,
   spawnAssetId,
   onBack,
+  getCachedDraft,
+  setCachedDraft,
 }) => {
   const { setUnsavedChanges } = usePanelState();
   const [spawn, setSpawn] = useState<Spawn | null>(null);
@@ -111,17 +123,25 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
     if (initKeyRef.current === key) return;
     initKeyRef.current = key;
     setSuccess(null);
-    setDraftValues(effective.effective);
-    const toggles: Partial<Record<FieldKey, boolean>> = {};
-    OVERRIDABLE_FIELDS.forEach((fieldKey) => {
-      const props = spawnAsset.overrides?.properties as
-        | Partial<MediaAssetProperties>
-        | undefined;
-      toggles[fieldKey] = props ? props[fieldKey] !== undefined : false;
-    });
-    setOverrideEnabled(toggles);
+    const cached = getCachedDraft?.();
+    if (cached) {
+      setDraftValues(cached.draftValues);
+      setOverrideEnabled(
+        cached.overrideEnabled as Partial<Record<FieldKey, boolean>>
+      );
+    } else {
+      setDraftValues(effective.effective);
+      const toggles: Partial<Record<FieldKey, boolean>> = {};
+      OVERRIDABLE_FIELDS.forEach((fieldKey) => {
+        const props = spawnAsset.overrides?.properties as
+          | Partial<MediaAssetProperties>
+          | undefined;
+        toggles[fieldKey] = props ? props[fieldKey] !== undefined : false;
+      });
+      setOverrideEnabled(toggles);
+    }
     setUnsavedChanges(false);
-  }, [effective, spawn, spawnAsset, setUnsavedChanges]);
+  }, [effective, spawn, spawnAsset, setUnsavedChanges, getCachedDraft]);
 
   useEffect(() => {
     const onSpawnUpdated = async (evt: Event) => {
@@ -165,7 +185,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
         onSpawnUpdated as EventListener
       );
     };
-  }, [spawnId, spawnAssetId, baseAsset, overrideEnabled]);
+  }, [spawnId, spawnAssetId, baseAsset, overrideEnabled, spawnAsset]);
 
   const setField = (key: FieldKey, value: MediaAssetProperties[FieldKey]) => {
     setDraftValues((prev) => ({ ...prev, [key]: value }));
@@ -278,6 +298,12 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
       setSpawnAsset(updated);
       setSuccess("Changes saved");
       setUnsavedChanges(false);
+      if (setCachedDraft) {
+        setCachedDraft({
+          overrideEnabled,
+          draftValues,
+        });
+      }
       window.dispatchEvent(
         new CustomEvent(
           "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
@@ -292,6 +318,15 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
       setIsSaving(false);
     }
   };
+
+  // Persist draft on unmount to preserve across mode switches
+  useEffect(() => {
+    return () => {
+      if (setCachedDraft) {
+        setCachedDraft({ overrideEnabled, draftValues });
+      }
+    };
+  }, [overrideEnabled, draftValues, setCachedDraft]);
 
   const getFieldError = (
     key: FieldKey,

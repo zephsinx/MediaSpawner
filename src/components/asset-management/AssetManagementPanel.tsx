@@ -24,8 +24,7 @@ type ResolvedSpawnAsset = {
 };
 
 function SpawnAssetsSection() {
-  const { selectedSpawnId, selectSpawnAsset, setCenterPanelMode } =
-    usePanelState();
+  const { selectedSpawnId } = usePanelState();
   const [spawn, setSpawn] = useState<Spawn | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<string | null>(null);

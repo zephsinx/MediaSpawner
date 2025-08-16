@@ -6,6 +6,28 @@ import type { MediaAssetProperties } from "../../types/media";
 import { ConfirmDialog } from "../common/ConfirmDialog";
 import AssetSettingsForm from "./asset-settings/AssetSettingsForm";
 
+type FieldKey = keyof MediaAssetProperties;
+const DEFAULT_FIELDS: FieldKey[] = [
+  "dimensions",
+  "position",
+  "scale",
+  "positionMode",
+  "volume",
+];
+
+const buildEnabledDefaults = (
+  values: Partial<MediaAssetProperties>,
+  toggles: Partial<Record<FieldKey, boolean>>
+): Partial<MediaAssetProperties> => {
+  const next: Partial<MediaAssetProperties> = {};
+  if (toggles.dimensions) next.dimensions = values.dimensions;
+  if (toggles.position) next.position = values.position;
+  if (toggles.scale) next.scale = values.scale;
+  if (toggles.positionMode) next.positionMode = values.positionMode;
+  if (toggles.volume) next.volume = values.volume;
+  return next;
+};
+
 const SpawnEditorWorkspace: React.FC = () => {
   const {
     selectedSpawnId,
@@ -45,14 +67,6 @@ const SpawnEditorWorkspace: React.FC = () => {
     >
   >({});
 
-  type FieldKey = keyof MediaAssetProperties;
-  const DEFAULT_FIELDS: FieldKey[] = [
-    "dimensions",
-    "position",
-    "scale",
-    "positionMode",
-    "volume",
-  ];
   const [defaultsEnabled, setDefaultsEnabled] = useState<
     Partial<Record<FieldKey, boolean>>
   >({});
@@ -156,19 +170,6 @@ const SpawnEditorWorkspace: React.FC = () => {
       prevSpawnIdRef.current = selectedSpawn.id;
     }
   }, [selectedSpawn]);
-
-  const buildEnabledDefaults = (
-    values: Partial<MediaAssetProperties>,
-    toggles: Partial<Record<FieldKey, boolean>>
-  ): Partial<MediaAssetProperties> => {
-    const next: Partial<MediaAssetProperties> = {};
-    if (toggles.dimensions) next.dimensions = values.dimensions;
-    if (toggles.position) next.position = values.position;
-    if (toggles.scale) next.scale = values.scale;
-    if (toggles.positionMode) next.positionMode = values.positionMode;
-    if (toggles.volume) next.volume = values.volume;
-    return next;
-  };
 
   const isDirty = useMemo(() => {
     if (!selectedSpawn) return false;
@@ -338,12 +339,10 @@ const SpawnEditorWorkspace: React.FC = () => {
             )
           );
         }}
-        getCachedDraft={() =>
-          assetDraftCacheRef.current[selectedSpawnAssetId] || undefined
+        getCachedDraft={() => assetDraftCacheRef.current[selectedSpawnAssetId]}
+        setCachedDraft={(draft) =>
+          (assetDraftCacheRef.current[selectedSpawnAssetId] = draft)
         }
-        setCachedDraft={(draft) => {
-          assetDraftCacheRef.current[selectedSpawnAssetId] = draft;
-        }}
       />
     );
   }
