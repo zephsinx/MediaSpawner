@@ -238,11 +238,11 @@ describe("AssetSettingsForm", () => {
     });
     expect(volumeNumber.value).toBe("70");
 
-    const resetBtn = screen.getByRole("button", {
-      name: "Reset volume to spawn defaults",
+    const resetAllBtn = screen.getByRole("button", {
+      name: "Reset all fields to spawn defaults",
     });
     await act(async () => {
-      fireEvent.click(resetBtn);
+      fireEvent.click(resetAllBtn);
     });
 
     // override disabled and value shows spawn default (0.4 => 40)

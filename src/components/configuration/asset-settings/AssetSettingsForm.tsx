@@ -415,7 +415,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
               className="px-3 py-1.5 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
               aria-label="Reset all fields to spawn defaults"
             >
-              Reset All
+              Reset
             </button>
             <button
               type="button"
@@ -485,22 +485,6 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                       aria-describedby="dimensions-help dimensions-error"
                     />
-                    <button
-                      type="button"
-                      className="text-xs text-blue-600 hover:underline"
-                      aria-label="Reset dimensions to spawn defaults"
-                      onClick={() => {
-                        if (!inheritedOnly) return;
-                        setToggle("dimensions", false);
-                        setDraftValues((prev) => ({
-                          ...prev,
-                          dimensions: inheritedOnly.effective.dimensions,
-                        }));
-                        setUnsavedChanges(true);
-                      }}
-                    >
-                      Reset
-                    </button>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
                     {overrideEnabled.dimensions
@@ -524,14 +508,6 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     Height (px)
                   </label>
                   <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={!!overrideEnabled.dimensions}
-                      onChange={(e) =>
-                        setToggle("dimensions", e.target.checked)
-                      }
-                      aria-label="Override dimensions"
-                    />
                     <input
                       type="number"
                       min={1}
@@ -580,22 +556,6 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                       aria-describedby="position-help position-error"
                     />
-                    <button
-                      type="button"
-                      className="text-xs text-blue-600 hover:underline"
-                      aria-label="Reset position to spawn defaults"
-                      onClick={() => {
-                        if (!inheritedOnly) return;
-                        setToggle("position", false);
-                        setDraftValues((prev) => ({
-                          ...prev,
-                          position: inheritedOnly.effective.position,
-                        }));
-                        setUnsavedChanges(true);
-                      }}
-                    >
-                      Reset
-                    </button>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
                     {overrideEnabled.position
@@ -618,12 +578,6 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     Y Position (px)
                   </label>
                   <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={!!overrideEnabled.position}
-                      onChange={(e) => setToggle("position", e.target.checked)}
-                      aria-label="Override position"
-                    />
                     <input
                       type="number"
                       min={0}
@@ -671,22 +625,6 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       className="w-24 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                       aria-describedby="scale-help scale-error"
                     />
-                    <button
-                      type="button"
-                      className="text-xs text-blue-600 hover:underline"
-                      aria-label="Reset scale to spawn defaults"
-                      onClick={() => {
-                        if (!inheritedOnly) return;
-                        setToggle("scale", false);
-                        setDraftValues((prev) => ({
-                          ...prev,
-                          scale: inheritedOnly.effective.scale,
-                        }));
-                        setUnsavedChanges(true);
-                      }}
-                    >
-                      Reset
-                    </button>
                   </div>
                   <p id="scale-help" className="text-xs text-gray-500 mt-1">
                     Enter a non-negative factor (1.0 = 100%).
@@ -733,22 +671,6 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       <option value="relative">Relative (%)</option>
                       <option value="centered">Centered</option>
                     </select>
-                    <button
-                      type="button"
-                      className="text-xs text-blue-600 hover:underline"
-                      aria-label="Reset position mode to spawn defaults"
-                      onClick={() => {
-                        if (!inheritedOnly) return;
-                        setToggle("positionMode", false);
-                        setDraftValues((prev) => ({
-                          ...prev,
-                          positionMode: inheritedOnly.effective.positionMode,
-                        }));
-                        setUnsavedChanges(true);
-                      }}
-                    >
-                      Reset
-                    </button>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
                     {overrideEnabled.positionMode
@@ -803,33 +725,8 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                       aria-describedby="volume-help volume-error"
                     />
-                    <button
-                      type="button"
-                      className="text-xs text-blue-600 hover:underline"
-                      aria-label="Reset volume to spawn defaults"
-                      onClick={() => {
-                        if (!inheritedOnly) return;
-                        setToggle("volume", false);
-                        setDraftValues((prev) => ({
-                          ...prev,
-                          volume: inheritedOnly.effective.volume,
-                        }));
-                        setUnsavedChanges(true);
-                      }}
-                    >
-                      Reset
-                    </button>
                   </div>
-                  <p id="volume-help" className="text-xs text-gray-500 mt-1">
-                    0 is silent; 100 is maximum volume.
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {overrideEnabled.volume
-                      ? "Overridden"
-                      : effective.sourceMap.volume === "spawn-default"
-                      ? "Inherited from Spawn Defaults"
-                      : "Inherited from Asset"}
-                  </p>
+
                   {overrideEnabled.volume && validationErrors.volume && (
                     <p id="volume-error" className="text-xs text-red-600 mt-1">
                       {validationErrors.volume}
@@ -876,56 +773,6 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     />
                     Muted
                   </label>
-                  <div className="ml-2">
-                    <button
-                      type="button"
-                      className="text-xs text-blue-600 hover:underline mr-2"
-                      aria-label="Reset loop to spawn defaults"
-                      onClick={() => {
-                        if (!inheritedOnly) return;
-                        setToggle("loop", false);
-                        setDraftValues((prev) => ({
-                          ...prev,
-                          loop: inheritedOnly.effective.loop,
-                        }));
-                        setUnsavedChanges(true);
-                      }}
-                    >
-                      Reset Loop
-                    </button>
-                    <button
-                      type="button"
-                      className="text-xs text-blue-600 hover:underline mr-2"
-                      aria-label="Reset autoplay to spawn defaults"
-                      onClick={() => {
-                        if (!inheritedOnly) return;
-                        setToggle("autoplay", false);
-                        setDraftValues((prev) => ({
-                          ...prev,
-                          autoplay: inheritedOnly.effective.autoplay,
-                        }));
-                        setUnsavedChanges(true);
-                      }}
-                    >
-                      Reset Autoplay
-                    </button>
-                    <button
-                      type="button"
-                      className="text-xs text-blue-600 hover:underline"
-                      aria-label="Reset muted to spawn defaults"
-                      onClick={() => {
-                        if (!inheritedOnly) return;
-                        setToggle("muted", false);
-                        setDraftValues((prev) => ({
-                          ...prev,
-                          muted: inheritedOnly.effective.muted,
-                        }));
-                        setUnsavedChanges(true);
-                      }}
-                    >
-                      Reset Muted
-                    </button>
-                  </div>
                 </div>
               </div>
             </section>

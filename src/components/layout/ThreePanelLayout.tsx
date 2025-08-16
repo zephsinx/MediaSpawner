@@ -37,17 +37,23 @@ const ThreePanelLayout: React.FC<ThreePanelLayoutProps> = ({
         <div className="grid grid-cols-12 h-[calc(100vh-80px)] min-w-[1280px] px-0 lg:px-2 xl:px-4 2xl:px-6">
           {/* Left Panel - Spawn Navigation (25%) */}
           <div className="col-span-3 bg-white border-r border-gray-200 min-w-[320px] lg:min-w-[360px] xl:min-w-[400px] overflow-hidden">
-            <div className="h-full p-3 lg:p-4 xl:p-5">{leftPanel}</div>
+            <div className="h-full min-h-0 overflow-y-auto p-3 lg:p-4 xl:p-5">
+              {leftPanel}
+            </div>
           </div>
 
           {/* Center Panel - Configuration Workspace (50%) */}
           <div className="col-span-6 bg-white border-r border-gray-200 min-w-[640px] lg:min-w-[720px] xl:min-w-[800px] overflow-hidden">
-            <div className="h-full p-3 lg:p-4 xl:p-5">{centerPanel}</div>
+            <div className="h-full min-h-0 overflow-y-auto p-3 lg:p-4 xl:p-5">
+              {centerPanel}
+            </div>
           </div>
 
           {/* Right Panel - Asset Management (25%) */}
           <div className="col-span-3 bg-white min-w-[320px] lg:min-w-[360px] xl:min-w-[400px] overflow-hidden">
-            <div className="h-full p-3 lg:p-4 xl:p-5">{rightPanel}</div>
+            <div className="h-full min-h-0 overflow-y-auto p-3 lg:p-4 xl:p-5">
+              {rightPanel}
+            </div>
           </div>
         </div>
       </div>
