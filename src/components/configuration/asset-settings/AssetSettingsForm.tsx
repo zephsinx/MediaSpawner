@@ -85,6 +85,15 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
     });
   }, [spawn, spawnAsset, baseAsset]);
 
+  const inheritedOnly = useMemo(() => {
+    if (!spawn || !baseAsset) return null;
+    return resolveEffectiveProperties({
+      base: baseAsset,
+      spawn,
+      overrides: undefined,
+    });
+  }, [spawn, baseAsset]);
+
   // Initialize draft when context target changes (avoid loops on referential changes)
   const initKeyRef = useRef<string | null>(null);
   useEffect(() => {
@@ -105,6 +114,50 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
     setUnsavedChanges(false);
   }, [effective, spawn, spawnAsset, setUnsavedChanges]);
 
+  useEffect(() => {
+    const onSpawnUpdated = async (evt: Event) => {
+      const detail = (evt as CustomEvent).detail as
+        | { spawnId?: string; updatedSpawn?: Spawn }
+        | undefined;
+      if (!detail?.spawnId || detail.spawnId !== spawnId) return;
+      const nextSpawn: Spawn | null = detail.updatedSpawn
+        ? detail.updatedSpawn
+        : await SpawnService.getSpawn(spawnId);
+      if (!nextSpawn || !spawnAsset || !baseAsset) return;
+      const nextSpawnAsset =
+        nextSpawn.assets.find((a) => a.id === spawnAssetId) || null;
+      if (!nextSpawnAsset) return;
+      setSpawn(nextSpawn);
+      setSpawnAsset(nextSpawnAsset);
+      const nextEffective = resolveEffectiveProperties({
+        base: baseAsset,
+        spawn: nextSpawn,
+        overrides: nextSpawnAsset.overrides?.properties,
+      });
+      setDraftValues((prev) => {
+        const updated: Partial<MediaAssetProperties> = { ...prev };
+        OVERRIDABLE_FIELDS.forEach((key) => {
+          if (!overrideEnabled[key]) {
+            (updated as Record<string, unknown>)[key] = nextEffective.effective[
+              key as keyof MediaAssetProperties
+            ] as unknown;
+          }
+        });
+        return updated;
+      });
+    };
+    window.addEventListener(
+      "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+      onSpawnUpdated as EventListener
+    );
+    return () => {
+      window.removeEventListener(
+        "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+        onSpawnUpdated as EventListener
+      );
+    };
+  }, [spawnId, spawnAssetId, baseAsset, overrideEnabled]);
+
   const setField = (key: FieldKey, value: MediaAssetProperties[FieldKey]) => {
     setDraftValues((prev) => ({ ...prev, [key]: value }));
     setUnsavedChanges(true);
@@ -113,11 +166,10 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
   const setToggle = (key: FieldKey, enable: boolean) => {
     setOverrideEnabled((prev) => ({ ...prev, [key]: enable }));
     setUnsavedChanges(true);
-    if (!enable && effective) {
-      // Revert to effective inherited value when disabling override
+    if (!enable && inheritedOnly) {
       setDraftValues((prev) => ({
         ...prev,
-        [key]: effective.effective[key],
+        [key]: inheritedOnly.effective[key],
       }));
     }
   };
@@ -136,6 +188,17 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
     setUnsavedChanges(false);
     setSuccess(null);
     setError(null);
+  };
+
+  const handleResetAll = () => {
+    if (!inheritedOnly) return;
+    const nextToggles: Partial<Record<FieldKey, boolean>> = {};
+    OVERRIDABLE_FIELDS.forEach((k) => {
+      nextToggles[k] = false;
+    });
+    setOverrideEnabled(nextToggles);
+    setDraftValues(inheritedOnly.effective);
+    setUnsavedChanges(true);
   };
 
   const handleSave = async () => {
@@ -255,6 +318,14 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
             </button>
             <button
               type="button"
+              onClick={handleResetAll}
+              className="px-3 py-1.5 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+              aria-label="Reset all fields to spawn defaults"
+            >
+              Reset All
+            </button>
+            <button
+              type="button"
               onClick={handleSave}
               disabled={isSaving}
               className={`px-3 py-1.5 rounded-md text-white ${
@@ -321,7 +392,30 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                       aria-describedby="dimensions-help"
                     />
+                    <button
+                      type="button"
+                      className="text-xs text-blue-600 hover:underline"
+                      aria-label="Reset dimensions to spawn defaults"
+                      onClick={() => {
+                        if (!inheritedOnly) return;
+                        setToggle("dimensions", false);
+                        setDraftValues((prev) => ({
+                          ...prev,
+                          dimensions: inheritedOnly.effective.dimensions,
+                        }));
+                        setUnsavedChanges(true);
+                      }}
+                    >
+                      Reset
+                    </button>
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {overrideEnabled.dimensions
+                      ? "Overridden"
+                      : effective.sourceMap.dimensions === "spawn-default"
+                      ? "Inherited from Spawn Defaults"
+                      : "Inherited from Asset"}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -384,7 +478,30 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                       aria-describedby="position-help"
                     />
+                    <button
+                      type="button"
+                      className="text-xs text-blue-600 hover:underline"
+                      aria-label="Reset position to spawn defaults"
+                      onClick={() => {
+                        if (!inheritedOnly) return;
+                        setToggle("position", false);
+                        setDraftValues((prev) => ({
+                          ...prev,
+                          position: inheritedOnly.effective.position,
+                        }));
+                        setUnsavedChanges(true);
+                      }}
+                    >
+                      Reset
+                    </button>
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {overrideEnabled.position
+                      ? "Overridden"
+                      : effective.sourceMap.position === "spawn-default"
+                      ? "Inherited from Spawn Defaults"
+                      : "Inherited from Asset"}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -444,9 +561,32 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       className="w-24 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                       aria-describedby="scale-help"
                     />
+                    <button
+                      type="button"
+                      className="text-xs text-blue-600 hover:underline"
+                      aria-label="Reset scale to spawn defaults"
+                      onClick={() => {
+                        if (!inheritedOnly) return;
+                        setToggle("scale", false);
+                        setDraftValues((prev) => ({
+                          ...prev,
+                          scale: inheritedOnly.effective.scale,
+                        }));
+                        setUnsavedChanges(true);
+                      }}
+                    >
+                      Reset
+                    </button>
                   </div>
                   <p id="scale-help" className="text-xs text-gray-500 mt-1">
                     Enter a non-negative factor (1.0 = 100%).
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {overrideEnabled.scale
+                      ? "Overridden"
+                      : effective.sourceMap.scale === "spawn-default"
+                      ? "Inherited from Spawn Defaults"
+                      : "Inherited from Asset"}
                   </p>
                 </div>
 
@@ -478,7 +618,30 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       <option value="relative">Relative (%)</option>
                       <option value="centered">Centered</option>
                     </select>
+                    <button
+                      type="button"
+                      className="text-xs text-blue-600 hover:underline"
+                      aria-label="Reset position mode to spawn defaults"
+                      onClick={() => {
+                        if (!inheritedOnly) return;
+                        setToggle("positionMode", false);
+                        setDraftValues((prev) => ({
+                          ...prev,
+                          positionMode: inheritedOnly.effective.positionMode,
+                        }));
+                        setUnsavedChanges(true);
+                      }}
+                    >
+                      Reset
+                    </button>
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {overrideEnabled.positionMode
+                      ? "Overridden"
+                      : effective.sourceMap.positionMode === "spawn-default"
+                      ? "Inherited from Spawn Defaults"
+                      : "Inherited from Asset"}
+                  </p>
                 </div>
               </div>
             </section>
@@ -525,9 +688,32 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                       aria-describedby="volume-help"
                     />
+                    <button
+                      type="button"
+                      className="text-xs text-blue-600 hover:underline"
+                      aria-label="Reset volume to spawn defaults"
+                      onClick={() => {
+                        if (!inheritedOnly) return;
+                        setToggle("volume", false);
+                        setDraftValues((prev) => ({
+                          ...prev,
+                          volume: inheritedOnly.effective.volume,
+                        }));
+                        setUnsavedChanges(true);
+                      }}
+                    >
+                      Reset
+                    </button>
                   </div>
                   <p id="volume-help" className="text-xs text-gray-500 mt-1">
                     0 is silent; 100 is maximum volume.
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {overrideEnabled.volume
+                      ? "Overridden"
+                      : effective.sourceMap.volume === "spawn-default"
+                      ? "Inherited from Spawn Defaults"
+                      : "Inherited from Asset"}
                   </p>
                 </div>
 
@@ -570,6 +756,56 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     />
                     Muted
                   </label>
+                  <div className="ml-2">
+                    <button
+                      type="button"
+                      className="text-xs text-blue-600 hover:underline mr-2"
+                      aria-label="Reset loop to spawn defaults"
+                      onClick={() => {
+                        if (!inheritedOnly) return;
+                        setToggle("loop", false);
+                        setDraftValues((prev) => ({
+                          ...prev,
+                          loop: inheritedOnly.effective.loop,
+                        }));
+                        setUnsavedChanges(true);
+                      }}
+                    >
+                      Reset Loop
+                    </button>
+                    <button
+                      type="button"
+                      className="text-xs text-blue-600 hover:underline mr-2"
+                      aria-label="Reset autoplay to spawn defaults"
+                      onClick={() => {
+                        if (!inheritedOnly) return;
+                        setToggle("autoplay", false);
+                        setDraftValues((prev) => ({
+                          ...prev,
+                          autoplay: inheritedOnly.effective.autoplay,
+                        }));
+                        setUnsavedChanges(true);
+                      }}
+                    >
+                      Reset Autoplay
+                    </button>
+                    <button
+                      type="button"
+                      className="text-xs text-blue-600 hover:underline"
+                      aria-label="Reset muted to spawn defaults"
+                      onClick={() => {
+                        if (!inheritedOnly) return;
+                        setToggle("muted", false);
+                        setDraftValues((prev) => ({
+                          ...prev,
+                          muted: inheritedOnly.effective.muted,
+                        }));
+                        setUnsavedChanges(true);
+                      }}
+                    >
+                      Reset Muted
+                    </button>
+                  </div>
                 </div>
               </div>
             </section>

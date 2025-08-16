@@ -206,4 +206,160 @@ describe("AssetSettingsForm", () => {
     expect(savedSa.overrides.properties).toHaveProperty("volume", 0.7);
     expect(updatedEventSpy).toHaveBeenCalled();
   });
+
+  it("resets individual field to spawn defaults when Reset is clicked", async () => {
+    const asset = buildBaseAsset("video");
+    const { spawn, spawnAsset } = buildSpawn(asset, { volume: 0.7 });
+    (SpawnService.getSpawn as unknown as Mock).mockResolvedValue(spawn);
+    (AssetService.getAssetById as unknown as Mock).mockReturnValue(asset);
+
+    await act(async () => {
+      render(
+        <AssetSettingsForm
+          spawnId={spawn.id}
+          spawnAssetId={spawnAsset.id}
+          onBack={() => {}}
+        />
+      );
+    });
+
+    const volumeLabel = screen.getByText("Volume (%)");
+    const vContainer = volumeLabel.parentElement as HTMLElement;
+    const volumeToggle = screen.getByLabelText(
+      "Override volume"
+    ) as HTMLInputElement;
+    const volumeNumber = vContainer.querySelector(
+      'input[type="number"]'
+    ) as HTMLInputElement;
+
+    await act(async () => {
+      fireEvent.click(volumeToggle);
+      fireEvent.change(volumeNumber, { target: { value: "70" } });
+    });
+    expect(volumeNumber.value).toBe("70");
+
+    const resetBtn = screen.getByRole("button", {
+      name: "Reset volume to spawn defaults",
+    });
+    await act(async () => {
+      fireEvent.click(resetBtn);
+    });
+
+    // override disabled and value shows spawn default (0.4 => 40)
+    expect(screen.getByLabelText("Override volume")).not.toBeChecked();
+    expect(volumeNumber.value).toBe("40");
+
+    // Save should not include volume override now
+    (SpawnService.updateSpawn as unknown as Mock).mockResolvedValue({
+      success: true,
+      spawn,
+    });
+    const saveBtn = screen.getByRole("button", { name: "Save asset settings" });
+    await act(async () => {
+      fireEvent.click(saveBtn);
+    });
+    const args = (SpawnService.updateSpawn as unknown as Mock).mock.calls[0][1];
+    const updatedAssets = args.assets as SpawnAsset[];
+    const savedSa = updatedAssets.find((a) => a.id === spawnAsset.id)!;
+    expect(savedSa.overrides.properties).not.toHaveProperty("volume");
+  });
+
+  it("Reset All disables all overrides and restores inherited values", async () => {
+    const asset = buildBaseAsset("video");
+    const { spawn, spawnAsset } = buildSpawn(asset, {
+      dimensions: { width: 150, height: 90 },
+      position: { x: 10, y: 20 },
+      scale: 1.5,
+      positionMode: "relative",
+      volume: 0.8,
+      loop: true,
+      autoplay: true,
+      muted: true,
+    });
+    (SpawnService.getSpawn as unknown as Mock).mockResolvedValue(spawn);
+    (AssetService.getAssetById as unknown as Mock).mockReturnValue(asset);
+
+    await act(async () => {
+      render(
+        <AssetSettingsForm
+          spawnId={spawn.id}
+          spawnAssetId={spawnAsset.id}
+          onBack={() => {}}
+        />
+      );
+    });
+
+    const resetAllBtn = screen.getByRole("button", {
+      name: "Reset all fields to spawn defaults",
+    });
+    await act(async () => {
+      fireEvent.click(resetAllBtn);
+    });
+
+    // Spot check a few fields show spawn defaults
+    const dimsToggles = screen.getAllByLabelText("Override dimensions");
+    dimsToggles.forEach((t) =>
+      expect((t as HTMLInputElement).checked).toBe(false)
+    );
+    const widthInput = screen.getAllByRole("spinbutton")[0] as HTMLInputElement;
+    expect(widthInput.value).toBe("80");
+
+    expect(screen.getByLabelText("Override volume")).not.toBeChecked();
+    const volumeNumber = screen
+      .getAllByRole("spinbutton")
+      .find((el) => (el as HTMLInputElement).max === "100") as HTMLInputElement;
+    expect(volumeNumber.value).toBe("40");
+
+    // Save should contain no properties overrides
+    (SpawnService.updateSpawn as unknown as Mock).mockResolvedValue({
+      success: true,
+      spawn,
+    });
+    const saveBtn = screen.getByRole("button", { name: "Save asset settings" });
+    await act(async () => {
+      fireEvent.click(saveBtn);
+    });
+    const args = (SpawnService.updateSpawn as unknown as Mock).mock.calls[0][1];
+    const updatedAssets = args.assets as SpawnAsset[];
+    const savedSa = updatedAssets.find((a) => a.id === spawnAsset.id)!;
+    expect(savedSa.overrides.properties).toEqual({});
+  });
+
+  it("updates inherited draft values when spawn defaults change via event", async () => {
+    const asset = buildBaseAsset("image");
+    const { spawn, spawnAsset } = buildSpawn(asset);
+    (SpawnService.getSpawn as unknown as Mock).mockResolvedValue(spawn);
+    (AssetService.getAssetById as unknown as Mock).mockReturnValue(asset);
+
+    await act(async () => {
+      render(
+        <AssetSettingsForm
+          spawnId={spawn.id}
+          spawnAssetId={spawnAsset.id}
+          onBack={() => {}}
+        />
+      );
+    });
+
+    // Simulate spawn defaults width change 80 -> 120
+    const updatedSpawn: Spawn = {
+      ...spawn,
+      defaultProperties: {
+        ...spawn.defaultProperties,
+        dimensions: { width: 120, height: 80 },
+      },
+    };
+
+    await act(async () => {
+      window.dispatchEvent(
+        new CustomEvent(
+          "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+          { detail: { spawnId: spawn.id, updatedSpawn } } as CustomEventInit
+        )
+      );
+    });
+
+    const widthInput = screen.getAllByRole("spinbutton")[0] as HTMLInputElement;
+    expect(widthInput.value).toBe("120");
+  });
 });
