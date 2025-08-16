@@ -32,7 +32,7 @@ As a user, I want to configure volume and playback settings for audio and video 
 - [ ] Can preview volume changes before saving
 - [ ] Settings persist when switching between spawns
 
-**Technical Task MS-51-T1**: Implement Audio/Video Settings Forms
+**Technical Tasks**: Implement Audio/Video Settings Forms
 
 - Create audio/video settings form component for center panel
 - Add volume slider with numeric input (0-100%)
@@ -64,7 +64,7 @@ As a user, I want to configure dimensions, scale, and positioning for visual ass
 - [ ] Can preview positioning changes visually
 - [ ] Settings work for both images and videos
 
-**Technical Task MS-52-T1**: Implement Visual Asset Settings Forms
+**Technical Tasks**: Implement Visual Asset Settings Forms
 
 - Create visual asset settings form component for center panel
 - Add dimension inputs (width, height) with validation
@@ -97,7 +97,7 @@ As a user, I want to configure default settings that my assets will inherit, so 
 - [ ] Get helpful explanations of how the inheritance system works
 - [ ] Can preview how settings will apply to assets
 
-**Technical Task MS-35-T1**: Implement Asset Inheritance Model UI
+**Technical Tasks**: Implement Asset Inheritance Model UI
 
 - Add asset defaults section in spawn settings form (Epic 3)
 - Include default volume setting that assets inherit
@@ -133,7 +133,7 @@ As a user, I want to configure settings for individual assets in my spawn, so th
 - [ ] Works for both local files and URL-based assets
 - [ ] Resetting individual or all fields to defaults is handled in Story MS-46 and is not required in this story
 
-**Technical Task MS-36-T1**: Create Individual Asset Configuration Workflow
+**Technical Tasks**: Create Individual Asset Configuration Workflow
 
 - Integrate asset configuration trigger from Epic 4's asset display
 - Build asset settings form component for center panel
@@ -167,7 +167,7 @@ As a user, I want to easily reset asset settings back to spawn defaults, so that
 - [ ] Can see preview of "what this asset will use" combining spawn defaults + overrides
 - [ ] Inheritance indicators update in real-time as I modify spawn defaults
 
-**Technical Task MS-37-T1**: Build Asset Settings Integration with Spawn Defaults
+**Technical Tasks**: Build Asset Settings Integration with Spawn Defaults
 
 - Connect asset settings form with spawn defaults from Story 3
 - Add one-click reset individual properties to spawn defaults
@@ -201,7 +201,7 @@ As a user, I want to smoothly switch between configuring spawn settings and indi
 - [ ] Unsaved changes detection works across both spawn and asset configuration contexts
 - [ ] Warning dialogs clearly explain what changes will be lost if I switch modes
 
-**Technical Task MS-38-T1**: Implement Context Switching Between Configuration Modes
+**Technical Tasks**: Implement Context Switching Between Configuration Modes
 
 - Enable smooth transition between spawn settings and asset settings modes
 - Add context preservation during mode switching
@@ -234,7 +234,7 @@ As a user, I want clear validation for asset configuration settings, so that I u
 - [ ] Get immediate feedback for invalid values
 - [ ] Clear error messages explain what needs to be corrected
 
-**Technical Task MS-39-T1**: Implement Asset Configuration Validation
+**Technical Tasks**: Implement Asset Configuration Validation
 
 - Add validation for volume settings (0-100%)
 - Add validation for dimension inputs (positive numbers)
@@ -267,7 +267,7 @@ As a user, I want to preview how my asset configuration changes will affect the 
 - [ ] Can toggle preview on/off to see before/after comparison
 - [ ] Preview doesn't interfere with the configuration workflow
 
-**Technical Task MS-40-T1**: Implement Asset Configuration Preview
+**Technical Tasks**: Implement Asset Configuration Preview
 
 - Add preview capabilities for audio/video volume changes
 - Add visual preview for positioning, scaling, and dimension changes

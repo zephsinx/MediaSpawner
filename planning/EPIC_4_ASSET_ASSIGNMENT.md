@@ -32,7 +32,7 @@ As a user, I want the right panel to display asset management, so that I can see
 - [ ] Panel works within 25% width constraints
 - [ ] Layout adapts to different screen heights
 
-**Technical Task MS-43-T1**: Create Right Panel Asset Management Structure
+**Technical Tasks**: Create Right Panel Asset Management Structure
 
 - Build component within Epic 2's panel layout constraints
 - Create section containers with proper CSS structure
@@ -63,7 +63,7 @@ As a user, I want to see which assets are assigned to my current spawn, so that 
 - [ ] List updates when selecting different spawns
 - [ ] Assets display in their spawn order
 
-**Technical Task MS-44-T1**: Integrate Spawn Asset Display
+**Technical Tasks**: Integrate Spawn Asset Display
 
 - Listen for spawn selection changes from Epic 3 via Epic 2's panel state
 - Use Epic 1's SpawnService to retrieve spawn assets
@@ -95,7 +95,7 @@ As a user, I want to see all available assets in the library section, so that I 
 - [ ] Asset types are clearly indicated (image, video, audio)
 - [ ] Library updates when assets are added/removed
 
-**Technical Task MS-46-T1**: Implement Asset Library Display
+**Technical Tasks**: Implement Asset Library Display
 
 - Use Epic 1's AssetService for library operations
 - Implement asset thumbnails and type indicators
@@ -127,7 +127,7 @@ As a user, I want to add assets using URLs, so that I can include web-hosted med
 - [ ] URL assets work the same as local assets in spawns
 - [ ] Clear error messages for invalid or inaccessible URLs
 
-**Technical Task MS-47-T1**: Implement URL Asset Support
+**Technical Tasks**: Implement URL Asset Support
 
 - Extend AssetService from Epic 1 to support URL assets
 - Add URL validation (format, accessibility checks)
@@ -159,7 +159,7 @@ As a user, I want to drag assets from the library to my spawn, so that I can qui
 - [ ] Shows success feedback after assignment
 - [ ] Works with both local file and URL assets
 
-**Technical Task MS-49-T1**: Implement Asset Assignment Drag & Drop
+**Technical Tasks**: Implement Asset Assignment Drag & Drop
 
 - Use Epic 1's SpawnService to assign assets to spawns
 - Implement drag previews and drop zone indicators
@@ -190,7 +190,7 @@ As a user, I want to add assets to a spawn using a clear button, so that I can b
 - [ ] Shows success feedback after assignment
 - [ ] Works for both local file and URL assets
 
-**Technical Task MS-49a-T1**: Implement Click-to-Add Assignment
+**Technical Tasks**: Implement Click-to-Add Assignment
 
 - Add action control to each library item
 - Use SpawnService to assign assets to the selected spawn
@@ -220,7 +220,7 @@ As a user, I want to remove assets from my spawn, so that I can clean up my spaw
 - [ ] Asset remains available in library
 - [ ] Clear feedback about removal success
 
-**Technical Task MS-50-T1**: Implement Asset Removal
+**Technical Tasks**: Implement Asset Removal
 
 - Use Epic 1's SpawnService to remove assets from spawns
 - Add confirmation dialog with clear messaging
@@ -250,7 +250,7 @@ As a user, I want to reorder assets within my spawn, so that I can control the s
 - [ ] Reordering persists when switching spawns
 - [ ] Cannot drag assets outside the spawn section
 
-**Technical Task MS-45-T1**: Implement Asset Reordering
+**Technical Tasks**: Implement Asset Reordering
 
 - Use drag & drop library for asset reordering within spawn
 - Call Epic 1's SpawnService to save new asset order
@@ -281,7 +281,7 @@ As a user, I want clear validation when adding assets, so that I know immediatel
 - [ ] Invalid assets cannot be added to library or spawns
 - [ ] Validation happens before assets are added to library
 
-**Technical Task MS-48-T1**: Implement Asset Validation System
+**Technical Tasks**: Implement Asset Validation System
 
 - Add file path format validation for local assets
 - Add URL format validation (no network checks)
@@ -313,7 +313,7 @@ As a user, I want to add new assets to my library by uploading or selecting file
 - [ ] New assets appear in library immediately
 - [ ] Can add both file paths and URLs through the interface
 
-**Technical Task MS-54-T1**: Implement Asset Upload Interface
+**Technical Tasks**: Implement Asset Upload Interface
 
 - Add "Add Asset" button to library section
 - Create file selection dialog for local assets

@@ -32,7 +32,7 @@ As a user, I want to export my spawn configurations as JSON files, so that I can
 - [ ] Export includes metadata (creation date, version, etc.)
 - [ ] Exported files are human-readable and well-formatted
 
-**Technical Task MS-68-T1**: Implement JSON Export Functionality
+**Technical Tasks**: Implement JSON Export Functionality
 
 - Add export functionality to spawn editor (individual spawn export)
 - Add export functionality to spawn list (bulk spawn export)
@@ -65,7 +65,7 @@ As a user and external system integrator, I want a clear, standardized JSON form
 - [ ] Format is versioned for future compatibility (e.g., schema version 1.0.0)
 - [ ] Format documentation is clear and comprehensive
 
-**Technical Task MS-69-T1**: Design JSON Schema and Documentation
+**Technical Tasks**: Design JSON Schema and Documentation
 
 - Define comprehensive JSON schema for spawn configuration export
 - Include spawn metadata (name, description, enabled state, triggers)
@@ -98,7 +98,7 @@ As a user, I want to import spawn configurations from JSON files, so that I can 
 - [ ] Import handles asset path validation and URL accessibility
 - [ ] Can preview import contents before confirming
 
-**Technical Task MS-70-T1**: Implement JSON Import Functionality
+**Technical Tasks**: Implement JSON Import Functionality
 
 - Add import functionality accessible from spawn management interface
 - Implement file selection dialog for JSON import
@@ -132,7 +132,7 @@ As a user, I want comprehensive validation when importing configurations, so tha
 - [ ] Validates asset settings are within acceptable ranges
 - [ ] Provides detailed error reports with specific issues and line numbers
 
-**Technical Task MS-71-T1**: Implement Comprehensive Import Validation
+**Technical Tasks**: Implement Comprehensive Import Validation
 
 - Add JSON schema validation with detailed error reporting
 - Implement spawn name conflict detection and resolution options
@@ -165,7 +165,7 @@ As a user, I want clear options for handling import conflicts and errors, so tha
 - [ ] Get clear summary of what was imported successfully and what failed
 - [ ] Can save error reports for troubleshooting
 
-**Technical Task MS-72-T1**: Implement Import Conflict Resolution
+**Technical Tasks**: Implement Import Conflict Resolution
 
 - Add conflict resolution UI for spawn name duplicates
 - Implement missing asset handling (skip, substitute path, manual resolution)
@@ -198,7 +198,7 @@ As a user, I want to export and import profile-level settings, so that I can bac
 - [ ] Profile settings validation ensures compatibility
 - [ ] Can handle profile working directory path differences
 
-**Technical Task MS-73-T1**: Implement Profile-Level Export/Import
+**Technical Tasks**: Implement Profile-Level Export/Import
 
 - Extend JSON schema from Story 2 to include profile metadata
 - Add profile export functionality with all contained spawns
@@ -231,7 +231,7 @@ As a user, I want to export configurations in formats optimized for external too
 - [ ] Integration export focuses on triggers, assets, and timing
 - [ ] Export includes external tool integration documentation
 
-**Technical Task MS-74-T1**: Implement Integration-Optimized Export
+**Technical Tasks**: Implement Integration-Optimized Export
 
 - Define minimal JSON schema for external tool integration
 - Focus export on triggers, asset references, and activation timing
@@ -264,7 +264,7 @@ As a user, I want streamlined backup and restore workflows, so that I can easily
 - [ ] Can restore specific profiles or spawns from backup
 - [ ] Backup process is fast and doesn't interfere with normal usage
 
-**Technical Task MS-75-T1**: Implement Backup/Restore Workflows
+**Technical Tasks**: Implement Backup/Restore Workflows
 
 - Add complete application backup functionality
 - Include all profiles, spawns, and application settings in backup

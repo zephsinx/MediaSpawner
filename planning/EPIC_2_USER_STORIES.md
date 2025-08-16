@@ -31,7 +31,7 @@ As a user, I want a three-panel workspace layout, so that I can see my spawn lis
 - [ ] Panels maintain usable proportions and don't become too narrow
 - [ ] Interface has clean, practical styling without visual clutter
 
-**Technical Task MS-10-T1**: Implement Three-Panel Layout Infrastructure
+**Technical Tasks**: Implement Three-Panel Layout Infrastructure
 
 - Create three-panel layout: Left (25%), Center (50%), Right (25%)
 - Use CSS Grid or Flexbox for precise panel control
@@ -66,7 +66,7 @@ As a user, I want a header with spawn profile selector and context indicators, s
 - [ ] Header layout works well on desktop screens
 - [ ] Profile switching updates my workspace context appropriately
 
-**Technical Task MS-11-T1**: Implement Profile Header Component
+**Technical Tasks**: Implement Profile Header Component
 
 - Create header component with spawn profile selector dropdown
 - Integrate with SpawnProfileService for active profile management
@@ -102,7 +102,7 @@ As a user, I want my selections and context maintained across the workspace, so 
 - [ ] Unsaved changes warnings work across spawn settings, asset settings, and trigger configurations
 - [ ] Complex cross-panel state interactions (asset selection → configuration changes) are tracked properly
 
-**Technical Task MS-12-T1**: Implement Robust Panel State Management System
+**Technical Tasks**: Implement Robust Panel State Management System
 
 - Create React Context for panel state (selected spawn, active profile, etc.) to enable coordinated workspace behavior
 - Implement comprehensive panel communication system (spawn selection, profile changes) for synchronized updates
@@ -141,7 +141,7 @@ As a user, I want URL routing that reflects my current spawn profile and selecte
 - [ ] Invalid URLs redirect gracefully to valid states
 - [ ] URL reflects my current application state accurately
 
-**Technical Task MS-13-T1**: Implement URL Routing System
+**Technical Tasks**: Implement URL Routing System
 
 - Create route structure: `/profile/:profileId/spawn/:spawnId?`
 - Set up default route redirects to active profile
@@ -177,7 +177,7 @@ As a user, I want the layout to work well on different desktop screen sizes, so 
 - [ ] Panel proportions remain consistent across desktop sizes
 - [ ] Interface is tested and functional on common desktop configurations
 
-**Technical Task MS-14-T1**: Optimize Desktop Layout Responsiveness
+**Technical Tasks**: Optimize Desktop Layout Responsiveness
 
 - Support common desktop resolutions (1280px, 1440px, 1920px+)
 - Implement ultrawide monitor support (maintain panel proportions)
@@ -215,7 +215,7 @@ As a user, I want to see the workspace structure while features are being develo
 - [ ] Placeholders indicate what functionality will be available
 - [ ] Easy to understand the intended workspace flow
 
-**Technical Task MS-15-T1**: Create Panel Placeholder Components
+**Technical Tasks**: Create Panel Placeholder Components
 
 - Create left panel placeholder: "Spawn List Coming Soon"
 - Create center panel placeholder: "Unified Configuration Workspace Coming Soon"
