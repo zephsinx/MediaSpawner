@@ -3,11 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AssetList, type AssetTypeFilter } from "./AssetList";
 import { AssetPreview } from "./AssetPreview";
 import { FileReferenceInput } from "../common/FileReferenceInput";
-import {
-  AssetService,
-  type AssetValidationResult,
-  type CleanupResult,
-} from "../../services/assetService";
+import { AssetService } from "../../services/assetService";
 import { detectAssetTypeFromPath } from "../../utils/assetTypeDetection";
 import type { MediaAsset } from "../../types/media";
 
@@ -16,18 +12,10 @@ const AssetLibraryPage: React.FC = () => {
   const [assets, setAssets] = useState<MediaAsset[]>([]);
   const [previewAsset, setPreviewAsset] = useState<MediaAsset | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [showMaintenance, setShowMaintenance] = useState(false);
   const [newAssetPath, setNewAssetPath] = useState("");
   const [newAssetName, setNewAssetName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<AssetTypeFilter>("all");
-  const [validationResults, setValidationResults] = useState<
-    AssetValidationResult[]
-  >([]);
-  const [isValidating, setIsValidating] = useState(false);
-  const [cleanupResult, setCleanupResult] = useState<CleanupResult | null>(
-    null
-  );
 
   // Load assets on component mount
   useEffect(() => {
@@ -42,7 +30,9 @@ const AssetLibraryPage: React.FC = () => {
   };
 
   const handleAssetPreview = (asset: MediaAsset) => {
-    setPreviewAsset(asset);
+    if (asset.isUrl) {
+      setPreviewAsset(asset);
+    }
   };
 
   const handleClosePreview = () => {
@@ -70,43 +60,6 @@ const AssetLibraryPage: React.FC = () => {
     setShowAddForm(false);
   };
 
-  const handleValidateAssets = async () => {
-    setIsValidating(true);
-    try {
-      const results = await AssetService.validateAllAssets();
-      setValidationResults(results);
-    } catch (error) {
-      console.error("Failed to validate assets:", error);
-    } finally {
-      setIsValidating(false);
-    }
-  };
-
-  const handleCleanupBroken = async () => {
-    try {
-      const result = await AssetService.cleanupBrokenReferences();
-      setCleanupResult(result);
-      setAssets(AssetService.getAssets());
-      setValidationResults([]);
-    } catch (error) {
-      console.error("Failed to cleanup broken references:", error);
-    }
-  };
-
-  const handleRepairData = () => {
-    const result = AssetService.repairAssetData();
-    if (result.repaired) {
-      setAssets(result.validAssets);
-      setCleanupResult({
-        removedAssets: [],
-        remainingAssets: result.validAssets,
-        totalRemoved: result.removedEntries,
-      });
-    }
-  };
-
-  const brokenAssets = validationResults.filter((result) => !result.isValid);
-
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -126,12 +79,6 @@ const AssetLibraryPage: React.FC = () => {
             Back to Editor
           </button>
           <button
-            onClick={() => setShowMaintenance(!showMaintenance)}
-            className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
-          >
-            Maintenance
-          </button>
-          <button
             onClick={() => setShowAddForm(!showAddForm)}
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
           >
@@ -139,111 +86,6 @@ const AssetLibraryPage: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {/* Maintenance Section */}
-      {showMaintenance && (
-        <div className="bg-white border rounded-lg p-4 mb-6">
-          <h3 className="text-lg font-medium mb-4">Asset Maintenance</h3>
-
-          <div className="space-y-4">
-            {/* Validation Section */}
-            <div className="border-b pb-4">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium text-gray-900">
-                  Validate Asset References
-                </h4>
-                <button
-                  onClick={handleValidateAssets}
-                  disabled={isValidating}
-                  className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 disabled:bg-gray-400 transition-colors"
-                >
-                  {isValidating ? "Validating..." : "Validate All"}
-                </button>
-              </div>
-
-              {validationResults.length > 0 && (
-                <div className="text-sm">
-                  <div className="mb-2">
-                    <span className="text-green-600">
-                      ✓ Valid:{" "}
-                      {validationResults.filter((r) => r.isValid).length}
-                    </span>
-                    {brokenAssets.length > 0 && (
-                      <span className="text-red-600 ml-4">
-                        ✗ Broken: {brokenAssets.length}
-                      </span>
-                    )}
-                  </div>
-
-                  {brokenAssets.length > 0 && (
-                    <div className="bg-red-50 border border-red-200 rounded p-3 mt-2">
-                      <h5 className="font-medium text-red-800 mb-2">
-                        Broken References:
-                      </h5>
-                      <ul className="space-y-1">
-                        {brokenAssets.map((result) => (
-                          <li
-                            key={result.asset.id}
-                            className="text-red-700 text-xs"
-                          >
-                            <span className="font-medium">
-                              {result.asset.name}
-                            </span>
-                            : {result.error}
-                          </li>
-                        ))}
-                      </ul>
-                      <button
-                        onClick={handleCleanupBroken}
-                        className="mt-3 px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors"
-                      >
-                        Remove Broken References
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Data Repair Section */}
-            <div className="border-b pb-4">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium text-gray-900">Data Integrity</h4>
-                <button
-                  onClick={handleRepairData}
-                  className="px-3 py-1 bg-orange-500 text-white text-sm rounded hover:bg-orange-600 transition-colors"
-                >
-                  Repair Data
-                </button>
-              </div>
-              <p className="text-sm text-gray-600">
-                Check and repair corrupted asset data in storage.
-              </p>
-            </div>
-
-            {/* Cleanup Results */}
-            {cleanupResult && (
-              <div className="bg-green-50 border border-green-200 rounded p-3">
-                <h5 className="font-medium text-green-800 mb-2">
-                  Cleanup Complete
-                </h5>
-                <div className="text-sm text-green-700">
-                  <div>Removed: {cleanupResult.totalRemoved} assets</div>
-                  <div>
-                    Remaining: {cleanupResult.remainingAssets.length} assets
-                  </div>
-                </div>
-                <button
-                  onClick={() => setCleanupResult(null)}
-                  className="mt-2 text-xs text-green-600 hover:text-green-800"
-                >
-                  Dismiss
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Add Asset Form */}
       {showAddForm && (
