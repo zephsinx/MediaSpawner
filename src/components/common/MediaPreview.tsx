@@ -74,6 +74,7 @@ export function MediaPreview({
       return (
         <div
           className={`relative w-full h-24 bg-gray-100 rounded overflow-hidden ${className}`}
+          style={{ aspectRatio: "1 / 1" }}
         >
           {imageLoading && (
             <div className="absolute inset-0 flex items-center justify-center z-10">
@@ -97,6 +98,7 @@ export function MediaPreview({
       return (
         <div
           className={`relative w-full h-24 bg-gray-100 rounded overflow-hidden ${className}`}
+          style={{ aspectRatio: "1 / 1" }}
         >
           {imageLoading && (
             <div className="absolute inset-0 flex items-center justify-center">
@@ -157,6 +159,7 @@ export function MediaPreview({
     return (
       <div
         className={`w-full h-24 bg-gray-100 rounded flex items-center justify-center ${className}`}
+        style={{ aspectRatio: "1 / 1" }}
       >
         <div className="text-3xl">{getAssetTypeIcon(asset.type)}</div>
       </div>

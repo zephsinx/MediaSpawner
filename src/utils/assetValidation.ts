@@ -1,4 +1,5 @@
 import type { MediaAsset } from "../types/media";
+import type { Dimensions, Position } from "../types/media";
 import { detectAssetTypeFromPath } from "./assetTypeDetection";
 
 export type AssetType = MediaAsset["type"];
@@ -40,4 +41,40 @@ export function validateLocalPathFormat(path: string): ValidationResult {
 
 export function detectTypeFromUrlOrPath(path: string): AssetType {
   return detectAssetTypeFromPath(path);
+}
+
+export function validateVolumePercent(
+  value: number | undefined
+): ValidationResult {
+  if (value === undefined || Number.isNaN(value))
+    return { isValid: false, error: "Enter 0–100" };
+  if (value < 0 || value > 100) return { isValid: false, error: "Enter 0–100" };
+  return { isValid: true };
+}
+
+export function validateDimensionsValues(
+  dim: Dimensions | undefined
+): ValidationResult {
+  if (!dim) return { isValid: false, error: "Width/Height must be > 0" };
+  if (dim.width <= 0 || dim.height <= 0)
+    return { isValid: false, error: "Width/Height must be > 0" };
+  return { isValid: true };
+}
+
+export function validatePositionValues(
+  pos: Position | undefined
+): ValidationResult {
+  if (!pos) return { isValid: false, error: "Use non-negative values" };
+  if (pos.x < 0 || pos.y < 0)
+    return { isValid: false, error: "Use non-negative values" };
+  return { isValid: true };
+}
+
+export function validateScaleValue(
+  value: number | undefined
+): ValidationResult {
+  if (value === undefined || Number.isNaN(value))
+    return { isValid: false, error: "Must be ≥ 0" };
+  if (value < 0) return { isValid: false, error: "Must be ≥ 0" };
+  return { isValid: true };
 }

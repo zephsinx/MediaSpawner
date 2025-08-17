@@ -32,6 +32,13 @@ export const usePanelState = () => {
     [dispatch]
   );
 
+  const selectSpawnAsset = useCallback(
+    (spawnAssetId: string | undefined) => {
+      dispatch({ type: "SELECT_SPAWN_ASSET", payload: { spawnAssetId } });
+    },
+    [dispatch]
+  );
+
   const setCenterPanelMode = useCallback(
     (mode: "spawn-settings" | "asset-settings") => {
       dispatch({ type: "SET_CENTER_PANEL_MODE", payload: { mode } });
@@ -54,6 +61,7 @@ export const usePanelState = () => {
     // State
     activeProfileId: state.activeProfileId,
     selectedSpawnId: state.selectedSpawnId,
+    selectedSpawnAssetId: state.selectedSpawnAssetId,
     centerPanelMode: state.centerPanelMode,
     hasUnsavedChanges: state.hasUnsavedChanges,
     profileSpawnSelections: state.profileSpawnSelections,
@@ -61,6 +69,7 @@ export const usePanelState = () => {
     // Actions
     setActiveProfile,
     selectSpawn,
+    selectSpawnAsset,
     setCenterPanelMode,
     setUnsavedChanges,
     clearContext,

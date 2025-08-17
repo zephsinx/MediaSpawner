@@ -7,9 +7,9 @@
 **Priority**: 6 (Critical Path - HIGH VALUE)
 **Status**: Not Started
 
-**User Value**: ✨ **Spawns become actionable with configurable triggers (commands, channel points, time-based, etc.) - making spawns responsive to real-world events!**
+**User Value**: ✨ **Spawns become actionable with configurable triggers (commands, channel points, time-based, etc.) - making spawns responsive to real-world events**
 
-Implement comprehensive trigger selection and configuration data structures. MediaSpawner is configuration-only; no runtime integrations, simulations, or testing are included.
+Implement comprehensive trigger selection and configuration data structures. MediaSpawner is configuration-only; no runtime integrations or simulations included.
 
 ---
 
@@ -32,7 +32,7 @@ As a user, I want a comprehensive but manageable set of trigger types, so that I
 - [ ] Define settings structure for each trigger type (sub tiers, bit amounts, etc.)
 - [ ] Plan framework for future trigger types (advanced combinations, other platforms)
 
-**Technical Task MS-60-T1**: Define Trigger Type System Architecture
+**Technical Tasks**: Define Trigger Type System Architecture
 
 - Research common Twitch triggers: Commands, Channel Points, Subs, Cheers, Follows, Raids, Gifted Subs
 - Define trigger data structures that accommodate trigger-specific settings (sub months/tiers, bit amounts, command permissions, etc.)
@@ -64,7 +64,7 @@ As a user, I want to select from basic trigger types for my spawns, so that I ca
 - [ ] Clear descriptions help me understand what each trigger type does
 - [ ] Get unsaved changes warnings when modifying trigger configurations
 
-**Technical Task MS-61-T1**: Implement Basic Trigger Type Selection
+**Technical Tasks**: Implement Basic Trigger Type Selection
 
 - Add trigger type selection dropdown to spawn settings form (Epic 3) to provide users with clear trigger options
 - Define basic trigger type enum: Command, ChannelPoint, Subscription, Cheer, Follow, Manual to support common streaming scenarios
@@ -96,7 +96,7 @@ As a user, I want to configure chat command triggers, so that my spawns can be a
 - [ ] Can test command format validation
 - [ ] Get clear feedback about command requirements and limitations
 
-**Technical Task MS-62-T1**: Implement Chat Command Configuration
+**Technical Tasks**: Implement Chat Command Configuration
 
 - Add command text input with validation (alphanumeric, starts with !, no spaces) to ensure valid chat commands
 - Add permission level selection dropdown to control who can use commands
@@ -129,7 +129,7 @@ As a user, I want to configure channel point reward triggers, so that my spawns 
 - [ ] Can test reward name/ID validation
 - [ ] Get guidance on setting up rewards in streaming platform
 
-**Technical Task MS-63-T1**: Implement Channel Point Reward Configuration
+**Technical Tasks**: Implement Channel Point Reward Configuration
 
 - Add reward name/ID input with validation to ensure proper reward identification
 - Add point cost input with range validation for cost-based filtering
@@ -162,7 +162,7 @@ As a user, I want to configure event-based triggers, so that my spawns can be ac
 - [ ] Can see next scheduled activation time
 - [ ] Can enable/disable scheduled triggers without losing configuration
 
-**Technical Task MS-64-T1**: Implement Event-Based Trigger Configuration
+**Technical Tasks**: Implement Event-Based Trigger Configuration
 
 - Add subscription trigger configuration (tier requirements, gift sub handling) to support subscriber events
 - Add cheer trigger configuration (minimum bits, cumulative options) for bit-based activation
@@ -194,7 +194,7 @@ As a user, I want clear validation for my trigger configurations, so that I know
 - [ ] Validation guides me toward correct configuration patterns
 - [ ] Can see warnings for potentially problematic settings
 
-**Technical Task MS-65-T1**: Implement Trigger Configuration Validation
+**Technical Tasks**: Implement Trigger Configuration Validation
 
 - Add validation for each trigger type's specific requirements to ensure proper configuration
 - Implement real-time validation feedback with clear error messages for immediate user guidance
@@ -233,7 +233,7 @@ As a user, I want to see trigger status and information in my spawn list, so tha
 - [ ] Can hover for more detailed trigger information
 - [ ] Visual indicators help distinguish different trigger types
 
-**Technical Task MS-67-T1**: Implement Trigger Information Display
+**Technical Tasks**: Implement Trigger Information Display
 
 - Add trigger type icons/indicators to spawn list items (Epic 3) for quick visual recognition
 - Display abbreviated trigger information (command text, schedule, etc.) for at-a-glance understanding

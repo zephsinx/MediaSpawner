@@ -32,7 +32,7 @@ As a user, I want to switch between different spawn profiles using the header dr
 - [ ] Profile switch completes smoothly without errors
 - [ ] Can see confirmation that profile switch was successful
 
-**Technical Task MS-59-T1**: Make Profile Selector Functional
+**Technical Tasks**: Make Profile Selector Functional
 
 - Connect Epic 2's profile selector dropdown to SpawnProfileService from Epic 1
 - Implement profile switching using setActiveProfile() method
@@ -65,7 +65,7 @@ As a user, I want to always know which spawn profile is currently active, so tha
 - [ ] Active profile indication updates immediately when switching
 - [ ] Visual styling is consistent with overall application design
 
-**Technical Task MS-60-T1**: Implement Active Profile Indicators
+**Technical Tasks**: Implement Active Profile Indicators
 
 - Display active profile name prominently in header
 - Add visual indicators in dropdown for active profile
@@ -99,7 +99,7 @@ As a user, I want to create, edit, and delete spawn profiles, so that I can orga
 - [ ] Profile management interface is clear and easy to use
 - [ ] Changes take effect immediately and persist correctly
 
-**Technical Task MS-61-T1**: Build Profile Management Modal
+**Technical Tasks**: Build Profile Management Modal
 
 - Create modal dialog for profile management accessed from header
 - Implement create profile form with name and description fields
@@ -133,7 +133,7 @@ As a new user, I want to have an initial "Default" profile ready to use, so that
 - [x] Setup happens transparently without user intervention
 - [x] Default profile persists and can be managed like other profiles
 
-**Technical Task MS-62-T1**: Implement Default Profile Creation ✅
+**Technical Tasks**: Implement Default Profile Creation ✅
 
 - ✅ Create "Default" profile automatically on application first run
 - ✅ Set Default profile as active using SpawnProfileService.setActiveProfile()
@@ -165,7 +165,7 @@ As a user, I want to set a required Working Folder for each profile, so that app
 - [ ] Working Folder is included in profile management interface
 - [ ] Setting validates directory path format (no existence checks)
 
-**Technical Task MS-63-T1**: Add Working Folder Profile Setting
+**Technical Tasks**: Add Working Folder Profile Setting
 
 - Add workingDirectory field to SpawnProfile interface in Epic 1
 - Include Working Folder input in profile creation and editing forms (required)
@@ -198,7 +198,7 @@ As a user, I want clear validation when creating or editing profiles, so that I 
 - [ ] Can see which fields have validation errors
 - [ ] Validation works consistently across create and edit operations
 
-**Technical Task MS-64-T1**: Implement Profile Validation
+**Technical Tasks**: Implement Profile Validation
 
 - Add profile name validation: required, non-empty, unique across profiles
 - Add working directory path validation with clear error messages
@@ -231,7 +231,7 @@ As a user, I want my active profile remembered when I restart the application, s
 - [ ] Fallback behavior is clear when active profile cannot be restored
 - [ ] Profile persistence works reliably across browser sessions
 
-**Technical Task MS-65-T1**: Integrate with Settings Service
+**Technical Tasks**: Integrate with Settings Service
 
 - Store active profile ID in SettingsService for persistence
 - Restore active profile on application startup
@@ -264,7 +264,7 @@ As a user, I want the application to handle unusual profile situations gracefull
 - [ ] Can recover from profile-related errors with helpful instructions
 - [ ] Profile operations remain stable with large numbers of spawns
 
-**Technical Task MS-66-T1**: Implement Edge Case Handling
+**Technical Tasks**: Implement Edge Case Handling
 
 - Prevent deletion of last remaining profile with clear messaging
 - Add warning dialog when deleting active profile with switch-first option
@@ -298,7 +298,7 @@ As a user, I want profile export/import to work seamlessly with the spawn export
 - [ ] Can choose to import as new profile or merge with existing
 - [ ] Profile import/export integrates with main export/import workflow
 
-**Technical Task MS-67-T1**: Integrate with Export/Import System
+**Technical Tasks**: Integrate with Export/Import System
 
 - Extend Epic 7's export/import system to handle profile-level operations
 - Add profile selection to export interface

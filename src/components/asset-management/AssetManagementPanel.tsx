@@ -288,6 +288,24 @@ function SpawnAssetsSection() {
                   <div className="flex items-center">
                     <button
                       type="button"
+                      className={`mr-2 text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50`}
+                      onClick={() => {
+                        const detail = {
+                          mode: "asset-settings",
+                          spawnAssetId: spawnAsset.id,
+                        } as const;
+                        window.dispatchEvent(
+                          new CustomEvent(
+                            "mediaspawner:request-center-switch" as unknown as keyof WindowEventMap,
+                            { detail } as CustomEventInit
+                          )
+                        );
+                      }}
+                    >
+                      Configure
+                    </button>
+                    <button
+                      type="button"
                       className={`text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 ${
                         isRemoving
                           ? "opacity-50 cursor-not-allowed"
@@ -495,7 +513,13 @@ function AssetLibrarySection() {
       }
 
       const newOrder = spawn.assets.length;
-      const newSpawnAsset: SpawnAsset = createSpawnAsset(asset.id, newOrder);
+      const newSpawnAsset: SpawnAsset = createSpawnAsset(
+        asset.id,
+        newOrder,
+        spawn.defaultProperties
+          ? { properties: { ...spawn.defaultProperties } }
+          : undefined
+      );
       const result = await SpawnService.updateSpawn(selectedSpawnId, {
         assets: [...spawn.assets, newSpawnAsset],
       });

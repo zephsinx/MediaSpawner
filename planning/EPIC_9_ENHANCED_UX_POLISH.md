@@ -33,7 +33,7 @@ As a user with many spawns, I want to search spawns and assets by name, so that 
 - [ ] Can use keyboard shortcut (Ctrl+F) to focus search
 - [ ] Search highlights matching text in results
 
-**Technical Task MS-76-T1**: Implement Search Functionality
+**Technical Tasks**: Implement Search Functionality
 
 - Add search input to spawn list (Epic 3) with real-time filtering to help users quickly find spawns
 - Add search input to asset library (Epic 4) with type and name filtering for efficient asset discovery
@@ -68,7 +68,7 @@ As a user, I want to filter spawns and assets by type and status, so that I can 
 - [ ] Can clear all filters easily
 - [ ] Filters persist during session but reset between app restarts
 
-**Technical Task MS-77-T1**: Implement Filtering System
+**Technical Tasks**: Implement Filtering System
 
 - Add filter controls to spawn list for status and trigger type
 - Add filter controls to asset library for asset types
@@ -104,7 +104,7 @@ As a power user, I want keyboard shortcuts for common actions, so that I can wor
 - [ ] Shortcuts work throughout the application consistently
 - [ ] Can see keyboard shortcuts in tooltips and help
 
-**Technical Task MS-78-T1**: Implement Keyboard Shortcuts System
+**Technical Tasks**: Implement Keyboard Shortcuts System
 
 - Add global keyboard event handling system
 - Implement save shortcut (Ctrl+S) for Epic 3's spawn editor
@@ -139,7 +139,7 @@ As a user with large spawn and asset collections, I want the application to rema
 - [ ] Memory usage remains stable during extended use
 - [ ] Application startup time is under 2 seconds
 
-**Technical Task MS-79-T1**: Implement Performance Optimizations
+**Technical Tasks**: Implement Performance Optimizations
 
 - Add virtualization for large spawn lists in Epic 3's component
 - Implement lazy loading for asset previews in Epic 4's library
@@ -174,7 +174,7 @@ As a user with accessibility needs, I want the application to work with screen r
 - [ ] Dynamic content changes are announced to screen readers
 - [ ] All interactive elements are keyboard accessible
 
-**Technical Task MS-80-T1**: Implement Accessibility Improvements
+**Technical Tasks**: Implement Accessibility Improvements
 
 - Add comprehensive ARIA labels throughout all components
 - Implement semantic HTML structure for screen reader navigation
@@ -210,7 +210,7 @@ As a user, I want to collapse the asset library when I don't need it, so that I 
 - [ ] Collapsed library shows asset count badge
 - [ ] Auto-expand when dragging assets (if collapsed)
 
-**Technical Task MS-81-T1**: Implement Collapsible Asset Library
+**Technical Tasks**: Implement Collapsible Asset Library
 
 - Add expand/collapse controls to Epic 4's asset library section
 - Implement smooth animations for expand/collapse transitions
@@ -245,7 +245,7 @@ As a user, I want to adjust panel sizes to optimize my workspace, so that I can 
 - [ ] Resizing works smoothly without performance issues
 - [ ] Panel content adapts appropriately to size changes
 
-**Technical Task MS-82-T1**: Implement Resizable Panel Dividers
+**Technical Tasks**: Implement Resizable Panel Dividers
 
 - Add draggable dividers between Epic 2's three panels
 - Implement mouse/touch support for panel resizing
@@ -280,7 +280,7 @@ As a user, I want to see usage analytics for my spawns and assets, so that I can
 - [ ] Can export analytics data for external analysis
 - [ ] Statistics are updated in real-time as I work
 
-**Technical Task MS-83-T1**: Implement Analytics and Statistics
+**Technical Tasks**: Implement Analytics and Statistics
 
 - Add usage tracking to Epic 3's spawn operations
 - Add usage tracking to Epic 4's asset operations
@@ -315,7 +315,7 @@ As a power user with many spawns, I want to select multiple spawns at once, so t
 - [ ] Bulk operations have proper confirmation dialogs
 - [ ] Foundation supports future bulk operations (delete, export, etc.)
 
-**Technical Task MS-84-T1**: Implement Multi-Selection and Basic Bulk Operations
+**Technical Tasks**: Implement Multi-Selection and Basic Bulk Operations
 
 - Add multi-selection state management to Epic 3's spawn list
 - Implement checkbox or selection indicators for each spawn

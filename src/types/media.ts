@@ -20,9 +20,6 @@ export interface MediaAsset {
 
   /** Whether this asset is a URL (true) or local file (false) */
   isUrl: boolean;
-
-  /** Configurable properties specific to the asset type */
-  properties: MediaAssetProperties;
 }
 
 /**
@@ -35,11 +32,23 @@ export interface MediaAssetProperties {
   /** Position coordinates for images and videos */
   position?: Position;
 
+  /** Scale factor for images and videos (1.0 = 100%) */
+  scale?: number;
+
+  /** Positioning mode for images and videos */
+  positionMode?: "absolute" | "relative" | "centered";
+
   /** Volume level for videos and audio (0-1) */
   volume?: number;
 
   /** Whether the asset should loop for videos and audio */
   loop?: boolean;
+
+  /** Whether playback should start automatically (where supported) */
+  autoplay?: boolean;
+
+  /** Whether audio should start muted */
+  muted?: boolean;
 }
 
 /**
@@ -245,43 +254,13 @@ export const createMediaAsset = (
     name,
     path: storedPath,
     isUrl,
-    properties: getDefaultProperties(type),
   };
 };
 
 /**
  * Get default properties for a given asset type
  */
-export const getDefaultProperties = (
-  type: MediaAsset["type"]
-): MediaAssetProperties => {
-  const baseProperties: MediaAssetProperties = {};
-
-  switch (type) {
-    case "image":
-      return {
-        ...baseProperties,
-        dimensions: { width: 100, height: 100 },
-        position: { x: 0, y: 0 },
-      };
-    case "video":
-      return {
-        ...baseProperties,
-        dimensions: { width: 200, height: 150 },
-        position: { x: 0, y: 0 },
-        volume: 0.5,
-        loop: false,
-      };
-    case "audio":
-      return {
-        ...baseProperties,
-        volume: 0.5,
-        loop: false,
-      };
-    default:
-      return baseProperties;
-  }
-};
+// Removed base asset default properties: assets no longer carry behavioral properties
 
 /**
  * Helper function to create a new asset group with default configuration

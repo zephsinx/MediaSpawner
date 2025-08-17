@@ -127,7 +127,13 @@ export class SpawnService {
     updates: Partial<
       Pick<
         Spawn,
-        "name" | "description" | "trigger" | "duration" | "assets" | "enabled"
+        | "name"
+        | "description"
+        | "trigger"
+        | "duration"
+        | "assets"
+        | "enabled"
+        | "defaultProperties"
       >
     >
   ): Promise<SpawnOperationResult> {

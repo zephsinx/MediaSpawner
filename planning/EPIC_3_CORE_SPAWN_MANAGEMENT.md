@@ -32,7 +32,7 @@ As a user, I want to see a list of all my spawns, so that I can quickly navigate
 - [ ] See clear message when no spawns exist
 - [ ] List shows loading state while spawns are being retrieved
 
-**Technical Task MS-21-T1**: Implement Basic Spawn List Component
+**Technical Tasks**: Implement Basic Spawn List Component
 
 - Build spawn list component that renders in left panel (25% width)
 - Use SpawnService from Epic 1 to fetch spawns
@@ -64,7 +64,7 @@ As a user, I want to enable/disable spawns with toggle switches, so that I can q
 - [ ] Can see visual feedback while toggle is processing
 - [ ] Can use keyboard to operate toggles for accessibility
 
-**Technical Task MS-22-T1**: Implement Enable/Disable Toggle System
+**Technical Tasks**: Implement Enable/Disable Toggle System
 
 - Add toggle switch for each spawn in the list
 - Use SpawnService.enableSpawn() and disableSpawn() methods from Epic 1
@@ -95,7 +95,7 @@ As a user, I want to select spawns from the list to edit them, so that the spawn
 - [ ] Can navigate with keyboard (arrow keys, enter to select)
 - [ ] Always know which spawn is currently selected
 
-**Technical Task MS-23-T1**: Implement Spawn Selection
+**Technical Tasks**: Implement Spawn Selection
 
 - Implement click spawn to select with highlighted background
 - Integrate with panel state management from Epic 2 for center panel communication
@@ -126,7 +126,7 @@ As a user, I want to create new spawns directly from the spawn list, so that I c
 - [ ] See clear error message if spawn creation fails
 - [ ] New spawn appears in the list right away
 
-**Technical Task MS-25-T1**: Implement New Spawn Creation Workflow
+**Technical Tasks**: Implement New Spawn Creation Workflow
 
 - Add "New Spawn" button prominently placed in spawn list
 - Use SpawnService.createSpawn() from Epic 1 with sensible defaults
@@ -158,7 +158,7 @@ As a user, I want a dedicated workspace for configuring spawn settings, so that 
 - [ ] Editor responds when I select different spawns from the list
 - [ ] Interface has clean, practical styling that matches the overall design
 
-**Technical Task MS-28-T1**: Implement Basic Spawn Editor Infrastructure
+**Technical Tasks**: Implement Basic Spawn Editor Infrastructure
 
 - Build spawn editor component that renders in center panel (50% width)
 - Create "No Selection" state: Welcome message with "Select a spawn or create new"
@@ -191,7 +191,7 @@ As a user, I want explicit save and cancel controls for spawn editing, so that I
 - [ ] Get clear error messages if saving fails for any reason
 - [ ] Changes are never saved automatically without my explicit action
 
-**Technical Task MS-29-T1**: Implement Save/Cancel Controls
+**Technical Tasks**: Implement Save/Cancel Controls
 
 - Add prominent "Save" and "Cancel" buttons in spawn editor
 - Connect save button to SpawnService.updateSpawn() from Epic 1
@@ -222,7 +222,7 @@ As a user, I want clear feedback and confirmation for save/cancel actions, so th
 - [ ] Get clear error message when saving fails
 - [ ] Success feedback is visible but doesn't interrupt my workflow
 
-**Technical Task MS-30-T1**: Implement Save/Cancel Feedback
+**Technical Tasks**: Implement Save/Cancel Feedback
 
 - Build confirmation dialog for cancel when unsaved changes exist
 - Add success/error feedback messaging for save operations
@@ -252,7 +252,7 @@ As a user, I want the system to detect when I have unsaved changes, so that I al
 - [ ] Change tracking performs well even with many form fields
 - [ ] Change detection integrates smoothly with the save/cancel system
 
-**Technical Task MS-29-T1**: Build Unsaved Changes Detection
+**Technical Tasks**: Build Unsaved Changes Detection
 
 - Implement unsaved changes detection across all form fields
 - Add deep comparison between original and current spawn state
@@ -284,7 +284,7 @@ As a user, I want a form to configure essential spawn properties, so that I can 
 - [ ] Get immediate feedback when I enter invalid information
 - [ ] Form styling is clean and matches the overall application design
 
-**Technical Task MS-30-T1**: Create Basic Spawn Settings Form
+**Technical Tasks**: Create Basic Spawn Settings Form
 
 - Add spawn name field with required validation and uniqueness checking
 - Add spawn description field (optional)
@@ -316,7 +316,7 @@ As a user, I want to delete spawns I no longer need, so that I can keep my spawn
 - [ ] Can see clear feedback when deletion succeeds or fails
 - [ ] Cannot accidentally delete spawns without confirmation
 
-**Technical Task MS-31-T1**: Implement Spawn Deletion
+**Technical Tasks**: Implement Spawn Deletion
 
 - Add delete button in spawn editor
 - Use SpawnService.deleteSpawn() from Epic 1

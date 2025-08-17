@@ -2,10 +2,43 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { usePanelState } from "../../hooks/useLayout";
 import { SpawnService } from "../../services/spawnService";
 import type { Spawn } from "../../types/spawn";
+import type { MediaAssetProperties } from "../../types/media";
 import { ConfirmDialog } from "../common/ConfirmDialog";
+import AssetSettingsForm from "./asset-settings/AssetSettingsForm";
+
+type FieldKey = keyof MediaAssetProperties;
+const DEFAULT_FIELDS: FieldKey[] = [
+  "dimensions",
+  "position",
+  "scale",
+  "positionMode",
+  "volume",
+];
+
+const buildEnabledDefaults = (
+  values: Partial<MediaAssetProperties>,
+  toggles: Partial<Record<FieldKey, boolean>>
+): Partial<MediaAssetProperties> => {
+  const next: Partial<MediaAssetProperties> = {};
+  if (toggles.dimensions) next.dimensions = values.dimensions;
+  if (toggles.position) next.position = values.position;
+  if (toggles.scale) next.scale = values.scale;
+  if (toggles.positionMode) next.positionMode = values.positionMode;
+  if (toggles.volume) next.volume = values.volume;
+  return next;
+};
 
 const SpawnEditorWorkspace: React.FC = () => {
-  const { selectedSpawnId, setUnsavedChanges, selectSpawn } = usePanelState();
+  const {
+    selectedSpawnId,
+    selectedSpawnAssetId,
+    centerPanelMode,
+    setUnsavedChanges,
+    hasUnsavedChanges,
+    selectSpawn,
+    setCenterPanelMode,
+    selectSpawnAsset,
+  } = usePanelState();
   const [selectedSpawn, setSelectedSpawn] = useState<Spawn | null>(null);
   const [name, setName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
@@ -18,6 +51,29 @@ const SpawnEditorWorkspace: React.FC = () => {
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const switchPendingRef = useRef<{
+    mode: "spawn-settings" | "asset-settings";
+    spawnAssetId?: string;
+  } | null>(null);
+  const [showModeSwitchDialog, setShowModeSwitchDialog] = useState(false);
+
+  const assetDraftCacheRef = useRef<
+    Record<
+      string,
+      {
+        overrideEnabled: Partial<Record<keyof MediaAssetProperties, boolean>>;
+        draftValues: Partial<MediaAssetProperties>;
+      }
+    >
+  >({});
+
+  const [defaultsEnabled, setDefaultsEnabled] = useState<
+    Partial<Record<FieldKey, boolean>>
+  >({});
+  const [draftDefaults, setDraftDefaults] = useState<
+    Partial<MediaAssetProperties>
+  >({});
+  const [showMetadata, setShowMetadata] = useState<boolean>(true);
 
   useEffect(() => {
     let isActive = true;
@@ -62,10 +118,50 @@ const SpawnEditorWorkspace: React.FC = () => {
   }, [selectedSpawnId]);
 
   useEffect(() => {
+    const onRequestSwitch = (evt: Event) => {
+      const detail = (evt as CustomEvent).detail as
+        | { mode: "spawn-settings" | "asset-settings"; spawnAssetId?: string }
+        | undefined;
+      if (!detail) return;
+      if (hasUnsavedChanges) {
+        switchPendingRef.current = detail;
+        setShowModeSwitchDialog(true);
+        return;
+      }
+      if (detail.mode === "asset-settings" && detail.spawnAssetId) {
+        selectSpawnAsset(detail.spawnAssetId);
+        setCenterPanelMode("asset-settings");
+      } else if (detail.mode === "spawn-settings") {
+        setCenterPanelMode("spawn-settings");
+        selectSpawnAsset(undefined);
+      }
+    };
+    window.addEventListener(
+      "mediaspawner:request-center-switch" as unknown as keyof WindowEventMap,
+      onRequestSwitch as EventListener
+    );
+    return () => {
+      window.removeEventListener(
+        "mediaspawner:request-center-switch" as unknown as keyof WindowEventMap,
+        onRequestSwitch as EventListener
+      );
+    };
+  }, [selectSpawnAsset, setCenterPanelMode, hasUnsavedChanges]);
+
+  useEffect(() => {
     if (selectedSpawn) {
       setName(selectedSpawn.name);
       setDescription(selectedSpawn.description || "");
       setEnabled(!!selectedSpawn.enabled);
+      const toggles: Partial<Record<FieldKey, boolean>> = {};
+      DEFAULT_FIELDS.forEach((k) => {
+        const dp = selectedSpawn.defaultProperties;
+        toggles[k] = dp
+          ? (dp as Partial<MediaAssetProperties>)[k] !== undefined
+          : false;
+      });
+      setDefaultsEnabled(toggles);
+      setDraftDefaults({ ...(selectedSpawn.defaultProperties || {}) });
       // Clear messages only if changing to a different spawn
       if (prevSpawnIdRef.current !== selectedSpawn.id) {
         setSaveError(null);
@@ -80,8 +176,18 @@ const SpawnEditorWorkspace: React.FC = () => {
     if (!selectedSpawn) return false;
     const baselineName = selectedSpawn.name;
     const baselineDesc = selectedSpawn.description || "";
-    return name !== baselineName || description !== baselineDesc;
-  }, [name, description, selectedSpawn]);
+    const currentEnabledDefaults = buildEnabledDefaults(
+      draftDefaults,
+      defaultsEnabled
+    );
+    const baselineDefaults = selectedSpawn.defaultProperties || {};
+    const defaultsChanged =
+      JSON.stringify(currentEnabledDefaults) !==
+      JSON.stringify(baselineDefaults);
+    return (
+      name !== baselineName || description !== baselineDesc || defaultsChanged
+    );
+  }, [name, description, selectedSpawn, draftDefaults, defaultsEnabled]);
 
   useEffect(() => {
     // Only update when dirty state changes to avoid unnecessary context re-renders
@@ -108,6 +214,15 @@ const SpawnEditorWorkspace: React.FC = () => {
     }
     setName(selectedSpawn.name);
     setDescription(selectedSpawn.description || "");
+    const toggles: Partial<Record<FieldKey, boolean>> = {};
+    DEFAULT_FIELDS.forEach((k) => {
+      const dp = selectedSpawn.defaultProperties;
+      toggles[k] = dp
+        ? (dp as Partial<MediaAssetProperties>)[k] !== undefined
+        : false;
+    });
+    setDefaultsEnabled(toggles);
+    setDraftDefaults({ ...(selectedSpawn.defaultProperties || {}) });
     setSaveError(null);
     setSaveSuccess(null);
   };
@@ -118,9 +233,14 @@ const SpawnEditorWorkspace: React.FC = () => {
     setSaveError(null);
     setSaveSuccess(null);
     try {
+      const defaultProperties = buildEnabledDefaults(
+        draftDefaults,
+        defaultsEnabled
+      );
       const result = await SpawnService.updateSpawn(selectedSpawn.id, {
         name: trimmedName,
         description: description.trim() || undefined,
+        defaultProperties,
       });
       if (!result.success || !result.spawn) {
         setSaveError(result.error || "Failed to save spawn");
@@ -200,6 +320,34 @@ const SpawnEditorWorkspace: React.FC = () => {
     );
   }
 
+  // Asset settings mode
+  if (
+    centerPanelMode === "asset-settings" &&
+    selectedSpawnId &&
+    selectedSpawnAssetId
+  ) {
+    return (
+      <AssetSettingsForm
+        spawnId={selectedSpawnId}
+        spawnAssetId={selectedSpawnAssetId}
+        onBack={() => {
+          window.dispatchEvent(
+            new CustomEvent(
+              "mediaspawner:request-center-switch" as unknown as keyof WindowEventMap,
+              {
+                detail: { mode: "spawn-settings" },
+              } as CustomEventInit
+            )
+          );
+        }}
+        getCachedDraft={() => assetDraftCacheRef.current[selectedSpawnAssetId]}
+        setCachedDraft={(draft) =>
+          (assetDraftCacheRef.current[selectedSpawnAssetId] = draft)
+        }
+      />
+    );
+  }
+
   return (
     <div className="h-full flex flex-col">
       <div className="p-4 border-b border-gray-200 bg-gray-50">
@@ -263,11 +411,45 @@ const SpawnEditorWorkspace: React.FC = () => {
             }
             setName(selectedSpawn.name);
             setDescription(selectedSpawn.description || "");
+            const toggles: Partial<Record<FieldKey, boolean>> = {};
+            DEFAULT_FIELDS.forEach((k) => {
+              const dp = selectedSpawn.defaultProperties;
+              toggles[k] = dp
+                ? (dp as Partial<MediaAssetProperties>)[k] !== undefined
+                : false;
+            });
+            setDefaultsEnabled(toggles);
+            setDraftDefaults({ ...(selectedSpawn.defaultProperties || {}) });
             setSaveError(null);
             setSaveSuccess(null);
             setShowDiscardDialog(false);
           }}
           onCancel={() => setShowDiscardDialog(false)}
+        />
+        <ConfirmDialog
+          isOpen={showModeSwitchDialog}
+          title="Unsaved Changes"
+          message="Switching modes will not save your changes. Continue?"
+          confirmText="Switch"
+          cancelText="Stay"
+          variant="warning"
+          onConfirm={() => {
+            const pending = switchPendingRef.current;
+            setShowModeSwitchDialog(false);
+            if (!pending) return;
+            if (pending.mode === "asset-settings" && pending.spawnAssetId) {
+              selectSpawnAsset(pending.spawnAssetId);
+              setCenterPanelMode("asset-settings");
+            } else if (pending.mode === "spawn-settings") {
+              setCenterPanelMode("spawn-settings");
+              selectSpawnAsset(undefined);
+            }
+            switchPendingRef.current = null;
+          }}
+          onCancel={() => {
+            switchPendingRef.current = null;
+            setShowModeSwitchDialog(false);
+          }}
         />
         <ConfirmDialog
           isOpen={showDeleteDialog}
@@ -398,72 +580,325 @@ const SpawnEditorWorkspace: React.FC = () => {
 
             <section className="bg-white border border-gray-200 rounded-lg p-4">
               <h3 className="text-base font-semibold text-gray-800 mb-3">
-                Metadata
+                Default Asset Properties
               </h3>
+              <p className="text-xs text-gray-600 mb-3">
+                Assets inherit these values unless specifically overridden.
+              </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label
-                    htmlFor="spawn-id"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    ID
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Width (px)
                   </label>
-                  <input
-                    id="spawn-id"
-                    type="text"
-                    value={selectedSpawn.id}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
-                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={!!defaultsEnabled.dimensions}
+                      onChange={(e) =>
+                        setDefaultsEnabled((prev) => ({
+                          ...prev,
+                          dimensions: e.target.checked,
+                        }))
+                      }
+                      aria-label="Enable default for dimensions"
+                    />
+                    <input
+                      type="number"
+                      min={1}
+                      value={draftDefaults.dimensions?.width ?? ""}
+                      onChange={(e) =>
+                        setDraftDefaults((prev) => ({
+                          ...prev,
+                          dimensions: {
+                            width: Math.max(1, Number(e.target.value) || 1),
+                            height: prev.dimensions?.height ?? 1,
+                          },
+                        }))
+                      }
+                      disabled={!defaultsEnabled.dimensions}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
                 </div>
                 <div>
-                  <label
-                    htmlFor="spawn-modified"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Last Modified
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Height (px)
                   </label>
-                  <input
-                    id="spawn-modified"
-                    type="text"
-                    value={formatDate(selectedSpawn.lastModified)}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
-                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      value={draftDefaults.dimensions?.height ?? ""}
+                      onChange={(e) =>
+                        setDraftDefaults((prev) => ({
+                          ...prev,
+                          dimensions: {
+                            width: prev.dimensions?.width ?? 1,
+                            height: Math.max(1, Number(e.target.value) || 1),
+                          },
+                        }))
+                      }
+                      disabled={!defaultsEnabled.dimensions}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    X Position (px)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={!!defaultsEnabled.position}
+                      onChange={(e) =>
+                        setDefaultsEnabled((prev) => ({
+                          ...prev,
+                          position: e.target.checked,
+                        }))
+                      }
+                      aria-label="Enable default for position"
+                    />
+                    <input
+                      type="number"
+                      min={0}
+                      value={draftDefaults.position?.x ?? ""}
+                      onChange={(e) =>
+                        setDraftDefaults((prev) => ({
+                          ...prev,
+                          position: {
+                            x: Math.max(0, Number(e.target.value) || 0),
+                            y: prev.position?.y ?? 0,
+                          },
+                        }))
+                      }
+                      disabled={!defaultsEnabled.position}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
                 </div>
                 <div>
-                  <label
-                    htmlFor="spawn-duration"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Duration (ms)
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Y Position (px)
                   </label>
-                  <input
-                    id="spawn-duration"
-                    type="number"
-                    value={selectedSpawn.duration ?? 0}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
-                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={0}
+                      value={draftDefaults.position?.y ?? ""}
+                      onChange={(e) =>
+                        setDraftDefaults((prev) => ({
+                          ...prev,
+                          position: {
+                            x: prev.position?.x ?? 0,
+                            y: Math.max(0, Number(e.target.value) || 0),
+                          },
+                        }))
+                      }
+                      disabled={!defaultsEnabled.position}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
                 </div>
+
                 <div>
-                  <label
-                    htmlFor="spawn-assets"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Assets
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Scale
                   </label>
-                  <input
-                    id="spawn-assets"
-                    type="text"
-                    value={`${selectedSpawn.assets.length} item${
-                      selectedSpawn.assets.length === 1 ? "" : "s"
-                    }`}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
-                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={!!defaultsEnabled.scale}
+                      onChange={(e) =>
+                        setDefaultsEnabled((prev) => ({
+                          ...prev,
+                          scale: e.target.checked,
+                        }))
+                      }
+                      aria-label="Enable default for scale"
+                    />
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.1}
+                      value={draftDefaults.scale ?? ""}
+                      onChange={(e) =>
+                        setDraftDefaults((prev) => ({
+                          ...prev,
+                          scale: Math.max(0, parseFloat(e.target.value) || 0),
+                        }))
+                      }
+                      disabled={!defaultsEnabled.scale}
+                      className="w-24 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Position Mode
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={!!defaultsEnabled.positionMode}
+                      onChange={(e) =>
+                        setDefaultsEnabled((prev) => ({
+                          ...prev,
+                          positionMode: e.target.checked,
+                        }))
+                      }
+                      aria-label="Enable default for position mode"
+                    />
+                    <select
+                      value={draftDefaults.positionMode ?? "absolute"}
+                      onChange={(e) =>
+                        setDraftDefaults((prev) => ({
+                          ...prev,
+                          positionMode: e.target
+                            .value as MediaAssetProperties["positionMode"],
+                        }))
+                      }
+                      disabled={!defaultsEnabled.positionMode}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent bg-white"
+                    >
+                      <option value="absolute">Absolute (px)</option>
+                      <option value="relative">Relative (%)</option>
+                      <option value="centered">Centered</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Volume (%)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={!!defaultsEnabled.volume}
+                      onChange={(e) =>
+                        setDefaultsEnabled((prev) => ({
+                          ...prev,
+                          volume: e.target.checked,
+                        }))
+                      }
+                      aria-label="Enable default for volume"
+                    />
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={Math.round((draftDefaults.volume ?? 0.5) * 100)}
+                      onChange={(e) =>
+                        setDraftDefaults((prev) => ({
+                          ...prev,
+                          volume: (Number(e.target.value) || 0) / 100,
+                        }))
+                      }
+                      disabled={!defaultsEnabled.volume}
+                      className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={Math.round((draftDefaults.volume ?? 0.5) * 100)}
+                      onChange={(e) =>
+                        setDraftDefaults((prev) => ({
+                          ...prev,
+                          volume: (Number(e.target.value) || 0) / 100,
+                        }))
+                      }
+                      disabled={!defaultsEnabled.volume}
+                      className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
                 </div>
               </div>
+            </section>
+
+            <section className="bg-white border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-semibold text-gray-800">
+                  Metadata
+                </h3>
+                <button
+                  type="button"
+                  className="text-sm text-gray-700 border border-gray-300 rounded px-2 py-1 bg-white hover:bg-gray-50"
+                  onClick={() => setShowMetadata((v) => !v)}
+                  aria-label="Toggle metadata"
+                >
+                  {showMetadata ? "Hide" : "Show"}
+                </button>
+              </div>
+              {showMetadata && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="spawn-id"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      ID
+                    </label>
+                    <input
+                      id="spawn-id"
+                      type="text"
+                      value={selectedSpawn.id}
+                      disabled
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="spawn-modified"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Last Modified
+                    </label>
+                    <input
+                      id="spawn-modified"
+                      type="text"
+                      value={formatDate(selectedSpawn.lastModified)}
+                      disabled
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="spawn-duration"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Duration (ms)
+                    </label>
+                    <input
+                      id="spawn-duration"
+                      type="number"
+                      value={selectedSpawn.duration ?? 0}
+                      disabled
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="spawn-assets"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Assets
+                    </label>
+                    <input
+                      id="spawn-assets"
+                      type="text"
+                      value={`${selectedSpawn.assets.length} item${
+                        selectedSpawn.assets.length === 1 ? "" : "s"
+                      }`}
+                      disabled
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
+                    />
+                  </div>
+                </div>
+              )}
             </section>
           </div>
         ) : (

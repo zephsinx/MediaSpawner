@@ -29,7 +29,7 @@ As a user, I want spawns to have clear properties and structure, so that I can c
 - [ ] Spawns can contain multiple assets
 - [ ] Spawn data validates properly when saved
 
-**Technical Task MS-1-T1**: Implement Spawn Interface
+**Technical Tasks**: Implement Spawn Interface
 
 - Create Spawn interface with: id, name, enabled, trigger, duration, assets[]
 - Design SpawnAsset interface for spawn-specific asset instances
@@ -60,7 +60,7 @@ As a user, I want to organize my spawns into profiles, so that I can manage diff
 - [ ] Profile data saves and loads correctly
 - [ ] Can track when profiles were last modified
 
-**Technical Task MS-2-T1**: Implement SpawnProfile Interface
+**Technical Tasks**: Implement SpawnProfile Interface
 
 - Create SpawnProfile interface with: id, name, description, spawns[], lastModified
 - Support active profile identification
@@ -91,7 +91,7 @@ As a user, I want to create, edit, and delete spawns, so that I can build and ma
 - [ ] Changes persist when I restart the application
 - [ ] Clear error messages when operations fail
 
-**Technical Task MS-3-T1**: Implement SpawnService CRUD Operations
+**Technical Tasks**: Implement SpawnService CRUD Operations
 
 - Implement createSpawn(), getSpawn(), updateSpawn(), deleteSpawn()
 - Add enableSpawn(), disableSpawn() methods
@@ -123,7 +123,7 @@ As a user, I want to switch between different spawn profiles, so that I can work
 - [ ] Profile switching resets my current context appropriately
 - [ ] Clear feedback when profile operations succeed or fail
 
-**Technical Task MS-4-T1**: Implement SpawnProfileService
+**Technical Tasks**: Implement SpawnProfileService
 
 - Replace existing ConfigurationService
 - Implement profile CRUD operations: create, read, update, delete
@@ -156,7 +156,7 @@ As a user, I want assets to have different settings in different spawns, so that
 - [ ] Asset settings save separately for each spawn
 - [ ] Settings load correctly when switching spawns
 
-**Technical Task MS-5-T1**: Extend AssetService for Spawn Settings
+**Technical Tasks**: Extend AssetService for Spawn Settings
 
 - Add getSpawnAssetSettings(spawnId, assetId) method
 - Add setSpawnAssetSettings(spawnId, assetId, settings) method
@@ -185,7 +185,7 @@ As a user with many spawns and assets, I want asset operations to remain fast, s
 - [ ] Can handle dozens of assets per spawn efficiently
 - [ ] No noticeable delays when configuring asset settings
 
-**Technical Task MS-6-T1**: Implement Performance Optimizations
+**Technical Tasks**: Implement Performance Optimizations
 
 - Optimize asset settings operations for large asset lists
 - Implement efficient storage structure for spawn-asset relationships

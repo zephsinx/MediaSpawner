@@ -27,6 +27,7 @@ export function AssetPreview({
     height: number;
   } | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  const mediaRef = useRef<HTMLImageElement | HTMLVideoElement | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -85,8 +86,14 @@ export function AssetPreview({
     };
   }, [isOpen]);
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
+  const handleContainerClick = (e: React.MouseEvent) => {
+    const target = e.target as Node;
+    // Ignore clicks on explicit preview controls (close/prev/next)
+    if ((target as HTMLElement).closest('[data-preview-control="true"]')) {
+      return;
+    }
+    // Close if click is outside the media element
+    if (mediaRef.current && !mediaRef.current.contains(target)) {
       onClose();
     }
   };
@@ -111,7 +118,7 @@ export function AssetPreview({
 
     if (asset.type === "image" && canPreview && !imageError) {
       return (
-        <div className="flex items-center justify-center w-full h-full">
+        <div className="relative flex items-center justify-center w-full h-full overflow-hidden">
           {imageLoading && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -121,6 +128,9 @@ export function AssetPreview({
             src={asset.path}
             alt={asset.name}
             className="max-w-full max-h-full object-contain"
+            ref={(el) => {
+              mediaRef.current = el as HTMLImageElement | null;
+            }}
             onLoad={() => setImageLoading(false)}
             onError={() => {
               setImageError(true);
@@ -131,13 +141,17 @@ export function AssetPreview({
       );
     } else if (asset.type === "video" && canPreview) {
       return (
-        <div className="flex items-center justify-center w-full h-full">
+        <div className="relative flex items-center justify-center w-full h-full overflow-hidden">
           <video
             ref={videoRef}
             src={asset.path}
-            className="max-w-full max-h-full"
+            className="max-w-full max-h-full object-contain"
             controls
             onLoadedMetadata={handleVideoLoadedMetadata}
+            onLoadedData={() => {
+              // assign mediaRef to the video element when available
+              mediaRef.current = videoRef.current;
+            }}
           />
         </div>
       );
@@ -180,8 +194,8 @@ export function AssetPreview({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center"
-      onClick={handleBackdropClick}
+      className="fixed inset-0 z-50 bg-gray-900/80 flex items-center justify-center"
+      onClick={handleContainerClick}
       ref={modalRef}
       tabIndex={-1}
       role="dialog"
@@ -191,7 +205,8 @@ export function AssetPreview({
       {/* Close Button */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 z-10 w-10 h-10 bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full flex items-center justify-center text-white text-xl transition-colors"
+        className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center text-white text-xl transition-colors"
+        data-preview-control="true"
         aria-label="Close preview"
       >
         ✕
@@ -201,7 +216,8 @@ export function AssetPreview({
       {hasPrevious && onPrevious && (
         <button
           onClick={onPrevious}
-          className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full flex items-center justify-center text-white text-xl transition-colors"
+          className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center text-white text-xl transition-colors"
+          data-preview-control="true"
           aria-label="Previous asset"
         >
           ←
@@ -211,7 +227,8 @@ export function AssetPreview({
       {hasNext && onNext && (
         <button
           onClick={onNext}
-          className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full flex items-center justify-center text-white text-xl transition-colors"
+          className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center text-white text-xl transition-colors"
+          data-preview-control="true"
           aria-label="Next asset"
         >
           →
@@ -219,13 +236,13 @@ export function AssetPreview({
       )}
 
       {/* Preview Content */}
-      <div className="w-full h-full p-16 flex flex-col">
-        <div className="flex-1 flex items-center justify-center">
+      <div className="w-full h-full p-6 md:p-10 lg:p-16 flex flex-col">
+        <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden">
           {renderPreviewContent()}
         </div>
 
         {/* Asset Information */}
-        <div className="mt-8 bg-black bg-opacity-50 rounded-lg p-4 text-white">
+        <div className="mt-8 bg-black/50 rounded-lg p-4 text-white">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
               <h2
