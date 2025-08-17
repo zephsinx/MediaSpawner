@@ -264,11 +264,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
       if (overrideEnabled.autoplay) desired.autoplay = draftValues.autoplay;
       if (overrideEnabled.muted) desired.muted = draftValues.muted;
 
-      const diff = buildOverridesDiff(
-        effective?.effective || {},
-        spawn.defaultProperties,
-        desired
-      );
+      const diff = buildOverridesDiff(spawn.defaultProperties, desired);
       const updatedAssets: SpawnAsset[] = spawn.assets.map((sa) =>
         sa.id === spawnAsset.id
           ? {
