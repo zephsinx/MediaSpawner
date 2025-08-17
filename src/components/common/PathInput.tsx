@@ -34,7 +34,9 @@ export function PathInput({
   const [isDirty, setIsDirty] = useState(false);
   const [currentValue, setCurrentValue] = useState(value);
 
-  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined
+  );
 
   const debouncedValidation = useCallback(
     (pathValue: string) => {
