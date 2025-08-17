@@ -57,7 +57,7 @@ export const AssetCard = memo(function AssetCard({
   const canPreview = isImageOrVideo && asset.isUrl;
 
   const renderPreview = () => {
-    return <MediaPreview asset={asset} />;
+    return <MediaPreview asset={asset} fit="contain" />;
   };
 
   if (variant === "list") {
