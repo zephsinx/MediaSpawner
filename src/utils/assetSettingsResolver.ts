@@ -74,7 +74,6 @@ export function resolveEffectiveProperties(args: {
 }
 
 export function buildOverridesDiff(
-  effective: MediaAssetProperties, // kept for future use
   spawnDefaults: Partial<MediaAssetProperties> | undefined,
   desired: Partial<MediaAssetProperties>
 ): Partial<MediaAssetProperties> {

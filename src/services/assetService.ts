@@ -8,6 +8,7 @@ import {
 } from "./cacheService";
 import { SpawnService } from "./spawnService";
 import { SpawnProfileService } from "./spawnProfileService";
+import { resolveEffectiveProperties } from "../utils/assetSettingsResolver";
 
 const STORAGE_KEY = "mediaspawner_assets";
 const SPAWN_ASSET_SETTINGS_KEY = "mediaspawner_spawn_asset_settings";
@@ -553,36 +554,29 @@ export class AssetService {
     properties: MediaAssetProperties;
   } | null> {
     try {
-      // Get spawn defaults
       const spawn = await SpawnService.getSpawn(spawnId);
       if (!spawn) {
         return null;
       }
 
-      // Get asset defaults
       const asset = this.getAssetById(assetId);
       if (!asset) {
         return null;
       }
 
-      // Get spawn-specific overrides
       const overrides = this.getSpawnAssetSettings(spawnId, assetId) || {};
 
-      // Resolve settings with inheritance priority:
-      // 1. SpawnAsset overrides (highest priority)
-      // 2. Asset defaults (medium priority)
-      // 3. Spawn defaults (lowest priority)
+      // Use spawn defaults with per-asset overrides only; no base-asset fallback
+      const effective = resolveEffectiveProperties({
+        spawn,
+        overrides: overrides.properties,
+      });
 
-      const resolvedSettings = {
+      return {
         duration: overrides.duration ?? spawn.duration,
         trigger: overrides.trigger ?? spawn.trigger,
-        properties: {
-          ...asset.properties,
-          ...(overrides.properties || {}),
-        },
+        properties: effective.effective,
       };
-
-      return resolvedSettings;
     } catch (error) {
       console.error("Failed to resolve asset settings:", error);
       return null;
