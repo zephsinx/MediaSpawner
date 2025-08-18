@@ -89,20 +89,20 @@ As a user, I want to configure chat command triggers, so that my spawns can be a
 
 **Acceptance Criteria**:
 
-- [ ] Can set the command text (e.g., "!scene1", "!alert")
-- [ ] Can configure command permissions (Everyone, Subscribers, Moderators, Broadcaster only)
-- [ ] Can set cooldown periods to prevent spam
-- [ ] Can configure case sensitivity options
-- [ ] Can test command format validation
+- [ ] Can set multiple command aliases (e.g., "scene1", "alert", "trigger")
+- [ ] Can configure case sensitivity options for command matching
+- [ ] Can select which platforms can trigger the command (Twitch, YouTube, Kick, etc.)
+- [ ] Can configure internal message and bot account filtering
+- [ ] Can test command alias validation
 - [ ] Get clear feedback about command requirements and limitations
 
 **Technical Tasks**: Implement Chat Command Configuration
 
-- Add command text input with validation (alphanumeric, starts with !, no spaces) to ensure valid chat commands
-- Add permission level selection dropdown to control who can use commands
-- Add cooldown timer input (seconds/minutes) to prevent command spam
+- Add command aliases input with validation (alphanumeric, no spaces, min 1 alias) to ensure valid command triggers
 - Add case sensitivity toggle option for flexible command matching
-- Implement command format validation with real-time feedback to guide users
+- Add platform source selection dropdown to control which platforms can trigger the command
+- Add internal message and bot account filtering options to prevent unwanted triggers
+- Implement command alias validation with real-time feedback to guide users
 - Add help text explaining command requirements and best practices for clarity
 - Integrate with spawn settings save/cancel workflow for consistent user experience
 
