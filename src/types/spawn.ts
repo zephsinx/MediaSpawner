@@ -1,7 +1,7 @@
 import type { MediaAssetProperties } from "./media";
 
 export type Trigger =
-  | { type: "manual"; config: {} }
+  | { type: "manual"; config: Record<string, never> }
   | {
       type: "streamerbot.command";
       config: {
@@ -13,7 +13,7 @@ export type Trigger =
         ignoreBotAccount?: boolean;
       };
     }
-  | { type: "twitch.follow"; config: {} }
+  | { type: "twitch.follow"; config: Record<string, never> }
   | { type: "twitch.cheer"; config: { minBits: number } }
   | {
       type: "twitch.subscription";
@@ -38,17 +38,32 @@ export type TriggerType = Trigger["type"];
 export const getDefaultTrigger = (type: TriggerType): Trigger => {
   switch (type) {
     case "manual":
-      return { type: "manual", config: {} };
+      return { type: "manual", config: {} as Record<string, never> };
     case "streamerbot.command":
-      return { type: "streamerbot.command", config: {} };
+      return {
+        type: "streamerbot.command",
+        config: {
+          aliases: [""],
+          caseSensitive: false,
+          sources: ["Twitch"],
+          ignoreInternal: true,
+          ignoreBotAccount: true,
+        },
+      };
     case "twitch.follow":
-      return { type: "twitch.follow", config: {} };
+      return { type: "twitch.follow", config: {} as Record<string, never> };
     case "twitch.subscription":
-      return { type: "twitch.subscription", config: {} };
+      return {
+        type: "twitch.subscription",
+        config: {} as Record<string, never>,
+      };
     case "twitch.giftSub":
-      return { type: "twitch.giftSub", config: {} };
+      return { type: "twitch.giftSub", config: {} as Record<string, never> };
     case "twitch.channelPointReward":
-      return { type: "twitch.channelPointReward", config: {} };
+      return {
+        type: "twitch.channelPointReward",
+        config: {} as Record<string, never>,
+      };
     case "twitch.cheer":
       return { type: "twitch.cheer", config: { minBits: 1 } };
   }

@@ -80,6 +80,14 @@ const SpawnEditorWorkspace: React.FC = () => {
   >({});
   const [showMetadata, setShowMetadata] = useState<boolean>(true);
 
+  // Helper function to safely access command config
+  const getCommandConfig = () => {
+    if (trigger?.type === "streamerbot.command") {
+      return trigger.config;
+    }
+    return null;
+  };
+
   useEffect(() => {
     let isActive = true;
     const load = async () => {
@@ -670,8 +678,8 @@ const SpawnEditorWorkspace: React.FC = () => {
                     if (t === "streamerbot.command") {
                       return (
                         <p>
-                          Streamer.bot command: will be linked to a server-side
-                          command. Selection/fetch arrives in a later story.
+                          Streamer.bot command: configure command aliases and
+                          platform sources.
                         </p>
                       );
                     }
@@ -720,6 +728,233 @@ const SpawnEditorWorkspace: React.FC = () => {
                 </div>
               </div>
             </section>
+
+            {trigger?.type === "streamerbot.command" && (
+              <section className="bg-white border border-gray-200 rounded-lg p-4">
+                <h3 className="text-base font-semibold text-gray-800 mb-3">
+                  Command Configuration
+                </h3>
+                <div className="space-y-4">
+                  {/* Command Aliases */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Command Aliases
+                    </label>
+                    <div className="space-y-2">
+                      {(getCommandConfig()?.aliases || [""]).map(
+                        (alias: string, index: number) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={alias}
+                              onChange={(e) => {
+                                const newAliases = [
+                                  ...(getCommandConfig()?.aliases || [""]),
+                                ];
+                                newAliases[index] = e.target.value;
+                                setTrigger({
+                                  ...trigger,
+                                  config: {
+                                    ...getCommandConfig(),
+                                    aliases: newAliases,
+                                  },
+                                });
+                              }}
+                              placeholder="Enter command alias (e.g., scene1, alert)"
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                            />
+                            {(getCommandConfig()?.aliases || [""]).length >
+                              1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newAliases = (
+                                    getCommandConfig()?.aliases || [""]
+                                  ).filter(
+                                    (_: string, i: number) => i !== index
+                                  );
+                                  setTrigger({
+                                    ...trigger,
+                                    config: {
+                                      ...getCommandConfig(),
+                                      aliases: newAliases,
+                                    },
+                                  });
+                                }}
+                                className="px-2 py-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
+                                aria-label="Remove command alias"
+                              >
+                                Remove
+                              </button>
+                            )}
+                          </div>
+                        )
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newAliases = [
+                            ...(getCommandConfig()?.aliases || [""]),
+                            "",
+                          ];
+                          setTrigger({
+                            ...trigger,
+                            config: {
+                              ...getCommandConfig(),
+                              aliases: newAliases,
+                            },
+                          });
+                        }}
+                        className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded border border-blue-200"
+                      >
+                        + Add Alias
+                      </button>
+                    </div>
+                    {(() => {
+                      const config = getCommandConfig();
+                      const aliases = config?.aliases || [];
+                      const hasEmptyAlias = aliases.some(
+                        (a: string) => !a.trim()
+                      );
+                      if (!aliases.length || hasEmptyAlias) {
+                        return (
+                          <p className="mt-1 text-xs text-red-600">
+                            At least one command alias is required
+                          </p>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+
+                  {/* Case Sensitivity */}
+                  <div>
+                    <label className="flex items-center cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={getCommandConfig()?.caseSensitive || false}
+                        onChange={(e) => {
+                          setTrigger({
+                            ...trigger,
+                            config: {
+                              ...getCommandConfig(),
+                              caseSensitive: e.target.checked,
+                            },
+                          });
+                        }}
+                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">
+                        Case sensitive
+                      </span>
+                    </label>
+                    <p className="mt-1 text-xs text-gray-600">
+                      When enabled, command matching will be case-sensitive
+                    </p>
+                  </div>
+
+                  {/* Platform Sources */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Platform Sources
+                    </label>
+                    <div className="space-y-2">
+                      {["Twitch", "YouTube", "Kick"].map((platform) => (
+                        <label
+                          key={platform}
+                          className="flex items-center cursor-pointer select-none"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={(
+                              getCommandConfig()?.sources || ["Twitch"]
+                            ).includes(platform)}
+                            onChange={(e) => {
+                              const currentSources = getCommandConfig()
+                                ?.sources || ["Twitch"];
+                              const newSources = e.target.checked
+                                ? [...currentSources, platform]
+                                : currentSources.filter(
+                                    (s: string) => s !== platform
+                                  );
+                              setTrigger({
+                                ...trigger,
+                                config: {
+                                  ...getCommandConfig(),
+                                  sources: newSources,
+                                },
+                              });
+                            }}
+                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">
+                            {platform}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-600">
+                      Select which platforms can trigger this command
+                    </p>
+                  </div>
+
+                  {/* Filtering Options */}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="flex items-center cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={getCommandConfig()?.ignoreInternal !== false}
+                          onChange={(e) => {
+                            setTrigger({
+                              ...trigger,
+                              config: {
+                                ...getCommandConfig(),
+                                ignoreInternal: e.target.checked,
+                              },
+                            });
+                          }}
+                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">
+                          Ignore internal messages
+                        </span>
+                      </label>
+                      <p className="mt-1 text-xs text-gray-600">
+                        Skip messages from internal/system sources
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="flex items-center cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={
+                            getCommandConfig()?.ignoreBotAccount !== false
+                          }
+                          onChange={(e) => {
+                            setTrigger({
+                              ...trigger,
+                              config: {
+                                ...getCommandConfig(),
+                                ignoreBotAccount: e.target.checked,
+                              },
+                            });
+                          }}
+                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">
+                          Ignore bot account messages
+                        </span>
+                      </label>
+                      <p className="mt-1 text-xs text-gray-600">
+                        Skip messages from the bot account to avoid loops
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
 
             <section className="bg-white border border-gray-200 rounded-lg p-4">
               <h3 className="text-base font-semibold text-gray-800 mb-3">
