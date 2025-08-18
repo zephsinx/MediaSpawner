@@ -194,28 +194,411 @@
             "additionalProperties": false
         },
         "Trigger": {
-            "type": "object",
-            "properties": {
-                "type": {
-                    "enum": [
-                        "manual",
-                        "command",
-                        "channelPoint",
-                        "subscription",
-                        "cheer",
-                        "follow",
-                        "time"
+            "oneOf": [
+                {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "type": {
+                            "const": "manual"
+                        },
+                        "config": {
+                            "$ref": "#/$defs/EmptyConfig"
+                        }
+                    },
+                    "required": [
+                        "type",
+                        "config"
                     ]
                 },
-                "settings": {
+                {
                     "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": false,
+                    "properties": {
+                        "type": {
+                            "const": "time.atDateTime"
+                        },
+                        "config": {
+                            "$ref": "#/$defs/TimeAtDateTimeConfig"
+                        }
+                    },
+                    "required": [
+                        "type",
+                        "config"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "type": {
+                            "const": "time.dailyAt"
+                        },
+                        "config": {
+                            "$ref": "#/$defs/TimeDailyAtConfig"
+                        }
+                    },
+                    "required": [
+                        "type",
+                        "config"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "type": {
+                            "const": "time.everyNMinutes"
+                        },
+                        "config": {
+                            "$ref": "#/$defs/TimeEveryNMinutesConfig"
+                        }
+                    },
+                    "required": [
+                        "type",
+                        "config"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "type": {
+                            "const": "time.minuteOfHour"
+                        },
+                        "config": {
+                            "$ref": "#/$defs/TimeMinuteOfHourConfig"
+                        }
+                    },
+                    "required": [
+                        "type",
+                        "config"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "type": {
+                            "const": "streamerbot.command"
+                        },
+                        "config": {
+                            "$ref": "#/$defs/StreamerbotCommandTriggerConfig"
+                        }
+                    },
+                    "required": [
+                        "type",
+                        "config"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "type": {
+                            "const": "twitch.follow"
+                        },
+                        "config": {
+                            "$ref": "#/$defs/EmptyConfig"
+                        }
+                    },
+                    "required": [
+                        "type",
+                        "config"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "type": {
+                            "const": "twitch.cheer"
+                        },
+                        "config": {
+                            "$ref": "#/$defs/TwitchCheerConfig"
+                        }
+                    },
+                    "required": [
+                        "type",
+                        "config"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "type": {
+                            "const": "twitch.subscription"
+                        },
+                        "config": {
+                            "$ref": "#/$defs/TwitchSubscriptionConfig"
+                        }
+                    },
+                    "required": [
+                        "type",
+                        "config"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "type": {
+                            "const": "twitch.giftSub"
+                        },
+                        "config": {
+                            "$ref": "#/$defs/TwitchGiftSubConfig"
+                        }
+                    },
+                    "required": [
+                        "type",
+                        "config"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "type": {
+                            "const": "twitch.channelPointReward"
+                        },
+                        "config": {
+                            "$ref": "#/$defs/TwitchChannelPointRewardConfig"
+                        }
+                    },
+                    "required": [
+                        "type",
+                        "config"
+                    ]
+                }
+            ]
+        },
+        "EmptyConfig": {
+            "type": "object",
+            "additionalProperties": false
+        },
+        "TimeAtDateTimeConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "isoDateTime": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "timezone": {
+                    "type": "string",
+                    "minLength": 1
                 }
             },
             "required": [
-                "type"
-            ],
-            "additionalProperties": false
+                "isoDateTime",
+                "timezone"
+            ]
+        },
+        "TimeDailyAtConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "time": {
+                    "type": "string",
+                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                },
+                "timezone": {
+                    "type": "string",
+                    "minLength": 1
+                }
+            },
+            "required": [
+                "time",
+                "timezone"
+            ]
+        },
+        "TimeEveryNMinutesConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "intervalMinutes": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "timezone": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "anchor": {
+                    "oneOf": [
+                        {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "kind": {
+                                    "const": "topOfHour"
+                                }
+                            },
+                            "required": [
+                                "kind"
+                            ],
+                            "default": {
+                                "kind": "topOfHour"
+                            }
+                        },
+                        {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "kind": {
+                                    "const": "custom"
+                                },
+                                "isoDateTime": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                },
+                                "timezone": {
+                                    "type": "string",
+                                    "minLength": 1
+                                }
+                            },
+                            "required": [
+                                "kind",
+                                "isoDateTime",
+                                "timezone"
+                            ]
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "intervalMinutes",
+                "timezone"
+            ]
+        },
+        "TimeMinuteOfHourConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "minute": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 59
+                },
+                "timezone": {
+                    "type": "string",
+                    "minLength": 1
+                }
+            },
+            "required": [
+                "minute",
+                "timezone"
+            ]
+        },
+        "StreamerbotCommandTriggerConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "commandId": {
+                    "type": "string"
+                },
+                "aliases": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "minItems": 1
+                },
+                "caseSensitive": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "sources": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    }
+                },
+                "ignoreInternal": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "ignoreBotAccount": {
+                    "type": "boolean",
+                    "default": true
+                }
+            }
+        },
+        "TwitchCheerConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "minBits": {
+                    "type": "integer",
+                    "minimum": 1
+                }
+            },
+            "required": [
+                "minBits"
+            ]
+        },
+        "TwitchSubscriptionConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "tier": {
+                    "type": "string",
+                    "enum": [
+                        "1000",
+                        "2000",
+                        "3000"
+                    ]
+                },
+                "minMonths": {
+                    "type": "integer",
+                    "minimum": 1
+                }
+            }
+        },
+        "TwitchGiftSubConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "minCount": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "tier": {
+                    "type": "string",
+                    "enum": [
+                        "1000",
+                        "2000",
+                        "3000"
+                    ]
+                }
+            }
+        },
+        "TwitchChannelPointRewardConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "rewardId": {
+                    "type": "string"
+                },
+                "rewardName": {
+                    "type": "string"
+                },
+                "minCost": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "userInput": {
+                    "type": "string",
+                    "enum": [
+                        "required",
+                        "optional",
+                        "none"
+                    ]
+                }
+            }
         }
     }
 }

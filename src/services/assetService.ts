@@ -1,6 +1,6 @@
 import type { MediaAsset, MediaAssetProperties } from "../types/media";
 import { createMediaAsset } from "../types/media";
-import type { SpawnAssetOverrides, SpawnTrigger } from "../types/spawn";
+import type { SpawnAssetOverrides, Trigger } from "../types/spawn";
 import {
   CacheService,
   CACHE_KEYS,
@@ -550,7 +550,7 @@ export class AssetService {
     assetId: string
   ): Promise<{
     duration: number;
-    trigger: SpawnTrigger;
+    trigger: Trigger;
     properties: MediaAssetProperties;
   } | null> {
     try {

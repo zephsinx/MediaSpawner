@@ -14,10 +14,6 @@ import {
   getEnabledSpawnCount,
   updateSpawnTimestamp,
   updateSpawnProfileTimestamp,
-  isManualTrigger,
-  isTimerTrigger,
-  isEventTrigger,
-  isConditionTrigger,
 } from "../spawn";
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -40,27 +36,12 @@ describe("Spawn Types", () => {
     it("createSpawnTrigger creates manual trigger by default", () => {
       const trigger = createSpawnTrigger();
       expect(trigger.type).toBe("manual");
-      expect(trigger.enabled).toBe(true);
-      expect(trigger.priority).toBe(0);
-      expect(trigger.config).toEqual({ type: "manual" });
+      expect(trigger.config).toEqual({});
     });
 
     it("getDefaultTriggerConfig returns correct configs", () => {
-      expect(getDefaultTriggerConfig("manual")).toEqual({ type: "manual" });
-      expect(getDefaultTriggerConfig("timer")).toMatchObject({
-        type: "timer",
-        interval: 5000,
-        repeat: false,
-      });
-      expect(getDefaultTriggerConfig("event")).toMatchObject({
-        type: "event",
-        eventType: "default",
-      });
-      expect(getDefaultTriggerConfig("condition")).toMatchObject({
-        type: "condition",
-        condition: "true",
-        evaluationInterval: 1000,
-      });
+      expect(getDefaultTriggerConfig("manual")).toEqual({});
+      expect(getDefaultTriggerConfig("twitch.cheer")).toEqual({ minBits: 1 });
     });
 
     it("createSpawnAsset creates asset with defaults", () => {
@@ -202,32 +183,5 @@ describe("Spawn Types", () => {
     });
   });
 
-  describe("Type Guards", () => {
-    it("isManualTrigger returns true for manual", () => {
-      expect(isManualTrigger({ type: "manual" })).toBe(true);
-      expect(
-        isManualTrigger({ type: "timer", interval: 1, repeat: false })
-      ).toBe(false);
-    });
-    it("isTimerTrigger returns true for timer", () => {
-      expect(
-        isTimerTrigger({ type: "timer", interval: 1, repeat: false })
-      ).toBe(true);
-      expect(isTimerTrigger({ type: "manual" })).toBe(false);
-    });
-    it("isEventTrigger returns true for event", () => {
-      expect(isEventTrigger({ type: "event", eventType: "foo" })).toBe(true);
-      expect(isEventTrigger({ type: "manual" })).toBe(false);
-    });
-    it("isConditionTrigger returns true for condition", () => {
-      expect(
-        isConditionTrigger({
-          type: "condition",
-          condition: "x",
-          evaluationInterval: 1,
-        })
-      ).toBe(true);
-      expect(isConditionTrigger({ type: "manual" })).toBe(false);
-    });
-  });
+  // Removed legacy type guard tests; triggers now follow MS-50 union model
 });

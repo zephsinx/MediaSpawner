@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { MediaAsset, MediaAssetProperties } from "../../types/media";
-import type { SpawnAssetOverrides, SpawnTrigger } from "../../types/spawn";
+import type { SpawnAssetOverrides, Trigger } from "../../types/spawn";
 import { createLocalStorageMock, setupLocalStorageMock } from "./testUtils";
 
 // Mock dependencies before importing the service
@@ -44,22 +44,13 @@ describe("AssetService Spawn-Specific Settings", () => {
     name: "Test Video",
     path: "/path/to/video.mp4",
     isUrl: false,
-    properties: {
-      volume: 0.8,
-      dimensions: { width: 1920, height: 1080 },
-      loop: false,
-    },
   };
 
   const mockSpawn = {
     id: "spawn-1",
     name: "Test Spawn",
     enabled: true,
-    trigger: {
-      enabled: true,
-      type: "manual" as const,
-      config: { type: "manual" as const },
-    },
+    trigger: { type: "manual" as const, config: {} },
     duration: 5000,
     assets: [],
     lastModified: 1234567890000,
@@ -337,7 +328,7 @@ describe("AssetService Spawn-Specific Settings", () => {
       expect(result).toEqual({
         duration: 5000, // From spawn default
         trigger: mockSpawn.trigger, // From spawn default
-        properties: mockAsset.properties, // From asset default
+        properties: {}, // No asset properties in new model
       });
     });
 
@@ -355,7 +346,6 @@ describe("AssetService Spawn-Specific Settings", () => {
         duration: 3000, // From override
         trigger: mockSpawn.trigger, // From spawn default (no override)
         properties: {
-          ...mockAsset.properties, // Base asset properties
           volume: 1.0, // From override
           loop: true, // From override
         },
@@ -388,7 +378,7 @@ describe("AssetService Spawn-Specific Settings", () => {
       const spawnWithoutDefaults = {
         ...mockSpawn,
         duration: undefined as unknown as number,
-        trigger: undefined as unknown as SpawnTrigger,
+        trigger: undefined as unknown as Trigger,
       };
       mockSpawnService.getSpawn.mockResolvedValue(spawnWithoutDefaults);
 
@@ -400,7 +390,7 @@ describe("AssetService Spawn-Specific Settings", () => {
       expect(result).toEqual({
         duration: undefined,
         trigger: undefined,
-        properties: mockAsset.properties,
+        properties: {}, // No asset properties in new model
       });
     });
 

@@ -13,7 +13,7 @@ const spawnFactory = (defaults: Partial<MediaAssetProperties> = {}): Spawn => ({
   name: "Test Spawn",
   description: "",
   enabled: true,
-  trigger: { enabled: true, type: "manual", config: { type: "manual" } },
+  trigger: { type: "manual", config: {} },
   duration: 5000,
   assets: [],
   defaultProperties: defaults,
@@ -76,7 +76,7 @@ describe("assetSettingsResolver", () => {
       scale: 1, // same as default, should be omitted
       muted: true, // different (default undefined)
     };
-    const diff = buildOverridesDiff({}, spawnDefaults, desired);
+    const diff = buildOverridesDiff(spawnDefaults, desired);
     expect(diff).toEqual({ volume: 0.7, muted: true });
     expect(diff.scale).toBeUndefined();
   });

@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { usePanelState } from "../../hooks/useLayout";
 import { SpawnService } from "../../services/spawnService";
 import type { Spawn } from "../../types/spawn";
+import type { Trigger, TriggerType } from "../../types/spawn";
+import { getDefaultTrigger } from "../../types/spawn";
 import type { MediaAssetProperties } from "../../types/media";
 import { ConfirmDialog } from "../common/ConfirmDialog";
 import AssetSettingsForm from "./asset-settings/AssetSettingsForm";
@@ -43,6 +45,7 @@ const SpawnEditorWorkspace: React.FC = () => {
   const [name, setName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [enabled, setEnabled] = useState<boolean>(true);
+  const [trigger, setTrigger] = useState<Trigger | null>(null);
   const [allSpawnsCache, setAllSpawnsCache] = useState<Spawn[]>([]);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
@@ -56,6 +59,8 @@ const SpawnEditorWorkspace: React.FC = () => {
     spawnAssetId?: string;
   } | null>(null);
   const [showModeSwitchDialog, setShowModeSwitchDialog] = useState(false);
+  const [showTriggerTypeDialog, setShowTriggerTypeDialog] = useState(false);
+  const pendingTriggerTypeRef = useRef<TriggerType | null>(null);
 
   const assetDraftCacheRef = useRef<
     Record<
@@ -153,6 +158,7 @@ const SpawnEditorWorkspace: React.FC = () => {
       setName(selectedSpawn.name);
       setDescription(selectedSpawn.description || "");
       setEnabled(!!selectedSpawn.enabled);
+      setTrigger(selectedSpawn.trigger || getDefaultTrigger("manual"));
       const toggles: Partial<Record<FieldKey, boolean>> = {};
       DEFAULT_FIELDS.forEach((k) => {
         const dp = selectedSpawn.defaultProperties;
@@ -176,6 +182,8 @@ const SpawnEditorWorkspace: React.FC = () => {
     if (!selectedSpawn) return false;
     const baselineName = selectedSpawn.name;
     const baselineDesc = selectedSpawn.description || "";
+    const triggerChanged =
+      JSON.stringify(trigger) !== JSON.stringify(selectedSpawn.trigger || null);
     const currentEnabledDefaults = buildEnabledDefaults(
       draftDefaults,
       defaultsEnabled
@@ -185,9 +193,19 @@ const SpawnEditorWorkspace: React.FC = () => {
       JSON.stringify(currentEnabledDefaults) !==
       JSON.stringify(baselineDefaults);
     return (
-      name !== baselineName || description !== baselineDesc || defaultsChanged
+      name !== baselineName ||
+      description !== baselineDesc ||
+      defaultsChanged ||
+      triggerChanged
     );
-  }, [name, description, selectedSpawn, draftDefaults, defaultsEnabled]);
+  }, [
+    name,
+    description,
+    selectedSpawn,
+    draftDefaults,
+    defaultsEnabled,
+    trigger,
+  ]);
 
   useEffect(() => {
     // Only update when dirty state changes to avoid unnecessary context re-renders
@@ -214,6 +232,7 @@ const SpawnEditorWorkspace: React.FC = () => {
     }
     setName(selectedSpawn.name);
     setDescription(selectedSpawn.description || "");
+    setTrigger(selectedSpawn.trigger || getDefaultTrigger("manual"));
     const toggles: Partial<Record<FieldKey, boolean>> = {};
     DEFAULT_FIELDS.forEach((k) => {
       const dp = selectedSpawn.defaultProperties;
@@ -240,6 +259,7 @@ const SpawnEditorWorkspace: React.FC = () => {
       const result = await SpawnService.updateSpawn(selectedSpawn.id, {
         name: trimmedName,
         description: description.trim() || undefined,
+        trigger: trigger || undefined,
         defaultProperties,
       });
       if (!result.success || !result.spawn) {
@@ -249,6 +269,7 @@ const SpawnEditorWorkspace: React.FC = () => {
       // Sync form fields immediately so dirty resets without waiting for effects
       setName(result.spawn.name);
       setDescription(result.spawn.description || "");
+      setTrigger(result.spawn.trigger || getDefaultTrigger("manual"));
       setSelectedSpawn(result.spawn);
       setSaveSuccess("Changes saved");
       // Notify other panels and list of updates (e.g., name change)
@@ -427,6 +448,25 @@ const SpawnEditorWorkspace: React.FC = () => {
           onCancel={() => setShowDiscardDialog(false)}
         />
         <ConfirmDialog
+          isOpen={showTriggerTypeDialog}
+          title="Change Trigger Type?"
+          message="Changing the trigger type will reset the current trigger configuration."
+          confirmText="Change type"
+          cancelText="Cancel"
+          variant="warning"
+          onConfirm={() => {
+            const nextType = pendingTriggerTypeRef.current;
+            setShowTriggerTypeDialog(false);
+            if (!nextType) return;
+            setTrigger(getDefaultTrigger(nextType));
+            pendingTriggerTypeRef.current = null;
+          }}
+          onCancel={() => {
+            pendingTriggerTypeRef.current = null;
+            setShowTriggerTypeDialog(false);
+          }}
+        />
+        <ConfirmDialog
           isOpen={showModeSwitchDialog}
           title="Unsaved Changes"
           message="Switching modes will not save your changes. Continue?"
@@ -574,6 +614,109 @@ const SpawnEditorWorkspace: React.FC = () => {
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700"
                   />
+                </div>
+              </div>
+            </section>
+
+            <section className="bg-white border border-gray-200 rounded-lg p-4">
+              <h3 className="text-base font-semibold text-gray-800 mb-3">
+                Trigger
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Trigger Type
+                  </label>
+                  <select
+                    value={trigger?.type || "manual"}
+                    onChange={(e) => {
+                      const nextType = e.target.value as TriggerType;
+                      if (!trigger) {
+                        setTrigger(getDefaultTrigger(nextType));
+                        return;
+                      }
+                      if (nextType === trigger.type) return;
+                      pendingTriggerTypeRef.current = nextType;
+                      setShowTriggerTypeDialog(true);
+                    }}
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                  >
+                    <option value="manual">Manual</option>
+                    <option value="streamerbot.command">
+                      Streamer.bot Command
+                    </option>
+                    <option value="twitch.channelPointReward">
+                      Twitch: Channel Point Reward
+                    </option>
+                    <option value="twitch.subscription">
+                      Twitch: Subscription
+                    </option>
+                    <option value="twitch.giftSub">Twitch: Gifted Subs</option>
+                    <option value="twitch.cheer">Twitch: Cheer</option>
+                    <option value="twitch.follow">Twitch: Follow</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2 text-xs text-gray-600">
+                  {(() => {
+                    const t = trigger?.type || "manual";
+                    if (t === "manual") {
+                      return (
+                        <p>
+                          Manual triggers are activated outside of MediaSpawner.
+                          No configuration required.
+                        </p>
+                      );
+                    }
+                    if (t === "streamerbot.command") {
+                      return (
+                        <p>
+                          Streamer.bot command: will be linked to a server-side
+                          command. Selection/fetch arrives in a later story.
+                        </p>
+                      );
+                    }
+                    if (t === "twitch.channelPointReward") {
+                      return (
+                        <p>
+                          Twitch Channel Point reward redemption. Configure
+                          reward details in a later story.
+                        </p>
+                      );
+                    }
+                    if (t === "twitch.subscription") {
+                      return (
+                        <p>
+                          Twitch subscription events. Tier/month filters arrive
+                          in a later story.
+                        </p>
+                      );
+                    }
+                    if (t === "twitch.giftSub") {
+                      return (
+                        <p>
+                          Twitch gifted subscription events. Count/tier filters
+                          arrive in a later story.
+                        </p>
+                      );
+                    }
+                    if (t === "twitch.cheer") {
+                      return (
+                        <p>
+                          Twitch cheer events. Minimum bits configuration
+                          arrives in a later story.
+                        </p>
+                      );
+                    }
+                    if (t === "twitch.follow") {
+                      return (
+                        <p>
+                          Twitch follow events. No additional configuration
+                          required.
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               </div>
             </section>
