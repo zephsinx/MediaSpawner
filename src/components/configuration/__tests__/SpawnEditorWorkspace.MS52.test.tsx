@@ -218,4 +218,102 @@ describe("SpawnEditorWorkspace - MS-52 Command Trigger Configuration", () => {
       expect(aliasInput).toHaveValue("testcommand");
     });
   });
+
+  describe("4. Validation & Save Behavior", () => {
+    beforeEach(async () => {
+      mockSpawnService.getAllSpawns.mockResolvedValue([mockCommandSpawn]);
+
+      await act(async () => {
+        render(<SpawnEditorWorkspace />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Command Configuration")).toBeInTheDocument();
+      });
+    });
+
+    it("shows alias error when no non-empty aliases exist, hides when valid alias entered", () => {
+      // Default state: one empty alias present -> error visible
+      expect(
+        screen.getByText("At least one command alias is required")
+      ).toBeInTheDocument();
+
+      const aliasInput = screen.getByPlaceholderText(
+        "Enter command alias (e.g., scene1, alert)"
+      );
+
+      act(() => {
+        fireEvent.change(aliasInput, { target: { value: "command1" } });
+      });
+
+      expect(
+        screen.queryByText("At least one command alias is required")
+      ).not.toBeInTheDocument();
+    });
+
+    it("keeps Save disabled while alias invalid even when form is dirty (expected behavior)", () => {
+      // Ensure alias is invalid (empty)
+      const aliasInput = screen.getByPlaceholderText(
+        "Enter command alias (e.g., scene1, alert)"
+      );
+      expect((aliasInput as HTMLInputElement).value).toBe("");
+      expect(
+        screen.getByText("At least one command alias is required")
+      ).toBeInTheDocument();
+
+      // Make form dirty via description change (name remains valid)
+      const descriptionInput = screen.getByLabelText("Description");
+      act(() => {
+        fireEvent.change(descriptionInput, { target: { value: "Changed" } });
+      });
+
+      const saveButton = screen.getByRole("button", { name: "Save spawn" });
+      // Expectation: Save should be disabled while alias invalid
+      expect(saveButton).toBeDisabled();
+    });
+
+    it("enables Save when alias becomes valid and form is dirty", () => {
+      // Enter a valid alias
+      const aliasInput = screen.getByPlaceholderText(
+        "Enter command alias (e.g., scene1, alert)"
+      );
+      act(() => {
+        fireEvent.change(aliasInput, { target: { value: "command1" } });
+      });
+
+      // Make form dirty via description change
+      const descriptionInput = screen.getByLabelText("Description");
+      act(() => {
+        fireEvent.change(descriptionInput, { target: { value: "Changed" } });
+      });
+
+      const saveButton = screen.getByRole("button", { name: "Save spawn" });
+      expect(saveButton).not.toBeDisabled();
+    });
+
+    it("re-disables Save when alias is cleared back to invalid while dirty", () => {
+      // Start with valid alias and dirty form
+      const aliasInput = screen.getByPlaceholderText(
+        "Enter command alias (e.g., scene1, alert)"
+      );
+      act(() => {
+        fireEvent.change(aliasInput, { target: { value: "command1" } });
+      });
+      const descriptionInput = screen.getByLabelText("Description");
+      act(() => {
+        fireEvent.change(descriptionInput, { target: { value: "Changed" } });
+      });
+      const saveButton = screen.getByRole("button", { name: "Save spawn" });
+      expect(saveButton).not.toBeDisabled();
+
+      // Clear alias back to empty -> should re-disable Save
+      act(() => {
+        fireEvent.change(aliasInput, { target: { value: "" } });
+      });
+      expect(
+        screen.getByText("At least one command alias is required")
+      ).toBeInTheDocument();
+      expect(saveButton).toBeDisabled();
+    });
+  });
 });

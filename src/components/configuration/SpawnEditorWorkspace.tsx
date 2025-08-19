@@ -30,6 +30,14 @@ const buildEnabledDefaults = (
   return next;
 };
 
+// Helper function to safely access command config
+const getCommandConfig = (trigger: Trigger | null) => {
+  if (trigger?.type === "streamerbot.command") {
+    return trigger.config;
+  }
+  return null;
+};
+
 const SpawnEditorWorkspace: React.FC = () => {
   const {
     selectedSpawnId,
@@ -79,14 +87,6 @@ const SpawnEditorWorkspace: React.FC = () => {
     Partial<MediaAssetProperties>
   >({});
   const [showMetadata, setShowMetadata] = useState<boolean>(true);
-
-  // Helper function to safely access command config
-  const getCommandConfig = () => {
-    if (trigger?.type === "streamerbot.command") {
-      return trigger.config;
-    }
-    return null;
-  };
 
   useEffect(() => {
     let isActive = true;
@@ -230,7 +230,21 @@ const SpawnEditorWorkspace: React.FC = () => {
     );
   }, [allSpawnsCache, selectedSpawn, trimmedName]);
   const isNameValid = isNameNonEmpty && isNameUnique;
-  const isSaveDisabled = !isDirty || !isNameValid || isSaving || !selectedSpawn;
+
+  // Command alias validation for streamerbot.command triggers
+  const isCommandAliasValid = useMemo(() => {
+    if (trigger?.type !== "streamerbot.command") return true;
+    const config = getCommandConfig(trigger);
+    const aliases = config?.aliases || [];
+    return aliases.length > 0 && !aliases.some((a: string) => !a.trim());
+  }, [trigger]);
+
+  const isSaveDisabled =
+    !isDirty ||
+    !isNameValid ||
+    isSaving ||
+    !selectedSpawn ||
+    !isCommandAliasValid;
 
   const handleCancel = () => {
     if (!selectedSpawn) return;
@@ -256,6 +270,9 @@ const SpawnEditorWorkspace: React.FC = () => {
 
   const handleSave = async () => {
     if (!selectedSpawn || isSaveDisabled) return;
+
+    // Additional validation for command aliases
+    if (trigger?.type === "streamerbot.command" && !isCommandAliasValid) return;
     setIsSaving(true);
     setSaveError(null);
     setSaveSuccess(null);
@@ -741,7 +758,7 @@ const SpawnEditorWorkspace: React.FC = () => {
                       Command Aliases
                     </label>
                     <div className="space-y-2">
-                      {(getCommandConfig()?.aliases || [""]).map(
+                      {(getCommandConfig(trigger)?.aliases || [""]).map(
                         (alias: string, index: number) => (
                           <div key={index} className="flex items-center gap-2">
                             <input
@@ -749,13 +766,15 @@ const SpawnEditorWorkspace: React.FC = () => {
                               value={alias}
                               onChange={(e) => {
                                 const newAliases = [
-                                  ...(getCommandConfig()?.aliases || [""]),
+                                  ...(getCommandConfig(trigger)?.aliases || [
+                                    "",
+                                  ]),
                                 ];
                                 newAliases[index] = e.target.value;
                                 setTrigger({
                                   ...trigger,
                                   config: {
-                                    ...getCommandConfig(),
+                                    ...getCommandConfig(trigger),
                                     aliases: newAliases,
                                   },
                                 });
@@ -763,20 +782,20 @@ const SpawnEditorWorkspace: React.FC = () => {
                               placeholder="Enter command alias (e.g., scene1, alert)"
                               className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                             />
-                            {(getCommandConfig()?.aliases || [""]).length >
-                              1 && (
+                            {(getCommandConfig(trigger)?.aliases || [""])
+                              .length > 1 && (
                               <button
                                 type="button"
                                 onClick={() => {
                                   const newAliases = (
-                                    getCommandConfig()?.aliases || [""]
+                                    getCommandConfig(trigger)?.aliases || [""]
                                   ).filter(
                                     (_: string, i: number) => i !== index
                                   );
                                   setTrigger({
                                     ...trigger,
                                     config: {
-                                      ...getCommandConfig(),
+                                      ...getCommandConfig(trigger),
                                       aliases: newAliases,
                                     },
                                   });
@@ -794,13 +813,13 @@ const SpawnEditorWorkspace: React.FC = () => {
                         type="button"
                         onClick={() => {
                           const newAliases = [
-                            ...(getCommandConfig()?.aliases || [""]),
+                            ...(getCommandConfig(trigger)?.aliases || [""]),
                             "",
                           ];
                           setTrigger({
                             ...trigger,
                             config: {
-                              ...getCommandConfig(),
+                              ...getCommandConfig(trigger),
                               aliases: newAliases,
                             },
                           });
@@ -811,7 +830,7 @@ const SpawnEditorWorkspace: React.FC = () => {
                       </button>
                     </div>
                     {(() => {
-                      const config = getCommandConfig();
+                      const config = getCommandConfig(trigger);
                       const aliases = config?.aliases || [];
                       const hasEmptyAlias = aliases.some(
                         (a: string) => !a.trim()
@@ -832,12 +851,14 @@ const SpawnEditorWorkspace: React.FC = () => {
                     <label className="flex items-center cursor-pointer select-none">
                       <input
                         type="checkbox"
-                        checked={getCommandConfig()?.caseSensitive || false}
+                        checked={
+                          getCommandConfig(trigger)?.caseSensitive || false
+                        }
                         onChange={(e) => {
                           setTrigger({
                             ...trigger,
                             config: {
-                              ...getCommandConfig(),
+                              ...getCommandConfig(trigger),
                               caseSensitive: e.target.checked,
                             },
                           });
@@ -867,10 +888,10 @@ const SpawnEditorWorkspace: React.FC = () => {
                           <input
                             type="checkbox"
                             checked={(
-                              getCommandConfig()?.sources || ["Twitch"]
+                              getCommandConfig(trigger)?.sources || ["Twitch"]
                             ).includes(platform)}
                             onChange={(e) => {
-                              const currentSources = getCommandConfig()
+                              const currentSources = getCommandConfig(trigger)
                                 ?.sources || ["Twitch"];
                               const newSources = e.target.checked
                                 ? [...currentSources, platform]
@@ -880,7 +901,7 @@ const SpawnEditorWorkspace: React.FC = () => {
                               setTrigger({
                                 ...trigger,
                                 config: {
-                                  ...getCommandConfig(),
+                                  ...getCommandConfig(trigger),
                                   sources: newSources,
                                 },
                               });
@@ -904,12 +925,14 @@ const SpawnEditorWorkspace: React.FC = () => {
                       <label className="flex items-center cursor-pointer select-none">
                         <input
                           type="checkbox"
-                          checked={getCommandConfig()?.ignoreInternal !== false}
+                          checked={
+                            getCommandConfig(trigger)?.ignoreInternal !== false
+                          }
                           onChange={(e) => {
                             setTrigger({
                               ...trigger,
                               config: {
-                                ...getCommandConfig(),
+                                ...getCommandConfig(trigger),
                                 ignoreInternal: e.target.checked,
                               },
                             });
@@ -930,13 +953,14 @@ const SpawnEditorWorkspace: React.FC = () => {
                         <input
                           type="checkbox"
                           checked={
-                            getCommandConfig()?.ignoreBotAccount !== false
+                            getCommandConfig(trigger)?.ignoreBotAccount !==
+                            false
                           }
                           onChange={(e) => {
                             setTrigger({
                               ...trigger,
                               config: {
-                                ...getCommandConfig(),
+                                ...getCommandConfig(trigger),
                                 ignoreBotAccount: e.target.checked,
                               },
                             });
