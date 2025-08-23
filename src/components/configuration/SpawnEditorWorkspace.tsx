@@ -38,6 +38,14 @@ const getCommandConfig = (trigger: Trigger | null) => {
   return null;
 };
 
+// Helper function to safely access channel point reward config
+const getChannelPointConfig = (trigger: Trigger | null) => {
+  if (trigger?.type === "twitch.channelPointReward") {
+    return trigger.config;
+  }
+  return null;
+};
+
 const SpawnEditorWorkspace: React.FC = () => {
   const {
     selectedSpawnId,
@@ -239,12 +247,22 @@ const SpawnEditorWorkspace: React.FC = () => {
     return aliases.length > 0 && !aliases.some((a: string) => !a.trim());
   }, [trigger]);
 
+  // Channel point reward validation for twitch.channelPointReward triggers
+  const isChannelPointConfigValid = useMemo(() => {
+    if (trigger?.type !== "twitch.channelPointReward") return true;
+    const config = getChannelPointConfig(trigger);
+    const rewardIdentifier = config?.rewardIdentifier || "";
+    const statuses = config?.statuses || [];
+    return rewardIdentifier.trim().length > 0 && statuses.length > 0;
+  }, [trigger]);
+
   const isSaveDisabled =
     !isDirty ||
     !isNameValid ||
     isSaving ||
     !selectedSpawn ||
-    !isCommandAliasValid;
+    !isCommandAliasValid ||
+    !isChannelPointConfigValid;
 
   const handleCancel = () => {
     if (!selectedSpawn) return;
@@ -273,6 +291,13 @@ const SpawnEditorWorkspace: React.FC = () => {
 
     // Additional validation for command aliases
     if (trigger?.type === "streamerbot.command" && !isCommandAliasValid) return;
+
+    // Additional validation for channel point reward configuration
+    if (
+      trigger?.type === "twitch.channelPointReward" &&
+      !isChannelPointConfigValid
+    )
+      return;
     setIsSaving(true);
     setSaveError(null);
     setSaveSuccess(null);
@@ -975,6 +1000,155 @@ const SpawnEditorWorkspace: React.FC = () => {
                         Skip messages from the bot account to avoid loops
                       </p>
                     </div>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {trigger?.type === "twitch.channelPointReward" && (
+              <section className="bg-white border border-gray-200 rounded-lg p-4">
+                <h3 className="text-base font-semibold text-gray-800 mb-3">
+                  Channel Point Reward Configuration
+                </h3>
+                <div className="space-y-4">
+                  {/* Reward Identifier */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Reward Identifier
+                    </label>
+                    <input
+                      type="text"
+                      value={
+                        getChannelPointConfig(trigger)?.rewardIdentifier || ""
+                      }
+                      onChange={(e) => {
+                        setTrigger({
+                          ...trigger,
+                          config: {
+                            ...getChannelPointConfig(trigger),
+                            rewardIdentifier: e.target.value,
+                          },
+                        });
+                      }}
+                      placeholder="Enter reward name or ID (e.g., Alert, Scene1, 12345)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    {(() => {
+                      const config = getChannelPointConfig(trigger);
+                      const rewardIdentifier = config?.rewardIdentifier || "";
+                      if (!rewardIdentifier.trim()) {
+                        return (
+                          <p className="mt-1 text-xs text-red-600">
+                            Reward identifier is required
+                          </p>
+                        );
+                      }
+                      return null;
+                    })()}
+                    <p className="mt-1 text-xs text-gray-600">
+                      Enter the name or ID of the channel point reward from your
+                      Twitch channel
+                    </p>
+                  </div>
+
+                  {/* Use Viewer Input */}
+                  <div>
+                    <label className="flex items-center cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={
+                          getChannelPointConfig(trigger)?.useViewerInput ||
+                          false
+                        }
+                        onChange={(e) => {
+                          setTrigger({
+                            ...trigger,
+                            config: {
+                              ...getChannelPointConfig(trigger),
+                              useViewerInput: e.target.checked,
+                            },
+                          });
+                        }}
+                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">
+                        Use viewer input in spawn configuration
+                      </span>
+                    </label>
+                    <p className="mt-1 text-xs text-gray-600">
+                      When enabled, the viewer's message will be available for
+                      use in spawn settings
+                    </p>
+                  </div>
+
+                  {/* Redemption Statuses */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Redemption Statuses
+                    </label>
+                    <div className="space-y-2">
+                      {["pending", "fulfilled", "cancelled"].map((status) => (
+                        <label
+                          key={status}
+                          className="flex items-center cursor-pointer select-none"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={(
+                              getChannelPointConfig(trigger)?.statuses || [
+                                "fulfilled",
+                              ]
+                            ).includes(status)}
+                            onChange={(e) => {
+                              const currentStatuses = getChannelPointConfig(
+                                trigger
+                              )?.statuses || ["fulfilled"];
+                              const newStatuses = e.target.checked
+                                ? [...currentStatuses, status]
+                                : currentStatuses.filter(
+                                    (s: string) => s !== status
+                                  );
+                              setTrigger({
+                                ...trigger,
+                                config: {
+                                  ...getChannelPointConfig(trigger),
+                                  statuses: newStatuses,
+                                },
+                              });
+                            }}
+                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="ml-2 text-sm text-gray-700 capitalize">
+                            {status}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                    {(() => {
+                      const config = getChannelPointConfig(trigger);
+                      const statuses = config?.statuses || [];
+                      if (statuses.length === 0) {
+                        return (
+                          <p className="mt-1 text-xs text-red-600">
+                            At least one redemption status must be selected
+                          </p>
+                        );
+                      }
+                      return null;
+                    })()}
+                    <p className="mt-1 text-xs text-gray-600">
+                      Select which redemption statuses should trigger this spawn
+                    </p>
+                  </div>
+
+                  {/* Help Text */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-xs text-blue-800">
+                      <strong>Note:</strong> Twitch handles all reward logic
+                      including cooldowns, usage limits, and point costs.
+                      MediaSpawner only configures when spawns trigger based on
+                      redemption events.
+                    </p>
                   </div>
                 </div>
               </section>

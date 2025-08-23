@@ -123,20 +123,19 @@ As a user, I want to configure channel point reward triggers, so that my spawns 
 **Acceptance Criteria**:
 
 - [ ] Can enter channel point reward name or ID
-- [ ] Can configure point cost requirements
-- [ ] Can set user input requirements (text required/optional/none)
-- [ ] Can configure cooldown and usage limits
+- [ ] Can configure whether to use viewer input in spawn configuration
+- [ ] Can select which redemption statuses trigger spawns (pending, fulfilled, etc.)
 - [ ] Can test reward name/ID validation
-- [ ] Get guidance on setting up rewards in streaming platform
+- [ ] Get clear feedback about reward identification requirements
+- [ ] Understand that Twitch handles all reward logic (cooldowns, limits, costs)
 
 **Technical Tasks**: Implement Channel Point Reward Configuration
 
 - Add reward name/ID input with validation to ensure proper reward identification
-- Add point cost input with range validation for cost-based filtering
-- Add user input requirement selection (required, optional, none) to handle viewer messages
-- Add cooldown and usage limit inputs to prevent reward abuse
+- Add checkbox for using viewer input from redemption events in spawn configuration
+- Add redemption status filtering options to control when spawns trigger
 - Implement reward validation with helpful error messages for user guidance
-- Add guidance text for setting up rewards in streaming platforms for external setup help
+- Add help text explaining that Twitch manages reward availability and enforcement
 - Handle various reward ID formats for platform flexibility
 
 **Dependencies**: Epic 3 (spawn editor), Story 2

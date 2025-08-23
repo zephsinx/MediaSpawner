@@ -26,10 +26,9 @@ export type Trigger =
   | {
       type: "twitch.channelPointReward";
       config: {
-        rewardId?: string;
-        rewardName?: string;
-        minCost?: number;
-        userInput?: "required" | "optional" | "none";
+        rewardIdentifier?: string;
+        useViewerInput?: boolean;
+        statuses?: string[];
       };
     };
 
@@ -62,7 +61,11 @@ export const getDefaultTrigger = (type: TriggerType): Trigger => {
     case "twitch.channelPointReward":
       return {
         type: "twitch.channelPointReward",
-        config: {} as Record<string, never>,
+        config: {
+          rewardIdentifier: "",
+          useViewerInput: false,
+          statuses: ["fulfilled"],
+        },
       };
     case "twitch.cheer":
       return { type: "twitch.cheer", config: { minBits: 1 } };
