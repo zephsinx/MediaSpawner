@@ -580,25 +580,31 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
-                "rewardId": {
-                    "type": "string"
-                },
-                "rewardName": {
-                    "type": "string"
-                },
-                "minCost": {
-                    "type": "integer",
-                    "minimum": 0
-                },
-                "userInput": {
+                "rewardIdentifier": {
                     "type": "string",
-                    "enum": [
-                        "required",
-                        "optional",
-                        "none"
-                    ]
+                    "minLength": 1
+                },
+                "useViewerInput": {
+                    "type": "boolean",
+                    "default": false
+                },
+                "statuses": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "pending",
+                            "fulfilled",
+                            "cancelled"
+                        ]
+                    },
+                    "minItems": 1
                 }
-            }
+            },
+            "required": [
+                "rewardIdentifier",
+                "statuses"
+            ]
         }
     }
 }

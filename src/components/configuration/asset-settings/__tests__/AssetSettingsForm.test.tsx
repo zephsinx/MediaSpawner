@@ -367,6 +367,16 @@ describe("AssetSettingsForm", () => {
         />
       );
 
+      // Ensure initialization effect has completed by waiting for draft values
+      // to populate and the input to be initially disabled
+      await screen.findByText("Test Video · video");
+      const widthInputs = screen.getAllByDisplayValue("100");
+      const widthInput = widthInputs.find((input) =>
+        input.getAttribute("aria-describedby")?.includes("dimensions-error")
+      );
+      if (!widthInput) throw new Error("Width input not found");
+      expect(widthInput).toBeDisabled();
+
       const dimensionsToggle = await screen.findByLabelText(
         "Override dimensions"
       );
@@ -492,9 +502,8 @@ describe("AssetSettingsForm", () => {
         fireEvent.click(positionModeToggle);
       });
 
-      const positionModeSelect = await screen.findByDisplayValue(
-        "Absolute (px)"
-      );
+      const positionModeSelect =
+        await screen.findByDisplayValue("Absolute (px)");
       await act(async () => {
         fireEvent.change(positionModeSelect, { target: { value: "centered" } });
       });
