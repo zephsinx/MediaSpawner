@@ -125,7 +125,6 @@ As a user, I want to configure channel point reward triggers, so that my spawns 
 - [ ] Can enter channel point reward name or ID
 - [ ] Can configure whether to use viewer input in spawn configuration
 - [ ] Can select which redemption statuses trigger spawns (pending, fulfilled, etc.)
-- [ ] Can test reward name/ID validation
 - [ ] Get clear feedback about reward identification requirements
 - [ ] Understand that Twitch handles all reward logic (cooldowns, limits, costs)
 
