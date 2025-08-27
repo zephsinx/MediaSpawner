@@ -7,6 +7,10 @@ import { getDefaultTrigger } from "../../types/spawn";
 import type { MediaAssetProperties } from "../../types/media";
 import { ConfirmDialog } from "../common/ConfirmDialog";
 import AssetSettingsForm from "./asset-settings/AssetSettingsForm";
+import {
+  getNextActivation,
+  formatNextActivation,
+} from "../../utils/scheduling";
 
 type FieldKey = keyof MediaAssetProperties;
 const DEFAULT_FIELDS: FieldKey[] = [
@@ -45,6 +49,22 @@ const getChannelPointConfig = (trigger: Trigger | null) => {
   }
   return null;
 };
+
+// Helper accessors for event/time-based configs
+const getSubscriptionConfig = (trigger: Trigger | null) =>
+  trigger?.type === "twitch.subscription" ? trigger.config : null;
+const getGiftSubConfig = (trigger: Trigger | null) =>
+  trigger?.type === "twitch.giftSub" ? trigger.config : null;
+const getCheerConfig = (trigger: Trigger | null) =>
+  trigger?.type === "twitch.cheer" ? trigger.config : null;
+const getAtDateTimeConfig = (trigger: Trigger | null) =>
+  trigger?.type === "time.atDateTime" ? trigger.config : null;
+const getDailyAtConfig = (trigger: Trigger | null) =>
+  trigger?.type === "time.dailyAt" ? trigger.config : null;
+const getEveryNMinutesConfig = (trigger: Trigger | null) =>
+  trigger?.type === "time.everyNMinutes" ? trigger.config : null;
+const getMinuteOfHourConfig = (trigger: Trigger | null) =>
+  trigger?.type === "time.minuteOfHour" ? trigger.config : null;
 
 const SpawnEditorWorkspace: React.FC = () => {
   const {
@@ -674,10 +694,14 @@ const SpawnEditorWorkspace: React.FC = () => {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="trigger-type"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Trigger Type
                   </label>
                   <select
+                    id="trigger-type"
                     value={trigger?.type || "manual"}
                     onChange={(e) => {
                       const nextType = e.target.value as TriggerType;
@@ -692,6 +716,14 @@ const SpawnEditorWorkspace: React.FC = () => {
                     className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
                   >
                     <option value="manual">Manual</option>
+                    <option value="time.atDateTime">Time: At Date/Time</option>
+                    <option value="time.dailyAt">Time: Daily At</option>
+                    <option value="time.everyNMinutes">
+                      Time: Every N Minutes
+                    </option>
+                    <option value="time.minuteOfHour">
+                      Time: Minute Of Hour
+                    </option>
                     <option value="streamerbot.command">
                       Streamer.bot Command
                     </option>
@@ -717,6 +749,19 @@ const SpawnEditorWorkspace: React.FC = () => {
                         </p>
                       );
                     }
+                    if (
+                      t === "time.atDateTime" ||
+                      t === "time.dailyAt" ||
+                      t === "time.everyNMinutes" ||
+                      t === "time.minuteOfHour"
+                    ) {
+                      return (
+                        <p>
+                          Schedule triggers based on timezone-aware date/time
+                          rules.
+                        </p>
+                      );
+                    }
                     if (t === "streamerbot.command") {
                       return (
                         <p>
@@ -735,27 +780,16 @@ const SpawnEditorWorkspace: React.FC = () => {
                     }
                     if (t === "twitch.subscription") {
                       return (
-                        <p>
-                          Twitch subscription events. Tier/month filters arrive
-                          in a later story.
-                        </p>
+                        <p>Configure subscription tier or minimum months.</p>
                       );
                     }
                     if (t === "twitch.giftSub") {
                       return (
-                        <p>
-                          Twitch gifted subscription events. Count/tier filters
-                          arrive in a later story.
-                        </p>
+                        <p>Configure gifted sub count and optional tier.</p>
                       );
                     }
                     if (t === "twitch.cheer") {
-                      return (
-                        <p>
-                          Twitch cheer events. Minimum bits configuration
-                          arrives in a later story.
-                        </p>
-                      );
+                      return <p>Configure minimum bits required to trigger.</p>;
                     }
                     if (t === "twitch.follow") {
                       return (
@@ -1150,6 +1184,628 @@ const SpawnEditorWorkspace: React.FC = () => {
                       redemption events.
                     </p>
                   </div>
+                </div>
+              </section>
+            )}
+
+            {trigger?.type === "twitch.subscription" && (
+              <section className="bg-white border border-gray-200 rounded-lg p-4">
+                <h3 className="text-base font-semibold text-gray-800 mb-3">
+                  Subscription Configuration
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="sub-tier"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Tier
+                    </label>
+                    <select
+                      id="sub-tier"
+                      value={getSubscriptionConfig(trigger)?.tier ?? ""}
+                      onChange={(e) => {
+                        const v = (e.target.value || undefined) as
+                          | "1000"
+                          | "2000"
+                          | "3000"
+                          | undefined;
+                        setTrigger({
+                          ...trigger,
+                          config: {
+                            ...getSubscriptionConfig(trigger),
+                            tier: v,
+                          },
+                        });
+                      }}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                    >
+                      <option value="">Any</option>
+                      <option value="1000">Tier 1</option>
+                      <option value="2000">Tier 2</option>
+                      <option value="3000">Tier 3</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="sub-min-months"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Minimum Months
+                    </label>
+                    <input
+                      id="sub-min-months"
+                      type="number"
+                      min={1}
+                      value={getSubscriptionConfig(trigger)?.minMonths ?? ""}
+                      onChange={(e) => {
+                        const val = Math.max(1, Number(e.target.value) || 1);
+                        setTrigger({
+                          ...trigger,
+                          config: {
+                            ...getSubscriptionConfig(trigger),
+                            minMonths: val,
+                          },
+                        });
+                      }}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                    />
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {trigger?.type === "twitch.giftSub" && (
+              <section className="bg-white border border-gray-200 rounded-lg p-4">
+                <h3 className="text-base font-semibold text-gray-800 mb-3">
+                  Gifted Subs Configuration
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="gift-min-count"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Minimum Count
+                    </label>
+                    <input
+                      id="gift-min-count"
+                      type="number"
+                      min={1}
+                      value={getGiftSubConfig(trigger)?.minCount ?? ""}
+                      onChange={(e) => {
+                        const val = Math.max(1, Number(e.target.value) || 1);
+                        setTrigger({
+                          ...trigger,
+                          config: {
+                            ...getGiftSubConfig(trigger),
+                            minCount: val,
+                          },
+                        });
+                      }}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="gift-tier"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Tier
+                    </label>
+                    <select
+                      id="gift-tier"
+                      value={getGiftSubConfig(trigger)?.tier ?? ""}
+                      onChange={(e) => {
+                        const v = (e.target.value || undefined) as
+                          | "1000"
+                          | "2000"
+                          | "3000"
+                          | undefined;
+                        setTrigger({
+                          ...trigger,
+                          config: { ...getGiftSubConfig(trigger), tier: v },
+                        });
+                      }}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                    >
+                      <option value="">Any</option>
+                      <option value="1000">Tier 1</option>
+                      <option value="2000">Tier 2</option>
+                      <option value="3000">Tier 3</option>
+                    </select>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {trigger?.type === "twitch.cheer" && (
+              <section className="bg-white border border-gray-200 rounded-lg p-4">
+                <h3 className="text-base font-semibold text-gray-800 mb-3">
+                  Cheer Configuration
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="cheer-min-bits"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Minimum Bits
+                    </label>
+                    <input
+                      id="cheer-min-bits"
+                      type="number"
+                      min={1}
+                      value={getCheerConfig(trigger)?.minBits ?? 1}
+                      onChange={(e) => {
+                        const val = Math.max(1, Number(e.target.value) || 1);
+                        setTrigger({
+                          ...trigger,
+                          config: { ...getCheerConfig(trigger), minBits: val },
+                        });
+                      }}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                    />
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {(trigger?.type === "time.atDateTime" ||
+              trigger?.type === "time.dailyAt" ||
+              trigger?.type === "time.everyNMinutes" ||
+              trigger?.type === "time.minuteOfHour") && (
+              <section className="bg-white border border-gray-200 rounded-lg p-4">
+                <h3 className="text-base font-semibold text-gray-800 mb-3">
+                  Time-based Configuration
+                </h3>
+                <div className="space-y-4">
+                  {(() => {
+                    const next = getNextActivation(trigger);
+                    return (
+                      <div className="bg-gray-50 border border-gray-200 rounded p-2 text-sm text-gray-700">
+                        <span className="font-medium">Next activation: </span>
+                        {formatNextActivation(next.when, next.timezone)}
+                      </div>
+                    );
+                  })()}
+                  {trigger?.type === "time.atDateTime" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          htmlFor="at-datetime"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          ISO Date-Time
+                        </label>
+                        <input
+                          id="at-datetime"
+                          type="datetime-local"
+                          value={(() => {
+                            const v =
+                              getAtDateTimeConfig(trigger)?.isoDateTime || "";
+                            if (!v) return "";
+                            try {
+                              return v.replace(/\.\d{3}Z$/, "").slice(0, 16);
+                            } catch {
+                              return "";
+                            }
+                          })()}
+                          onChange={(e) => {
+                            const iso = e.target.value
+                              ? new Date(e.target.value).toISOString()
+                              : new Date().toISOString();
+                            const base =
+                              getAtDateTimeConfig(trigger) ||
+                              ({
+                                isoDateTime: new Date().toISOString(),
+                                timezone: "UTC",
+                              } as {
+                                isoDateTime: string;
+                                timezone: string;
+                              });
+                            setTrigger({
+                              ...trigger,
+                              config: { ...base, isoDateTime: iso },
+                            });
+                          }}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="at-timezone"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Timezone
+                        </label>
+                        <input
+                          id="at-timezone"
+                          type="text"
+                          placeholder="e.g., America/Los_Angeles"
+                          value={getAtDateTimeConfig(trigger)?.timezone || ""}
+                          onChange={(e) => {
+                            const base =
+                              getAtDateTimeConfig(trigger) ||
+                              ({
+                                isoDateTime: new Date().toISOString(),
+                                timezone: "UTC",
+                              } as {
+                                isoDateTime: string;
+                                timezone: string;
+                              });
+                            setTrigger({
+                              ...trigger,
+                              config: { ...base, timezone: e.target.value },
+                            });
+                          }}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {trigger?.type === "time.dailyAt" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          htmlFor="daily-time"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Time (HH:mm)
+                        </label>
+                        <input
+                          id="daily-time"
+                          type="time"
+                          value={getDailyAtConfig(trigger)?.time || "09:00"}
+                          onChange={(e) => {
+                            const base =
+                              getDailyAtConfig(trigger) ||
+                              ({ time: "09:00", timezone: "UTC" } as {
+                                time: string;
+                                timezone: string;
+                              });
+                            setTrigger({
+                              ...trigger,
+                              config: { ...base, time: e.target.value },
+                            });
+                          }}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="daily-timezone"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Timezone
+                        </label>
+                        <input
+                          id="daily-timezone"
+                          type="text"
+                          placeholder="e.g., UTC"
+                          value={getDailyAtConfig(trigger)?.timezone || "UTC"}
+                          onChange={(e) => {
+                            const base =
+                              getDailyAtConfig(trigger) ||
+                              ({ time: "09:00", timezone: "UTC" } as {
+                                time: string;
+                                timezone: string;
+                              });
+                            setTrigger({
+                              ...trigger,
+                              config: { ...base, timezone: e.target.value },
+                            });
+                          }}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {trigger?.type === "time.everyNMinutes" && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label
+                            htmlFor="every-interval"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                          >
+                            Interval (minutes)
+                          </label>
+                          <input
+                            id="every-interval"
+                            type="number"
+                            min={1}
+                            value={
+                              getEveryNMinutesConfig(trigger)
+                                ?.intervalMinutes ?? 15
+                            }
+                            onChange={(e) => {
+                              const val = Math.max(
+                                1,
+                                Number(e.target.value) || 1
+                              );
+                              const base =
+                                getEveryNMinutesConfig(trigger) ||
+                                ({ intervalMinutes: 15, timezone: "UTC" } as {
+                                  intervalMinutes: number;
+                                  timezone: string;
+                                  anchor?:
+                                    | { kind: "topOfHour" }
+                                    | {
+                                        kind: "custom";
+                                        isoDateTime: string;
+                                        timezone: string;
+                                      };
+                                });
+                              setTrigger({
+                                ...trigger,
+                                config: { ...base, intervalMinutes: val },
+                              });
+                            }}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label
+                            htmlFor="every-timezone"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                          >
+                            Timezone
+                          </label>
+                          <input
+                            id="every-timezone"
+                            type="text"
+                            value={
+                              getEveryNMinutesConfig(trigger)?.timezone || "UTC"
+                            }
+                            onChange={(e) => {
+                              const base =
+                                getEveryNMinutesConfig(trigger) ||
+                                ({ intervalMinutes: 15, timezone: "UTC" } as {
+                                  intervalMinutes: number;
+                                  timezone: string;
+                                  anchor?:
+                                    | { kind: "topOfHour" }
+                                    | {
+                                        kind: "custom";
+                                        isoDateTime: string;
+                                        timezone: string;
+                                      };
+                                });
+                              setTrigger({
+                                ...trigger,
+                                config: { ...base, timezone: e.target.value },
+                              });
+                            }}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label
+                            htmlFor="every-anchor"
+                            className="block text-sm font-medium text-gray-700 mb-1"
+                          >
+                            Anchor
+                          </label>
+                          <select
+                            id="every-anchor"
+                            value={(() => {
+                              const a = getEveryNMinutesConfig(trigger)?.anchor;
+                              return a?.kind === "custom"
+                                ? "custom"
+                                : "topOfHour";
+                            })()}
+                            onChange={(e) => {
+                              const kind =
+                                e.target.value === "custom"
+                                  ? "custom"
+                                  : "topOfHour";
+                              const existing =
+                                getEveryNMinutesConfig(trigger) ||
+                                ({ intervalMinutes: 15, timezone: "UTC" } as {
+                                  intervalMinutes: number;
+                                  timezone: string;
+                                  anchor?:
+                                    | { kind: "topOfHour" }
+                                    | {
+                                        kind: "custom";
+                                        isoDateTime: string;
+                                        timezone: string;
+                                      };
+                                });
+                              const nextAnchor =
+                                kind === "topOfHour"
+                                  ? { kind: "topOfHour" as const }
+                                  : ({
+                                      kind: "custom",
+                                      isoDateTime: new Date().toISOString(),
+                                      timezone: existing.timezone,
+                                    } as const);
+                              setTrigger({
+                                ...trigger,
+                                config: { ...existing, anchor: nextAnchor },
+                              });
+                            }}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                          >
+                            <option value="topOfHour">Top of hour</option>
+                            <option value="custom">Custom</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {getEveryNMinutesConfig(trigger)?.anchor?.kind ===
+                        "custom" && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label
+                              htmlFor="every-custom-iso"
+                              className="block text-sm font-medium text-gray-700 mb-1"
+                            >
+                              Custom Anchor (ISO)
+                            </label>
+                            <input
+                              id="every-custom-iso"
+                              type="datetime-local"
+                              value={(() => {
+                                const a =
+                                  getEveryNMinutesConfig(trigger)?.anchor;
+                                const v =
+                                  a && a.kind === "custom" ? a.isoDateTime : "";
+                                if (!v) return "";
+                                try {
+                                  return v
+                                    .replace(/\.\d{3}Z$/, "")
+                                    .slice(0, 16);
+                                } catch {
+                                  return "";
+                                }
+                              })()}
+                              onChange={(e) => {
+                                const existing =
+                                  getEveryNMinutesConfig(trigger) ||
+                                  ({ intervalMinutes: 15, timezone: "UTC" } as {
+                                    intervalMinutes: number;
+                                    timezone: string;
+                                    anchor?:
+                                      | { kind: "topOfHour" }
+                                      | {
+                                          kind: "custom";
+                                          isoDateTime: string;
+                                          timezone: string;
+                                        };
+                                  });
+                                const a = existing.anchor;
+                                if (!a || a.kind !== "custom") return;
+                                const iso = e.target.value
+                                  ? new Date(e.target.value).toISOString()
+                                  : new Date().toISOString();
+                                setTrigger({
+                                  ...trigger,
+                                  config: {
+                                    ...existing,
+                                    anchor: { ...a, isoDateTime: iso },
+                                  },
+                                });
+                              }}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                            />
+                          </div>
+                          <div>
+                            <label
+                              htmlFor="every-custom-tz"
+                              className="block text-sm font-medium text-gray-700 mb-1"
+                            >
+                              Anchor Timezone
+                            </label>
+                            <input
+                              id="every-custom-tz"
+                              type="text"
+                              value={(() => {
+                                const a =
+                                  getEveryNMinutesConfig(trigger)?.anchor;
+                                return a && a.kind === "custom"
+                                  ? a.timezone
+                                  : "";
+                              })()}
+                              onChange={(e) => {
+                                const existing =
+                                  getEveryNMinutesConfig(trigger) ||
+                                  ({ intervalMinutes: 15, timezone: "UTC" } as {
+                                    intervalMinutes: number;
+                                    timezone: string;
+                                    anchor?:
+                                      | { kind: "topOfHour" }
+                                      | {
+                                          kind: "custom";
+                                          isoDateTime: string;
+                                          timezone: string;
+                                        };
+                                  });
+                                const a = existing.anchor;
+                                if (!a || a.kind !== "custom") return;
+                                setTrigger({
+                                  ...trigger,
+                                  config: {
+                                    ...existing,
+                                    anchor: { ...a, timezone: e.target.value },
+                                  },
+                                });
+                              }}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {trigger?.type === "time.minuteOfHour" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label
+                          htmlFor="minute-minute"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Minute (0-59)
+                        </label>
+                        <input
+                          id="minute-minute"
+                          type="number"
+                          min={0}
+                          max={59}
+                          value={getMinuteOfHourConfig(trigger)?.minute ?? 0}
+                          onChange={(e) => {
+                            const val = Math.max(
+                              0,
+                              Math.min(59, Number(e.target.value) || 0)
+                            );
+                            const base =
+                              getMinuteOfHourConfig(trigger) ||
+                              ({ minute: 0, timezone: "UTC" } as {
+                                minute: number;
+                                timezone: string;
+                              });
+                            setTrigger({
+                              ...trigger,
+                              config: { ...base, minute: val },
+                            });
+                          }}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="minute-timezone"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Timezone
+                        </label>
+                        <input
+                          id="minute-timezone"
+                          type="text"
+                          value={
+                            getMinuteOfHourConfig(trigger)?.timezone || "UTC"
+                          }
+                          onChange={(e) => {
+                            const base =
+                              getMinuteOfHourConfig(trigger) ||
+                              ({ minute: 0, timezone: "UTC" } as {
+                                minute: number;
+                                timezone: string;
+                              });
+                            setTrigger({
+                              ...trigger,
+                              config: { ...base, timezone: e.target.value },
+                            });
+                          }}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </section>
             )}

@@ -321,9 +321,9 @@ describe("AssetSettingsForm", () => {
       // Wait for the component to finish loading
       await screen.findByText("Test Video · video");
 
-      // Find width input specifically by its aria-describedby attribute
-      const widthInputs = screen.getAllByDisplayValue("100");
-      const widthInput = widthInputs.find((input) =>
+      // Find width input by role and aria-describedby marker
+      const numberInputs = screen.getAllByRole("spinbutton");
+      const widthInput = numberInputs.find((input) =>
         input.getAttribute("aria-describedby")?.includes("dimensions-error")
       );
       if (!widthInput) throw new Error("Width input not found");
@@ -370,8 +370,8 @@ describe("AssetSettingsForm", () => {
       // Ensure initialization effect has completed by waiting for draft values
       // to populate and the input to be initially disabled
       await screen.findByText("Test Video · video");
-      const widthInputs = screen.getAllByDisplayValue("100");
-      const widthInput = widthInputs.find((input) =>
+      const numberInputs = screen.getAllByRole("spinbutton");
+      const widthInput = numberInputs.find((input) =>
         input.getAttribute("aria-describedby")?.includes("dimensions-error")
       );
       if (!widthInput) throw new Error("Width input not found");
@@ -450,9 +450,9 @@ describe("AssetSettingsForm", () => {
         fireEvent.click(dimensionsToggle);
       });
 
-      // Find width input specifically by its aria-describedby attribute
-      const widthInputs = screen.getAllByDisplayValue("100");
-      const widthInput = widthInputs.find((input) =>
+      // Find width input by role and aria-describedby marker
+      const numberInputs = screen.getAllByRole("spinbutton");
+      const widthInput = numberInputs.find((input) =>
         input.getAttribute("aria-describedby")?.includes("dimensions-error")
       );
       if (!widthInput) throw new Error("Width input not found");
@@ -601,9 +601,9 @@ describe("AssetSettingsForm", () => {
         fireEvent.click(dimensionsToggle);
       });
 
-      // Find width input specifically by its aria-describedby attribute
-      const widthInputs = screen.getAllByDisplayValue("100");
-      const widthInput = widthInputs.find((input) =>
+      // Find width input by role and aria-describedby marker
+      const numberInputs = screen.getAllByRole("spinbutton");
+      const widthInput = numberInputs.find((input) =>
         input.getAttribute("aria-describedby")?.includes("dimensions-error")
       );
       if (!widthInput) throw new Error("Width input not found");
@@ -664,9 +664,9 @@ describe("AssetSettingsForm", () => {
         fireEvent.click(dimensionsToggle);
       });
 
-      // Find width input specifically by its aria-describedby attribute
-      const widthInputs = screen.getAllByDisplayValue("100");
-      const widthInput = widthInputs.find((input) =>
+      // Find width input by role and aria-describedby marker
+      const numberInputs = screen.getAllByRole("spinbutton");
+      const widthInput = numberInputs.find((input) =>
         input.getAttribute("aria-describedby")?.includes("dimensions-error")
       );
       if (!widthInput) throw new Error("Width input not found");
@@ -732,9 +732,9 @@ describe("AssetSettingsForm", () => {
         fireEvent.click(dimensionsToggle);
       });
 
-      // Find width input specifically by its aria-describedby attribute
-      const widthInputs = screen.getAllByDisplayValue("100");
-      const widthInput = widthInputs.find((input) =>
+      // Find width input by role and aria-describedby marker
+      const numberInputs = screen.getAllByRole("spinbutton");
+      const widthInput = numberInputs.find((input) =>
         input.getAttribute("aria-describedby")?.includes("dimensions-error")
       );
       if (!widthInput) throw new Error("Width input not found");

@@ -3,6 +3,28 @@ import type { MediaAssetProperties } from "./media";
 export type Trigger =
   | { type: "manual"; config: Record<string, never> }
   | {
+      type: "time.atDateTime";
+      config: { isoDateTime: string; timezone: string };
+    }
+  | {
+      type: "time.dailyAt";
+      config: { time: string; timezone: string };
+    }
+  | {
+      type: "time.everyNMinutes";
+      config: {
+        intervalMinutes: number;
+        timezone: string;
+        anchor?:
+          | { kind: "topOfHour" }
+          | { kind: "custom"; isoDateTime: string; timezone: string };
+      };
+    }
+  | {
+      type: "time.minuteOfHour";
+      config: { minute: number; timezone: string };
+    }
+  | {
       type: "streamerbot.command";
       config: {
         commandId?: string;
@@ -38,6 +60,34 @@ export const getDefaultTrigger = (type: TriggerType): Trigger => {
   switch (type) {
     case "manual":
       return { type: "manual", config: {} as Record<string, never> };
+    case "time.atDateTime": {
+      const now = new Date();
+      const oneHourMs = 60 * 60 * 1000;
+      const future = new Date(now.getTime() + oneHourMs).toISOString();
+      return {
+        type: "time.atDateTime",
+        config: { isoDateTime: future, timezone: "UTC" },
+      };
+    }
+    case "time.dailyAt":
+      return {
+        type: "time.dailyAt",
+        config: { time: "09:00", timezone: "UTC" },
+      };
+    case "time.everyNMinutes":
+      return {
+        type: "time.everyNMinutes",
+        config: {
+          intervalMinutes: 15,
+          timezone: "UTC",
+          anchor: { kind: "topOfHour" },
+        },
+      };
+    case "time.minuteOfHour":
+      return {
+        type: "time.minuteOfHour",
+        config: { minute: 0, timezone: "UTC" },
+      };
     case "streamerbot.command":
       return {
         type: "streamerbot.command",
