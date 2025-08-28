@@ -521,19 +521,23 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
         fireEvent.click(saveButton);
       });
 
-      expect(mockSpawnService.updateSpawn).toHaveBeenCalledWith("spawn-1", {
-        name: "Test Spawn",
-        description: "Test Description",
-        trigger: {
-          type: "twitch.channelPointReward",
-          config: {
-            rewardIdentifier: "Alert",
-            useViewerInput: true,
-            statuses: ["fulfilled", "pending"],
-          },
-        },
-        defaultProperties: {},
-      });
+      expect(mockSpawnService.updateSpawn).toHaveBeenCalledWith(
+        "spawn-1",
+        expect.objectContaining({
+          name: "Test Spawn",
+          description: "Test Description",
+          trigger: expect.objectContaining({
+            type: "twitch.channelPointReward",
+            enabled: true,
+            config: {
+              rewardIdentifier: "Alert",
+              useViewerInput: true,
+              statuses: ["fulfilled", "pending"],
+            },
+          }),
+          defaultProperties: {},
+        })
+      );
     });
   });
 

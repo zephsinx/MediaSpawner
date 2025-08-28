@@ -402,5 +402,47 @@ describe("SpawnEditorWorkspace", () => {
       });
       expect(timeInput.value).toBe("12:30");
     });
+
+    it("renders Weekly and Monthly panels and toggles Trigger Enabled", async () => {
+      const weeklySpawn = createSpawn({
+        id: "s-week",
+        name: "Weekly Spawn",
+        trigger: {
+          type: "time.weeklyAt",
+          enabled: true,
+          config: { dayOfWeek: 1, time: "09:00", timezone: "UTC" },
+        } as unknown as import("../../../types/spawn").Trigger,
+      });
+      mockState.selectedSpawnId = "s-week";
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([weeklySpawn]);
+
+      render(<SpawnEditorWorkspace />);
+      await screen.findByText("Editing: Weekly Spawn");
+      const typeSelect = screen.getByLabelText(
+        "Trigger Type"
+      ) as HTMLSelectElement;
+      await waitFor(() => expect(typeSelect.value).toBe("time.weeklyAt"));
+      expect(screen.getByText("Time-based Configuration")).toBeInTheDocument();
+      // Trigger Enabled toggle present
+      const enabledToggle = screen.getByRole("checkbox", {
+        name: "Trigger Enabled",
+      });
+      expect(enabledToggle).toBeChecked();
+
+      // Switch to Monthly and ensure panel renders
+      await act(async () => {
+        fireEvent.change(typeSelect, { target: { value: "time.monthlyOn" } });
+      });
+      // Confirm dialog appears, confirm change
+      const dialog = await screen.findByRole("dialog", {
+        name: "Change Trigger Type?",
+      });
+      const buttons = dialog.querySelectorAll("button");
+      await act(async () => {
+        (buttons[1] as HTMLButtonElement).click();
+      });
+      await waitFor(() => expect(typeSelect.value).toBe("time.monthlyOn"));
+      expect(screen.getByText("Time-based Configuration")).toBeInTheDocument();
+    });
   });
 });

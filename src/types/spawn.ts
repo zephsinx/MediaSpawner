@@ -1,6 +1,7 @@
 import type { MediaAssetProperties } from "./media";
+import moment from "moment-timezone";
 
-export type Trigger =
+export type Trigger = { enabled?: boolean } & (
   | { type: "manual"; config: Record<string, never> }
   | {
       type: "time.atDateTime";
@@ -9,6 +10,14 @@ export type Trigger =
   | {
       type: "time.dailyAt";
       config: { time: string; timezone: string };
+    }
+  | {
+      type: "time.weeklyAt";
+      config: { dayOfWeek: number; time: string; timezone: string };
+    }
+  | {
+      type: "time.monthlyOn";
+      config: { dayOfMonth: number; time: string; timezone: string };
     }
   | {
       type: "time.everyNMinutes";
@@ -52,45 +61,67 @@ export type Trigger =
         useViewerInput?: boolean;
         statuses?: string[];
       };
-    };
+    }
+);
 
 export type TriggerType = Trigger["type"];
 
 export const getDefaultTrigger = (type: TriggerType): Trigger => {
   switch (type) {
     case "manual":
-      return { type: "manual", config: {} as Record<string, never> };
+      return {
+        type: "manual",
+        enabled: true,
+        config: {} as Record<string, never>,
+      };
     case "time.atDateTime": {
       const now = new Date();
       const oneHourMs = 60 * 60 * 1000;
       const future = new Date(now.getTime() + oneHourMs).toISOString();
       return {
         type: "time.atDateTime",
-        config: { isoDateTime: future, timezone: "UTC" },
+        enabled: true,
+        config: { isoDateTime: future, timezone: moment.tz.guess() },
       };
     }
     case "time.dailyAt":
       return {
         type: "time.dailyAt",
-        config: { time: "09:00", timezone: "UTC" },
+        enabled: true,
+        config: { time: "09:00", timezone: moment.tz.guess() },
+      };
+    case "time.weeklyAt":
+      return {
+        type: "time.weeklyAt",
+        enabled: true,
+        config: { dayOfWeek: 1, time: "09:00", timezone: moment.tz.guess() },
+      };
+    case "time.monthlyOn":
+      return {
+        type: "time.monthlyOn",
+        enabled: true,
+        config: { dayOfMonth: 1, time: "09:00", timezone: moment.tz.guess() },
       };
     case "time.everyNMinutes":
       return {
         type: "time.everyNMinutes",
+        enabled: true,
         config: {
           intervalMinutes: 15,
-          timezone: "UTC",
+          timezone: moment.tz.guess(),
           anchor: { kind: "topOfHour" },
         },
       };
     case "time.minuteOfHour":
       return {
         type: "time.minuteOfHour",
-        config: { minute: 0, timezone: "UTC" },
+        enabled: true,
+        config: { minute: 0, timezone: moment.tz.guess() },
       };
     case "streamerbot.command":
       return {
         type: "streamerbot.command",
+        enabled: true,
         config: {
           aliases: [""],
           caseSensitive: false,
@@ -100,17 +131,27 @@ export const getDefaultTrigger = (type: TriggerType): Trigger => {
         },
       };
     case "twitch.follow":
-      return { type: "twitch.follow", config: {} as Record<string, never> };
+      return {
+        type: "twitch.follow",
+        enabled: true,
+        config: {} as Record<string, never>,
+      };
     case "twitch.subscription":
       return {
         type: "twitch.subscription",
+        enabled: true,
         config: {} as Record<string, never>,
       };
     case "twitch.giftSub":
-      return { type: "twitch.giftSub", config: {} as Record<string, never> };
+      return {
+        type: "twitch.giftSub",
+        enabled: true,
+        config: {} as Record<string, never>,
+      };
     case "twitch.channelPointReward":
       return {
         type: "twitch.channelPointReward",
+        enabled: true,
         config: {
           rewardIdentifier: "",
           useViewerInput: false,
@@ -118,7 +159,7 @@ export const getDefaultTrigger = (type: TriggerType): Trigger => {
         },
       };
     case "twitch.cheer":
-      return { type: "twitch.cheer", config: { minBits: 1 } };
+      return { type: "twitch.cheer", enabled: true, config: { minBits: 1 } };
   }
 };
 

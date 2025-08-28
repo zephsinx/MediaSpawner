@@ -202,6 +202,9 @@
                         "type": {
                             "const": "manual"
                         },
+                        "enabled": {
+                            "type": "boolean"
+                        },
                         "config": {
                             "$ref": "#/$defs/EmptyConfig"
                         }
@@ -217,6 +220,9 @@
                     "properties": {
                         "type": {
                             "const": "time.atDateTime"
+                        },
+                        "enabled": {
+                            "type": "boolean"
                         },
                         "config": {
                             "$ref": "#/$defs/TimeAtDateTimeConfig"
@@ -234,6 +240,9 @@
                         "type": {
                             "const": "time.dailyAt"
                         },
+                        "enabled": {
+                            "type": "boolean"
+                        },
                         "config": {
                             "$ref": "#/$defs/TimeDailyAtConfig"
                         }
@@ -248,7 +257,48 @@
                     "additionalProperties": false,
                     "properties": {
                         "type": {
+                            "const": "time.weeklyAt"
+                        },
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "config": {
+                            "$ref": "#/$defs/TimeWeeklyAtConfig"
+                        }
+                    },
+                    "required": [
+                        "type",
+                        "config"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "type": {
+                            "const": "time.monthlyOn"
+                        },
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "config": {
+                            "$ref": "#/$defs/TimeMonthlyOnConfig"
+                        }
+                    },
+                    "required": [
+                        "type",
+                        "config"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "type": {
                             "const": "time.everyNMinutes"
+                        },
+                        "enabled": {
+                            "type": "boolean"
                         },
                         "config": {
                             "$ref": "#/$defs/TimeEveryNMinutesConfig"
@@ -266,6 +316,9 @@
                         "type": {
                             "const": "time.minuteOfHour"
                         },
+                        "enabled": {
+                            "type": "boolean"
+                        },
                         "config": {
                             "$ref": "#/$defs/TimeMinuteOfHourConfig"
                         }
@@ -281,6 +334,9 @@
                     "properties": {
                         "type": {
                             "const": "streamerbot.command"
+                        },
+                        "enabled": {
+                            "type": "boolean"
                         },
                         "config": {
                             "$ref": "#/$defs/StreamerbotCommandTriggerConfig"
@@ -298,6 +354,9 @@
                         "type": {
                             "const": "twitch.follow"
                         },
+                        "enabled": {
+                            "type": "boolean"
+                        },
                         "config": {
                             "$ref": "#/$defs/EmptyConfig"
                         }
@@ -313,6 +372,9 @@
                     "properties": {
                         "type": {
                             "const": "twitch.cheer"
+                        },
+                        "enabled": {
+                            "type": "boolean"
                         },
                         "config": {
                             "$ref": "#/$defs/TwitchCheerConfig"
@@ -330,6 +392,9 @@
                         "type": {
                             "const": "twitch.subscription"
                         },
+                        "enabled": {
+                            "type": "boolean"
+                        },
                         "config": {
                             "$ref": "#/$defs/TwitchSubscriptionConfig"
                         }
@@ -346,6 +411,9 @@
                         "type": {
                             "const": "twitch.giftSub"
                         },
+                        "enabled": {
+                            "type": "boolean"
+                        },
                         "config": {
                             "$ref": "#/$defs/TwitchGiftSubConfig"
                         }
@@ -361,6 +429,9 @@
                     "properties": {
                         "type": {
                             "const": "twitch.channelPointReward"
+                        },
+                        "enabled": {
+                            "type": "boolean"
                         },
                         "config": {
                             "$ref": "#/$defs/TwitchChannelPointRewardConfig"
@@ -488,6 +559,54 @@
             },
             "required": [
                 "minute",
+                "timezone"
+            ]
+        },
+        "TimeWeeklyAtConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "dayOfWeek": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6
+                },
+                "time": {
+                    "type": "string",
+                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                },
+                "timezone": {
+                    "type": "string",
+                    "minLength": 1
+                }
+            },
+            "required": [
+                "dayOfWeek",
+                "time",
+                "timezone"
+            ]
+        },
+        "TimeMonthlyOnConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "dayOfMonth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 31
+                },
+                "time": {
+                    "type": "string",
+                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                },
+                "timezone": {
+                    "type": "string",
+                    "minLength": 1
+                }
+            },
+            "required": [
+                "dayOfMonth",
+                "time",
                 "timezone"
             ]
         },

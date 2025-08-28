@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import moment from "moment-timezone";
 import { usePanelState } from "../../hooks/useLayout";
 import { SpawnService } from "../../services/spawnService";
 import type { Spawn } from "../../types/spawn";
@@ -11,6 +12,35 @@ import {
   getNextActivation,
   formatNextActivation,
 } from "../../utils/scheduling";
+
+const buildTimezoneOptions = () => {
+  const now = Date.now();
+  return moment.tz
+    .names()
+    .map((zone) => {
+      const offsetMin = moment.tz(now, zone).utcOffset();
+      const sign = offsetMin >= 0 ? "+" : "-";
+      const hh = String(Math.floor(Math.abs(offsetMin) / 60)).padStart(2, "0");
+      const mm = String(Math.abs(offsetMin) % 60).padStart(2, "0");
+      return {
+        value: zone,
+        label: `(UTC${sign}${hh}:${mm}) ${zone}`,
+        offset: offsetMin,
+      };
+    })
+    .sort((a, b) => a.offset - b.offset || a.label.localeCompare(b.label));
+};
+
+const timezoneOptions = buildTimezoneOptions();
+const dayOfWeekOptions = [
+  { value: 0, label: "Sunday" },
+  { value: 1, label: "Monday" },
+  { value: 2, label: "Tuesday" },
+  { value: 3, label: "Wednesday" },
+  { value: 4, label: "Thursday" },
+  { value: 5, label: "Friday" },
+  { value: 6, label: "Saturday" },
+];
 
 type FieldKey = keyof MediaAssetProperties;
 const DEFAULT_FIELDS: FieldKey[] = [
@@ -65,6 +95,14 @@ const getEveryNMinutesConfig = (trigger: Trigger | null) =>
   trigger?.type === "time.everyNMinutes" ? trigger.config : null;
 const getMinuteOfHourConfig = (trigger: Trigger | null) =>
   trigger?.type === "time.minuteOfHour" ? trigger.config : null;
+const getWeeklyAtConfig = (trigger: Trigger | null) =>
+  trigger?.type === "time.weeklyAt"
+    ? (trigger.config as { dayOfWeek: number; time: string; timezone: string })
+    : null;
+const getMonthlyOnConfig = (trigger: Trigger | null) =>
+  trigger?.type === "time.monthlyOn"
+    ? (trigger.config as { dayOfMonth: number; time: string; timezone: string })
+    : null;
 
 const SpawnEditorWorkspace: React.FC = () => {
   const {
@@ -689,9 +727,26 @@ const SpawnEditorWorkspace: React.FC = () => {
             </section>
 
             <section className="bg-white border border-gray-200 rounded-lg p-4">
-              <h3 className="text-base font-semibold text-gray-800 mb-3">
-                Trigger
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-semibold text-gray-800">
+                  Trigger
+                </h3>
+                <label className="flex items-center cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={trigger?.enabled !== false}
+                    onChange={(e) => {
+                      if (!trigger) return;
+                      setTrigger({ ...trigger, enabled: e.target.checked });
+                    }}
+                    aria-label="Trigger Enabled"
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">
+                    Trigger Enabled
+                  </span>
+                </label>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label
@@ -721,6 +776,8 @@ const SpawnEditorWorkspace: React.FC = () => {
                     <option value="time.everyNMinutes">
                       Time: Every N Minutes
                     </option>
+                    <option value="time.weeklyAt">Time: Weekly At</option>
+                    <option value="time.monthlyOn">Time: Monthly On</option>
                     <option value="time.minuteOfHour">
                       Time: Minute Of Hour
                     </option>
@@ -753,7 +810,9 @@ const SpawnEditorWorkspace: React.FC = () => {
                       t === "time.atDateTime" ||
                       t === "time.dailyAt" ||
                       t === "time.everyNMinutes" ||
-                      t === "time.minuteOfHour"
+                      t === "time.minuteOfHour" ||
+                      t === "time.weeklyAt" ||
+                      t === "time.monthlyOn"
                     ) {
                       return (
                         <p>
@@ -1354,7 +1413,9 @@ const SpawnEditorWorkspace: React.FC = () => {
             {(trigger?.type === "time.atDateTime" ||
               trigger?.type === "time.dailyAt" ||
               trigger?.type === "time.everyNMinutes" ||
-              trigger?.type === "time.minuteOfHour") && (
+              trigger?.type === "time.minuteOfHour" ||
+              trigger?.type === "time.weeklyAt" ||
+              trigger?.type === "time.monthlyOn") && (
               <section className="bg-white border border-gray-200 rounded-lg p-4">
                 <h3 className="text-base font-semibold text-gray-800 mb-3">
                   Time-based Configuration
@@ -1369,6 +1430,212 @@ const SpawnEditorWorkspace: React.FC = () => {
                       </div>
                     );
                   })()}
+                  {trigger?.type === "time.weeklyAt" && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Day of Week
+                        </label>
+                        <select
+                          value={getWeeklyAtConfig(trigger)?.dayOfWeek ?? 0}
+                          onChange={(e) => {
+                            const base =
+                              getWeeklyAtConfig(trigger) ||
+                              ({
+                                dayOfWeek: 1,
+                                time: "09:00",
+                                timezone: moment.tz.guess(),
+                              } as {
+                                dayOfWeek: number;
+                                time: string;
+                                timezone: string;
+                              });
+                            setTrigger({
+                              ...trigger!,
+                              config: {
+                                ...base,
+                                dayOfWeek: parseInt(e.target.value, 10),
+                              },
+                            });
+                          }}
+                          disabled={trigger?.enabled === false}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                        >
+                          {dayOfWeekOptions.map((d) => (
+                            <option key={d.value} value={d.value}>
+                              {d.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Time (HH:mm)
+                        </label>
+                        <input
+                          type="time"
+                          value={getWeeklyAtConfig(trigger)?.time || "09:00"}
+                          onChange={(e) => {
+                            const base =
+                              getWeeklyAtConfig(trigger) ||
+                              ({
+                                dayOfWeek: 1,
+                                time: "09:00",
+                                timezone: moment.tz.guess(),
+                              } as {
+                                dayOfWeek: number;
+                                time: string;
+                                timezone: string;
+                              });
+                            setTrigger({
+                              ...trigger!,
+                              config: { ...base, time: e.target.value },
+                            });
+                          }}
+                          disabled={trigger?.enabled === false}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Timezone
+                        </label>
+                        <select
+                          value={
+                            getWeeklyAtConfig(trigger)?.timezone ||
+                            moment.tz.guess()
+                          }
+                          onChange={(e) => {
+                            const base =
+                              getWeeklyAtConfig(trigger) ||
+                              ({
+                                dayOfWeek: 1,
+                                time: "09:00",
+                                timezone: moment.tz.guess(),
+                              } as {
+                                dayOfWeek: number;
+                                time: string;
+                                timezone: string;
+                              });
+                            setTrigger({
+                              ...trigger!,
+                              config: { ...base, timezone: e.target.value },
+                            });
+                          }}
+                          disabled={trigger?.enabled === false}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                        >
+                          {timezoneOptions.map((tz) => (
+                            <option key={tz.value} value={tz.value}>
+                              {tz.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                  {trigger?.type === "time.monthlyOn" && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Day of Month
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={31}
+                          value={getMonthlyOnConfig(trigger)?.dayOfMonth ?? 1}
+                          onChange={(e) => {
+                            const val = Math.max(
+                              1,
+                              Math.min(31, Number(e.target.value) || 1)
+                            );
+                            const base =
+                              getMonthlyOnConfig(trigger) ||
+                              ({
+                                dayOfMonth: 1,
+                                time: "09:00",
+                                timezone: moment.tz.guess(),
+                              } as {
+                                dayOfMonth: number;
+                                time: string;
+                                timezone: string;
+                              });
+                            setTrigger({
+                              ...trigger!,
+                              config: { ...base, dayOfMonth: val },
+                            });
+                          }}
+                          disabled={trigger?.enabled === false}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Time (HH:mm)
+                        </label>
+                        <input
+                          type="time"
+                          value={getMonthlyOnConfig(trigger)?.time || "09:00"}
+                          onChange={(e) => {
+                            const base =
+                              getMonthlyOnConfig(trigger) ||
+                              ({
+                                dayOfMonth: 1,
+                                time: "09:00",
+                                timezone: moment.tz.guess(),
+                              } as {
+                                dayOfMonth: number;
+                                time: string;
+                                timezone: string;
+                              });
+                            setTrigger({
+                              ...trigger!,
+                              config: { ...base, time: e.target.value },
+                            });
+                          }}
+                          disabled={trigger?.enabled === false}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Timezone
+                        </label>
+                        <select
+                          value={
+                            getMonthlyOnConfig(trigger)?.timezone ||
+                            moment.tz.guess()
+                          }
+                          onChange={(e) => {
+                            const base =
+                              getMonthlyOnConfig(trigger) ||
+                              ({
+                                dayOfMonth: 1,
+                                time: "09:00",
+                                timezone: moment.tz.guess(),
+                              } as {
+                                dayOfMonth: number;
+                                time: string;
+                                timezone: string;
+                              });
+                            setTrigger({
+                              ...trigger!,
+                              config: { ...base, timezone: e.target.value },
+                            });
+                          }}
+                          disabled={trigger?.enabled === false}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                        >
+                          {timezoneOptions.map((tz) => (
+                            <option key={tz.value} value={tz.value}>
+                              {tz.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
                   {trigger?.type === "time.atDateTime" && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
@@ -1419,28 +1686,36 @@ const SpawnEditorWorkspace: React.FC = () => {
                         >
                           Timezone
                         </label>
-                        <input
+                        <select
                           id="at-timezone"
-                          type="text"
-                          placeholder="e.g., America/Los_Angeles"
-                          value={getAtDateTimeConfig(trigger)?.timezone || ""}
+                          value={
+                            getAtDateTimeConfig(trigger)?.timezone ||
+                            moment.tz.guess()
+                          }
                           onChange={(e) => {
                             const base =
                               getAtDateTimeConfig(trigger) ||
                               ({
                                 isoDateTime: new Date().toISOString(),
-                                timezone: "UTC",
+                                timezone: moment.tz.guess(),
                               } as {
                                 isoDateTime: string;
                                 timezone: string;
                               });
                             setTrigger({
-                              ...trigger,
+                              ...trigger!,
                               config: { ...base, timezone: e.target.value },
                             });
                           }}
+                          disabled={trigger?.enabled === false}
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                        />
+                        >
+                          {timezoneOptions.map((tz) => (
+                            <option key={tz.value} value={tz.value}>
+                              {tz.label}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                   )}
@@ -1480,25 +1755,36 @@ const SpawnEditorWorkspace: React.FC = () => {
                         >
                           Timezone
                         </label>
-                        <input
+                        <select
                           id="daily-timezone"
-                          type="text"
-                          placeholder="e.g., UTC"
-                          value={getDailyAtConfig(trigger)?.timezone || "UTC"}
+                          value={
+                            getDailyAtConfig(trigger)?.timezone ||
+                            moment.tz.guess()
+                          }
                           onChange={(e) => {
                             const base =
                               getDailyAtConfig(trigger) ||
-                              ({ time: "09:00", timezone: "UTC" } as {
+                              ({
+                                time: "09:00",
+                                timezone: moment.tz.guess(),
+                              } as {
                                 time: string;
                                 timezone: string;
                               });
                             setTrigger({
-                              ...trigger,
+                              ...trigger!,
                               config: { ...base, timezone: e.target.value },
                             });
                           }}
+                          disabled={trigger?.enabled === false}
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                        />
+                        >
+                          {timezoneOptions.map((tz) => (
+                            <option key={tz.value} value={tz.value}>
+                              {tz.label}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                   )}
@@ -1554,16 +1840,19 @@ const SpawnEditorWorkspace: React.FC = () => {
                           >
                             Timezone
                           </label>
-                          <input
+                          <select
                             id="every-timezone"
-                            type="text"
                             value={
-                              getEveryNMinutesConfig(trigger)?.timezone || "UTC"
+                              getEveryNMinutesConfig(trigger)?.timezone ||
+                              moment.tz.guess()
                             }
                             onChange={(e) => {
                               const base =
                                 getEveryNMinutesConfig(trigger) ||
-                                ({ intervalMinutes: 15, timezone: "UTC" } as {
+                                ({
+                                  intervalMinutes: 15,
+                                  timezone: moment.tz.guess(),
+                                } as {
                                   intervalMinutes: number;
                                   timezone: string;
                                   anchor?:
@@ -1575,12 +1864,19 @@ const SpawnEditorWorkspace: React.FC = () => {
                                       };
                                 });
                               setTrigger({
-                                ...trigger,
+                                ...trigger!,
                                 config: { ...base, timezone: e.target.value },
                               });
                             }}
+                            disabled={trigger?.enabled === false}
                             className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                          />
+                          >
+                            {timezoneOptions.map((tz) => (
+                              <option key={tz.value} value={tz.value}>
+                                {tz.label}
+                              </option>
+                            ))}
+                          </select>
                         </div>
                         <div>
                           <label
@@ -1700,20 +1996,22 @@ const SpawnEditorWorkspace: React.FC = () => {
                             >
                               Anchor Timezone
                             </label>
-                            <input
+                            <select
                               id="every-custom-tz"
-                              type="text"
                               value={(() => {
                                 const a =
                                   getEveryNMinutesConfig(trigger)?.anchor;
                                 return a && a.kind === "custom"
                                   ? a.timezone
-                                  : "";
+                                  : moment.tz.guess();
                               })()}
                               onChange={(e) => {
                                 const existing =
                                   getEveryNMinutesConfig(trigger) ||
-                                  ({ intervalMinutes: 15, timezone: "UTC" } as {
+                                  ({
+                                    intervalMinutes: 15,
+                                    timezone: moment.tz.guess(),
+                                  } as {
                                     intervalMinutes: number;
                                     timezone: string;
                                     anchor?:
@@ -1727,15 +2025,22 @@ const SpawnEditorWorkspace: React.FC = () => {
                                 const a = existing.anchor;
                                 if (!a || a.kind !== "custom") return;
                                 setTrigger({
-                                  ...trigger,
+                                  ...trigger!,
                                   config: {
                                     ...existing,
                                     anchor: { ...a, timezone: e.target.value },
                                   },
                                 });
                               }}
+                              disabled={trigger?.enabled === false}
                               className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                            />
+                            >
+                              {timezoneOptions.map((tz) => (
+                                <option key={tz.value} value={tz.value}>
+                                  {tz.label}
+                                </option>
+                              ))}
+                            </select>
                           </div>
                         </div>
                       )}
@@ -1783,26 +2088,33 @@ const SpawnEditorWorkspace: React.FC = () => {
                         >
                           Timezone
                         </label>
-                        <input
+                        <select
                           id="minute-timezone"
-                          type="text"
                           value={
-                            getMinuteOfHourConfig(trigger)?.timezone || "UTC"
+                            getMinuteOfHourConfig(trigger)?.timezone ||
+                            moment.tz.guess()
                           }
                           onChange={(e) => {
                             const base =
                               getMinuteOfHourConfig(trigger) ||
-                              ({ minute: 0, timezone: "UTC" } as {
+                              ({ minute: 0, timezone: moment.tz.guess() } as {
                                 minute: number;
                                 timezone: string;
                               });
                             setTrigger({
-                              ...trigger,
+                              ...trigger!,
                               config: { ...base, timezone: e.target.value },
                             });
                           }}
+                          disabled={trigger?.enabled === false}
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                        />
+                        >
+                          {timezoneOptions.map((tz) => (
+                            <option key={tz.value} value={tz.value}>
+                              {tz.label}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                   )}

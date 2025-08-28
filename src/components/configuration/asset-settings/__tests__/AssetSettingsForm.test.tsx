@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, act, fireEvent } from "@testing-library/react";
+import {
+  render,
+  screen,
+  act,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react";
 import AssetSettingsForm from "../AssetSettingsForm";
 import type { Spawn, SpawnAsset } from "../../../../types/spawn";
 import type { MediaAsset, MediaAssetProperties } from "../../../../types/media";
@@ -946,14 +952,15 @@ describe("AssetSettingsForm", () => {
           setCachedDraft={mockSetCachedDraft}
         />
       );
-
+      // Ensure base content loaded before asserting toggles
+      await screen.findByText("Test Video · video");
       const dimensionsToggle = await screen.findByLabelText(
         "Override dimensions"
       );
       const scaleToggle = await screen.findByLabelText("Override scale");
 
-      expect(dimensionsToggle).toBeChecked();
-      expect(scaleToggle).toBeChecked();
+      await waitFor(() => expect(dimensionsToggle).toBeChecked());
+      await waitFor(() => expect(scaleToggle).toBeChecked());
 
       const widthInput = await screen.findByDisplayValue("200");
       const scaleInput = await screen.findByDisplayValue("2");
