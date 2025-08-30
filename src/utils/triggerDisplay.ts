@@ -1,4 +1,4 @@
-import moment from "moment-timezone";
+import moment from "moment-timezone/builds/moment-timezone-with-data-1970-2030";
 import type { Spawn, Trigger } from "../types/spawn";
 import { getNextActivation, formatNextActivation } from "./scheduling";
 

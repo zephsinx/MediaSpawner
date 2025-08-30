@@ -1,5 +1,5 @@
 import type { MediaAssetProperties } from "./media";
-import moment from "moment-timezone";
+import moment from "moment-timezone/builds/moment-timezone-with-data-1970-2030";
 
 export type Trigger = { enabled?: boolean } & (
   | { type: "manual"; config: Record<string, never> }

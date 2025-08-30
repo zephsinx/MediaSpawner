@@ -1,4 +1,4 @@
-import moment from "moment-timezone";
+import moment from "moment-timezone/builds/moment-timezone-with-data-1970-2030";
 import type { Trigger } from "../types/spawn";
 
 const getTimezoneIfTimeBased = (trigger: Trigger): string | undefined => {
