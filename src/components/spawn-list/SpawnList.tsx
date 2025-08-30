@@ -289,7 +289,7 @@ const SpawnList: React.FC<SpawnListProps> = ({
                 type="button"
                 onClick={handleCreateSpawn}
                 disabled={isCreating}
-                className={`inline-flex items-center px-3 py-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors ${
+                className={`inline-flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors ${
                   isCreating ? "opacity-60 cursor-not-allowed" : ""
                 }`}
                 aria-label="Create New Spawn"
@@ -346,7 +346,7 @@ const SpawnList: React.FC<SpawnListProps> = ({
               type="button"
               onClick={handleCreateSpawn}
               disabled={isCreating}
-              className={`inline-flex items-center px-3 py-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors ${
+              className={`inline-flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors ${
                 isCreating ? "opacity-60 cursor-not-allowed" : ""
               }`}
               aria-label="Create New Spawn"

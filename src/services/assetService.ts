@@ -158,6 +158,16 @@ export class AssetService {
     if (index !== -1) {
       assets[index] = updatedAsset;
       this.saveAssets(assets);
+      try {
+        // Notify listeners that assets changed so dependent panels can refresh
+        window.dispatchEvent(
+          new Event(
+            "mediaspawner:assets-updated" as unknown as keyof WindowEventMap
+          )
+        );
+      } catch {
+        // Best-effort notification
+      }
       return true;
     }
 

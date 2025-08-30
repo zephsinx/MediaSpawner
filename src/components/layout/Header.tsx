@@ -97,7 +97,7 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
             </a>
             <button
               onClick={handleCreateProfile}
-              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors whitespace-nowrap"
+              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap"
             >
               Create Profile
             </button>
@@ -111,7 +111,7 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
             <button
               onClick={handleDeleteProfile}
               disabled={!activeProfileId}
-              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
             >
               Delete Profile
             </button>
