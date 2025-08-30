@@ -30,8 +30,7 @@ const mockSpawns: Spawn[] = [
     trigger: {
       enabled: true,
       type: "manual",
-      config: { type: "manual" },
-      priority: 0,
+      config: {},
     },
     duration: 5000,
     assets: [],
@@ -46,8 +45,7 @@ const mockSpawns: Spawn[] = [
     trigger: {
       enabled: true,
       type: "manual",
-      config: { type: "manual" },
-      priority: 0,
+      config: {},
     },
     duration: 3000,
     assets: [],

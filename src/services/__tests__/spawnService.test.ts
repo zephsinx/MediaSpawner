@@ -314,7 +314,7 @@ describe("SpawnService", () => {
 
       const newTrigger = {
         type: "twitch.cheer" as const,
-        config: { minBits: 100 },
+        config: { bits: 100 },
       };
 
       const result = await SpawnService.updateSpawn("spawn-1", {

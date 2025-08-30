@@ -14,8 +14,7 @@ export const createMockSpawn = (overrides: Partial<Spawn> = {}): Spawn => ({
   trigger: {
     enabled: true,
     type: "manual",
-    config: { type: "manual" },
-    priority: 0,
+    config: {},
   },
   duration: 5000,
   assets: [],
