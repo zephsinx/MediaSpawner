@@ -279,6 +279,7 @@ describe("SpawnListItem", () => {
       await act(async () => {
         render(<SpawnListItem spawn={mockSpawn} />);
       });
+      // The overall status chip still shows Active when spawn and trigger are enabled
       expect(screen.getByText("Active")).toBeInTheDocument();
     });
 
@@ -290,6 +291,48 @@ describe("SpawnListItem", () => {
         render(<SpawnListItem spawn={disabledSpawn} />);
       });
       expect(screen.getByText("Inactive")).toBeInTheDocument();
+    });
+  });
+
+  describe("Trigger summary", () => {
+    it("shows type badge and abbreviated info for manual trigger", async () => {
+      const spawn = createMockSpawn({
+        trigger: { type: "manual", enabled: true, config: {} },
+      });
+      await act(async () => {
+        render(<SpawnListItem spawn={spawn} />);
+      });
+      // Both the type badge and abbrev render "Manual"
+      const manuals = screen.getAllByText("Manual");
+      expect(manuals.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("shows schedule label for a daily time trigger", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2025-01-01T00:00:00.000Z"));
+      const spawn = createMockSpawn({
+        trigger: {
+          type: "time.dailyAt",
+          enabled: true,
+          config: { time: "09:00", timezone: "UTC" },
+        },
+      });
+      await act(async () => {
+        render(<SpawnListItem spawn={spawn} />);
+      });
+      const scheduled = screen.getByText(/Scheduled /);
+      expect(scheduled).toBeInTheDocument();
+      vi.useRealTimers();
+    });
+
+    it("shows 'Trigger off' when trigger is disabled", async () => {
+      const spawn = createMockSpawn({
+        trigger: { type: "manual", enabled: false, config: {} },
+      });
+      await act(async () => {
+        render(<SpawnListItem spawn={spawn} />);
+      });
+      expect(screen.getByText("Trigger off")).toBeInTheDocument();
     });
   });
 

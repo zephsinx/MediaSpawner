@@ -226,7 +226,7 @@ As a user, I want to see trigger status and information in my spawn list, so tha
 
 - [ ] Can see trigger type indicator for each spawn in the list
 - [ ] Can see basic trigger info (command, schedule, etc.) at a glance
-- [ ] Can see trigger status (active, inactive, scheduled, cooldown)
+- [ ] Can see trigger status (active, inactive, scheduled)
 - [ ] Trigger information is compact and doesn't clutter the spawn list
 - [ ] Can hover for more detailed trigger information
 - [ ] Visual indicators help distinguish different trigger types
@@ -235,7 +235,7 @@ As a user, I want to see trigger status and information in my spawn list, so tha
 
 - Add trigger type icons/indicators to spawn list items (Epic 3) for quick visual recognition
 - Display abbreviated trigger information (command text, schedule, etc.) for at-a-glance understanding
-- Add trigger status indicators (active, cooldown, scheduled, etc.) to show current state
+- Add trigger status indicators (active, scheduled, etc.) to show current state
 - Implement hover tooltips with detailed trigger information for comprehensive details
 - Create visual design that doesn't clutter the spawn list to maintain clean interface
 - Add color coding or icons for different trigger types for clear categorization
