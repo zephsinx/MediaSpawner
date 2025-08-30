@@ -129,10 +129,7 @@ describe("SpawnEditorWorkspace - MS-52 Command Trigger Configuration", () => {
       expect(caseSensitiveCheckbox).not.toBeChecked();
     });
 
-    it("has Twitch selected as default platform source", () => {
-      const twitchCheckbox = screen.getByRole("checkbox", { name: /Twitch/i });
-      expect(twitchCheckbox).toBeChecked();
-    });
+    // Platform sources removed (Twitch-only support); no checkbox expected
 
     it("has filtering options defaulting to true", () => {
       const ignoreInternalCheckbox = screen.getByRole("checkbox", {

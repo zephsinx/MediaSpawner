@@ -41,7 +41,7 @@ describe("Spawn Types", () => {
 
     it("getDefaultTriggerConfig returns correct configs", () => {
       expect(getDefaultTriggerConfig("manual")).toEqual({});
-      expect(getDefaultTriggerConfig("twitch.cheer")).toEqual({ minBits: 1 });
+      expect(getDefaultTriggerConfig("twitch.cheer")).toEqual({});
     });
 
     it("createSpawnAsset creates asset with defaults", () => {

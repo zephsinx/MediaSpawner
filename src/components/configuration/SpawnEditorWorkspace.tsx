@@ -12,6 +12,7 @@ import {
   getNextActivation,
   formatNextActivation,
 } from "../../utils/scheduling";
+import { validateTrigger } from "../../utils/triggerValidation";
 
 const buildTimezoneOptions = () => {
   const now = Date.now();
@@ -153,6 +154,7 @@ const SpawnEditorWorkspace: React.FC = () => {
     Partial<MediaAssetProperties>
   >({});
   const [showMetadata, setShowMetadata] = useState<boolean>(true);
+  const validation = useMemo(() => validateTrigger(trigger), [trigger]);
 
   useEffect(() => {
     let isActive = true;
@@ -320,7 +322,8 @@ const SpawnEditorWorkspace: React.FC = () => {
     isSaving ||
     !selectedSpawn ||
     !isCommandAliasValid ||
-    !isChannelPointConfigValid;
+    !isChannelPointConfigValid ||
+    validation.errors.length > 0;
 
   const handleCancel = () => {
     if (!selectedSpawn) return;
@@ -678,6 +681,26 @@ const SpawnEditorWorkspace: React.FC = () => {
                   <span className="ml-2 text-sm text-gray-700">Enabled</span>
                 </label>
               </div>
+              <div className="mb-2 flex items-center gap-2 text-xs">
+                {validation.errors.length > 0 ? (
+                  <span className="px-2 py-0.5 rounded bg-red-100 text-red-700">
+                    Invalid
+                  </span>
+                ) : validation.warnings.length > 0 ? (
+                  <span className="px-2 py-0.5 rounded bg-yellow-100 text-yellow-800">
+                    Warning
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded bg-green-100 text-green-700">
+                    Valid
+                  </span>
+                )}
+                {validation.warnings.length > 0 && (
+                  <span className="text-gray-500">
+                    {validation.warnings[0]}
+                  </span>
+                )}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label
@@ -992,50 +1015,7 @@ const SpawnEditorWorkspace: React.FC = () => {
                     </p>
                   </div>
 
-                  {/* Platform Sources */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Platform Sources
-                    </label>
-                    <div className="space-y-2">
-                      {["Twitch", "YouTube", "Kick"].map((platform) => (
-                        <label
-                          key={platform}
-                          className="flex items-center cursor-pointer select-none"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={(
-                              getCommandConfig(trigger)?.sources || ["Twitch"]
-                            ).includes(platform)}
-                            onChange={(e) => {
-                              const currentSources = getCommandConfig(trigger)
-                                ?.sources || ["Twitch"];
-                              const newSources = e.target.checked
-                                ? [...currentSources, platform]
-                                : currentSources.filter(
-                                    (s: string) => s !== platform
-                                  );
-                              setTrigger({
-                                ...trigger,
-                                config: {
-                                  ...getCommandConfig(trigger),
-                                  sources: newSources,
-                                },
-                              });
-                            }}
-                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">
-                            {platform}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                    <p className="mt-1 text-xs text-gray-600">
-                      Select which platforms can trigger this command
-                    </p>
-                  </div>
+                  {/* Platform Sources removed: Twitch-only support for now */}
 
                   {/* Filtering Options */}
                   <div className="space-y-3">
@@ -1252,7 +1232,7 @@ const SpawnEditorWorkspace: React.FC = () => {
                 <h3 className="text-base font-semibold text-gray-800 mb-3">
                   Subscription Configuration
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label
                       htmlFor="sub-tier"
@@ -1287,28 +1267,72 @@ const SpawnEditorWorkspace: React.FC = () => {
                   </div>
                   <div>
                     <label
-                      htmlFor="sub-min-months"
+                      htmlFor="sub-months-comparator"
                       className="block text-sm font-medium text-gray-700 mb-1"
                     >
-                      Minimum Months
+                      Months Comparator
+                    </label>
+                    <select
+                      id="sub-months-comparator"
+                      value={
+                        getSubscriptionConfig(trigger)?.monthsComparator ?? ""
+                      }
+                      onChange={(e) => {
+                        const v = (e.target.value || undefined) as
+                          | "lt"
+                          | "eq"
+                          | "gt"
+                          | undefined;
+                        setTrigger({
+                          ...trigger,
+                          config: {
+                            ...getSubscriptionConfig(trigger),
+                            monthsComparator: v,
+                          },
+                        });
+                      }}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                    >
+                      <option value="">- Select -</option>
+                      <option value="lt">Less than</option>
+                      <option value="eq">Equal to</option>
+                      <option value="gt">Greater than</option>
+                    </select>
+                    {validation.fieldErrors.monthsComparator && (
+                      <p className="mt-1 text-xs text-red-600">
+                        {validation.fieldErrors.monthsComparator[0]}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="sub-months"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Months
                     </label>
                     <input
-                      id="sub-min-months"
+                      id="sub-months"
                       type="number"
                       min={1}
-                      value={getSubscriptionConfig(trigger)?.minMonths ?? ""}
+                      value={getSubscriptionConfig(trigger)?.months ?? ""}
                       onChange={(e) => {
                         const val = Math.max(1, Number(e.target.value) || 1);
                         setTrigger({
                           ...trigger,
                           config: {
                             ...getSubscriptionConfig(trigger),
-                            minMonths: val,
+                            months: val,
                           },
                         });
                       }}
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
                     />
+                    {validation.fieldErrors.months && (
+                      <p className="mt-1 text-xs text-red-600">
+                        {validation.fieldErrors.months[0]}
+                      </p>
+                    )}
                   </div>
                 </div>
               </section>
@@ -1383,28 +1407,70 @@ const SpawnEditorWorkspace: React.FC = () => {
                 <h3 className="text-base font-semibold text-gray-800 mb-3">
                   Cheer Configuration
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label
-                      htmlFor="cheer-min-bits"
+                      htmlFor="cheer-bits-comparator"
                       className="block text-sm font-medium text-gray-700 mb-1"
                     >
-                      Minimum Bits
+                      Bits Comparator
+                    </label>
+                    <select
+                      id="cheer-bits-comparator"
+                      value={getCheerConfig(trigger)?.bitsComparator ?? ""}
+                      onChange={(e) => {
+                        const v = (e.target.value || undefined) as
+                          | "lt"
+                          | "eq"
+                          | "gt"
+                          | undefined;
+                        setTrigger({
+                          ...trigger,
+                          config: {
+                            ...getCheerConfig(trigger),
+                            bitsComparator: v,
+                          },
+                        });
+                      }}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                    >
+                      <option value="">- Select -</option>
+                      <option value="lt">Less than</option>
+                      <option value="eq">Equal to</option>
+                      <option value="gt">Greater than</option>
+                    </select>
+                    {validation.fieldErrors.bitsComparator && (
+                      <p className="mt-1 text-xs text-red-600">
+                        {validation.fieldErrors.bitsComparator[0]}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="cheer-bits"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Bits
                     </label>
                     <input
-                      id="cheer-min-bits"
+                      id="cheer-bits"
                       type="number"
                       min={1}
-                      value={getCheerConfig(trigger)?.minBits ?? 1}
+                      value={getCheerConfig(trigger)?.bits ?? ""}
                       onChange={(e) => {
                         const val = Math.max(1, Number(e.target.value) || 1);
                         setTrigger({
                           ...trigger,
-                          config: { ...getCheerConfig(trigger), minBits: val },
+                          config: { ...getCheerConfig(trigger), bits: val },
                         });
                       }}
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
                     />
+                    {validation.fieldErrors.bits && (
+                      <p className="mt-1 text-xs text-red-600">
+                        {validation.fieldErrors.bits[0]}
+                      </p>
+                    )}
                   </div>
                 </div>
               </section>
@@ -1649,24 +1715,29 @@ const SpawnEditorWorkspace: React.FC = () => {
                           id="at-datetime"
                           type="datetime-local"
                           value={(() => {
-                            const v =
-                              getAtDateTimeConfig(trigger)?.isoDateTime || "";
-                            if (!v) return "";
+                            const cfg = getAtDateTimeConfig(trigger);
+                            if (!cfg?.isoDateTime) return "";
                             try {
-                              return v.replace(/\.\d{3}Z$/, "").slice(0, 16);
+                              return moment(cfg.isoDateTime)
+                                .tz(cfg.timezone)
+                                .format("YYYY-MM-DDTHH:mm");
                             } catch {
                               return "";
                             }
                           })()}
                           onChange={(e) => {
+                            const current = getAtDateTimeConfig(trigger);
+                            const tz = current?.timezone || moment.tz.guess();
                             const iso = e.target.value
-                              ? new Date(e.target.value).toISOString()
+                              ? moment
+                                  .tz(e.target.value, "YYYY-MM-DDTHH:mm", tz)
+                                  .toISOString()
                               : new Date().toISOString();
                             const base =
-                              getAtDateTimeConfig(trigger) ||
+                              current ||
                               ({
                                 isoDateTime: new Date().toISOString(),
-                                timezone: "UTC",
+                                timezone: tz,
                               } as {
                                 isoDateTime: string;
                                 timezone: string;
@@ -1678,6 +1749,11 @@ const SpawnEditorWorkspace: React.FC = () => {
                           }}
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
                         />
+                        {validation.fieldErrors.isoDateTime && (
+                          <p className="mt-1 text-xs text-red-600">
+                            {validation.fieldErrors.isoDateTime[0]}
+                          </p>
+                        )}
                       </div>
                       <div>
                         <label
@@ -1716,6 +1792,11 @@ const SpawnEditorWorkspace: React.FC = () => {
                             </option>
                           ))}
                         </select>
+                        {validation.fieldErrors.timezone && (
+                          <p className="mt-1 text-xs text-red-600">
+                            {validation.fieldErrors.timezone[0]}
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -1747,6 +1828,11 @@ const SpawnEditorWorkspace: React.FC = () => {
                           }}
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
                         />
+                        {validation.fieldErrors.time && (
+                          <p className="mt-1 text-xs text-red-600">
+                            {validation.fieldErrors.time[0]}
+                          </p>
+                        )}
                       </div>
                       <div>
                         <label
@@ -1785,6 +1871,11 @@ const SpawnEditorWorkspace: React.FC = () => {
                             </option>
                           ))}
                         </select>
+                        {validation.fieldErrors.timezone && (
+                          <p className="mt-1 text-xs text-red-600">
+                            {validation.fieldErrors.timezone[0]}
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -1832,6 +1923,11 @@ const SpawnEditorWorkspace: React.FC = () => {
                             }}
                             className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
                           />
+                          {validation.fieldErrors.intervalMinutes && (
+                            <p className="mt-1 text-xs text-red-600">
+                              {validation.fieldErrors.intervalMinutes[0]}
+                            </p>
+                          )}
                         </div>
                         <div>
                           <label
@@ -1877,6 +1973,11 @@ const SpawnEditorWorkspace: React.FC = () => {
                               </option>
                             ))}
                           </select>
+                          {validation.fieldErrors.timezone && (
+                            <p className="mt-1 text-xs text-red-600">
+                              {validation.fieldErrors.timezone[0]}
+                            </p>
+                          )}
                         </div>
                         <div>
                           <label
@@ -1988,6 +2089,15 @@ const SpawnEditorWorkspace: React.FC = () => {
                               }}
                               className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
                             />
+                            {validation.fieldErrors["anchor.isoDateTime"] && (
+                              <p className="mt-1 text-xs text-red-600">
+                                {
+                                  validation.fieldErrors[
+                                    "anchor.isoDateTime"
+                                  ][0]
+                                }
+                              </p>
+                            )}
                           </div>
                           <div>
                             <label
@@ -2041,6 +2151,11 @@ const SpawnEditorWorkspace: React.FC = () => {
                                 </option>
                               ))}
                             </select>
+                            {validation.fieldErrors["anchor.timezone"] && (
+                              <p className="mt-1 text-xs text-red-600">
+                                {validation.fieldErrors["anchor.timezone"][0]}
+                              </p>
+                            )}
                           </div>
                         </div>
                       )}
@@ -2080,6 +2195,11 @@ const SpawnEditorWorkspace: React.FC = () => {
                           }}
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
                         />
+                        {validation.fieldErrors.minute && (
+                          <p className="mt-1 text-xs text-red-600">
+                            {validation.fieldErrors.minute[0]}
+                          </p>
+                        )}
                       </div>
                       <div>
                         <label
@@ -2115,6 +2235,11 @@ const SpawnEditorWorkspace: React.FC = () => {
                             </option>
                           ))}
                         </select>
+                        {validation.fieldErrors.timezone && (
+                          <p className="mt-1 text-xs text-red-600">
+                            {validation.fieldErrors.timezone[0]}
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}

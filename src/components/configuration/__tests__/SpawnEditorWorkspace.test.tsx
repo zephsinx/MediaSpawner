@@ -268,7 +268,7 @@ describe("SpawnEditorWorkspace", () => {
   });
 
   describe("MS-54 Event & Time-based triggers", () => {
-    it("renders Subscription config and updates tier and minMonths", async () => {
+    it("renders Subscription config and updates tier and months with comparator", async () => {
       const subSpawn = createSpawn({
         id: "s-sub",
         name: "Sub Spawn",
@@ -297,13 +297,18 @@ describe("SpawnEditorWorkspace", () => {
       });
       expect(tierSelect.value).toBe("2000");
 
-      // Set min months
-      const months = screen.getByLabelText(
-        "Minimum Months"
-      ) as HTMLInputElement;
+      // Set months comparator and months
+      const comp = screen.getByLabelText(
+        "Months Comparator"
+      ) as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(comp, { target: { value: "gt" } });
+      });
+      const months = screen.getByLabelText("Months") as HTMLInputElement;
       await act(async () => {
         fireEvent.change(months, { target: { value: "3" } });
       });
+      expect(comp.value).toBe("gt");
       expect(months.value).toBe("3");
     });
 
@@ -343,7 +348,7 @@ describe("SpawnEditorWorkspace", () => {
       expect(tier.value).toBe("1000");
     });
 
-    it("renders Cheer config and updates minBits", async () => {
+    it("renders Cheer config and updates bits with comparator", async () => {
       const cheerSpawn = createSpawn({
         id: "s-cheer",
         name: "Cheer Spawn",
@@ -363,11 +368,18 @@ describe("SpawnEditorWorkspace", () => {
       expect(
         await screen.findByText("Cheer Configuration")
       ).toBeInTheDocument();
-      const minBits = screen.getByLabelText("Minimum Bits") as HTMLInputElement;
+      const comp = screen.getByLabelText(
+        "Bits Comparator"
+      ) as HTMLSelectElement;
       await act(async () => {
-        fireEvent.change(minBits, { target: { value: "50" } });
+        fireEvent.change(comp, { target: { value: "eq" } });
       });
-      expect(minBits.value).toBe("50");
+      const bits = screen.getByLabelText("Bits") as HTMLInputElement;
+      await act(async () => {
+        fireEvent.change(bits, { target: { value: "50" } });
+      });
+      expect(comp.value).toBe("eq");
+      expect(bits.value).toBe("50");
     });
 
     it("renders Daily time-based config and shows Next activation", async () => {
@@ -443,6 +455,40 @@ describe("SpawnEditorWorkspace", () => {
       });
       await waitFor(() => expect(typeSelect.value).toBe("time.monthlyOn"));
       expect(screen.getByText("Time-based Configuration")).toBeInTheDocument();
+    });
+
+    it("disables Save and shows field error when dailyAt time invalid", async () => {
+      const timeSpawn = createSpawn({
+        id: "s-time2",
+        name: "Time Spawn 2",
+        trigger: getDefaultTrigger("time.dailyAt"),
+      });
+      mockState.selectedSpawnId = "s-time2";
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([timeSpawn]);
+
+      render(<SpawnEditorWorkspace />);
+      await screen.findByText("Editing: Time Spawn 2");
+
+      const typeSelect = screen.getByLabelText(
+        "Trigger Type"
+      ) as HTMLSelectElement;
+      await waitFor(() => expect(typeSelect.value).toBe("time.dailyAt"));
+
+      const timeInput = screen.getByLabelText(
+        "Time (HH:mm)"
+      ) as HTMLInputElement;
+      await act(async () => {
+        fireEvent.change(timeInput, { target: { value: "9:3" } });
+      });
+
+      // Error message from validation should render
+      expect(
+        await screen.findByText("Time must be HH:mm (24-hour)")
+      ).toBeInTheDocument();
+
+      // Save should be disabled
+      const saveButton = screen.getByRole("button", { name: "Save spawn" });
+      expect(saveButton).toBeDisabled();
     });
   });
 });

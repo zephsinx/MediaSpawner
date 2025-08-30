@@ -39,16 +39,22 @@ export type Trigger = { enabled?: boolean } & (
         commandId?: string;
         aliases?: string[];
         caseSensitive?: boolean;
-        sources?: string[];
         ignoreInternal?: boolean;
         ignoreBotAccount?: boolean;
       };
     }
   | { type: "twitch.follow"; config: Record<string, never> }
-  | { type: "twitch.cheer"; config: { minBits: number } }
+  | {
+      type: "twitch.cheer";
+      config: { bits?: number; bitsComparator?: "lt" | "eq" | "gt" };
+    }
   | {
       type: "twitch.subscription";
-      config: { tier?: "1000" | "2000" | "3000"; minMonths?: number };
+      config: {
+        tier?: "1000" | "2000" | "3000";
+        months?: number;
+        monthsComparator?: "lt" | "eq" | "gt";
+      };
     }
   | {
       type: "twitch.giftSub";
@@ -125,7 +131,6 @@ export const getDefaultTrigger = (type: TriggerType): Trigger => {
         config: {
           aliases: [""],
           caseSensitive: false,
-          sources: ["Twitch"],
           ignoreInternal: true,
           ignoreBotAccount: true,
         },
@@ -159,7 +164,11 @@ export const getDefaultTrigger = (type: TriggerType): Trigger => {
         },
       };
     case "twitch.cheer":
-      return { type: "twitch.cheer", enabled: true, config: { minBits: 1 } };
+      return {
+        type: "twitch.cheer",
+        enabled: true,
+        config: {},
+      };
   }
 };
 

@@ -629,13 +629,6 @@
                     "type": "boolean",
                     "default": false
                 },
-                "sources": {
-                    "type": "array",
-                    "items": {
-                        "type": "string",
-                        "minLength": 1
-                    }
-                },
                 "ignoreInternal": {
                     "type": "boolean",
                     "default": true
@@ -650,13 +643,34 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
-                "minBits": {
+                "bits": {
                     "type": "integer",
                     "minimum": 1
+                },
+                "bitsComparator": {
+                    "type": "string",
+                    "enum": [
+                        "lt",
+                        "eq",
+                        "gt"
+                    ]
                 }
             },
-            "required": [
-                "minBits"
+            "anyOf": [
+                {
+                    "required": [
+                        "bits",
+                        "bitsComparator"
+                    ]
+                },
+                {
+                    "not": {
+                        "required": [
+                            "bits",
+                            "bitsComparator"
+                        ]
+                    }
+                }
             ]
         },
         "TwitchSubscriptionConfig": {
@@ -671,9 +685,17 @@
                         "3000"
                     ]
                 },
-                "minMonths": {
+                "months": {
                     "type": "integer",
                     "minimum": 1
+                },
+                "monthsComparator": {
+                    "type": "string",
+                    "enum": [
+                        "lt",
+                        "eq",
+                        "gt"
+                    ]
                 }
             }
         },
