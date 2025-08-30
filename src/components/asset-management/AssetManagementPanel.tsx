@@ -377,6 +377,7 @@ function AssetLibrarySection() {
   const { selectedSpawnId } = usePanelState();
   const [assigningAssetId, setAssigningAssetId] = useState<string | null>(null);
   const [lastAddedAssetId, setLastAddedAssetId] = useState<string | null>(null);
+  const [spawnAssetIds, setSpawnAssetIds] = useState<Set<string>>(new Set());
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -396,6 +397,44 @@ function AssetLibrarySection() {
       );
     };
   }, []);
+
+  // Track which assets are already in the selected spawn
+  useEffect(() => {
+    let isActive = true;
+    const loadSpawnAssets = async () => {
+      if (!selectedSpawnId) {
+        if (isActive) setSpawnAssetIds(new Set());
+        return;
+      }
+      const spawn = await SpawnService.getSpawn(selectedSpawnId);
+      if (isActive) {
+        const ids = new Set((spawn?.assets ?? []).map((sa) => sa.assetId));
+        setSpawnAssetIds(ids);
+      }
+    };
+    void loadSpawnAssets();
+
+    const onSpawnUpdated = (evt: Event) => {
+      const detail = (evt as CustomEvent).detail as
+        | { spawnId?: string }
+        | undefined;
+      if (!detail || !detail.spawnId) return;
+      if (detail.spawnId === selectedSpawnId) {
+        void loadSpawnAssets();
+      }
+    };
+    window.addEventListener(
+      "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+      onSpawnUpdated as EventListener
+    );
+    return () => {
+      isActive = false;
+      window.removeEventListener(
+        "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+        onSpawnUpdated as EventListener
+      );
+    };
+  }, [selectedSpawnId]);
 
   const getTypeIcon = (type: MediaAsset["type"]) =>
     type === "image" ? "🖼️" : type === "video" ? "🎥" : "🎵";
@@ -529,6 +568,12 @@ function AssetLibrarySection() {
       }
 
       setLastAddedAssetId(asset.id);
+      // Optimistically reflect in-library state
+      setSpawnAssetIds((prev) => {
+        const next = new Set(prev);
+        next.add(asset.id);
+        return next;
+      });
       window.dispatchEvent(
         new CustomEvent(
           "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
@@ -689,27 +734,36 @@ function AssetLibrarySection() {
                     </div>
                   </div>
                   <div className="flex items-center">
-                    <button
-                      type="button"
-                      className={`p-1.5 rounded border border-gray-300 bg-white text-gray-700 ${
-                        !selectedSpawnId || assigningAssetId === asset.id
-                          ? "opacity-50 cursor-not-allowed"
-                          : "hover:bg-gray-50"
-                      }`}
-                      aria-label="Add to Spawn"
-                      onClick={() => handleAddToSpawn(asset)}
-                      disabled={
-                        !selectedSpawnId || assigningAssetId === asset.id
-                      }
-                    >
-                      <span aria-hidden="true">
-                        {lastAddedAssetId === asset.id
-                          ? "✓"
-                          : assigningAssetId === asset.id
-                            ? "…"
-                            : "+"}
+                    {selectedSpawnId && spawnAssetIds.has(asset.id) ? (
+                      <span
+                        className="text-xs px-2 py-1 rounded border border-gray-300 bg-gray-100 text-gray-500 cursor-default"
+                        aria-label="Already in spawn"
+                      >
+                        Added ✓
                       </span>
-                    </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className={`p-1.5 rounded border border-gray-300 bg-white text-gray-700 ${
+                          !selectedSpawnId || assigningAssetId === asset.id
+                            ? "opacity-50 cursor-not-allowed"
+                            : "hover:bg-gray-50"
+                        }`}
+                        aria-label="Add to Spawn"
+                        onClick={() => handleAddToSpawn(asset)}
+                        disabled={
+                          !selectedSpawnId || assigningAssetId === asset.id
+                        }
+                      >
+                        <span aria-hidden="true">
+                          {lastAddedAssetId === asset.id
+                            ? "✓"
+                            : assigningAssetId === asset.id
+                              ? "…"
+                              : "+"}
+                        </span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </li>

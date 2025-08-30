@@ -17,6 +17,7 @@ vi.mock("../../../services/spawnService", () => ({
     createSpawn: vi.fn(),
     updateSpawn: vi.fn(),
     deleteSpawn: vi.fn(),
+    getSpawn: vi.fn(),
   },
 }));
 
@@ -59,6 +60,7 @@ describe("Layout", () => {
     vi.clearAllMocks();
     // Set default mock return value for all tests (async)
     vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([]);
+    vi.mocked(SpawnService.getSpawn).mockResolvedValue(null);
   });
 
   describe("Three-Panel Integration", () => {
