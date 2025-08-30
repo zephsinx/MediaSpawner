@@ -20,6 +20,17 @@ const AssetLibraryPage: React.FC = () => {
   // Load assets on component mount
   useEffect(() => {
     setAssets(AssetService.getAssets());
+    const handler = () => setAssets(AssetService.getAssets());
+    window.addEventListener(
+      "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
+      handler as EventListener
+    );
+    return () => {
+      window.removeEventListener(
+        "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
+        handler as EventListener
+      );
+    };
   }, []);
 
   const handleAssetDelete = (asset: MediaAsset) => {
