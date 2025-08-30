@@ -49,10 +49,8 @@ describe("SpawnService", () => {
     description: "Test description",
     enabled: true,
     trigger: {
-      enabled: true,
       type: "manual",
-      config: { type: "manual" },
-      priority: 0,
+      config: {},
     },
     duration: 5000,
     assets: [],
@@ -114,10 +112,8 @@ describe("SpawnService", () => {
       description: description || "",
       enabled: true,
       trigger: {
-        enabled: true,
         type: "manual",
-        config: { type: "manual" },
-        priority: 0,
+        config: {},
       },
       duration: 5000,
       assets: [],
@@ -317,10 +313,8 @@ describe("SpawnService", () => {
       localStorage.setItem.mockImplementation(() => {});
 
       const newTrigger = {
-        enabled: false,
-        type: "timer" as const,
-        config: { type: "timer" as const, interval: 10000, repeat: true },
-        priority: 1,
+        type: "twitch.cheer" as const,
+        config: { minBits: 100 },
       };
 
       const result = await SpawnService.updateSpawn("spawn-1", {

@@ -1,365 +1,1016 @@
-import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
-import { render, screen, fireEvent, act } from "@testing-library/react";
-// Mock usePanelState BEFORE importing the component under test
-vi.mock("../../../../hooks/useLayout", () => ({
-  usePanelState: () => ({ setUnsavedChanges: vi.fn() }),
-}));
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import {
+  render,
+  screen,
+  act,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react";
 import AssetSettingsForm from "../AssetSettingsForm";
+import type { Spawn, SpawnAsset } from "../../../../types/spawn";
+import type { MediaAsset, MediaAssetProperties } from "../../../../types/media";
+import { createSpawn, createSpawnAsset } from "../../../../types/spawn";
+
+// Mock services
+vi.mock("../../../../services/spawnService", () => ({
+  SpawnService: {
+    getSpawn: vi.fn(),
+    updateSpawn: vi.fn(),
+  },
+}));
+vi.mock("../../../../services/assetService", () => ({
+  AssetService: {
+    getAssetById: vi.fn(),
+  },
+}));
+
+// Mock usePanelState hook
+vi.mock("../../../../hooks/useLayout", () => ({
+  usePanelState: vi.fn(),
+}));
+
+// Mock utility functions
+vi.mock("../../../../utils/assetSettingsResolver", () => ({
+  resolveEffectiveProperties: vi.fn(),
+  buildOverridesDiff: vi.fn(),
+}));
+vi.mock("../../../../utils/assetValidation", () => ({
+  validateVolumePercent: vi.fn(),
+  validateDimensionsValues: vi.fn(),
+  validatePositionValues: vi.fn(),
+  validateScaleValue: vi.fn(),
+}));
+
+// Imports after mocks
 import { SpawnService } from "../../../../services/spawnService";
 import { AssetService } from "../../../../services/assetService";
-import type { MediaAsset, MediaAssetProperties } from "../../../../types/media";
-import type { Spawn, SpawnAsset } from "../../../../types/spawn";
+import { usePanelState } from "../../../../hooks/useLayout";
+import {
+  resolveEffectiveProperties,
+  buildOverridesDiff,
+} from "../../../../utils/assetSettingsResolver";
+import {
+  validateVolumePercent,
+  validateDimensionsValues,
+  validatePositionValues,
+  validateScaleValue,
+} from "../../../../utils/assetValidation";
 
-vi.mock("../../../../services/spawnService");
-vi.mock("../../../../services/assetService");
+function makeSpawn(
+  id: string,
+  assets: SpawnAsset[],
+  defaultProperties?: Partial<MediaAssetProperties>
+): Spawn {
+  const spawn = createSpawn(id, undefined, assets, id);
+  if (defaultProperties) {
+    spawn.defaultProperties = defaultProperties;
+  }
+  return spawn;
+}
 
-const buildBaseAsset = (
-  type: MediaAsset["type"],
-  props: Partial<MediaAssetProperties> = {}
-): MediaAsset => ({
-  id: "asset-A",
-  type,
-  name: `${type}-asset`,
-  path: `${type}.ext`,
-  isUrl: false,
-  properties: {
-    dimensions: type !== "audio" ? { width: 100, height: 100 } : undefined,
-    position: type !== "audio" ? { x: 0, y: 0 } : undefined,
-    scale: type !== "audio" ? 1 : undefined,
-    positionMode: type !== "audio" ? "absolute" : undefined,
-    volume: type !== "image" ? 0.5 : undefined,
-    loop: type !== "image" ? false : undefined,
-    autoplay: type !== "image" ? false : undefined,
-    muted: type !== "image" ? false : undefined,
-    ...props,
-  },
+function makeSpawnAsset(
+  assetId: string,
+  order: number,
+  overrides?: Partial<MediaAssetProperties>
+): SpawnAsset {
+  return createSpawnAsset(
+    assetId,
+    order,
+    {
+      properties: overrides,
+    },
+    assetId
+  ); // Pass assetId as the id parameter
+}
+
+const makeAsset = (overrides: Partial<MediaAsset> = {}): MediaAsset => ({
+  id: overrides.id || Math.random().toString(36).slice(2),
+  type: overrides.type || "image",
+  name: overrides.name || "Sample Asset",
+  path: overrides.path || "https://example.com/sample.png",
+  isUrl: overrides.isUrl ?? true,
 });
 
-const buildSpawn = (
-  asset: MediaAsset,
-  overrides?: Partial<MediaAssetProperties>
-): { spawn: Spawn; spawnAsset: SpawnAsset } => {
-  const spawnAsset: SpawnAsset = {
-    id: "sa-1",
-    assetId: asset.id,
-    overrides: { properties: overrides || {} },
-    enabled: true,
-    order: 0,
-  };
-  const spawn: Spawn = {
-    id: "sp-1",
-    name: "spawn",
-    description: "",
-    enabled: true,
-    trigger: { enabled: true, type: "manual", config: { type: "manual" } },
-    duration: 5000,
-    assets: [spawnAsset],
-    defaultProperties: {
-      volume: 0.4,
-      dimensions:
-        asset.type !== "audio" ? { width: 80, height: 80 } : undefined,
-    },
-    lastModified: Date.now(),
-    order: 0,
-  };
-  return { spawn, spawnAsset };
-};
+const makeProperties = (
+  overrides: Partial<MediaAssetProperties> = {}
+): MediaAssetProperties => ({
+  dimensions: overrides.dimensions || { width: 100, height: 100 },
+  position: overrides.position || { x: 0, y: 0 },
+  scale: overrides.scale ?? 1.0,
+  positionMode: overrides.positionMode || "absolute",
+  volume: overrides.volume ?? 0.5,
+  loop: overrides.loop ?? false,
+  autoplay: overrides.autoplay ?? false,
+  muted: overrides.muted ?? false,
+});
 
 describe("AssetSettingsForm", () => {
+  const mockSetUnsavedChanges = vi.fn();
+  const mockOnBack = vi.fn();
+  const mockGetCachedDraft = vi.fn();
+  const mockSetCachedDraft = vi.fn();
+
   beforeEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
+
+    vi.mocked(usePanelState).mockReturnValue({
+      selectedSpawnId: undefined,
+      activeProfileId: undefined,
+      selectedSpawnAssetId: undefined,
+      centerPanelMode: "spawn-settings",
+      hasUnsavedChanges: false,
+      profileSpawnSelections: {},
+      setActiveProfile: vi.fn(),
+      selectSpawn: vi.fn(),
+      selectSpawnAsset: vi.fn(),
+      setCenterPanelMode: vi.fn(),
+      setUnsavedChanges: mockSetUnsavedChanges,
+      clearContext: vi.fn(),
+    });
+
+    // Default validation mocks
+    vi.mocked(validateVolumePercent).mockReturnValue({ isValid: true });
+    vi.mocked(validateDimensionsValues).mockReturnValue({ isValid: true });
+    vi.mocked(validatePositionValues).mockReturnValue({ isValid: true });
+    vi.mocked(validateScaleValue).mockReturnValue({ isValid: true });
   });
 
-  it("renders visual fields for image and not playback", async () => {
-    const asset = buildBaseAsset("image");
-    const { spawn, spawnAsset } = buildSpawn(asset);
-    (SpawnService.getSpawn as unknown as Mock).mockResolvedValue(spawn);
-    (AssetService.getAssetById as unknown as Mock).mockReturnValue(asset);
+  describe("Loading States", () => {
+    it("shows loading state when data is not yet loaded", () => {
+      vi.mocked(SpawnService.getSpawn).mockResolvedValue(null);
 
-    await act(async () => {
       render(
         <AssetSettingsForm
-          spawnId={spawn.id}
-          spawnAssetId={spawnAsset.id}
-          onBack={() => {}}
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
         />
       );
-    });
 
-    expect(screen.getByText("Visual Properties")).toBeInTheDocument();
-    expect(screen.queryByText("Playback Properties")).not.toBeInTheDocument();
+      expect(screen.getByText("Loading asset settings…")).toBeInTheDocument();
+    });
   });
 
-  it("renders visual + playback fields for video", async () => {
-    const asset = buildBaseAsset("video");
-    const { spawn, spawnAsset } = buildSpawn(asset);
-    (SpawnService.getSpawn as unknown as Mock).mockResolvedValue(spawn);
-    (AssetService.getAssetById as unknown as Mock).mockReturnValue(asset);
+  describe("Basic Rendering", () => {
+    beforeEach(() => {
+      const asset = makeAsset({
+        id: "asset1",
+        type: "video",
+        name: "Test Video",
+      });
+      const spawnAsset = makeSpawnAsset("asset1", 0);
+      const spawn = makeSpawn("spawn1", [spawnAsset], makeProperties());
 
-    await act(async () => {
-      render(
-        <AssetSettingsForm
-          spawnId={spawn.id}
-          spawnAssetId={spawnAsset.id}
-          onBack={() => {}}
-        />
-      );
+      vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
+      vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
+      vi.mocked(resolveEffectiveProperties).mockReturnValue({
+        effective: makeProperties(),
+        sourceMap: {
+          dimensions: "spawn-default",
+          position: "spawn-default",
+          scale: "spawn-default",
+          positionMode: "spawn-default",
+          volume: "spawn-default",
+          loop: "spawn-default",
+          autoplay: "spawn-default",
+          muted: "spawn-default",
+        },
+      });
     });
 
-    expect(screen.getByText("Visual Properties")).toBeInTheDocument();
-    expect(screen.getByText("Playback Properties")).toBeInTheDocument();
+    it("renders header with asset name and type", async () => {
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />
+      );
+
+      // Wait for the component to finish loading by looking for content that only appears after loading
+      await screen.findByText("Test Video · video");
+
+      expect(screen.getByText("Asset Settings")).toBeInTheDocument();
+      expect(screen.getByText("Test Video · video")).toBeInTheDocument();
+    });
+
+    it("renders action buttons", async () => {
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />
+      );
+
+      expect(
+        await screen.findByRole("button", { name: "Back to spawn settings" })
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByRole("button", { name: "Cancel edits" })
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByRole("button", {
+          name: "Reset all fields to spawn defaults",
+        })
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByRole("button", { name: "Save asset settings" })
+      ).toBeInTheDocument();
+    });
+
+    it("shows visual properties section for video assets", async () => {
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />
+      );
+
+      expect(await screen.findByText("Visual Properties")).toBeInTheDocument();
+      expect(await screen.findByText("Width (px)")).toBeInTheDocument();
+      expect(await screen.findByText("Height (px)")).toBeInTheDocument();
+      expect(await screen.findByText("X Position (px)")).toBeInTheDocument();
+      expect(await screen.findByText("Y Position (px)")).toBeInTheDocument();
+      expect(await screen.findByText("Scale")).toBeInTheDocument();
+      expect(await screen.findByText("Position Mode")).toBeInTheDocument();
+    });
+
+    it("shows playback properties section for video assets", async () => {
+      const asset = makeAsset({
+        id: "asset1",
+        type: "video",
+        name: "Test Video",
+      });
+      vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
+
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />
+      );
+
+      expect(
+        await screen.findByText("Playback Properties")
+      ).toBeInTheDocument();
+      expect(await screen.findByText("Volume (%)")).toBeInTheDocument();
+      expect(await screen.findByText("Loop")).toBeInTheDocument();
+      expect(await screen.findByText("Autoplay")).toBeInTheDocument();
+      expect(await screen.findByText("Muted")).toBeInTheDocument();
+    });
+
+    it("shows playback properties section for audio assets", async () => {
+      const asset = makeAsset({
+        id: "asset1",
+        type: "audio",
+        name: "Test Audio",
+      });
+      vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
+
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />
+      );
+
+      expect(
+        await screen.findByText("Playback Properties")
+      ).toBeInTheDocument();
+      expect(await screen.findByText("Volume (%)")).toBeInTheDocument();
+      expect(await screen.findByText("Loop")).toBeInTheDocument();
+      expect(await screen.findByText("Autoplay")).toBeInTheDocument();
+      expect(await screen.findByText("Muted")).toBeInTheDocument();
+    });
   });
 
-  it("enables override toggle to edit and disables to revert to inherited", async () => {
-    const asset = buildBaseAsset("image", {
-      dimensions: { width: 100, height: 50 },
-    });
-    const { spawn, spawnAsset } = buildSpawn(asset);
-    (SpawnService.getSpawn as unknown as Mock).mockResolvedValue(spawn);
-    (AssetService.getAssetById as unknown as Mock).mockReturnValue(asset);
+  describe("Property Override Toggles", () => {
+    beforeEach(() => {
+      const asset = makeAsset({
+        id: "asset1",
+        type: "video",
+        name: "Test Video",
+      });
+      const spawnAsset = makeSpawnAsset("asset1", 0);
+      const spawn = makeSpawn("spawn1", [spawnAsset], makeProperties());
 
-    await act(async () => {
+      vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
+      vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
+      vi.mocked(resolveEffectiveProperties).mockReturnValue({
+        effective: makeProperties(),
+        sourceMap: {
+          dimensions: "spawn-default",
+          position: "spawn-default",
+          scale: "spawn-default",
+          positionMode: "spawn-default",
+          volume: "spawn-default",
+          loop: "spawn-default",
+          autoplay: "spawn-default",
+          muted: "spawn-default",
+        },
+      });
+    });
+
+    it("enables property editing when override toggle is checked", async () => {
       render(
         <AssetSettingsForm
-          spawnId={spawn.id}
-          spawnAssetId={spawnAsset.id}
-          onBack={() => {}}
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
         />
       );
+
+      // Wait for the component to finish loading
+      await screen.findByText("Test Video · video");
+
+      // Find width input by role and aria-describedby marker
+      const numberInputs = screen.getAllByRole("spinbutton");
+      const widthInput = numberInputs.find((input) =>
+        input.getAttribute("aria-describedby")?.includes("dimensions-error")
+      );
+      if (!widthInput) throw new Error("Width input not found");
+      expect(widthInput).toBeDisabled();
+
+      const dimensionsToggle = await screen.findByLabelText(
+        "Override dimensions"
+      );
+      await act(async () => {
+        fireEvent.click(dimensionsToggle);
+      });
+
+      expect(widthInput).not.toBeDisabled();
     });
 
-    const widthLabel = screen.getByText("Width (px)");
-    const container = widthLabel.parentElement as HTMLElement;
-    const widthInput = container.querySelector(
-      'input[type="number"]'
-    ) as HTMLInputElement;
-    expect(widthInput).toBeDisabled();
+    it("shows inheritance source when override is disabled", async () => {
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />
+      );
 
-    const widthToggle = container.querySelector(
-      'input[type="checkbox"]'
-    ) as HTMLInputElement;
-    await act(async () => {
-      fireEvent.click(widthToggle);
-    });
-    expect(widthInput).not.toBeDisabled();
+      // Wait for the component to finish loading
+      await screen.findByText("Test Video · video");
 
-    await act(async () => {
-      fireEvent.change(widthInput, { target: { value: "120" } });
+      // Check that at least one "Inherited from Spawn Defaults" text exists
+      const inheritanceTexts = screen.getAllByText(
+        "Inherited from Spawn Defaults"
+      );
+      expect(inheritanceTexts.length).toBeGreaterThan(0);
     });
-    expect(widthInput.value).toBe("120");
 
-    await act(async () => {
-      fireEvent.click(widthToggle);
+    it("shows 'Overridden' when override is enabled", async () => {
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />
+      );
+
+      // Ensure initialization effect has completed by waiting for draft values
+      // to populate and the input to be initially disabled
+      await screen.findByText("Test Video · video");
+      const numberInputs = screen.getAllByRole("spinbutton");
+      const widthInput = numberInputs.find((input) =>
+        input.getAttribute("aria-describedby")?.includes("dimensions-error")
+      );
+      if (!widthInput) throw new Error("Width input not found");
+      expect(widthInput).toBeDisabled();
+
+      const dimensionsToggle = await screen.findByLabelText(
+        "Override dimensions"
+      );
+      await act(async () => {
+        fireEvent.click(dimensionsToggle);
+      });
+
+      expect(await screen.findByText("Overridden")).toBeInTheDocument();
     });
-    expect(widthInput).toBeDisabled();
-    expect(widthInput.value).toBe("80"); // inherited from spawn default
+
+    it("sets unsaved changes when override toggle is changed", async () => {
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />
+      );
+
+      const dimensionsToggle = await screen.findByLabelText(
+        "Override dimensions"
+      );
+      await act(async () => {
+        fireEvent.click(dimensionsToggle);
+      });
+
+      expect(mockSetUnsavedChanges).toHaveBeenCalledWith(true);
+    });
   });
 
-  it("saves only toggled overrides and dispatches spawn-updated", async () => {
-    const asset = buildBaseAsset("video");
-    const { spawn, spawnAsset } = buildSpawn(asset);
-    (SpawnService.getSpawn as unknown as Mock).mockResolvedValue(spawn);
-    (AssetService.getAssetById as unknown as Mock).mockReturnValue(asset);
-    (SpawnService.updateSpawn as unknown as Mock).mockResolvedValue({
-      success: true,
-      spawn,
+  describe("Property Value Editing", () => {
+    beforeEach(() => {
+      const asset = makeAsset({
+        id: "asset1",
+        type: "video",
+        name: "Test Video",
+      });
+      const spawnAsset = makeSpawnAsset("asset1", 0);
+      const spawn = makeSpawn("spawn1", [spawnAsset], makeProperties());
+
+      vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
+      vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
+      vi.mocked(resolveEffectiveProperties).mockReturnValue({
+        effective: makeProperties(),
+        sourceMap: {
+          dimensions: "spawn-default",
+          position: "spawn-default",
+          scale: "spawn-default",
+          positionMode: "spawn-default",
+          volume: "spawn-default",
+          loop: "spawn-default",
+          autoplay: "spawn-default",
+          muted: "spawn-default",
+        },
+      });
     });
 
-    const updatedEventSpy = vi.fn();
-    window.addEventListener(
-      "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-      updatedEventSpy as EventListener
-    );
-
-    await act(async () => {
+    it("updates width value when dimensions override is enabled", async () => {
       render(
         <AssetSettingsForm
-          spawnId={spawn.id}
-          spawnAssetId={spawnAsset.id}
-          onBack={() => {}}
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
         />
       );
+
+      const dimensionsToggle = await screen.findByLabelText(
+        "Override dimensions"
+      );
+      await act(async () => {
+        fireEvent.click(dimensionsToggle);
+      });
+
+      // Find width input by role and aria-describedby marker
+      const numberInputs = screen.getAllByRole("spinbutton");
+      const widthInput = numberInputs.find((input) =>
+        input.getAttribute("aria-describedby")?.includes("dimensions-error")
+      );
+      if (!widthInput) throw new Error("Width input not found");
+      await act(async () => {
+        fireEvent.change(widthInput, { target: { value: "200" } });
+      });
+
+      expect(widthInput).toHaveValue(200);
+      expect(mockSetUnsavedChanges).toHaveBeenCalledWith(true);
     });
 
-    const volumeLabel = screen.getByText("Volume (%)");
-    const vContainer = volumeLabel.parentElement as HTMLElement;
-    const volumeToggle = screen.getByLabelText(
-      "Override volume"
-    ) as HTMLInputElement;
-    const volumeNumber = vContainer.querySelector(
-      'input[type="number"]'
-    ) as HTMLInputElement;
+    it("updates scale value when scale override is enabled", async () => {
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />
+      );
 
-    await act(async () => {
-      fireEvent.click(volumeToggle);
-      fireEvent.change(volumeNumber, { target: { value: "70" } });
+      const scaleToggle = await screen.findByLabelText("Override scale");
+      await act(async () => {
+        fireEvent.click(scaleToggle);
+      });
+
+      const scaleInput = await screen.findByDisplayValue("1");
+      await act(async () => {
+        fireEvent.change(scaleInput, { target: { value: "2.5" } });
+      });
+
+      expect(scaleInput).toHaveValue(2.5);
     });
 
-    const saveBtn = screen.getByRole("button", { name: "Save asset settings" });
-    await act(async () => {
-      fireEvent.click(saveBtn);
+    it("updates position mode when positionMode override is enabled", async () => {
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />
+      );
+
+      const positionModeToggle = await screen.findByLabelText(
+        "Override position mode"
+      );
+      await act(async () => {
+        fireEvent.click(positionModeToggle);
+      });
+
+      const positionModeSelect =
+        await screen.findByDisplayValue("Absolute (px)");
+      await act(async () => {
+        fireEvent.change(positionModeSelect, { target: { value: "centered" } });
+      });
+
+      expect(positionModeSelect).toHaveValue("centered");
     });
 
-    const args = (SpawnService.updateSpawn as unknown as Mock).mock.calls[0][1];
-    const updatedAssets = args.assets as SpawnAsset[];
-    const savedSa = updatedAssets.find((a) => a.id === spawnAsset.id)!;
-    expect(savedSa.overrides.properties).toHaveProperty("volume", 0.7);
-    expect(updatedEventSpy).toHaveBeenCalled();
+    it("updates volume when volume override is enabled", async () => {
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />
+      );
+
+      const volumeToggle = await screen.findByLabelText("Override volume");
+      await act(async () => {
+        fireEvent.click(volumeToggle);
+      });
+
+      const volumeSlider = await screen.findByRole("slider");
+      await act(async () => {
+        fireEvent.change(volumeSlider, { target: { value: "75" } });
+      });
+
+      expect(volumeSlider).toHaveValue("75");
+    });
+
+    it("updates boolean properties when their overrides are enabled", async () => {
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />
+      );
+
+      const loopCheckbox = await screen.findByRole("checkbox", {
+        name: "Loop",
+      });
+      await act(async () => {
+        fireEvent.click(loopCheckbox);
+      });
+
+      expect(loopCheckbox).toBeChecked();
+    });
   });
 
-  it("resets individual field to spawn defaults when Reset is clicked", async () => {
-    const asset = buildBaseAsset("video");
-    const { spawn, spawnAsset } = buildSpawn(asset, { volume: 0.7 });
-    (SpawnService.getSpawn as unknown as Mock).mockResolvedValue(spawn);
-    (AssetService.getAssetById as unknown as Mock).mockReturnValue(asset);
+  describe("Validation", () => {
+    beforeEach(() => {
+      const asset = makeAsset({
+        id: "asset1",
+        type: "video",
+        name: "Test Video",
+      });
+      const spawnAsset = makeSpawnAsset("asset1", 0);
+      const spawn = makeSpawn("spawn1", [spawnAsset], makeProperties());
 
-    await act(async () => {
+      vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
+      vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
+      vi.mocked(resolveEffectiveProperties).mockReturnValue({
+        effective: makeProperties(),
+        sourceMap: {
+          dimensions: "spawn-default",
+          position: "spawn-default",
+          scale: "spawn-default",
+          positionMode: "spawn-default",
+          volume: "spawn-default",
+          loop: "spawn-default",
+          autoplay: "spawn-default",
+          muted: "spawn-default",
+        },
+      });
+    });
+
+    it("shows validation error for invalid dimensions", async () => {
+      vi.mocked(validateDimensionsValues).mockReturnValue({
+        isValid: false,
+        error: "Width/Height must be > 0",
+      });
+
       render(
         <AssetSettingsForm
-          spawnId={spawn.id}
-          spawnAssetId={spawnAsset.id}
-          onBack={() => {}}
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
         />
       );
+
+      const dimensionsToggle = await screen.findByLabelText(
+        "Override dimensions"
+      );
+      await act(async () => {
+        fireEvent.click(dimensionsToggle);
+      });
+
+      // Find width input by role and aria-describedby marker
+      const numberInputs = screen.getAllByRole("spinbutton");
+      const widthInput = numberInputs.find((input) =>
+        input.getAttribute("aria-describedby")?.includes("dimensions-error")
+      );
+      if (!widthInput) throw new Error("Width input not found");
+      await act(async () => {
+        fireEvent.change(widthInput, { target: { value: "0" } });
+      });
+
+      expect(
+        await screen.findByText("Width/Height must be > 0")
+      ).toBeInTheDocument();
     });
 
-    const volumeLabel = screen.getByText("Volume (%)");
-    const vContainer = volumeLabel.parentElement as HTMLElement;
-    const volumeToggle = screen.getByLabelText(
-      "Override volume"
-    ) as HTMLInputElement;
-    const volumeNumber = vContainer.querySelector(
-      'input[type="number"]'
-    ) as HTMLInputElement;
+    it("shows validation error for invalid volume", async () => {
+      vi.mocked(validateVolumePercent).mockReturnValue({
+        isValid: false,
+        error: "Enter 0–100",
+      });
 
-    await act(async () => {
-      fireEvent.click(volumeToggle);
-      fireEvent.change(volumeNumber, { target: { value: "70" } });
-    });
-    expect(volumeNumber.value).toBe("70");
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />
+      );
 
-    const resetAllBtn = screen.getByRole("button", {
-      name: "Reset all fields to spawn defaults",
-    });
-    await act(async () => {
-      fireEvent.click(resetAllBtn);
+      const volumeToggle = await screen.findByLabelText("Override volume");
+      await act(async () => {
+        fireEvent.click(volumeToggle);
+      });
+
+      const volumeSlider = await screen.findByRole("slider");
+      await act(async () => {
+        fireEvent.change(volumeSlider, { target: { value: "150" } });
+      });
+
+      expect(await screen.findByText("Enter 0–100")).toBeInTheDocument();
     });
 
-    // override disabled and value shows spawn default (0.4 => 40)
-    expect(screen.getByLabelText("Override volume")).not.toBeChecked();
-    expect(volumeNumber.value).toBe("40");
+    it("disables save button when validation errors exist", async () => {
+      vi.mocked(validateDimensionsValues).mockReturnValue({
+        isValid: false,
+        error: "Width/Height must be > 0",
+      });
 
-    // Save should not include volume override now
-    (SpawnService.updateSpawn as unknown as Mock).mockResolvedValue({
-      success: true,
-      spawn,
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />
+      );
+
+      const dimensionsToggle = await screen.findByLabelText(
+        "Override dimensions"
+      );
+      await act(async () => {
+        fireEvent.click(dimensionsToggle);
+      });
+
+      // Find width input by role and aria-describedby marker
+      const numberInputs = screen.getAllByRole("spinbutton");
+      const widthInput = numberInputs.find((input) =>
+        input.getAttribute("aria-describedby")?.includes("dimensions-error")
+      );
+      if (!widthInput) throw new Error("Width input not found");
+      await act(async () => {
+        fireEvent.change(widthInput, { target: { value: "0" } });
+      });
+
+      const saveButton = await screen.findByRole("button", {
+        name: "Save asset settings",
+      });
+      expect(saveButton).toBeDisabled();
     });
-    const saveBtn = screen.getByRole("button", { name: "Save asset settings" });
-    await act(async () => {
-      fireEvent.click(saveBtn);
-    });
-    const args = (SpawnService.updateSpawn as unknown as Mock).mock.calls[0][1];
-    const updatedAssets = args.assets as SpawnAsset[];
-    const savedSa = updatedAssets.find((a) => a.id === spawnAsset.id)!;
-    expect(savedSa.overrides.properties).not.toHaveProperty("volume");
   });
 
-  it("Reset All disables all overrides and restores inherited values", async () => {
-    const asset = buildBaseAsset("video");
-    const { spawn, spawnAsset } = buildSpawn(asset, {
-      dimensions: { width: 150, height: 90 },
-      position: { x: 10, y: 20 },
-      scale: 1.5,
-      positionMode: "relative",
-      volume: 0.8,
-      loop: true,
-      autoplay: true,
-      muted: true,
-    });
-    (SpawnService.getSpawn as unknown as Mock).mockResolvedValue(spawn);
-    (AssetService.getAssetById as unknown as Mock).mockReturnValue(asset);
+  describe("Save Functionality", () => {
+    beforeEach(() => {
+      const asset = makeAsset({
+        id: "asset1",
+        type: "video",
+        name: "Test Video",
+      });
+      const spawnAsset = makeSpawnAsset("asset1", 0);
+      const spawn = makeSpawn("spawn1", [spawnAsset], makeProperties());
 
-    await act(async () => {
+      vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
+      vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
+      vi.mocked(resolveEffectiveProperties).mockReturnValue({
+        effective: makeProperties(),
+        sourceMap: {
+          dimensions: "spawn-default",
+          position: "spawn-default",
+          scale: "spawn-default",
+          positionMode: "spawn-default",
+          volume: "spawn-default",
+          loop: "spawn-default",
+          autoplay: "spawn-default",
+          muted: "spawn-default",
+        },
+      });
+      vi.mocked(buildOverridesDiff).mockReturnValue({
+        dimensions: { width: 200, height: 150 },
+      });
+    });
+
+    it("saves overridden properties and shows success message", async () => {
+      vi.mocked(SpawnService.updateSpawn).mockResolvedValue({
+        success: true,
+        spawn: makeSpawn("spawn1", [makeSpawnAsset("asset1", 0)]),
+      });
+
       render(
         <AssetSettingsForm
-          spawnId={spawn.id}
-          spawnAssetId={spawnAsset.id}
-          onBack={() => {}}
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
         />
       );
+
+      const dimensionsToggle = await screen.findByLabelText(
+        "Override dimensions"
+      );
+      await act(async () => {
+        fireEvent.click(dimensionsToggle);
+      });
+
+      // Find width input by role and aria-describedby marker
+      const numberInputs = screen.getAllByRole("spinbutton");
+      const widthInput = numberInputs.find((input) =>
+        input.getAttribute("aria-describedby")?.includes("dimensions-error")
+      );
+      if (!widthInput) throw new Error("Width input not found");
+      await act(async () => {
+        fireEvent.change(widthInput, { target: { value: "200" } });
+      });
+
+      const saveButton = await screen.findByRole("button", {
+        name: "Save asset settings",
+      });
+      await act(async () => {
+        fireEvent.click(saveButton);
+      });
+
+      expect(await screen.findByText("Changes saved")).toBeInTheDocument();
+      expect(SpawnService.updateSpawn).toHaveBeenCalled();
     });
 
-    const resetAllBtn = screen.getByRole("button", {
-      name: "Reset all fields to spawn defaults",
-    });
-    await act(async () => {
-      fireEvent.click(resetAllBtn);
+    it("shows error message when save fails", async () => {
+      vi.mocked(SpawnService.updateSpawn).mockResolvedValue({
+        success: false,
+        error: "Failed to save",
+      });
+
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />
+      );
+
+      const saveButton = await screen.findByRole("button", {
+        name: "Save asset settings",
+      });
+      await act(async () => {
+        fireEvent.click(saveButton);
+      });
+
+      expect(await screen.findByText("Failed to save")).toBeInTheDocument();
     });
 
-    // Spot check a few fields show spawn defaults
-    const dimsToggles = screen.getAllByLabelText("Override dimensions");
-    dimsToggles.forEach((t) =>
-      expect((t as HTMLInputElement).checked).toBe(false)
-    );
-    const widthInput = screen.getAllByRole("spinbutton")[0] as HTMLInputElement;
-    expect(widthInput.value).toBe("80");
+    it("dispatches spawn-updated event after successful save", async () => {
+      const dispatchEventSpy = vi.spyOn(window, "dispatchEvent");
+      vi.mocked(SpawnService.updateSpawn).mockResolvedValue({
+        success: true,
+        spawn: makeSpawn("spawn1", [makeSpawnAsset("asset1", 0)]),
+      });
 
-    expect(screen.getByLabelText("Override volume")).not.toBeChecked();
-    const volumeNumber = screen
-      .getAllByRole("spinbutton")
-      .find((el) => (el as HTMLInputElement).max === "100") as HTMLInputElement;
-    expect(volumeNumber.value).toBe("40");
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />
+      );
 
-    // Save should contain no properties overrides
-    (SpawnService.updateSpawn as unknown as Mock).mockResolvedValue({
-      success: true,
-      spawn,
+      const saveButton = await screen.findByRole("button", {
+        name: "Save asset settings",
+      });
+      await act(async () => {
+        fireEvent.click(saveButton);
+      });
+
+      expect(dispatchEventSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "mediaspawner:spawn-updated",
+          detail: { spawnId: "spawn1" },
+        })
+      );
     });
-    const saveBtn = screen.getByRole("button", { name: "Save asset settings" });
-    await act(async () => {
-      fireEvent.click(saveBtn);
-    });
-    const args = (SpawnService.updateSpawn as unknown as Mock).mock.calls[0][1];
-    const updatedAssets = args.assets as SpawnAsset[];
-    const savedSa = updatedAssets.find((a) => a.id === spawnAsset.id)!;
-    expect(savedSa.overrides.properties).toEqual({});
   });
 
-  it("updates inherited draft values when spawn defaults change via event", async () => {
-    const asset = buildBaseAsset("image");
-    const { spawn, spawnAsset } = buildSpawn(asset);
-    (SpawnService.getSpawn as unknown as Mock).mockResolvedValue(spawn);
-    (AssetService.getAssetById as unknown as Mock).mockReturnValue(asset);
+  describe("Cancel and Reset", () => {
+    beforeEach(() => {
+      const asset = makeAsset({
+        id: "asset1",
+        type: "video",
+        name: "Test Video",
+      });
+      const spawnAsset = makeSpawnAsset("asset1", 0);
+      const spawn = makeSpawn("spawn1", [spawnAsset], makeProperties());
 
-    await act(async () => {
+      vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
+      vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
+      vi.mocked(resolveEffectiveProperties).mockReturnValue({
+        effective: makeProperties(),
+        sourceMap: {
+          dimensions: "spawn-default",
+          position: "spawn-default",
+          scale: "spawn-default",
+          positionMode: "spawn-default",
+          volume: "spawn-default",
+          loop: "spawn-default",
+          autoplay: "spawn-default",
+          muted: "spawn-default",
+        },
+      });
+    });
+
+    it("resets form to original values when cancel is clicked", async () => {
       render(
         <AssetSettingsForm
-          spawnId={spawn.id}
-          spawnAssetId={spawnAsset.id}
-          onBack={() => {}}
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
         />
       );
-    });
 
-    // Simulate spawn defaults width change 80 -> 120
-    const updatedSpawn: Spawn = {
-      ...spawn,
-      defaultProperties: {
-        ...spawn.defaultProperties,
-        dimensions: { width: 120, height: 80 },
-      },
-    };
-
-    await act(async () => {
-      window.dispatchEvent(
-        new CustomEvent(
-          "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-          { detail: { spawnId: spawn.id, updatedSpawn } } as CustomEventInit
-        )
+      const dimensionsToggle = await screen.findByLabelText(
+        "Override dimensions"
       );
+      await act(async () => {
+        fireEvent.click(dimensionsToggle);
+      });
+
+      // Find width input specifically by its aria-describedby attribute
+      const widthInputs = screen.getAllByDisplayValue("100");
+      const widthInput = widthInputs.find((input) =>
+        input.getAttribute("aria-describedby")?.includes("dimensions-error")
+      );
+      if (!widthInput) throw new Error("Width input not found");
+      await act(async () => {
+        fireEvent.change(widthInput, { target: { value: "200" } });
+      });
+
+      const cancelButton = await screen.findByRole("button", {
+        name: "Cancel edits",
+      });
+      await act(async () => {
+        fireEvent.click(cancelButton);
+      });
+
+      expect(widthInput).toHaveValue(100);
+      expect(dimensionsToggle).not.toBeChecked();
+      expect(mockSetUnsavedChanges).toHaveBeenCalledWith(false);
     });
 
-    const widthInput = screen.getAllByRole("spinbutton")[0] as HTMLInputElement;
-    expect(widthInput.value).toBe("120");
+    it("resets all overrides to disabled when reset all is clicked", async () => {
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />
+      );
+
+      const dimensionsToggle = await screen.findByLabelText(
+        "Override dimensions"
+      );
+      const scaleToggle = await screen.findByLabelText("Override scale");
+
+      await act(async () => {
+        fireEvent.click(dimensionsToggle);
+        fireEvent.click(scaleToggle);
+      });
+
+      const resetButton = await screen.findByRole("button", {
+        name: "Reset all fields to spawn defaults",
+      });
+      await act(async () => {
+        fireEvent.click(resetButton);
+      });
+
+      expect(dimensionsToggle).not.toBeChecked();
+      expect(scaleToggle).not.toBeChecked();
+      expect(mockSetUnsavedChanges).toHaveBeenCalledWith(true);
+    });
+  });
+
+  describe("Cached Draft", () => {
+    it("restores cached draft when available", async () => {
+      const asset = makeAsset({
+        id: "asset1",
+        type: "video",
+        name: "Test Video",
+      });
+      const spawnAsset = makeSpawnAsset("asset1", 0);
+      const spawn = makeSpawn("spawn1", [spawnAsset], makeProperties());
+
+      vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
+      vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
+      vi.mocked(resolveEffectiveProperties).mockReturnValue({
+        effective: makeProperties(),
+        sourceMap: {
+          dimensions: "spawn-default",
+          position: "spawn-default",
+          scale: "spawn-default",
+          positionMode: "spawn-default",
+          volume: "spawn-default",
+          loop: "spawn-default",
+          autoplay: "spawn-default",
+          muted: "spawn-default",
+        },
+      });
+
+      const cachedDraft = {
+        overrideEnabled: { dimensions: true, scale: true },
+        draftValues: { dimensions: { width: 200, height: 150 }, scale: 2.0 },
+      };
+      mockGetCachedDraft.mockReturnValue(cachedDraft);
+
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+          getCachedDraft={mockGetCachedDraft}
+          setCachedDraft={mockSetCachedDraft}
+        />
+      );
+      // Ensure base content loaded before asserting toggles
+      await screen.findByText("Test Video · video");
+      const dimensionsToggle = await screen.findByLabelText(
+        "Override dimensions"
+      );
+      const scaleToggle = await screen.findByLabelText("Override scale");
+
+      await waitFor(() => expect(dimensionsToggle).toBeChecked());
+      await waitFor(() => expect(scaleToggle).toBeChecked());
+
+      const widthInput = await screen.findByDisplayValue("200");
+      const scaleInput = await screen.findByDisplayValue("2");
+
+      expect(widthInput).toHaveValue(200);
+      expect(scaleInput).toHaveValue(2);
+    });
+
+    it("saves draft when component unmounts", async () => {
+      const asset = makeAsset({
+        id: "asset1",
+        type: "video",
+        name: "Test Video",
+      });
+      const spawnAsset = makeSpawnAsset("asset1", 0);
+      const spawn = makeSpawn("spawn1", [spawnAsset], makeProperties());
+
+      vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
+      vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
+      vi.mocked(resolveEffectiveProperties).mockReturnValue({
+        effective: makeProperties(),
+        sourceMap: {
+          dimensions: "spawn-default",
+          position: "spawn-default",
+          scale: "spawn-default",
+          positionMode: "spawn-default",
+          volume: "spawn-default",
+          loop: "spawn-default",
+          autoplay: "spawn-default",
+          muted: "spawn-default",
+        },
+      });
+
+      const { unmount } = render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+          setCachedDraft={mockSetCachedDraft}
+        />
+      );
+
+      await act(async () => {
+        unmount();
+      });
+
+      expect(mockSetCachedDraft).toHaveBeenCalledWith({
+        overrideEnabled: {},
+        draftValues: expect.any(Object),
+      });
+    });
   });
 });

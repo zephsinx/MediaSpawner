@@ -1,83 +1,176 @@
-/**
- * Spawn-centric data model types for MediaSpawner
- *
- * This module defines the core interfaces for the spawn-centric architecture,
- * replacing the previous configuration/asset group model with a more focused
- * approach where Spawns are the primary unit of work.
- */
-
 import type { MediaAssetProperties } from "./media";
+import moment from "moment-timezone";
 
-/**
- * Trigger configuration for spawns
- * Designed for future OBS integration and complex trigger scenarios
- */
-export interface SpawnTrigger {
-  /** Whether this spawn trigger is enabled */
-  enabled: boolean;
+export type Trigger = { enabled?: boolean } & (
+  | { type: "manual"; config: Record<string, never> }
+  | {
+      type: "time.atDateTime";
+      config: { isoDateTime: string; timezone: string };
+    }
+  | {
+      type: "time.dailyAt";
+      config: { time: string; timezone: string };
+    }
+  | {
+      type: "time.weeklyAt";
+      config: { dayOfWeek: number; time: string; timezone: string };
+    }
+  | {
+      type: "time.monthlyOn";
+      config: { dayOfMonth: number; time: string; timezone: string };
+    }
+  | {
+      type: "time.everyNMinutes";
+      config: {
+        intervalMinutes: number;
+        timezone: string;
+        anchor?:
+          | { kind: "topOfHour" }
+          | { kind: "custom"; isoDateTime: string; timezone: string };
+      };
+    }
+  | {
+      type: "time.minuteOfHour";
+      config: { minute: number; timezone: string };
+    }
+  | {
+      type: "streamerbot.command";
+      config: {
+        commandId?: string;
+        aliases?: string[];
+        caseSensitive?: boolean;
+        ignoreInternal?: boolean;
+        ignoreBotAccount?: boolean;
+      };
+    }
+  | { type: "twitch.follow"; config: Record<string, never> }
+  | {
+      type: "twitch.cheer";
+      config: { bits?: number; bitsComparator?: "lt" | "eq" | "gt" };
+    }
+  | {
+      type: "twitch.subscription";
+      config: {
+        tier?: "1000" | "2000" | "3000";
+        months?: number;
+        monthsComparator?: "lt" | "eq" | "gt";
+      };
+    }
+  | {
+      type: "twitch.giftSub";
+      config: { minCount?: number; tier?: "1000" | "2000" | "3000" };
+    }
+  | {
+      type: "twitch.channelPointReward";
+      config: {
+        rewardIdentifier?: string;
+        useViewerInput?: boolean;
+        statuses?: string[];
+      };
+    }
+);
 
-  /** Type of trigger mechanism */
-  type: "manual" | "timer" | "event" | "condition";
+export type TriggerType = Trigger["type"];
 
-  /** Trigger-specific configuration (expanded based on type) */
-  config: TriggerConfig;
-
-  /** Priority level for trigger execution (lower = higher priority) */
-  priority?: number;
-}
-
-/**
- * Trigger configuration variants
- */
-export type TriggerConfig =
-  | ManualTriggerConfig
-  | TimerTriggerConfig
-  | EventTriggerConfig
-  | ConditionTriggerConfig;
-
-/**
- * Manual trigger configuration (user-initiated)
- */
-export interface ManualTriggerConfig {
-  type: "manual";
-  /** Hotkey or button binding for manual trigger */
-  binding?: string;
-}
-
-/**
- * Timer-based trigger configuration
- */
-export interface TimerTriggerConfig {
-  type: "timer";
-  /** Interval in milliseconds */
-  interval: number;
-  /** Whether to repeat the trigger */
-  repeat: boolean;
-  /** Maximum number of repetitions (undefined = infinite) */
-  maxRepetitions?: number;
-}
-
-/**
- * Event-based trigger configuration
- */
-export interface EventTriggerConfig {
-  type: "event";
-  /** Event type to listen for */
-  eventType: string;
-  /** Event-specific parameters */
-  parameters?: Record<string, unknown>;
-}
-
-/**
- * Condition-based trigger configuration
- */
-export interface ConditionTriggerConfig {
-  type: "condition";
-  /** Condition expression or rule */
-  condition: string;
-  /** How often to evaluate the condition (milliseconds) */
-  evaluationInterval: number;
-}
+export const getDefaultTrigger = (type: TriggerType): Trigger => {
+  switch (type) {
+    case "manual":
+      return {
+        type: "manual",
+        enabled: true,
+        config: {} as Record<string, never>,
+      };
+    case "time.atDateTime": {
+      const now = new Date();
+      const oneHourMs = 60 * 60 * 1000;
+      const future = new Date(now.getTime() + oneHourMs).toISOString();
+      return {
+        type: "time.atDateTime",
+        enabled: true,
+        config: { isoDateTime: future, timezone: moment.tz.guess() },
+      };
+    }
+    case "time.dailyAt":
+      return {
+        type: "time.dailyAt",
+        enabled: true,
+        config: { time: "09:00", timezone: moment.tz.guess() },
+      };
+    case "time.weeklyAt":
+      return {
+        type: "time.weeklyAt",
+        enabled: true,
+        config: { dayOfWeek: 1, time: "09:00", timezone: moment.tz.guess() },
+      };
+    case "time.monthlyOn":
+      return {
+        type: "time.monthlyOn",
+        enabled: true,
+        config: { dayOfMonth: 1, time: "09:00", timezone: moment.tz.guess() },
+      };
+    case "time.everyNMinutes":
+      return {
+        type: "time.everyNMinutes",
+        enabled: true,
+        config: {
+          intervalMinutes: 15,
+          timezone: moment.tz.guess(),
+          anchor: { kind: "topOfHour" },
+        },
+      };
+    case "time.minuteOfHour":
+      return {
+        type: "time.minuteOfHour",
+        enabled: true,
+        config: { minute: 0, timezone: moment.tz.guess() },
+      };
+    case "streamerbot.command":
+      return {
+        type: "streamerbot.command",
+        enabled: true,
+        config: {
+          aliases: [""],
+          caseSensitive: false,
+          ignoreInternal: true,
+          ignoreBotAccount: true,
+        },
+      };
+    case "twitch.follow":
+      return {
+        type: "twitch.follow",
+        enabled: true,
+        config: {} as Record<string, never>,
+      };
+    case "twitch.subscription":
+      return {
+        type: "twitch.subscription",
+        enabled: true,
+        config: {} as Record<string, never>,
+      };
+    case "twitch.giftSub":
+      return {
+        type: "twitch.giftSub",
+        enabled: true,
+        config: {} as Record<string, never>,
+      };
+    case "twitch.channelPointReward":
+      return {
+        type: "twitch.channelPointReward",
+        enabled: true,
+        config: {
+          rewardIdentifier: "",
+          useViewerInput: false,
+          statuses: ["fulfilled"],
+        },
+      };
+    case "twitch.cheer":
+      return {
+        type: "twitch.cheer",
+        enabled: true,
+        config: {},
+      };
+  }
+};
 
 /**
  * Spawn-specific asset instance with inheritance and override capabilities
@@ -110,7 +203,7 @@ export interface SpawnAssetOverrides {
   duration?: number;
 
   /** Override spawn's default trigger for this specific asset */
-  trigger?: SpawnTrigger;
+  trigger?: Trigger;
 
   /** Override asset's default properties */
   properties?: Partial<MediaAssetProperties>;
@@ -140,7 +233,7 @@ export interface Spawn {
   enabled: boolean;
 
   /** Default trigger configuration for this spawn */
-  trigger: SpawnTrigger;
+  trigger: Trigger;
 
   /** Default duration for assets in this spawn (milliseconds) */
   duration: number;
@@ -187,45 +280,17 @@ export interface SpawnProfile {
 /**
  * Helper function to create a new spawn trigger with default settings
  */
-export const createSpawnTrigger = (
-  type: SpawnTrigger["type"] = "manual",
-  config?: TriggerConfig
-): SpawnTrigger => {
-  return {
-    enabled: true,
-    type,
-    config: config || getDefaultTriggerConfig(type),
-    priority: 0,
-  };
+export const createSpawnTrigger = (type: TriggerType = "manual"): Trigger => {
+  return getDefaultTrigger(type);
 };
 
 /**
  * Get default trigger configuration based on trigger type
  */
 export const getDefaultTriggerConfig = (
-  type: SpawnTrigger["type"]
-): TriggerConfig => {
-  switch (type) {
-    case "manual":
-      return { type: "manual" };
-    case "timer":
-      return {
-        type: "timer",
-        interval: 5000, // 5 seconds
-        repeat: false,
-      };
-    case "event":
-      return {
-        type: "event",
-        eventType: "default",
-      };
-    case "condition":
-      return {
-        type: "condition",
-        condition: "true",
-        evaluationInterval: 1000, // 1 second
-      };
-  }
+  type: TriggerType
+): Trigger["config"] => {
+  return getDefaultTrigger(type).config;
 };
 
 /**
@@ -351,41 +416,7 @@ export const updateSpawnProfileTimestamp = (
   };
 };
 
-/**
- * Type guard to check if a trigger config is manual
- */
-export const isManualTrigger = (
-  config: TriggerConfig
-): config is ManualTriggerConfig => {
-  return config.type === "manual";
-};
-
-/**
- * Type guard to check if a trigger config is timer-based
- */
-export const isTimerTrigger = (
-  config: TriggerConfig
-): config is TimerTriggerConfig => {
-  return config.type === "timer";
-};
-
-/**
- * Type guard to check if a trigger config is event-based
- */
-export const isEventTrigger = (
-  config: TriggerConfig
-): config is EventTriggerConfig => {
-  return config.type === "event";
-};
-
-/**
- * Type guard to check if a trigger config is condition-based
- */
-export const isConditionTrigger = (
-  config: TriggerConfig
-): config is ConditionTriggerConfig => {
-  return config.type === "condition";
-};
+// Legacy type guards removed; triggers now follow the MS-50 union model
 
 /**
  * Validate spawn data integrity
@@ -413,10 +444,6 @@ export const validateSpawn = (
 
   if (!spawn.trigger) {
     errors.push("Spawn must have a trigger configuration");
-  }
-
-  if (spawn.trigger && !spawn.trigger.config) {
-    errors.push("Spawn trigger must have configuration");
   }
 
   return {

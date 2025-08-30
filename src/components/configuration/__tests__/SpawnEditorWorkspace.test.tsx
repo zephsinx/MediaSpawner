@@ -8,7 +8,10 @@ import {
 } from "@testing-library/react";
 import SpawnEditorWorkspace from "../SpawnEditorWorkspace";
 import type { Spawn } from "../../../types/spawn";
-import { createSpawn as createSpawnModel } from "../../../types/spawn";
+import {
+  createSpawn as createSpawnModel,
+  getDefaultTrigger,
+} from "../../../types/spawn";
 
 // Mock SpawnService
 vi.mock("../../../services/spawnService", () => ({
@@ -261,6 +264,231 @@ describe("SpawnEditorWorkspace", () => {
       expect(
         screen.queryByRole("dialog", { name: "Delete Spawn?" })
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("MS-54 Event & Time-based triggers", () => {
+    it("renders Subscription config and updates tier and months with comparator", async () => {
+      const subSpawn = createSpawn({
+        id: "s-sub",
+        name: "Sub Spawn",
+        trigger: getDefaultTrigger("twitch.subscription"),
+      });
+      mockState.selectedSpawnId = "s-sub";
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([subSpawn]);
+
+      render(<SpawnEditorWorkspace />);
+      await screen.findByText("Editing: Sub Spawn");
+
+      // Ensure trigger type is initialized to subscription
+      const typeSelect = screen.getByLabelText(
+        "Trigger Type"
+      ) as HTMLSelectElement;
+      await waitFor(() => expect(typeSelect.value).toBe("twitch.subscription"));
+
+      expect(
+        await screen.findByText("Subscription Configuration")
+      ).toBeInTheDocument();
+
+      // Set tier to Tier 2
+      const tierSelect = screen.getByLabelText("Tier") as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(tierSelect, { target: { value: "2000" } });
+      });
+      expect(tierSelect.value).toBe("2000");
+
+      // Set months comparator and months
+      const comp = screen.getByLabelText(
+        "Months Comparator"
+      ) as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(comp, { target: { value: "gt" } });
+      });
+      const months = screen.getByLabelText("Months") as HTMLInputElement;
+      await act(async () => {
+        fireEvent.change(months, { target: { value: "3" } });
+      });
+      expect(comp.value).toBe("gt");
+      expect(months.value).toBe("3");
+    });
+
+    it("renders Gifted Subs config and updates minCount and tier", async () => {
+      const giftSpawn = createSpawn({
+        id: "s-gift",
+        name: "Gift Spawn",
+        trigger: getDefaultTrigger("twitch.giftSub"),
+      });
+      mockState.selectedSpawnId = "s-gift";
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([giftSpawn]);
+
+      render(<SpawnEditorWorkspace />);
+      await screen.findByText("Editing: Gift Spawn");
+
+      const typeSelect = screen.getByLabelText(
+        "Trigger Type"
+      ) as HTMLSelectElement;
+      await waitFor(() => expect(typeSelect.value).toBe("twitch.giftSub"));
+
+      expect(
+        await screen.findByText("Gifted Subs Configuration")
+      ).toBeInTheDocument();
+
+      const minCount = screen.getByLabelText(
+        "Minimum Count"
+      ) as HTMLInputElement;
+      await act(async () => {
+        fireEvent.change(minCount, { target: { value: "5" } });
+      });
+      expect(minCount.value).toBe("5");
+
+      const tier = screen.getByLabelText("Tier") as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(tier, { target: { value: "1000" } });
+      });
+      expect(tier.value).toBe("1000");
+    });
+
+    it("renders Cheer config and updates bits with comparator", async () => {
+      const cheerSpawn = createSpawn({
+        id: "s-cheer",
+        name: "Cheer Spawn",
+        trigger: getDefaultTrigger("twitch.cheer"),
+      });
+      mockState.selectedSpawnId = "s-cheer";
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([cheerSpawn]);
+
+      render(<SpawnEditorWorkspace />);
+      await screen.findByText("Editing: Cheer Spawn");
+
+      const typeSelect = screen.getByLabelText(
+        "Trigger Type"
+      ) as HTMLSelectElement;
+      await waitFor(() => expect(typeSelect.value).toBe("twitch.cheer"));
+
+      expect(
+        await screen.findByText("Cheer Configuration")
+      ).toBeInTheDocument();
+      const comp = screen.getByLabelText(
+        "Bits Comparator"
+      ) as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(comp, { target: { value: "eq" } });
+      });
+      const bits = screen.getByLabelText("Bits") as HTMLInputElement;
+      await act(async () => {
+        fireEvent.change(bits, { target: { value: "50" } });
+      });
+      expect(comp.value).toBe("eq");
+      expect(bits.value).toBe("50");
+    });
+
+    it("renders Daily time-based config and shows Next activation", async () => {
+      const timeSpawn = createSpawn({
+        id: "s-time",
+        name: "Time Spawn",
+        trigger: getDefaultTrigger("time.dailyAt"),
+      });
+      mockState.selectedSpawnId = "s-time";
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([timeSpawn]);
+
+      render(<SpawnEditorWorkspace />);
+      await screen.findByText("Editing: Time Spawn");
+
+      const typeSelect = screen.getByLabelText(
+        "Trigger Type"
+      ) as HTMLSelectElement;
+      await waitFor(() => expect(typeSelect.value).toBe("time.dailyAt"));
+
+      expect(
+        await screen.findByText("Time-based Configuration")
+      ).toBeInTheDocument();
+      // Next activation banner present
+      expect(screen.getByText(/Next activation:/i)).toBeInTheDocument();
+
+      // Update HH:mm
+      const timeInput = screen.getByLabelText(
+        "Time (HH:mm)"
+      ) as HTMLInputElement;
+      await act(async () => {
+        fireEvent.change(timeInput, { target: { value: "12:30" } });
+      });
+      expect(timeInput.value).toBe("12:30");
+    });
+
+    it("renders Weekly and Monthly panels and toggles Trigger Enabled", async () => {
+      const weeklySpawn = createSpawn({
+        id: "s-week",
+        name: "Weekly Spawn",
+        trigger: {
+          type: "time.weeklyAt",
+          enabled: true,
+          config: { dayOfWeek: 1, time: "09:00", timezone: "UTC" },
+        } as unknown as import("../../../types/spawn").Trigger,
+      });
+      mockState.selectedSpawnId = "s-week";
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([weeklySpawn]);
+
+      render(<SpawnEditorWorkspace />);
+      await screen.findByText("Editing: Weekly Spawn");
+      const typeSelect = screen.getByLabelText(
+        "Trigger Type"
+      ) as HTMLSelectElement;
+      await waitFor(() => expect(typeSelect.value).toBe("time.weeklyAt"));
+      expect(screen.getByText("Time-based Configuration")).toBeInTheDocument();
+      // Trigger Enabled toggle present
+      const enabledToggle = screen.getByRole("checkbox", {
+        name: "Trigger Enabled",
+      });
+      expect(enabledToggle).toBeChecked();
+
+      // Switch to Monthly and ensure panel renders
+      await act(async () => {
+        fireEvent.change(typeSelect, { target: { value: "time.monthlyOn" } });
+      });
+      // Confirm dialog appears, confirm change
+      const dialog = await screen.findByRole("dialog", {
+        name: "Change Trigger Type?",
+      });
+      const buttons = dialog.querySelectorAll("button");
+      await act(async () => {
+        (buttons[1] as HTMLButtonElement).click();
+      });
+      await waitFor(() => expect(typeSelect.value).toBe("time.monthlyOn"));
+      expect(screen.getByText("Time-based Configuration")).toBeInTheDocument();
+    });
+
+    it("disables Save and shows field error when dailyAt time invalid", async () => {
+      const timeSpawn = createSpawn({
+        id: "s-time2",
+        name: "Time Spawn 2",
+        trigger: getDefaultTrigger("time.dailyAt"),
+      });
+      mockState.selectedSpawnId = "s-time2";
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([timeSpawn]);
+
+      render(<SpawnEditorWorkspace />);
+      await screen.findByText("Editing: Time Spawn 2");
+
+      const typeSelect = screen.getByLabelText(
+        "Trigger Type"
+      ) as HTMLSelectElement;
+      await waitFor(() => expect(typeSelect.value).toBe("time.dailyAt"));
+
+      const timeInput = screen.getByLabelText(
+        "Time (HH:mm)"
+      ) as HTMLInputElement;
+      await act(async () => {
+        fireEvent.change(timeInput, { target: { value: "9:3" } });
+      });
+
+      // Error message from validation should render
+      expect(
+        await screen.findByText("Time must be HH:mm (24-hour)")
+      ).toBeInTheDocument();
+
+      // Save should be disabled
+      const saveButton = screen.getByRole("button", { name: "Save spawn" });
+      expect(saveButton).toBeDisabled();
     });
   });
 });

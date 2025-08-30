@@ -1,5 +1,12 @@
 import React from "react";
 import type { Spawn } from "../../types/spawn";
+import {
+  getTriggerTypeLabel,
+  getTriggerAbbrev,
+  getTriggerTooltip,
+  getTriggerScheduleLabel,
+  getOverallStatusLabel,
+} from "../../utils/triggerDisplay";
 
 /**
  * Props for the spawn list item component
@@ -109,12 +116,30 @@ const SpawnListItem: React.FC<SpawnListItemProps> = ({
         </p>
       )}
 
-      {/* Spawn Stats */}
-      <div className="flex items-center text-xs text-gray-500">
+      <div
+        className="flex items-center text-xs text-gray-500"
+        title={getTriggerTooltip(spawn.trigger)}
+      >
+        {/* Type badge */}
+        <span className="mr-2 inline-flex items-center px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200">
+          {getTriggerTypeLabel(spawn.trigger)}
+        </span>
+        {/* Abbreviated info */}
+        <span className="mr-3 truncate max-w-[40%]">
+          {getTriggerAbbrev(spawn.trigger)}
+        </span>
+        {/* Scheduled label if applicable */}
+        {getTriggerScheduleLabel(spawn.trigger) && (
+          <span className="mr-3 text-gray-600">
+            {getTriggerScheduleLabel(spawn.trigger)}
+          </span>
+        )}
+        {/* Assets count */}
         <span className="mr-3">
           {spawn.assets.length} asset{spawn.assets.length !== 1 ? "s" : ""}
         </span>
-        <span>{spawn.enabled ? "Active" : "Inactive"}</span>
+        {/* Overall status */}
+        <span>{getOverallStatusLabel(spawn)}</span>
       </div>
     </div>
   );

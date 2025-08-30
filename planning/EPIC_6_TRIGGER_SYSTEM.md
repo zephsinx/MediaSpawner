@@ -5,7 +5,7 @@
 **Epic ID**: MS-6
 **Epic**: Trigger System
 **Priority**: 6 (Critical Path - HIGH VALUE)
-**Status**: Not Started
+**Status**: In Progress
 
 **User Value**: ✨ **Spawns become actionable with configurable triggers (commands, channel points, time-based, etc.) - making spawns responsive to real-world events**
 
@@ -18,7 +18,7 @@ Implement comprehensive trigger selection and configuration data structures. Med
 **Story ID**: MS-50
 **Priority**: High
 **Estimate**: 3 points
-**Status**: Not Started
+**Status**: Completed
 
 **User Story**:
 As a user, I want a comprehensive but manageable set of trigger types, so that I can choose the right activation method for my spawns based on common streaming scenarios.
@@ -48,8 +48,8 @@ As a user, I want a comprehensive but manageable set of trigger types, so that I
 
 **Story ID**: MS-51
 **Priority**: High
-**Estimate**: 4 points
-**Status**: Not Started
+**Estimate**: 5 points
+**Status**: Completed
 
 **User Story**:
 As a user, I want to select from basic trigger types for my spawns, so that I can make spawns responsive to the most common streaming events.
@@ -82,27 +82,27 @@ As a user, I want to select from basic trigger types for my spawns, so that I ca
 **Story ID**: MS-52
 **Priority**: High
 **Estimate**: 5 points
-**Status**: Not Started
+**Status**: Completed
 
 **User Story**:
 As a user, I want to configure chat command triggers, so that my spawns can be activated when specific commands are typed in chat.
 
 **Acceptance Criteria**:
 
-- [ ] Can set the command text (e.g., "!scene1", "!alert")
-- [ ] Can configure command permissions (Everyone, Subscribers, Moderators, Broadcaster only)
-- [ ] Can set cooldown periods to prevent spam
-- [ ] Can configure case sensitivity options
-- [ ] Can test command format validation
+- [ ] Can set multiple command aliases (e.g., "scene1", "alert", "trigger")
+- [ ] Can configure case sensitivity options for command matching
+- [ ] Can select which platforms can trigger the command (Twitch, YouTube, Kick, etc.)
+- [ ] Can configure internal message and bot account filtering
+- [ ] Can test command alias validation
 - [ ] Get clear feedback about command requirements and limitations
 
 **Technical Tasks**: Implement Chat Command Configuration
 
-- Add command text input with validation (alphanumeric, starts with !, no spaces) to ensure valid chat commands
-- Add permission level selection dropdown to control who can use commands
-- Add cooldown timer input (seconds/minutes) to prevent command spam
+- Add command aliases input with validation (alphanumeric, no spaces, min 1 alias) to ensure valid command triggers
 - Add case sensitivity toggle option for flexible command matching
-- Implement command format validation with real-time feedback to guide users
+- Add platform source selection dropdown to control which platforms can trigger the command
+- Add internal message and bot account filtering options to prevent unwanted triggers
+- Implement command alias validation with real-time feedback to guide users
 - Add help text explaining command requirements and best practices for clarity
 - Integrate with spawn settings save/cancel workflow for consistent user experience
 
@@ -115,7 +115,7 @@ As a user, I want to configure chat command triggers, so that my spawns can be a
 **Story ID**: MS-53
 **Priority**: High
 **Estimate**: 5 points
-**Status**: Not Started
+**Status**: Completed
 
 **User Story**:
 As a user, I want to configure channel point reward triggers, so that my spawns can be activated when viewers redeem specific channel point rewards.
@@ -123,20 +123,18 @@ As a user, I want to configure channel point reward triggers, so that my spawns 
 **Acceptance Criteria**:
 
 - [ ] Can enter channel point reward name or ID
-- [ ] Can configure point cost requirements
-- [ ] Can set user input requirements (text required/optional/none)
-- [ ] Can configure cooldown and usage limits
-- [ ] Can test reward name/ID validation
-- [ ] Get guidance on setting up rewards in streaming platform
+- [ ] Can configure whether to use viewer input in spawn configuration
+- [ ] Can select which redemption statuses trigger spawns (pending, fulfilled, etc.)
+- [ ] Get clear feedback about reward identification requirements
+- [ ] Understand that Twitch handles all reward logic (cooldowns, limits, costs)
 
 **Technical Tasks**: Implement Channel Point Reward Configuration
 
 - Add reward name/ID input with validation to ensure proper reward identification
-- Add point cost input with range validation for cost-based filtering
-- Add user input requirement selection (required, optional, none) to handle viewer messages
-- Add cooldown and usage limit inputs to prevent reward abuse
+- Add checkbox for using viewer input from redemption events in spawn configuration
+- Add redemption status filtering options to control when spawns trigger
 - Implement reward validation with helpful error messages for user guidance
-- Add guidance text for setting up rewards in streaming platforms for external setup help
+- Add help text explaining that Twitch manages reward availability and enforcement
 - Handle various reward ID formats for platform flexibility
 
 **Dependencies**: Epic 3 (spawn editor), Story 2
@@ -148,7 +146,7 @@ As a user, I want to configure channel point reward triggers, so that my spawns 
 **Story ID**: MS-54
 **Priority**: High
 **Estimate**: 5 points
-**Status**: Not Started
+**Status**: In Progress
 
 **User Story**:
 As a user, I want to configure event-based triggers, so that my spawns can be activated by specific platform events.
@@ -228,7 +226,7 @@ As a user, I want to see trigger status and information in my spawn list, so tha
 
 - [ ] Can see trigger type indicator for each spawn in the list
 - [ ] Can see basic trigger info (command, schedule, etc.) at a glance
-- [ ] Can see trigger status (active, inactive, scheduled, cooldown)
+- [ ] Can see trigger status (active, inactive, scheduled)
 - [ ] Trigger information is compact and doesn't clutter the spawn list
 - [ ] Can hover for more detailed trigger information
 - [ ] Visual indicators help distinguish different trigger types
@@ -237,7 +235,7 @@ As a user, I want to see trigger status and information in my spawn list, so tha
 
 - Add trigger type icons/indicators to spawn list items (Epic 3) for quick visual recognition
 - Display abbreviated trigger information (command text, schedule, etc.) for at-a-glance understanding
-- Add trigger status indicators (active, cooldown, scheduled, etc.) to show current state
+- Add trigger status indicators (active, scheduled, etc.) to show current state
 - Implement hover tooltips with detailed trigger information for comprehensive details
 - Create visual design that doesn't clutter the spawn list to maintain clean interface
 - Add color coding or icons for different trigger types for clear categorization
