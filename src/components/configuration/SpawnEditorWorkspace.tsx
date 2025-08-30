@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import moment from "moment-timezone";
+import moment from "moment-timezone/builds/moment-timezone-with-data-1970-2030";
 import { usePanelState } from "../../hooks/useLayout";
 import { SpawnService } from "../../services/spawnService";
 import type { Spawn } from "../../types/spawn";

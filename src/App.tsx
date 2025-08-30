@@ -1,7 +1,10 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Layout from "./components/layout/Layout";
-import AssetLibraryPage from "./components/asset-library/AssetLibraryPage";
-import SettingsPage from "./components/common/SettingsPage";
+import { Suspense, lazy } from "react";
+const Layout = lazy(() => import("./components/layout/Layout"));
+const AssetLibraryPage = lazy(
+  () => import("./components/asset-library/AssetLibraryPage")
+);
+const SettingsPage = lazy(() => import("./components/common/SettingsPage"));
 import { useAppInitialization } from "./hooks";
 
 function App() {
@@ -50,11 +53,13 @@ function App() {
 
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
-      <Routes>
-        <Route path="/" element={<Layout />} />
-        <Route path="/assets" element={<AssetLibraryPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-      </Routes>
+      <Suspense fallback={<div>Loading…</div>}>
+        <Routes>
+          <Route path="/" element={<Layout />} />
+          <Route path="/assets" element={<AssetLibraryPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }
