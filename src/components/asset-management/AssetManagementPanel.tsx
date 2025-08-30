@@ -657,10 +657,10 @@ function AssetLibrarySection() {
               <li
                 role="listitem"
                 key={asset.id}
-                className="border border-gray-200 rounded-md bg-white p-2"
+                className="border border-gray-200 rounded-md bg-white p-1.5"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-16 h-16 flex-shrink-0 overflow-hidden rounded">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 flex-shrink-0 overflow-hidden rounded">
                     <MediaPreview
                       asset={asset}
                       className="h-full"
@@ -675,7 +675,7 @@ function AssetLibrarySection() {
                       {asset.name}
                     </div>
                     <div className="text-xs text-gray-600 flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1 capitalize bg-gray-100 text-gray-700 px-2 py-0.5 rounded">
+                      <span className="inline-flex items-center gap-1 capitalize bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded">
                         <span>{getTypeIcon(asset.type)}</span>
                         <span>{asset.type}</span>
                       </span>
@@ -691,7 +691,7 @@ function AssetLibrarySection() {
                   <div className="flex items-center">
                     <button
                       type="button"
-                      className={`text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 ${
+                      className={`p-1.5 rounded border border-gray-300 bg-white text-gray-700 ${
                         !selectedSpawnId || assigningAssetId === asset.id
                           ? "opacity-50 cursor-not-allowed"
                           : "hover:bg-gray-50"
@@ -702,11 +702,13 @@ function AssetLibrarySection() {
                         !selectedSpawnId || assigningAssetId === asset.id
                       }
                     >
-                      {lastAddedAssetId === asset.id
-                        ? "Added"
-                        : assigningAssetId === asset.id
-                        ? "Adding…"
-                        : "Add to Spawn"}
+                      <span aria-hidden="true">
+                        {lastAddedAssetId === asset.id
+                          ? "✓"
+                          : assigningAssetId === asset.id
+                            ? "…"
+                            : "+"}
+                      </span>
                     </button>
                   </div>
                 </div>
