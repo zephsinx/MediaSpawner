@@ -99,6 +99,15 @@ export class AssetService {
     const assets = this.getAssets();
     assets.push(asset);
     this.saveAssets(assets);
+    try {
+      window.dispatchEvent(
+        new Event(
+          "mediaspawner:assets-updated" as unknown as keyof WindowEventMap
+        )
+      );
+    } catch {
+      // Best-effort notification
+    }
     return asset;
   }
 
@@ -132,12 +141,15 @@ export class AssetService {
         });
         if (changed) {
           SpawnProfileService.replaceProfiles(updated);
-          // Best-effort notify: fire a generic update event; panels reload by spawn id when needed
-          window.dispatchEvent(
-            new Event(
-              "mediaspawner:assets-updated" as unknown as keyof WindowEventMap
-            )
-          );
+          try {
+            window.dispatchEvent(
+              new Event(
+                "mediaspawner:assets-updated" as unknown as keyof WindowEventMap
+              )
+            );
+          } catch {
+            // Best-effort notify
+          }
         }
       } catch {
         // Non-fatal: asset list is still updated
@@ -189,6 +201,15 @@ export class AssetService {
     localStorage.removeItem(STORAGE_KEY);
     // Invalidate cache after successful clear
     CacheService.invalidate(CACHE_KEYS.ASSETS);
+    try {
+      window.dispatchEvent(
+        new Event(
+          "mediaspawner:assets-updated" as unknown as keyof WindowEventMap
+        )
+      );
+    } catch {
+      // Best-effort notification
+    }
   }
 
   /**

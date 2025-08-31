@@ -583,25 +583,15 @@ function AssetLibrarySection() {
 
   // Build Combobox suggestions: type:* and ext:* tokens, plus a sample of asset names
   const searchOptions = React.useMemo(() => {
-    const opts: { value: string; label?: string }[] = [];
-    ["image", "video", "audio"].forEach((t) => {
-      opts.push({ value: `type:${t}`, label: `type:${t}` });
-    });
-    const extSet = new Set<string>();
+    const nameSet = new Set<string>();
     assets.forEach((a) => {
-      const ext = a.path.split(".").pop()?.toLowerCase();
-      if (ext) extSet.add(ext);
+      const n = a.name.trim();
+      if (n) nameSet.add(n);
     });
-    Array.from(extSet)
-      .sort()
-      .forEach((ext) =>
-        opts.push({ value: `ext:${ext}`, label: `ext:${ext}` })
-      );
-    // Include up to 20 asset names as suggestions
-    assets.slice(0, 20).forEach((a) => {
-      if (a.name.trim()) opts.push({ value: a.name });
-    });
-    return opts;
+    return Array.from(nameSet)
+      .sort((a, b) => a.localeCompare(b))
+      .slice(0, 50)
+      .map((n) => ({ value: n }));
   }, [assets]);
 
   const filteredAssets = React.useMemo(() => {

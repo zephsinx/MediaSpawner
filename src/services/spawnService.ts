@@ -205,10 +205,18 @@ export class SpawnService {
         };
       }
 
-      return {
-        success: true,
-        spawn: updatedSpawn,
-      };
+      try {
+        window.dispatchEvent(
+          new CustomEvent(
+            "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+            { detail: { spawnId: updatedSpawn.id } } as CustomEventInit
+          )
+        );
+      } catch {
+        // Best-effort notification
+      }
+
+      return { success: true, spawn: updatedSpawn };
     } catch (error) {
       return {
         success: false,
