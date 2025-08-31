@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { SpawnProfileService } from "../../services/spawnProfileService";
 import type { SpawnProfile } from "../../types/spawn";
-import { usePanelState } from "../../hooks";
+import { usePanelState, useStreamerbotStatus } from "../../hooks";
 
 /**
  * Props for the header component
@@ -17,6 +17,7 @@ export interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ className = "" }) => {
   const [profiles, setProfiles] = useState<SpawnProfile[]>([]);
   const { activeProfileId, setActiveProfile } = usePanelState();
+  const streamerbot = useStreamerbotStatus();
 
   // Load profiles on mount
   useEffect(() => {
@@ -115,6 +116,23 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
             >
               Delete Profile
             </button>
+            <span
+              className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700"
+              aria-label={`Streamer.bot ${streamerbot.state} (${streamerbot.host}:${streamerbot.port})`}
+              title={`Streamer.bot ${streamerbot.state} (${streamerbot.host}:${streamerbot.port})`}
+            >
+              <span
+                className={
+                  "mr-1 inline-block h-2.5 w-2.5 rounded-full " +
+                  (streamerbot.state === "connected"
+                    ? "bg-green-500"
+                    : streamerbot.state === "connecting"
+                    ? "bg-yellow-500 animate-pulse"
+                    : "bg-red-500")
+                }
+              />
+              SB
+            </span>
           </div>
         </div>
       </div>

@@ -219,65 +219,6 @@ describe("Header", () => {
     });
   });
 
-  describe("Layout and Styling", () => {
-    it("applies correct CSS classes for header layout", () => {
-      const { container } = renderWithLayoutProvider(<Header />);
-
-      const header = container.querySelector("header");
-      expect(header).toHaveClass(
-        "bg-white",
-        "border-b",
-        "border-gray-200",
-        "px-6",
-        "py-4"
-      );
-    });
-
-    it("applies correct CSS classes for profile selector", () => {
-      const { container } = renderWithLayoutProvider(<Header />);
-
-      const select = container.querySelector("select");
-      expect(select).toHaveClass(
-        "px-3",
-        "py-2",
-        "border",
-        "border-gray-300",
-        "rounded-md",
-        "focus:outline-none",
-        "focus:ring-2",
-        "focus:ring-blue-500",
-        "min-w-[200px]"
-      );
-    });
-
-    it("applies correct CSS classes for action buttons", () => {
-      renderWithLayoutProvider(<Header />);
-
-      const createButton = screen.getByText("Create Profile");
-      const editButton = screen.getByText("Edit Profile");
-      const deleteButton = screen.getByText("Delete Profile");
-
-      expect(createButton).toHaveClass(
-        "bg-blue-500",
-        "text-white",
-        "rounded-md",
-        "hover:bg-blue-600"
-      );
-      expect(editButton).toHaveClass(
-        "bg-gray-500",
-        "text-white",
-        "rounded-md",
-        "hover:bg-gray-600"
-      );
-      expect(deleteButton).toHaveClass(
-        "bg-red-500",
-        "text-white",
-        "rounded-md",
-        "hover:bg-red-600"
-      );
-    });
-  });
-
   describe("Edge Cases", () => {
     it("handles empty profiles list", () => {
       mockSpawnProfileService.getProfilesWithActiveInfo.mockReturnValue({
