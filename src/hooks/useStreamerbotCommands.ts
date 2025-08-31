@@ -29,14 +29,25 @@ export function useStreamerbotCommands(): UseStreamerbotCommandsResult {
       inFlight.current = true;
       setLoading(true);
       setError(undefined);
+      const isStillMounted = { current: true };
       try {
         const data = await StreamerbotService.getCommands({ forceRefresh });
+        if (!isStillMounted.current) {
+          inFlight.current = false;
+          return;
+        }
         setCommands(Array.isArray(data) ? data : []);
       } catch (e) {
+        if (!isStillMounted.current) {
+          inFlight.current = false;
+          return;
+        }
         setError(e instanceof Error ? e.message : "Failed to fetch commands");
       } finally {
-        inFlight.current = false;
-        setLoading(false);
+        if (isStillMounted.current) {
+          inFlight.current = false;
+          setLoading(false);
+        }
       }
     },
     [state]
@@ -49,6 +60,9 @@ export function useStreamerbotCommands(): UseStreamerbotCommandsResult {
     } else {
       setCommands([]);
     }
+    return () => {
+      inFlight.current = false;
+    };
   }, [state, fetchCommands]);
 
   const refresh = useCallback(() => {

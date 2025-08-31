@@ -183,6 +183,10 @@ describe("SpawnEditorWorkspace - MS-52 Command Trigger Configuration", () => {
       )[0];
       act(() => {
         fireEvent.change(firstInput, { target: { value: "test" } });
+        // Close the Headless UI combobox so sibling buttons are accessible
+        fireEvent.keyDown(firstInput, { key: "Escape" });
+        fireEvent.blur(firstInput);
+        fireEvent.click(document.body);
       });
 
       // Now remove button should appear for the second alias
@@ -276,6 +280,10 @@ describe("SpawnEditorWorkspace - MS-52 Command Trigger Configuration", () => {
       );
       act(() => {
         fireEvent.change(aliasInput, { target: { value: "command1" } });
+        // Close combobox before querying other controls
+        fireEvent.keyDown(aliasInput, { key: "Escape" });
+        fireEvent.blur(aliasInput);
+        fireEvent.click(document.body);
       });
 
       // Make form dirty via description change
@@ -295,6 +303,9 @@ describe("SpawnEditorWorkspace - MS-52 Command Trigger Configuration", () => {
       );
       act(() => {
         fireEvent.change(aliasInput, { target: { value: "command1" } });
+        fireEvent.keyDown(aliasInput, { key: "Escape" });
+        fireEvent.blur(aliasInput);
+        fireEvent.click(document.body);
       });
       const descriptionInput = screen.getByLabelText("Description");
       act(() => {
@@ -306,6 +317,9 @@ describe("SpawnEditorWorkspace - MS-52 Command Trigger Configuration", () => {
       // Clear alias back to empty -> should re-disable Save
       act(() => {
         fireEvent.change(aliasInput, { target: { value: "" } });
+        fireEvent.keyDown(aliasInput, { key: "Escape" });
+        fireEvent.blur(aliasInput);
+        fireEvent.click(document.body);
       });
       expect(
         screen.getByText("At least one command alias is required")
