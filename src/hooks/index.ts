@@ -4,3 +4,4 @@
 
 export { useLayoutContext, usePanelState } from "./useLayout";
 export { useAppInitialization } from "./useAppInitialization";
+export { useStreamerbotStatus } from "./useStreamerbotStatus";
