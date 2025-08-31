@@ -1,4 +1,78 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useStreamerbotCommands } from "../../hooks/useStreamerbotCommands";
+import { HUICombobox } from "../common";
+
+const SBCommandDatalist: React.FC = () => {
+  const { loading, refresh, commands } = useStreamerbotCommands();
+  const aliasOptions = React.useMemo(() => {
+    const seen = new Set<string>();
+    const out: { value: string; label: string }[] = [];
+    (commands || []).forEach((cmd) => {
+      (cmd.commands || []).forEach((a) => {
+        const key = a.toLowerCase();
+        if (!seen.has(key) && a.trim()) {
+          seen.add(key);
+          out.push({ value: a, label: cmd.name });
+        }
+      });
+    });
+    out.sort((a, b) => a.value.localeCompare(b.value));
+    return out;
+  }, [commands]);
+
+  return (
+    <span className="ml-2 inline-flex items-center gap-2 align-middle">
+      <button
+        type="button"
+        onClick={() => refresh()}
+        disabled={loading}
+        className="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
+      >
+        Refresh
+      </button>
+      <datalist id="sb-command-aliases">
+        {aliasOptions.map((opt) => (
+          <option key={opt.value} value={opt.value} label={opt.label} />
+        ))}
+      </datalist>
+    </span>
+  );
+};
+
+const SBCommandAliasCombobox: React.FC<{
+  value: string;
+  onChange: (v: string) => void;
+}> = ({ value, onChange }) => {
+  const { commands, loading } = useStreamerbotCommands();
+  const options = React.useMemo(() => {
+    const seen = new Set<string>();
+    const out: { value: string; label: string }[] = [];
+    (commands || []).forEach((cmd) => {
+      const groupPart = cmd.group ? `[${cmd.group}] ` : "";
+      const namePart = `${groupPart}${cmd.name}`;
+      (cmd.commands || []).forEach((a) => {
+        const key = a.toLowerCase();
+        if (!seen.has(key) && a.trim()) {
+          seen.add(key);
+          out.push({ value: a, label: `${a} — ${namePart}` });
+        }
+      });
+    });
+    out.sort((a, b) => a.value.localeCompare(b.value));
+    return out;
+  }, [commands]);
+
+  return (
+    <HUICombobox
+      value={value}
+      onChange={onChange}
+      onSelect={onChange}
+      options={options}
+      isLoading={loading}
+      placeholder="Enter command alias (e.g., scene1, alert)"
+    />
+  );
+};
 import moment from "moment-timezone/builds/moment-timezone-with-data-1970-2030";
 import { usePanelState } from "../../hooks/useLayout";
 import { SpawnService } from "../../services/spawnService";
@@ -897,21 +971,21 @@ const SpawnEditorWorkspace: React.FC = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Command Aliases
+                      <SBCommandDatalist />
                     </label>
                     <div className="space-y-2">
                       {(getCommandConfig(trigger)?.aliases || [""]).map(
                         (alias: string, index: number) => (
                           <div key={index} className="flex items-center gap-2">
-                            <input
-                              type="text"
+                            <SBCommandAliasCombobox
                               value={alias}
-                              onChange={(e) => {
+                              onChange={(v) => {
                                 const newAliases = [
                                   ...(getCommandConfig(trigger)?.aliases || [
                                     "",
                                   ]),
                                 ];
-                                newAliases[index] = e.target.value;
+                                newAliases[index] = v;
                                 setTrigger({
                                   ...trigger,
                                   config: {
@@ -920,8 +994,6 @@ const SpawnEditorWorkspace: React.FC = () => {
                                   },
                                 });
                               }}
-                              placeholder="Enter command alias (e.g., scene1, alert)"
-                              className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                             />
                             {(getCommandConfig(trigger)?.aliases || [""])
                               .length > 1 && (
