@@ -6,6 +6,8 @@ const AssetLibraryPage = lazy(
 );
 const SettingsPage = lazy(() => import("./components/common/SettingsPage"));
 import { useAppInitialization } from "./hooks";
+import * as Tooltip from "@radix-ui/react-tooltip";
+import { Toaster } from "sonner";
 
 function App() {
   const { isInitializing, error } = useAppInitialization();
@@ -52,15 +54,18 @@ function App() {
   }
 
   return (
-    <BrowserRouter basename={import.meta.env.BASE_URL}>
-      <Suspense fallback={<div>Loading…</div>}>
-        <Routes>
-          <Route path="/" element={<Layout />} />
-          <Route path="/assets" element={<AssetLibraryPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-        </Routes>
-      </Suspense>
-    </BrowserRouter>
+    <Tooltip.Provider delayDuration={300} skipDelayDuration={100}>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
+        <Suspense fallback={<div>Loading…</div>}>
+          <Routes>
+            <Route path="/" element={<Layout />} />
+            <Route path="/assets" element={<AssetLibraryPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+      <Toaster richColors position="top-right" />
+    </Tooltip.Provider>
   );
 }
 

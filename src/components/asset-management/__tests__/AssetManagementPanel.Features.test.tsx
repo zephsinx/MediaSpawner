@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, act, fireEvent, within } from "@testing-library/react";
+import {
+  render as rtlRender,
+  screen,
+  act,
+  fireEvent,
+  within,
+} from "@testing-library/react";
+import * as Tooltip from "@radix-ui/react-tooltip";
 import AssetManagementPanel from "../AssetManagementPanel";
 import type { Spawn, SpawnAsset } from "../../../types/spawn";
 import type { MediaAsset } from "../../../types/media";
@@ -28,6 +35,14 @@ vi.mock("../../../hooks/useLayout", () => ({
 import { SpawnService } from "../../../services/spawnService";
 import { AssetService } from "../../../services/assetService";
 import { usePanelState } from "../../../hooks/useLayout";
+
+function render(ui: React.ReactNode) {
+  return rtlRender(
+    <Tooltip.Provider delayDuration={0} skipDelayDuration={0}>
+      {ui}
+    </Tooltip.Provider>
+  );
+}
 
 function makeSpawn(id: string, assets: SpawnAsset[]): Spawn {
   return createSpawn(id, undefined, assets, id);
@@ -154,15 +169,11 @@ describe("AssetManagementPanel (Advanced Features)", () => {
         addBtn.click();
       });
 
-      // Count in "Assets in Current Spawn" header should become (1)
-      // Scope to the top section header to avoid matching the library count
-      const region = await screen.findByLabelText("Assets in Current Spawn");
-      await act(async () => {
-        // allow microtasks to flush
+      // Count in Disclosure header for "Assets in Current Spawn" should become (1)
+      const headerBtn = screen.getByRole("button", {
+        name: /Assets in Current Spawn/i,
       });
-      await new Promise((r) => setTimeout(r, 0));
-      const topHeader = region.previousElementSibling as HTMLElement | null;
-      expect(topHeader?.textContent || "").toMatch(/\(1\)/);
+      expect(headerBtn.textContent || "").toMatch(/\(1\)/);
       expect(SpawnService.updateSpawn).toHaveBeenCalledTimes(1);
     });
 
@@ -299,7 +310,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
       render(<AssetManagementPanel />);
 
       // Two assets shown with count (2)
-      expect(await screen.findByText("(2)"));
+      expect(await screen.findByText("(2)")).toBeInTheDocument();
 
       // Click first remove
       const removeBtn = await screen.findAllByRole("button", {
@@ -318,10 +329,10 @@ describe("AssetManagementPanel (Advanced Features)", () => {
       });
 
       // Count should be (1) and only one asset remains
-      const topHeader = (
-        await screen.findByLabelText("Assets in Current Spawn")
-      ).previousElementSibling as HTMLElement | null;
-      expect(topHeader?.textContent || "").toMatch(/\(1\)/);
+      const headerBtnAfter = screen.getByRole("button", {
+        name: /Assets in Current Spawn/i,
+      });
+      expect(headerBtnAfter.textContent || "").toMatch(/\(1\)/);
       const items = await screen.findAllByRole("listitem");
       expect(items.length).toBe(1);
     });
@@ -381,11 +392,9 @@ describe("AssetManagementPanel (Advanced Features)", () => {
         fireEvent.drop(items[0], { dataTransfer: dt });
       });
 
-      // After reorder, the first item should now correspond to a3
+      // After reorder, ensure updateSpawn called and order label reflects update
       const updated = await screen.findAllByRole("listitem");
-      // Verify updateSpawn called
       expect(SpawnService.updateSpawn).toHaveBeenCalled();
-      // Order labels reflect new order
       const textContent = updated.map((li) => li.textContent || "").join(" ");
       expect(textContent).toMatch(/Order:\s*0/);
     });

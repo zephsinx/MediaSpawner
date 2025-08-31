@@ -29,7 +29,7 @@ describe("AssetCard inline rename", () => {
   });
 
   it("does not call update while typing, only on commit (Enter)", async () => {
-    (AssetService.updateAsset as any).mockReturnValue(true);
+    vi.mocked(AssetService.updateAsset).mockReturnValue(true);
     render(<AssetCard asset={asset} variant="list" />);
 
     const renameBtn = screen.getByRole("button", { name: /rename asset/i });
@@ -54,7 +54,7 @@ describe("AssetCard inline rename", () => {
   });
 
   it("cancels on Escape without updating", async () => {
-    (AssetService.updateAsset as any).mockReturnValue(true);
+    vi.mocked(AssetService.updateAsset).mockReturnValue(true);
     render(<AssetCard asset={asset} variant="list" />);
 
     const renameBtn = screen.getByRole("button", { name: /rename asset/i });
@@ -73,7 +73,7 @@ describe("AssetCard inline rename", () => {
   });
 
   it("validates empty name and shows error without calling update", async () => {
-    (AssetService.updateAsset as any).mockReturnValue(true);
+    vi.mocked(AssetService.updateAsset).mockReturnValue(true);
     render(<AssetCard asset={asset} variant="list" />);
 
     const renameBtn = screen.getByRole("button", { name: /rename asset/i });

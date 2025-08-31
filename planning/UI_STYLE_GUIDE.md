@@ -20,6 +20,23 @@ This guide defines visual and interaction standards for a lightweight, minimal, 
 - **Icons**: `lucide-react`.
 - **Tailwind plugins**: `@tailwindcss/forms`, `@tailwindcss/typography`.
 
+## Radix usage (Tooltip, DropdownMenu, Popover)
+
+- Wrap the app once with `Tooltip.Provider` (`delayDuration≈300`, `skipDelayDuration≈100`).
+- Surfaces: `rounded-md border border-gray-200 bg-white shadow-md`; content usually `p-1` (menus) or `p-2` (popovers).
+- Items (DropdownMenu): `px-3 py-2 text-sm rounded` and state styles via Radix data attrs:
+  - `data-[highlighted]:bg-gray-50`
+  - `data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed`
+- Arrows: `<Component.Arrow className="fill-white" />` to match white surfaces.
+- Truncation tips: wrap truncated text in `Tooltip.Trigger asChild`; keep tooltip content small (`text-xs`).
+- Focus: ensure triggers are focusable and use `focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2`.
+
+## Toasts (sonner)
+
+- Mount `<Toaster />` once at the app shell (e.g., `App.tsx`).
+- Position `top-right`, `richColors` enabled. Keep messages short.
+- Use `toast.success|error|info` for immediate feedback on actions.
+
 ## Color system
 
 - **Accent**: Indigo (primary brand accent)
@@ -64,11 +81,6 @@ Example tokens (reference):
 }
 /* Usage with Tailwind's arbitrary values: bg-[rgb(var(--color-bg))] */
 ```
-
-Notes:
-
-- Keep the accent stable across light/dark; adjust neutrals and borders.
-- Use `ring-[rgb(var(--color-ring))]` and `ring-offset-2` for focus consistency.
 
 ## Typography
 
