@@ -1,6 +1,7 @@
 import {
   StreamerbotClient,
   type StreamerbotClientOptions,
+  type StreamerbotCommand,
 } from "@streamerbot/client";
 
 export type StreamerbotConnectionState =
@@ -28,6 +29,9 @@ export class StreamerbotService {
     port: 8080,
     endpoint: "/",
   };
+  private static commandsCache:
+    | { at: number; data: StreamerbotCommand[] }
+    | undefined;
 
   static getStatus(): StreamerbotConnectionStatus {
     return { ...this.status };
@@ -67,6 +71,35 @@ export class StreamerbotService {
 
     this.updateStatus({ state: "connecting" });
     this.client = new StreamerbotClient(options);
+  }
+
+  static async getCommands(opts?: {
+    forceRefresh?: boolean;
+    cacheMs?: number;
+  }): Promise<StreamerbotCommand[]> {
+    const forceRefresh = opts?.forceRefresh === true;
+    const cacheMs =
+      typeof opts?.cacheMs === "number" ? opts!.cacheMs : 2 * 60 * 1000;
+
+    if (this.status.state !== "connected" || !this.client) {
+      return [];
+    }
+
+    if (!forceRefresh && this.commandsCache) {
+      const fresh = Date.now() - this.commandsCache.at < cacheMs;
+      if (fresh) {
+        return this.commandsCache.data;
+      }
+    }
+
+    try {
+      const res = await this.client.getCommands();
+      const data = Array.isArray(res?.commands) ? res.commands : [];
+      this.commandsCache = { at: Date.now(), data };
+      return data;
+    } catch {
+      return [];
+    }
   }
 
   private static lastNotifyAt = 0;

@@ -6,3 +6,8 @@ export {
 export { Modal, type ModalProps } from "./Modal";
 export { PathInput, type PathInputProps } from "./PathInput";
 export { default as SettingsPage } from "./SettingsPage";
+export {
+  HUICombobox,
+  type HUIComboboxProps,
+  type HUIComboboxOption,
+} from "./HUICombobox";
