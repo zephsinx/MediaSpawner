@@ -44,9 +44,10 @@ export const HUICombobox: React.FC<HUIComboboxProps> = ({
   return (
     <HCombobox
       value={value}
-      onChange={(selected: string) => {
-        onSelect(selected);
-        onChange(selected);
+      onChange={(selected: unknown) => {
+        const next = typeof selected === "string" ? selected : "";
+        onSelect(next);
+        onChange(next);
       }}
       disabled={disabled}
     >
