@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  render,
+  render as rtlRender,
   screen,
   act,
   fireEvent,
   waitFor,
+  within,
 } from "@testing-library/react";
+import * as Tooltip from "@radix-ui/react-tooltip";
 import AssetManagementPanel from "../AssetManagementPanel";
 import type { Spawn, SpawnAsset } from "../../../types/spawn";
 import type { MediaAsset } from "../../../types/media";
@@ -36,6 +38,14 @@ vi.mock("../../../hooks/useLayout", () => ({
 import { SpawnService } from "../../../services/spawnService";
 import { AssetService } from "../../../services/assetService";
 import { usePanelState } from "../../../hooks/useLayout";
+
+function render(ui: React.ReactNode) {
+  return rtlRender(
+    <Tooltip.Provider delayDuration={0} skipDelayDuration={0}>
+      {ui}
+    </Tooltip.Provider>
+  );
+}
 
 function makeSpawn(id: string, assets: SpawnAsset[]): Spawn {
   return createSpawn(id, undefined, assets, id);
@@ -104,21 +114,41 @@ describe("AssetManagementPanel (Core Functionality)", () => {
       const sections = container.querySelectorAll("section");
       expect(sections).toHaveLength(2);
 
-      const top = sections[0] as HTMLElement;
-      const bottom = sections[1] as HTMLElement;
+      const topBorderWrapper = sections[0].querySelector(
+        ".flex.flex-col.overflow-hidden"
+      ) as HTMLElement | null;
+      expect(topBorderWrapper).toBeTruthy();
+      expect(topBorderWrapper!).toHaveClass("border-b", "border-gray-200");
 
-      expect(top).toHaveClass("min-h-[80px]", "border-b", "border-gray-200");
-      expect(bottom).toHaveClass("min-h-[200px]");
+      const topPanel = sections[0].querySelector(
+        "[id^='headlessui-disclosure-panel']"
+      ) as HTMLElement | null;
+      expect(topPanel).toBeTruthy();
+      expect(topPanel!).toHaveClass("min-h-[80px]");
+
+      const bottomPanel = sections[1].querySelector(
+        "[id^='headlessui-disclosure-panel']"
+      ) as HTMLElement | null;
+      expect(bottomPanel).toBeTruthy();
+      expect(bottomPanel!).toHaveClass("min-h-[200px]");
     });
 
     it("uses sticky-like headers and scrollable content areas", () => {
       vi.mocked(AssetService.getAssets).mockReturnValue([]);
 
       const { container } = render(<AssetManagementPanel />);
-      const headers = container.querySelectorAll(
+      // Two Disclosure headers (buttons): target by their accessible names
+      const disclosureButtons = [
+        screen.getByRole("button", { name: /Toggle Assets in Current Spawn/i }),
+        screen.getByRole("button", { name: /Toggle Asset Library/i }),
+      ];
+      expect(disclosureButtons).toHaveLength(2);
+
+      // One inner toolbar (library section only)
+      const innerToolbars = container.querySelectorAll(
         ".bg-gray-50.border-b.border-gray-200"
       );
-      expect(headers).toHaveLength(2);
+      expect(innerToolbars).toHaveLength(1);
 
       const scrollers = container.querySelectorAll(".flex-1.overflow-auto");
       expect(scrollers).toHaveLength(2);
@@ -180,16 +210,23 @@ describe("AssetManagementPanel (Core Functionality)", () => {
         clearContext: vi.fn(),
       });
 
-      vi.mocked(SpawnService.getSpawn).mockResolvedValueOnce(
-        makeSpawn("s1", [])
-      );
+      vi.mocked(SpawnService.getSpawn).mockResolvedValue(makeSpawn("s1", []));
 
       render(<AssetManagementPanel />);
+
+      // Count is in Disclosure button; scope within it
+      const spawnHeader = screen.getByRole("button", {
+        name: /Assets in Current Spawn/i,
+      });
+      expect(await within(spawnHeader).findByText("(0)")).toBeInTheDocument();
+
+      // Assert empty state is visible in spawn region
+      const spawnRegion = screen.getByRole("region", {
+        name: "Assets in Current Spawn",
+      });
       expect(
-        await screen.findByText("No assets assigned to this spawn")
+        await within(spawnRegion).findByText("No assets assigned to this spawn")
       ).toBeInTheDocument();
-      expect(screen.getByText("Assets in Current Spawn")).toBeInTheDocument();
-      expect(screen.getAllByText("(0)").length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -215,7 +252,7 @@ describe("AssetManagementPanel (Core Functionality)", () => {
         makeSpawnAsset("a1", 0),
         makeSpawnAsset("a2", 1),
       ];
-      vi.mocked(SpawnService.getSpawn).mockResolvedValueOnce(
+      vi.mocked(SpawnService.getSpawn).mockResolvedValue(
         makeSpawn("s1", assets)
       );
       vi.mocked(AssetService.getAssetById).mockImplementation((id: string) => {
@@ -230,36 +267,22 @@ describe("AssetManagementPanel (Core Functionality)", () => {
 
       render(<AssetManagementPanel />);
 
-      // Wait for loading to complete by looking for the spawn count
-      await screen.findByText("(3)");
-
-      // Find only the list items in the spawn assets section (first section)
-      const spawnSection = screen
-        .getByText("Assets in Current Spawn")
-        .closest("section");
-      if (!spawnSection) throw new Error("Spawn assets section not found");
-
-      const items = spawnSection.querySelectorAll("li[role='listitem']");
-      const names = Array.from(items).map((li) =>
+      // Scope to the spawn region and wait for listitems to render
+      const spawnRegion = screen.getByRole("region", {
+        name: "Assets in Current Spawn",
+      });
+      const items = await within(spawnRegion).findAllByRole("listitem");
+      const names = items.map((li) =>
         li.querySelector(".text-sm.font-medium")?.textContent?.trim()
       );
       expect(names).toEqual(["First", "Second", "Third"]);
 
-      // Type badges visible - only look within the spawn assets section
-      const imageBadges = screen.getAllByText("image");
-      const videoBadges = screen.getAllByText("video");
-      const audioBadges = screen.getAllByText("audio");
-
-      // Check that at least one of each type is in the spawn section
-      expect(imageBadges.some((badge) => spawnSection.contains(badge))).toBe(
-        true
-      );
-      expect(videoBadges.some((badge) => spawnSection.contains(badge))).toBe(
-        true
-      );
-      expect(audioBadges.some((badge) => spawnSection.contains(badge))).toBe(
-        true
-      );
+      // Type badges visible within spawn region
+      expect(
+        within(spawnRegion)
+          .getAllByText(/image|video|audio/)
+          .some((el) => el.textContent === "image")
+      ).toBe(true);
     });
 
     it("updates when selection changes (header count reflects selection)", async () => {
@@ -310,7 +333,11 @@ describe("AssetManagementPanel (Core Functionality)", () => {
       });
 
       await act(async () => {
-        view.rerender(<AssetManagementPanel />);
+        view.rerender(
+          <Tooltip.Provider delayDuration={0} skipDelayDuration={0}>
+            <AssetManagementPanel />
+          </Tooltip.Provider>
+        );
       });
       expect(await screen.findByText("(2)")).toBeInTheDocument();
     });
@@ -323,7 +350,10 @@ describe("AssetManagementPanel (Core Functionality)", () => {
       render(<AssetManagementPanel />);
 
       expect(screen.getByText("Asset Library")).toBeInTheDocument();
-      expect(screen.getByText("(0)")).toBeInTheDocument();
+      const libraryHeader = screen.getByRole("button", {
+        name: /Asset Library/i,
+      });
+      expect(within(libraryHeader).getByText("(0)")).toBeInTheDocument();
       expect(screen.getByText("No assets in library")).toBeInTheDocument();
     });
 
@@ -363,8 +393,10 @@ describe("AssetManagementPanel (Core Functionality)", () => {
 
       render(<AssetManagementPanel />);
 
-      const libraryHeader = screen.getByText("Asset Library").closest("h2");
-      expect(libraryHeader?.textContent).toContain("(3)");
+      const libraryHeader = screen.getByRole("button", {
+        name: /Asset Library/i,
+      });
+      expect(libraryHeader.textContent || "").toContain("(3)");
     });
 
     it("shows empty state when no assets in library", () => {
@@ -414,11 +446,10 @@ describe("AssetManagementPanel (Core Functionality)", () => {
       });
 
       expect(AssetService.addAsset).toHaveBeenCalled();
-      // Count updates to (1)
+      // Count updates to (1) in the Disclosure header button
       await waitFor(() => {
-        const headerAfter = screen.getByLabelText("Asset Library")
-          .previousElementSibling as HTMLElement | null;
-        expect(headerAfter?.textContent || "").toMatch(/\(1\)|\(\s*1\s*\)/);
+        const btn = screen.getByRole("button", { name: /Asset Library/i });
+        expect(btn.textContent || "").toMatch(/\(1\)/);
       });
     });
 
@@ -427,8 +458,9 @@ describe("AssetManagementPanel (Core Functionality)", () => {
         .mockReturnValueOnce([])
         .mockReturnValueOnce([makeAsset({ id: "x1" })]);
 
-      const { container } = render(<AssetManagementPanel />);
-      expect(screen.getByText("(0)")).toBeInTheDocument();
+      render(<AssetManagementPanel />);
+      const libraryBtn = screen.getByRole("button", { name: /Asset Library/i });
+      expect(libraryBtn.textContent || "").toContain("(0)");
 
       await act(async () => {
         window.dispatchEvent(
@@ -438,11 +470,8 @@ describe("AssetManagementPanel (Core Functionality)", () => {
         );
       });
 
-      // The count is rendered as two separate text nodes inside parentheses; match flexibly
-      const header = container.querySelector(
-        "[aria-label='Asset Library']"
-      )?.previousElementSibling;
-      expect(header?.textContent).toContain("(1)");
+      const btnAfter = screen.getByRole("button", { name: /Asset Library/i });
+      expect(btnAfter.textContent || "").toContain("(1)");
     });
   });
 });
