@@ -210,6 +210,35 @@ export interface SpawnAssetOverrides {
 }
 
 /**
+ * Bucket-based randomization configuration for selective asset spawning.
+ * Keeping this separate from assets preserves existing override semantics while
+ * allowing flexible selection rules without nesting the asset list.
+ */
+export interface RandomizationBucketMember {
+  /** Reference to a spawn asset included in the bucket */
+  spawnAssetId: string;
+  /** Optional weight used when weighted selection is enabled */
+  weight?: number;
+}
+
+export interface RandomizationBucket {
+  /** Unique identifier for the bucket */
+  id: string;
+  /** Human-readable name for the bucket */
+  name: string;
+  /** Selection strategy for this bucket */
+  selection: "one" | "n";
+  /** Number of members to select when selection is "n" */
+  n?: number;
+  /** Whether to use weights when selecting */
+  weighted?: boolean;
+  /** Hint to avoid selecting the same member(s) consecutively */
+  noImmediateRepeat?: boolean;
+  /** Members of this bucket, each referencing a spawn asset */
+  members: RandomizationBucketMember[];
+}
+
+/**
  * Core spawn interface representing a collection of assets with shared behavior
  *
  * Spawns are the primary unit of work in the spawn-centric architecture.
@@ -237,6 +266,9 @@ export interface Spawn {
 
   /** Array of spawn-specific asset instances */
   assets: SpawnAsset[];
+
+  /** Optional randomization buckets for selective member selection */
+  randomizationBuckets?: RandomizationBucket[];
 
   /** Optional spawn-wide default settings for assets */
   defaultProperties?: Partial<MediaAssetProperties>;

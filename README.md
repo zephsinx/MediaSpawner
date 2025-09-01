@@ -20,11 +20,23 @@ Sets of media assets that spawn together. Each spawn has its own trigger conditi
 
 Individual media files (images, videos, audio) that can be assigned to spawns with specific configuration overrides.
 
+### Randomization Buckets (per-spawn)
+
+Configure subsets of a spawn's assets to be chosen at runtime by the consuming application.
+
+- Buckets reference spawn assets (not library assets) and live on the spawn.
+- Selection modes:
+  - Pick one: exactly one member will be chosen.
+  - Pick N: choose N unique members; N must be ≤ enabled members.
+- Non-bucket assets always spawn as usual.
+- UI: create buckets, edit members, and see bucket chips next to assets in the current spawn panel.
+
 ## Features
 
 - **Spawn Management**: Create, configure, and organize spawns within profiles
 - **Asset Library**: Central repository for all your media assets
 - **Spawn-Specific Settings**: Configure how assets behave within each spawn
+- **Randomization Buckets**: Define groups that select one or N assets at runtime
 - **Profile Switching**: Work with different configurations for different scenarios
 - **Export Ready**: Generate configurations for external applications
 
@@ -43,7 +55,8 @@ Individual media files (images, videos, audio) that can be assigned to spawns wi
 2. **Add Assets** - Import your media files into the asset library
 3. **Create Spawns** - Group related assets together
 4. **Configure Settings** - Set trigger conditions, duration, and asset-specific properties
-5. **Export** - Generate configuration files for your target application
+5. **Randomize** - Optionally create randomization buckets inside a spawn
+6. **Export** - Generate configuration files for your target application
 
 ## Architecture
 

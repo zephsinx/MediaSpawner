@@ -50,6 +50,7 @@ import moment from "moment-timezone/builds/moment-timezone-with-data-1970-2030";
 import { usePanelState } from "../../hooks/useLayout";
 import { SpawnService } from "../../services/spawnService";
 import type { Spawn } from "../../types/spawn";
+import type { RandomizationBucket } from "../../types/spawn";
 import type { Trigger, TriggerType } from "../../types/spawn";
 import { getDefaultTrigger } from "../../types/spawn";
 import type { MediaAssetProperties } from "../../types/media";
@@ -60,6 +61,8 @@ import {
   formatNextActivation,
 } from "../../utils/scheduling";
 import { validateTrigger } from "../../utils/triggerValidation";
+import { RandomizationBucketsSection } from "./RandomizationBucketsSection";
+import { validateRandomizationBuckets } from "../../utils/randomizationBuckets";
 
 const buildTimezoneOptions = () => {
   const now = Date.now();
@@ -183,6 +186,8 @@ const SpawnEditorWorkspace: React.FC = () => {
   const [showModeSwitchDialog, setShowModeSwitchDialog] = useState(false);
   const [showTriggerTypeDialog, setShowTriggerTypeDialog] = useState(false);
   const pendingTriggerTypeRef = useRef<TriggerType | null>(null);
+  const [bucketsDraft, setBucketsDraft] = useState<RandomizationBucket[]>([]);
+  const [duration, setDuration] = useState<number>(0);
 
   const assetDraftCacheRef = useRef<
     Record<
@@ -202,6 +207,14 @@ const SpawnEditorWorkspace: React.FC = () => {
   >({});
   const [showMetadata, setShowMetadata] = useState<boolean>(true);
   const validation = useMemo(() => validateTrigger(trigger), [trigger]);
+  const bucketValidation = useMemo(() => {
+    if (!selectedSpawn) return { isValid: true, errors: [] as string[] };
+    const candidate = {
+      ...selectedSpawn,
+      randomizationBuckets: bucketsDraft,
+    } as Spawn;
+    return validateRandomizationBuckets(candidate);
+  }, [selectedSpawn, bucketsDraft]);
 
   useEffect(() => {
     let isActive = true;
@@ -282,6 +295,7 @@ const SpawnEditorWorkspace: React.FC = () => {
       setDescription(selectedSpawn.description || "");
       setEnabled(!!selectedSpawn.enabled);
       setTrigger(selectedSpawn.trigger || getDefaultTrigger("manual"));
+      setDuration(selectedSpawn.duration);
       const toggles: Partial<Record<FieldKey, boolean>> = {};
       DEFAULT_FIELDS.forEach((k) => {
         const dp = selectedSpawn.defaultProperties;
@@ -291,6 +305,7 @@ const SpawnEditorWorkspace: React.FC = () => {
       });
       setDefaultsEnabled(toggles);
       setDraftDefaults({ ...(selectedSpawn.defaultProperties || {}) });
+      setBucketsDraft([...(selectedSpawn.randomizationBuckets || [])]);
       // Clear messages only if changing to a different spawn
       if (prevSpawnIdRef.current !== selectedSpawn.id) {
         setSaveError(null);
@@ -307,6 +322,7 @@ const SpawnEditorWorkspace: React.FC = () => {
     const baselineDesc = selectedSpawn.description || "";
     const triggerChanged =
       JSON.stringify(trigger) !== JSON.stringify(selectedSpawn.trigger || null);
+    const durationChanged = duration !== selectedSpawn.duration;
     const currentEnabledDefaults = buildEnabledDefaults(
       draftDefaults,
       defaultsEnabled
@@ -315,19 +331,26 @@ const SpawnEditorWorkspace: React.FC = () => {
     const defaultsChanged =
       JSON.stringify(currentEnabledDefaults) !==
       JSON.stringify(baselineDefaults);
+    const bucketsChanged =
+      JSON.stringify(bucketsDraft || []) !==
+      JSON.stringify(selectedSpawn.randomizationBuckets || []);
     return (
       name !== baselineName ||
       description !== baselineDesc ||
+      durationChanged ||
       defaultsChanged ||
-      triggerChanged
+      triggerChanged ||
+      bucketsChanged
     );
   }, [
     name,
     description,
     selectedSpawn,
+    duration,
     draftDefaults,
     defaultsEnabled,
     trigger,
+    bucketsDraft,
   ]);
 
   useEffect(() => {
@@ -370,7 +393,8 @@ const SpawnEditorWorkspace: React.FC = () => {
     !selectedSpawn ||
     !isCommandAliasValid ||
     !isChannelPointConfigValid ||
-    validation.errors.length > 0;
+    validation.errors.length > 0 ||
+    !bucketValidation.isValid;
 
   const handleCancel = () => {
     if (!selectedSpawn) return;
@@ -381,6 +405,7 @@ const SpawnEditorWorkspace: React.FC = () => {
     setName(selectedSpawn.name);
     setDescription(selectedSpawn.description || "");
     setTrigger(selectedSpawn.trigger || getDefaultTrigger("manual"));
+    setDuration(selectedSpawn.duration);
     const toggles: Partial<Record<FieldKey, boolean>> = {};
     DEFAULT_FIELDS.forEach((k) => {
       const dp = selectedSpawn.defaultProperties;
@@ -418,8 +443,9 @@ const SpawnEditorWorkspace: React.FC = () => {
         name: trimmedName,
         description: description.trim() || undefined,
         trigger: trigger || undefined,
-        duration: selectedSpawn.duration,
+        duration,
         defaultProperties,
+        randomizationBuckets: bucketsDraft,
       });
       if (!result.success || !result.spawn) {
         setSaveError(result.error || "Failed to save spawn");
@@ -591,6 +617,7 @@ const SpawnEditorWorkspace: React.FC = () => {
             }
             setName(selectedSpawn.name);
             setDescription(selectedSpawn.description || "");
+            setDuration(selectedSpawn.duration);
             const toggles: Partial<Record<FieldKey, boolean>> = {};
             DEFAULT_FIELDS.forEach((k) => {
               const dp = selectedSpawn.defaultProperties;
@@ -935,6 +962,13 @@ const SpawnEditorWorkspace: React.FC = () => {
                 </div>
               </div>
             </section>
+
+            {/* Randomization Buckets */}
+            <RandomizationBucketsSection
+              spawn={selectedSpawn}
+              buckets={bucketsDraft}
+              onChange={setBucketsDraft}
+            />
 
             {trigger?.type === "streamerbot.command" && (
               <section className="bg-white border border-gray-200 rounded-lg p-4">
@@ -2310,12 +2344,10 @@ const SpawnEditorWorkspace: React.FC = () => {
                   <input
                     type="number"
                     min={0}
-                    value={selectedSpawn?.duration ?? 0}
+                    value={duration}
                     onChange={(e) => {
                       const val = Math.max(0, Number(e.target.value) || 0);
-                      if (!selectedSpawn) return;
-                      setSelectedSpawn({ ...selectedSpawn, duration: val });
-                      setUnsavedChanges(true);
+                      setDuration(val);
                     }}
                     className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                   />

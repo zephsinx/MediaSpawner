@@ -89,6 +89,12 @@
                         "$ref": "#/$defs/SpawnAsset"
                     }
                 },
+                "randomizationBuckets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/RandomizationBucket"
+                    }
+                },
                 "defaultProperties": {
                     "$ref": "#/$defs/AssetSettings"
                 }
@@ -105,6 +111,12 @@
             "properties": {
                 "assetId": {
                     "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
                 },
                 "order": {
                     "type": "integer",
@@ -126,6 +138,64 @@
             },
             "required": [
                 "assetId"
+            ]
+        },
+        "RandomizationBucket": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "selection": {
+                    "type": "string",
+                    "enum": [
+                        "one",
+                        "n"
+                    ]
+                },
+                "n": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "weighted": {
+                    "type": "boolean"
+                },
+                "noImmediateRepeat": {
+                    "type": "boolean"
+                },
+                "members": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/RandomizationBucketMember"
+                    },
+                    "minItems": 1
+                }
+            },
+            "required": [
+                "id",
+                "name",
+                "selection",
+                "members"
+            ]
+        },
+        "RandomizationBucketMember": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "spawnAssetId": {
+                    "type": "string"
+                },
+                "weight": {
+                    "type": "integer",
+                    "minimum": 1
+                }
+            },
+            "required": [
+                "spawnAssetId"
             ]
         },
         "Asset": {
