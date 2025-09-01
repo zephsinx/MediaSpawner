@@ -13,6 +13,10 @@ import {
 } from "../types/spawn";
 import { CacheService, CACHE_KEYS } from "./cacheService";
 import { SpawnProfileService } from "./spawnProfileService";
+import {
+  reconcileBucketsWithAssets,
+  validateRandomizationBuckets,
+} from "../utils/randomizationBuckets";
 
 /**
  * Result of spawn operations
@@ -134,6 +138,7 @@ export class SpawnService {
         | "assets"
         | "enabled"
         | "defaultProperties"
+        | "randomizationBuckets"
       >
     >
   ): Promise<SpawnOperationResult> {
@@ -174,14 +179,28 @@ export class SpawnService {
       }
 
       // Create updated spawn
-      const updatedSpawn = {
+      const updatedSpawn: Spawn = {
         ...currentSpawn,
         ...updates,
         lastModified: Date.now(),
       };
 
+      // Reconcile buckets with assets (remove dangling members)
+      const reconciled = reconcileBucketsWithAssets(updatedSpawn);
+
+      // Validate buckets if present
+      const bucketValidation = validateRandomizationBuckets(reconciled);
+      if (!bucketValidation.isValid) {
+        return {
+          success: false,
+          error: `Invalid randomization buckets: ${bucketValidation.errors.join(
+            ", "
+          )}`,
+        };
+      }
+
       // Validate the updated spawn
-      const validation = validateSpawn(updatedSpawn);
+      const validation = validateSpawn(reconciled);
       if (!validation.isValid) {
         return {
           success: false,
@@ -191,7 +210,7 @@ export class SpawnService {
 
       // Update spawn in profile
       const updatedSpawns = [...activeProfile.spawns];
-      updatedSpawns[spawnIndex] = updatedSpawn;
+      updatedSpawns[spawnIndex] = reconciled;
 
       const updateResult = this.updateProfileSpawns(
         activeProfile.id,
@@ -216,7 +235,7 @@ export class SpawnService {
         // Best-effort notification
       }
 
-      return { success: true, spawn: updatedSpawn };
+      return { success: true, spawn: reconciled };
     } catch (error) {
       return {
         success: false,

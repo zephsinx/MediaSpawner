@@ -79,10 +79,28 @@ This file guides coding agents working on MediaSpawner. It complements README.md
 - No base-asset fallback; do not store behavioral properties on `MediaAsset`.
 - Persist per-asset overrides as diffs only.
 
+## Randomization buckets (spawn-level)
+
+- `Spawn.randomizationBuckets?: RandomizationBucket[]`
+  - Members reference `spawnAssetId` (not library asset id).
+  - Selection: `"one" | "n"` (v1); `n` required when `selection === "n"`.
+  - No weights/repeat flags in v1 UI (fields may exist but are unused).
+- Invariants enforced by `validateRandomizationBuckets`:
+  - Each spawn asset may belong to at most one bucket.
+  - Members must exist in `spawn.assets` and be unique per bucket.
+  - When `selection === "n"`, require `1 ≤ n ≤ enabledMemberCount`.
+- `SpawnService.updateSpawn`:
+  - Reconciles buckets with assets (removes dangling members) and validates.
+  - Emits `mediaspawner:spawn-updated` after successful save.
+- UI:
+  - Spawn editor includes a "Randomization Buckets" section.
+  - "Edit Members" modal shows [checkbox] Name + type chip + order chip; tooltip shows full path.
+  - Assets already in a bucket are shown with a bucket chip in the right panel (Assets in Current Spawn).
+
 ## Services and events
 
 - Services:
-  - `SpawnService`: CRUD for spawn data; accepts `defaultProperties`.
+  - `SpawnService`: CRUD for spawn data; accepts `defaultProperties` and `randomizationBuckets`.
   - `AssetService`: global asset library; assets are descriptive only (no behavioral `properties`).
   - `CacheService`, `ConfigurationService`, `ImportExportService`, `SettingsService`, `SpawnProfileService` exported via `src/services/index.ts`.
 - Global events:

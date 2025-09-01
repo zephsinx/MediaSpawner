@@ -50,6 +50,7 @@ import moment from "moment-timezone/builds/moment-timezone-with-data-1970-2030";
 import { usePanelState } from "../../hooks/useLayout";
 import { SpawnService } from "../../services/spawnService";
 import type { Spawn } from "../../types/spawn";
+import type { RandomizationBucket } from "../../types/spawn";
 import type { Trigger, TriggerType } from "../../types/spawn";
 import { getDefaultTrigger } from "../../types/spawn";
 import type { MediaAssetProperties } from "../../types/media";
@@ -60,6 +61,8 @@ import {
   formatNextActivation,
 } from "../../utils/scheduling";
 import { validateTrigger } from "../../utils/triggerValidation";
+import { RandomizationBucketsSection } from "./RandomizationBucketsSection";
+import { validateRandomizationBuckets } from "../../utils/randomizationBuckets";
 
 const buildTimezoneOptions = () => {
   const now = Date.now();
@@ -183,6 +186,7 @@ const SpawnEditorWorkspace: React.FC = () => {
   const [showModeSwitchDialog, setShowModeSwitchDialog] = useState(false);
   const [showTriggerTypeDialog, setShowTriggerTypeDialog] = useState(false);
   const pendingTriggerTypeRef = useRef<TriggerType | null>(null);
+  const [bucketsDraft, setBucketsDraft] = useState<RandomizationBucket[]>([]);
 
   const assetDraftCacheRef = useRef<
     Record<
@@ -202,6 +206,14 @@ const SpawnEditorWorkspace: React.FC = () => {
   >({});
   const [showMetadata, setShowMetadata] = useState<boolean>(true);
   const validation = useMemo(() => validateTrigger(trigger), [trigger]);
+  const bucketValidation = useMemo(() => {
+    if (!selectedSpawn) return { isValid: true, errors: [] as string[] };
+    const candidate = {
+      ...selectedSpawn,
+      randomizationBuckets: bucketsDraft,
+    } as Spawn;
+    return validateRandomizationBuckets(candidate);
+  }, [selectedSpawn, bucketsDraft]);
 
   useEffect(() => {
     let isActive = true;
@@ -291,6 +303,7 @@ const SpawnEditorWorkspace: React.FC = () => {
       });
       setDefaultsEnabled(toggles);
       setDraftDefaults({ ...(selectedSpawn.defaultProperties || {}) });
+      setBucketsDraft([...(selectedSpawn.randomizationBuckets || [])]);
       // Clear messages only if changing to a different spawn
       if (prevSpawnIdRef.current !== selectedSpawn.id) {
         setSaveError(null);
@@ -315,11 +328,15 @@ const SpawnEditorWorkspace: React.FC = () => {
     const defaultsChanged =
       JSON.stringify(currentEnabledDefaults) !==
       JSON.stringify(baselineDefaults);
+    const bucketsChanged =
+      JSON.stringify(bucketsDraft || []) !==
+      JSON.stringify(selectedSpawn.randomizationBuckets || []);
     return (
       name !== baselineName ||
       description !== baselineDesc ||
       defaultsChanged ||
-      triggerChanged
+      triggerChanged ||
+      bucketsChanged
     );
   }, [
     name,
@@ -328,6 +345,7 @@ const SpawnEditorWorkspace: React.FC = () => {
     draftDefaults,
     defaultsEnabled,
     trigger,
+    bucketsDraft,
   ]);
 
   useEffect(() => {
@@ -370,7 +388,8 @@ const SpawnEditorWorkspace: React.FC = () => {
     !selectedSpawn ||
     !isCommandAliasValid ||
     !isChannelPointConfigValid ||
-    validation.errors.length > 0;
+    validation.errors.length > 0 ||
+    !bucketValidation.isValid;
 
   const handleCancel = () => {
     if (!selectedSpawn) return;
@@ -420,6 +439,7 @@ const SpawnEditorWorkspace: React.FC = () => {
         trigger: trigger || undefined,
         duration: selectedSpawn.duration,
         defaultProperties,
+        randomizationBuckets: bucketsDraft,
       });
       if (!result.success || !result.spawn) {
         setSaveError(result.error || "Failed to save spawn");
@@ -935,6 +955,13 @@ const SpawnEditorWorkspace: React.FC = () => {
                 </div>
               </div>
             </section>
+
+            {/* Randomization Buckets */}
+            <RandomizationBucketsSection
+              spawn={selectedSpawn}
+              buckets={bucketsDraft}
+              onChange={setBucketsDraft}
+            />
 
             {trigger?.type === "streamerbot.command" && (
               <section className="bg-white border border-gray-200 rounded-lg p-4">
