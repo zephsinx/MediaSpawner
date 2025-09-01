@@ -345,6 +345,7 @@ describe("AssetSettingsForm", () => {
       await act(async () => {
         fireEvent.click(dimensionsToggle);
       });
+      await waitFor(() => expect(dimensionsToggle).toBeChecked());
 
       expect(widthInput).not.toBeDisabled();
     });
