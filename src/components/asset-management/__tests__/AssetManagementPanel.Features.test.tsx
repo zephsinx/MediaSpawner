@@ -98,7 +98,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
       expect(addBtn).toBeDisabled();
     });
 
-    it("enables Add to Spawn when a spawn is selected", () => {
+    it("enables Add to Spawn when a spawn is selected", async () => {
       vi.mocked(usePanelState).mockReturnValue({
         selectedSpawnId: "s1",
         activeProfileId: undefined,
@@ -118,9 +118,13 @@ describe("AssetManagementPanel (Advanced Features)", () => {
         makeAsset({ id: "a1" }),
       ]);
 
-      render(<AssetManagementPanel />);
+      await act(async () => {
+        render(<AssetManagementPanel />);
+      });
 
-      const addBtn = screen.getByRole("button", { name: "Add to Spawn" });
+      const addBtn = await screen.findByRole("button", {
+        name: "Add to Spawn",
+      });
       expect(addBtn).not.toBeDisabled();
     });
 

@@ -136,18 +136,22 @@ describe("AssetSettingsForm", () => {
   });
 
   describe("Loading States", () => {
-    it("shows loading state when data is not yet loaded", () => {
+    it("shows loading state when data is not yet loaded", async () => {
       vi.mocked(SpawnService.getSpawn).mockResolvedValue(null);
 
-      render(
-        <AssetSettingsForm
-          spawnId="spawn1"
-          spawnAssetId="asset1"
-          onBack={mockOnBack}
-        />
-      );
+      await act(async () => {
+        render(
+          <AssetSettingsForm
+            spawnId="spawn1"
+            spawnAssetId="asset1"
+            onBack={mockOnBack}
+          />
+        );
+      });
 
-      expect(screen.getByText("Loading asset settings…")).toBeInTheDocument();
+      expect(
+        await screen.findByText("Loading asset settings…")
+      ).toBeInTheDocument();
     });
   });
 
