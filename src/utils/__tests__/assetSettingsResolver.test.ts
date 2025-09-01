@@ -14,7 +14,7 @@ const spawnFactory = (defaults: Partial<MediaAssetProperties> = {}): Spawn => ({
   description: "",
   enabled: true,
   trigger: { type: "manual", config: {} },
-  duration: 5000,
+  duration: 0,
   assets: [],
   defaultProperties: defaults,
   lastModified: Date.now(),

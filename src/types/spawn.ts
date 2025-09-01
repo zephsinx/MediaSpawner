@@ -202,9 +202,6 @@ export interface SpawnAssetOverrides {
   /** Override spawn's default duration for this specific asset */
   duration?: number;
 
-  /** Override spawn's default trigger for this specific asset */
-  trigger?: Trigger;
-
   /** Override asset's default properties */
   properties?: Partial<MediaAssetProperties>;
 
@@ -326,7 +323,7 @@ export const createSpawn = (
     description,
     enabled: true,
     trigger: createSpawnTrigger(),
-    duration: 5000, // 5 seconds default
+    duration: 0,
     assets,
     lastModified: Date.now(),
     order: 0,

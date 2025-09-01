@@ -484,7 +484,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
         description: "",
         enabled: true,
         trigger: { type: "manual", config: {} },
-        duration: 5000,
+        duration: 0,
         assets: [spawnAsset],
         lastModified: Date.now(),
         order: 0,
