@@ -15,8 +15,18 @@ import { ConfirmDialog } from "../common/ConfirmDialog";
 import { HUICombobox } from "../common";
 import * as Popover from "@radix-ui/react-popover";
 import * as Tooltip from "@radix-ui/react-tooltip";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { toast } from "sonner";
 import { Disclosure } from "@headlessui/react";
+import {
+  GripVertical,
+  Settings,
+  MoreVertical,
+  Trash2,
+  ChevronUp,
+  ChevronDown,
+  Shuffle,
+} from "lucide-react";
 
 /**
  * AssetManagementPanel renders the right-panel structure for Epic 4 (MS-32):
@@ -316,7 +326,7 @@ function SpawnAssetsSection() {
               <li
                 role="listitem"
                 key={spawnAsset.id}
-                className={`border border-gray-200 rounded-md bg-white p-2 ${
+                className={`border border-gray-200 rounded-md bg-white p-2 focus-within:ring-2 focus-within:ring-[rgb(var(--color-ring))] ${
                   draggingId === spawnAsset.id ? "opacity-70" : ""
                 }`}
                 draggable
@@ -355,37 +365,124 @@ function SpawnAssetsSection() {
                     title="Drag to reorder"
                     aria-hidden
                   >
-                    ⋮⋮
+                    <GripVertical size={16} />
                   </div>
                   <div className="w-16 h-16 flex-shrink-0 overflow-hidden rounded">
-                    <MediaPreview
-                      asset={baseAsset}
-                      className="h-full"
-                      fit="contain"
-                    />
+                    <Popover.Root>
+                      <Popover.Trigger asChild>
+                        <div className="w-16 h-16 overflow-hidden rounded">
+                          <MediaPreview
+                            asset={baseAsset}
+                            className="h-full"
+                            fit="contain"
+                          />
+                        </div>
+                      </Popover.Trigger>
+                      <Popover.Portal>
+                        <Popover.Content
+                          sideOffset={6}
+                          className="z-10 w-72 rounded-md border border-gray-200 bg-white shadow-md p-2"
+                        >
+                          <div className="w-full h-40 overflow-hidden rounded mb-2">
+                            <MediaPreview
+                              asset={baseAsset}
+                              className="h-full"
+                              fit="contain"
+                            />
+                          </div>
+                          <div className="text-xs text-gray-700 space-y-1">
+                            <div>
+                              <span className="text-gray-500">Name:</span>{" "}
+                              {baseAsset.name}
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Type:</span>{" "}
+                              {baseAsset.type}
+                            </div>
+                            <div className="truncate" title={baseAsset.path}>
+                              <span className="text-gray-500">Path:</span>{" "}
+                              {baseAsset.path}
+                            </div>
+                          </div>
+                          <Popover.Arrow className="fill-white" />
+                        </Popover.Content>
+                      </Popover.Portal>
+                    </Popover.Root>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div
                       className="text-sm font-medium text-gray-900 truncate"
                       title={baseAsset.name}
                     >
-                      {baseAsset.name}
+                      <Tooltip.Root>
+                        <Tooltip.Trigger asChild>
+                          <span className="truncate inline-block max-w-full align-middle">
+                            {baseAsset.name}
+                          </span>
+                        </Tooltip.Trigger>
+                        <Tooltip.Portal>
+                          <Tooltip.Content
+                            sideOffset={6}
+                            className="z-10 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-800 shadow-md"
+                          >
+                            {baseAsset.name}
+                            <Tooltip.Arrow className="fill-white" />
+                          </Tooltip.Content>
+                        </Tooltip.Portal>
+                      </Tooltip.Root>
                     </div>
-                    <div className="text-xs text-gray-600 flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1 capitalize bg-gray-100 text-gray-700 px-2 py-0.5 rounded">
+                    <div className="text-xs text-gray-600 flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1 capitalize bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded">
                         <span>{getTypeIcon(baseAsset.type)}</span>
                         <span>{baseAsset.type}</span>
                       </span>
+                      {spawn?.randomizationBuckets?.length
+                        ? (() => {
+                            const bucket = (
+                              spawn.randomizationBuckets || []
+                            ).find((b) =>
+                              b.members.some(
+                                (m) => m.spawnAssetId === spawnAsset.id
+                              )
+                            );
+                            return bucket ? (
+                              <Tooltip.Root>
+                                <Tooltip.Trigger asChild>
+                                  <span
+                                    className="inline-flex items-center justify-center bg-blue-50 text-blue-700 w-6 h-6 rounded border border-blue-200"
+                                    aria-label={`Bucket: ${bucket.name}`}
+                                  >
+                                    <Shuffle size={14} />
+                                  </span>
+                                </Tooltip.Trigger>
+                                <Tooltip.Portal>
+                                  <Tooltip.Content
+                                    sideOffset={6}
+                                    className="z-10 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-800 shadow-md"
+                                  >
+                                    Bucket: {bucket.name}
+                                    <Tooltip.Arrow className="fill-white" />
+                                  </Tooltip.Content>
+                                </Tooltip.Portal>
+                              </Tooltip.Root>
+                            ) : null;
+                          })()
+                        : null}
+                      {!spawnAsset.enabled && (
+                        <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[11px]">
+                          Disabled
+                        </span>
+                      )}
                       <span className="text-gray-400">•</span>
                       <span className="text-gray-500">
                         Order: {spawnAsset.order}
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center">
+                  <div className="flex items-center gap-1.5">
                     <button
                       type="button"
-                      className={`mr-2 text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50`}
+                      className="inline-flex items-center justify-center text-xs rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2 w-7 h-7"
                       onClick={() => {
                         const detail = {
                           mode: "asset-settings",
@@ -398,17 +495,16 @@ function SpawnAssetsSection() {
                           )
                         );
                       }}
+                      aria-label="Configure"
                     >
-                      Configure
+                      <Settings size={14} />
                     </button>
                     <button
                       type="button"
-                      className={`text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 ${
-                        isRemoving
-                          ? "opacity-50 cursor-not-allowed"
-                          : "hover:bg-gray-50"
-                      }`}
                       aria-label="Remove from Spawn"
+                      className={`inline-flex items-center justify-center text-xs rounded border border-red-300 bg-white text-red-700 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2 w-7 h-7 ${
+                        isRemoving ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
                       onClick={() => {
                         if (skipRemoveConfirm) {
                           void performRemove(spawnAsset.id);
@@ -418,8 +514,69 @@ function SpawnAssetsSection() {
                       }}
                       disabled={isRemoving}
                     >
-                      Remove
+                      <Trash2 size={14} />
                     </button>
+                    <DropdownMenu.Root>
+                      <DropdownMenu.Trigger asChild>
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
+                          aria-label="More actions"
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+                      </DropdownMenu.Trigger>
+                      <DropdownMenu.Portal>
+                        <DropdownMenu.Content
+                          sideOffset={6}
+                          className="z-10 rounded-md border border-gray-200 bg-white shadow-md p-1 text-sm"
+                        >
+                          <DropdownMenu.Item
+                            className="px-3 py-2 rounded data-[highlighted]:bg-gray-50 outline-none cursor-pointer"
+                            onSelect={() => {
+                              const toIndex = Math.max(0, index - 1);
+                              if (toIndex !== index)
+                                void handleReorder(index, toIndex);
+                            }}
+                          >
+                            <span className="inline-flex items-center gap-2">
+                              <ChevronUp size={14} /> Move up
+                            </span>
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Item
+                            className="px-3 py-2 rounded data-[highlighted]:bg-gray-50 outline-none cursor-pointer"
+                            onSelect={() => {
+                              const toIndex = Math.min(
+                                resolvedAssets.length - 1,
+                                index + 1
+                              );
+                              if (toIndex !== index)
+                                void handleReorder(index, toIndex);
+                            }}
+                          >
+                            <span className="inline-flex items-center gap-2">
+                              <ChevronDown size={14} /> Move down
+                            </span>
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
+                          <DropdownMenu.Item
+                            className="px-3 py-2 rounded text-red-700 data-[highlighted]:bg-red-50 outline-none cursor-pointer"
+                            onSelect={() => {
+                              if (skipRemoveConfirm) {
+                                void performRemove(spawnAsset.id);
+                              } else {
+                                setConfirmRemoveId(spawnAsset.id);
+                              }
+                            }}
+                          >
+                            <span className="inline-flex items-center gap-2">
+                              <Trash2 size={14} /> Remove
+                            </span>
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Arrow className="fill-white" />
+                        </DropdownMenu.Content>
+                      </DropdownMenu.Portal>
+                    </DropdownMenu.Root>
                   </div>
                 </div>
                 {dragOverIndex === index && draggingId !== null && (
