@@ -33,7 +33,7 @@ const mockSpawns: Spawn[] = [
       type: "manual",
       config: {},
     },
-    duration: 5000,
+    duration: 0,
     assets: [],
     lastModified: Date.now(),
     order: 0,

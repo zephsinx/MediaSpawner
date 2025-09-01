@@ -418,6 +418,7 @@ const SpawnEditorWorkspace: React.FC = () => {
         name: trimmedName,
         description: description.trim() || undefined,
         trigger: trigger || undefined,
+        duration: selectedSpawn.duration,
         defaultProperties,
       });
       if (!result.success || !result.spawn) {
@@ -778,6 +779,7 @@ const SpawnEditorWorkspace: React.FC = () => {
                     </p>
                   )}
                 </div>
+
                 <div className="md:col-span-2">
                   <label
                     htmlFor="spawn-description"
@@ -2301,6 +2303,23 @@ const SpawnEditorWorkspace: React.FC = () => {
                 Assets inherit these values unless specifically overridden.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Duration (ms)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={selectedSpawn?.duration ?? 0}
+                    onChange={(e) => {
+                      const val = Math.max(0, Number(e.target.value) || 0);
+                      if (!selectedSpawn) return;
+                      setSelectedSpawn({ ...selectedSpawn, duration: val });
+                      setUnsavedChanges(true);
+                    }}
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Width (px)
@@ -2580,21 +2599,7 @@ const SpawnEditorWorkspace: React.FC = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
                     />
                   </div>
-                  <div>
-                    <label
-                      htmlFor="spawn-duration"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Duration (ms)
-                    </label>
-                    <input
-                      id="spawn-duration"
-                      type="number"
-                      value={selectedSpawn.duration ?? 0}
-                      disabled
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
-                    />
-                  </div>
+
                   <div>
                     <label
                       htmlFor="spawn-assets"

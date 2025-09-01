@@ -59,7 +59,7 @@ describe("Spawn Types", () => {
       expect(spawn.name).toBe("Test Spawn");
       expect(spawn.description).toBe("desc");
       expect(spawn.enabled).toBe(true);
-      expect(spawn.duration).toBe(5000);
+      expect(spawn.duration).toBe(0);
       expect(spawn.trigger.type).toBe("manual");
       expect(spawn.assets).toEqual([]);
       expect(spawn.lastModified).toBe(1234567890000);

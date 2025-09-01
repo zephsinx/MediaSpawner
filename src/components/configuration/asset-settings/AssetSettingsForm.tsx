@@ -63,6 +63,9 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
   const [overrideEnabled, setOverrideEnabled] = useState<
     Partial<Record<FieldKey, boolean>>
   >({});
+  const [durationOverrideEnabled, setDurationOverrideEnabled] =
+    useState<boolean>(false);
+  const [durationDraftMs, setDurationDraftMs] = useState<number>(0);
   const [draftValues, setDraftValues] = useState<Partial<MediaAssetProperties>>(
     {}
   );
@@ -137,6 +140,14 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
         toggles[fieldKey] = props ? props[fieldKey] !== undefined : false;
       });
       setOverrideEnabled(toggles);
+      const hasDurationOverride =
+        typeof spawnAsset.overrides?.duration === "number";
+      setDurationOverrideEnabled(!!hasDurationOverride);
+      setDurationDraftMs(
+        hasDurationOverride
+          ? Math.max(0, Number(spawnAsset.overrides?.duration))
+          : Math.max(0, Number(spawn.duration))
+      );
     }
     setUnsavedChanges(false);
   }, [effective, spawn, spawnAsset, setUnsavedChanges, getCachedDraft]);
@@ -241,6 +252,8 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
     });
     setOverrideEnabled(nextToggles);
     setDraftValues(inheritedOnly.effective);
+    setDurationOverrideEnabled(false);
+    setDurationDraftMs(Math.max(0, Number(spawn?.duration || 0)));
     setUnsavedChanges(true);
     setValidationErrors({});
   };
@@ -272,6 +285,9 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
               overrides: {
                 ...sa.overrides,
                 properties: diff,
+                duration: durationOverrideEnabled
+                  ? Math.max(0, durationDraftMs)
+                  : undefined,
               },
             }
           : sa
@@ -445,6 +461,49 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
 
       <div className="flex-1 p-4">
         <div className="max-w-2xl space-y-6">
+          <section className="bg-white border border-gray-200 rounded-lg p-4">
+            <h3 className="text-base font-semibold text-gray-800 mb-3">
+              Duration
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Duration (ms)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={durationOverrideEnabled}
+                    onChange={(e) => {
+                      setDurationOverrideEnabled(e.target.checked);
+                      setUnsavedChanges(true);
+                      if (!e.target.checked && spawn) {
+                        setDurationDraftMs(Math.max(1, Number(spawn.duration)));
+                      }
+                    }}
+                    aria-label="Override duration"
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    value={durationDraftMs}
+                    onChange={(e) => {
+                      const val = Math.max(0, Number(e.target.value) || 0);
+                      setDurationDraftMs(val);
+                      setUnsavedChanges(true);
+                    }}
+                    disabled={!durationOverrideEnabled}
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {durationOverrideEnabled
+                    ? "Overridden"
+                    : "Inherited from Spawn"}
+                </p>
+              </div>
+            </div>
+          </section>
           {isVisual && (
             <section className="bg-white border border-gray-200 rounded-lg p-4">
               <h3 className="text-base font-semibold text-gray-800 mb-3">
@@ -483,8 +542,8 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     {overrideEnabled.dimensions
                       ? "Overridden"
                       : effective.sourceMap.dimensions === "spawn-default"
-                      ? "Inherited from Spawn Defaults"
-                      : "Inherited from Asset"}
+                      ? "Inherited from Spawn"
+                      : "Not set"}
                   </p>
                   {overrideEnabled.dimensions &&
                     validationErrors.dimensions && (
@@ -554,8 +613,8 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     {overrideEnabled.position
                       ? "Overridden"
                       : effective.sourceMap.position === "spawn-default"
-                      ? "Inherited from Spawn Defaults"
-                      : "Inherited from Asset"}
+                      ? "Inherited from Spawn"
+                      : "Not set"}
                   </p>
                   {overrideEnabled.position && validationErrors.position && (
                     <p
@@ -626,8 +685,8 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     {overrideEnabled.scale
                       ? "Overridden"
                       : effective.sourceMap.scale === "spawn-default"
-                      ? "Inherited from Spawn Defaults"
-                      : "Inherited from Asset"}
+                      ? "Inherited from Spawn"
+                      : "Not set"}
                   </p>
                   {overrideEnabled.scale && validationErrors.scale && (
                     <p id="scale-error" className="text-xs text-red-600 mt-1">
@@ -669,8 +728,8 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     {overrideEnabled.positionMode
                       ? "Overridden"
                       : effective.sourceMap.positionMode === "spawn-default"
-                      ? "Inherited from Spawn Defaults"
-                      : "Inherited from Asset"}
+                      ? "Inherited from Spawn"
+                      : "Not set"}
                   </p>
                 </div>
               </div>

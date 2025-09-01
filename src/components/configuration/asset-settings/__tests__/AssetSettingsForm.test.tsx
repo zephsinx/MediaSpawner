@@ -357,10 +357,8 @@ describe("AssetSettingsForm", () => {
       // Wait for the component to finish loading
       await screen.findByText("Test Video · video");
 
-      // Check that at least one "Inherited from Spawn Defaults" text exists
-      const inheritanceTexts = screen.getAllByText(
-        "Inherited from Spawn Defaults"
-      );
+      // Check that at least one "Inherited from Spawn" text exists
+      const inheritanceTexts = screen.getAllByText("Inherited from Spawn");
       expect(inheritanceTexts.length).toBeGreaterThan(0);
     });
 
@@ -508,8 +506,9 @@ describe("AssetSettingsForm", () => {
         fireEvent.click(positionModeToggle);
       });
 
-      const positionModeSelect =
-        await screen.findByDisplayValue("Absolute (px)");
+      const positionModeSelect = await screen.findByDisplayValue(
+        "Absolute (px)"
+      );
       await act(async () => {
         fireEvent.change(positionModeSelect, { target: { value: "centered" } });
       });

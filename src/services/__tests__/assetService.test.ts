@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import type { MediaAsset, MediaAssetProperties } from "../../types/media";
-import type { SpawnAssetOverrides, Trigger } from "../../types/spawn";
+import type { MediaAsset } from "../../types/media";
 import { createLocalStorageMock, setupLocalStorageMock } from "./testUtils";
 
 // Mock dependencies before importing the service
@@ -8,13 +7,10 @@ vi.mock("../cacheService", () => ({
   CacheService: {
     get: vi.fn(),
     invalidate: vi.fn(),
-    invalidateSpawnAssetSettings: vi.fn(),
-    invalidateAllSpawnAssetSettings: vi.fn(),
   },
   CACHE_KEYS: {
     ASSETS: "assets",
   },
-  getSpawnAssetCacheKey: vi.fn(),
 }));
 
 vi.mock("../spawnService", () => ({
@@ -25,19 +21,14 @@ vi.mock("../spawnService", () => ({
 
 // Import after mocking
 import { AssetService } from "../assetService";
-import {
-  CacheService,
-  CACHE_KEYS,
-  getSpawnAssetCacheKey,
-} from "../cacheService";
+import { CacheService, CACHE_KEYS } from "../cacheService";
 import { SpawnService } from "../spawnService";
+import type { Spawn } from "../../types/spawn";
 
 const mockCacheService = vi.mocked(CacheService);
 const mockSpawnService = vi.mocked(SpawnService);
-const mockGetSpawnAssetCacheKey = vi.mocked(getSpawnAssetCacheKey);
 
-describe("AssetService Spawn-Specific Settings", () => {
-  // Test data
+describe("AssetService getResolvedAssetSettings (inline overrides)", () => {
   const mockAsset: MediaAsset = {
     id: "asset-1",
     type: "video",
@@ -46,23 +37,22 @@ describe("AssetService Spawn-Specific Settings", () => {
     isUrl: false,
   };
 
-  const mockSpawn = {
+  const baseSpawn = {
     id: "spawn-1",
     name: "Test Spawn",
     enabled: true,
     trigger: { type: "manual" as const, config: {} },
-    duration: 5000,
-    assets: [],
+    duration: 0,
+    defaultProperties: {},
+    assets: [] as Array<{
+      id: string;
+      assetId: string;
+      overrides: { duration?: number; properties?: Record<string, unknown> };
+      enabled: boolean;
+      order: number;
+    }>,
     lastModified: 1234567890000,
     order: 0,
-  };
-
-  const mockSpawnAssetSettings: SpawnAssetOverrides = {
-    duration: 3000,
-    properties: {
-      volume: 1.0,
-      loop: true,
-    },
   };
 
   let localStorageMock: ReturnType<typeof createLocalStorageMock>;
@@ -71,777 +61,145 @@ describe("AssetService Spawn-Specific Settings", () => {
     vi.useFakeTimers();
     vi.setSystemTime(1234567890000);
 
-    // Setup localStorage mock
     localStorageMock = createLocalStorageMock();
     setupLocalStorageMock(localStorageMock);
 
-    // Mock console methods
     vi.spyOn(console, "error").mockImplementation(() => {});
-
-    // Reset all mocks
     vi.clearAllMocks();
 
-    // Default mock implementations
     mockCacheService.get.mockImplementation((_key, fetcher) => fetcher());
     mockCacheService.invalidate.mockImplementation(() => {});
-    mockCacheService.invalidateSpawnAssetSettings.mockImplementation(() => {});
-    mockCacheService.invalidateAllSpawnAssetSettings.mockImplementation(
-      () => {}
-    );
-    mockGetSpawnAssetCacheKey.mockImplementation(
-      (spawnId, assetId) => `cache:${spawnId}:${assetId}`
-    );
-    mockSpawnService.getSpawn.mockResolvedValue(mockSpawn);
-
-    // Default localStorage behavior
-    localStorageMock.getItem.mockReturnValue(null);
-    localStorageMock.setItem.mockImplementation(() => {});
-    localStorageMock.removeItem.mockImplementation(() => {});
+    vi.spyOn(AssetService, "getAssetById").mockReturnValue(mockAsset);
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  describe("getSpawnAssetSettings", () => {
-    it("returns correct settings when they exist", () => {
-      const settingsData = {
-        spawns: {
-          "spawn-1": {
-            assets: {
-              "asset-1": mockSpawnAssetSettings,
-            },
-          },
+  it("returns spawn defaults when no overrides exist", async () => {
+    const spawn = {
+      ...baseSpawn,
+      assets: [
+        {
+          id: "sa-1",
+          assetId: "asset-1",
+          overrides: {},
+          enabled: true,
+          order: 0,
         },
-      };
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(settingsData));
+      ],
+    };
+    mockSpawnService.getSpawn.mockResolvedValue(spawn as unknown as Spawn);
 
-      const result = AssetService.getSpawnAssetSettings("spawn-1", "asset-1");
+    const result = await AssetService.getResolvedAssetSettings(
+      "spawn-1",
+      "sa-1"
+    );
 
-      expect(result).toEqual(mockSpawnAssetSettings);
-      expect(localStorageMock.getItem).toHaveBeenCalledWith(
-        "mediaspawner_spawn_asset_settings"
-      );
-    });
-
-    it("returns null when settings don't exist", () => {
-      const settingsData = {
-        spawns: {
-          "spawn-2": {
-            assets: {
-              "asset-2": mockSpawnAssetSettings,
-            },
-          },
-        },
-      };
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(settingsData));
-
-      const result = AssetService.getSpawnAssetSettings("spawn-1", "asset-1");
-
-      expect(result).toBeNull();
-    });
-
-    it("returns null when localStorage is empty", () => {
-      localStorageMock.getItem.mockReturnValue(null);
-
-      const result = AssetService.getSpawnAssetSettings("spawn-1", "asset-1");
-
-      expect(result).toBeNull();
-    });
-
-    it("handles JSON parsing errors gracefully", () => {
-      localStorageMock.getItem.mockReturnValue("invalid json");
-
-      const result = AssetService.getSpawnAssetSettings("spawn-1", "asset-1");
-
-      expect(result).toBeNull();
-      expect(console.error).toHaveBeenCalledWith(
-        "Failed to load spawn asset settings:",
-        expect.any(Error)
-      );
-    });
-
-    it("returns null when localStorage throws error", () => {
-      localStorageMock.getItem.mockImplementation(() => {
-        throw new Error("localStorage error");
-      });
-
-      const result = AssetService.getSpawnAssetSettings("spawn-1", "asset-1");
-
-      expect(result).toBeNull();
-      expect(console.error).toHaveBeenCalledWith(
-        "Failed to load spawn asset settings:",
-        expect.any(Error)
-      );
+    expect(result).toEqual({
+      duration: 0,
+      trigger: spawn.trigger,
+      properties: {},
     });
   });
 
-  describe("setSpawnAssetSettings", () => {
-    beforeEach(() => {
-      // Mock AssetService.getAssetById to return the mock asset
-      vi.spyOn(AssetService, "getAssetById").mockReturnValue(mockAsset);
-    });
-
-    it("successfully saves settings when spawn and asset exist", async () => {
-      localStorageMock.getItem.mockReturnValue(null);
-
-      const result = await AssetService.setSpawnAssetSettings(
-        "spawn-1",
-        "asset-1",
-        mockSpawnAssetSettings
-      );
-
-      expect(result.success).toBe(true);
-      expect(result.settings).toEqual(mockSpawnAssetSettings);
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        "mediaspawner_spawn_asset_settings",
-        JSON.stringify({
-          spawns: {
-            "spawn-1": {
-              assets: {
-                "asset-1": mockSpawnAssetSettings,
-              },
-            },
+  it("returns per-instance overrides when present", async () => {
+    const spawn = {
+      ...baseSpawn,
+      assets: [
+        {
+          id: "sa-1",
+          assetId: "asset-1",
+          overrides: {
+            duration: 3000,
+            properties: { volume: 1.0, loop: true },
           },
-        })
-      );
-    });
-
-    it("returns error when spawn doesn't exist", async () => {
-      mockSpawnService.getSpawn.mockResolvedValue(null);
-
-      const result = await AssetService.setSpawnAssetSettings(
-        "invalid-spawn",
-        "asset-1",
-        mockSpawnAssetSettings
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Spawn with ID "invalid-spawn" not found');
-    });
-
-    it("returns error when asset doesn't exist", async () => {
-      vi.spyOn(AssetService, "getAssetById").mockReturnValue(undefined);
-
-      const result = await AssetService.setSpawnAssetSettings(
-        "spawn-1",
-        "invalid-asset",
-        mockSpawnAssetSettings
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Asset with ID "invalid-asset" not found');
-    });
-
-    it("handles localStorage write errors", async () => {
-      localStorageMock.setItem.mockImplementation(() => {
-        throw new Error("localStorage write error");
-      });
-
-      const result = await AssetService.setSpawnAssetSettings(
-        "spawn-1",
-        "asset-1",
-        mockSpawnAssetSettings
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe("localStorage write error");
-    });
-
-    it("updates existing settings correctly", async () => {
-      const existingSettings = {
-        spawns: {
-          "spawn-1": {
-            assets: {
-              "asset-1": { duration: 2000 },
-            },
-          },
-          "spawn-2": {
-            assets: {
-              "asset-2": { duration: 4000 },
-            },
-          },
+          enabled: true,
+          order: 0,
         },
-      };
-      localStorageMock.getItem.mockReturnValue(
-        JSON.stringify(existingSettings)
-      );
+      ],
+    };
+    mockSpawnService.getSpawn.mockResolvedValue(spawn as unknown as Spawn);
 
-      const newSettings: SpawnAssetOverrides = {
-        duration: 3000,
-        properties: { volume: 0.9 },
-      };
-      const result = await AssetService.setSpawnAssetSettings(
-        "spawn-1",
-        "asset-1",
-        newSettings
-      );
+    const result = await AssetService.getResolvedAssetSettings(
+      "spawn-1",
+      "sa-1"
+    );
 
-      expect(result.success).toBe(true);
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        "mediaspawner_spawn_asset_settings",
-        JSON.stringify({
-          spawns: {
-            "spawn-1": {
-              assets: {
-                "asset-1": newSettings,
-              },
-            },
-            "spawn-2": {
-              assets: {
-                "asset-2": { duration: 4000 },
-              },
-            },
-          },
-        })
-      );
-    });
-
-    it("handles JSON parsing errors in existing settings", async () => {
-      localStorageMock.getItem.mockReturnValue("invalid json");
-
-      const result = await AssetService.setSpawnAssetSettings(
-        "spawn-1",
-        "asset-1",
-        mockSpawnAssetSettings
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe(
-        "Unexpected token 'i', \"invalid json\" is not valid JSON"
-      );
+    expect(result).toEqual({
+      duration: 3000,
+      trigger: spawn.trigger,
+      properties: { volume: 1.0, loop: true },
     });
   });
 
-  describe("getResolvedAssetSettings", () => {
-    beforeEach(() => {
-      vi.spyOn(AssetService, "getAssetById").mockReturnValue(mockAsset);
-      vi.spyOn(AssetService, "getSpawnAssetSettings").mockReturnValue(null);
-    });
-
-    it("returns spawn defaults when no overrides exist", async () => {
-      const result = await AssetService.getResolvedAssetSettings(
-        "spawn-1",
-        "asset-1"
-      );
-
-      expect(result).toEqual({
-        duration: 5000, // From spawn default
-        trigger: mockSpawn.trigger, // From spawn default
-        properties: {}, // No asset properties in new model
-      });
-    });
-
-    it("returns overrides when they exist (highest priority)", async () => {
-      vi.spyOn(AssetService, "getSpawnAssetSettings").mockReturnValue(
-        mockSpawnAssetSettings
-      );
-
-      const result = await AssetService.getResolvedAssetSettings(
-        "spawn-1",
-        "asset-1"
-      );
-
-      expect(result).toEqual({
-        duration: 3000, // From override
-        trigger: mockSpawn.trigger, // From spawn default (no override)
-        properties: {
-          volume: 1.0, // From override
-          loop: true, // From override
-        },
-      });
-    });
-
-    it("returns null when spawn doesn't exist", async () => {
-      mockSpawnService.getSpawn.mockResolvedValue(null);
-
-      const result = await AssetService.getResolvedAssetSettings(
-        "invalid-spawn",
-        "asset-1"
-      );
-
-      expect(result).toBeNull();
-    });
-
-    it("returns null when asset doesn't exist", async () => {
-      vi.spyOn(AssetService, "getAssetById").mockReturnValue(undefined);
-
-      const result = await AssetService.getResolvedAssetSettings(
-        "spawn-1",
-        "invalid-asset"
-      );
-
-      expect(result).toBeNull();
-    });
-
-    it("handles missing spawn defaults gracefully", async () => {
-      const spawnWithoutDefaults = {
-        ...mockSpawn,
-        duration: undefined as unknown as number,
-        trigger: undefined as unknown as Trigger,
-      };
-      mockSpawnService.getSpawn.mockResolvedValue(spawnWithoutDefaults);
-
-      const result = await AssetService.getResolvedAssetSettings(
-        "spawn-1",
-        "asset-1"
-      );
-
-      expect(result).toEqual({
-        duration: undefined,
-        trigger: undefined,
-        properties: {}, // No asset properties in new model
-      });
-    });
-
-    it("handles missing asset defaults gracefully", async () => {
-      const assetWithoutDefaults = {
-        ...mockAsset,
-        properties: undefined as unknown as MediaAssetProperties,
-      };
-      vi.spyOn(AssetService, "getAssetById").mockReturnValue(
-        assetWithoutDefaults
-      );
-
-      const result = await AssetService.getResolvedAssetSettings(
-        "spawn-1",
-        "asset-1"
-      );
-
-      expect(result).toEqual({
-        duration: 5000,
-        trigger: mockSpawn.trigger,
-        properties: {},
-      });
-    });
-
-    it("handles errors gracefully", async () => {
-      mockSpawnService.getSpawn.mockImplementation(() => {
-        throw new Error("Spawn service error");
-      });
-
-      const result = await AssetService.getResolvedAssetSettings(
-        "spawn-1",
-        "asset-1"
-      );
-
-      expect(result).toBeNull();
-      expect(console.error).toHaveBeenCalledWith(
-        "Failed to resolve asset settings:",
-        expect.any(Error)
-      );
-    });
+  it("returns null when spawn doesn't exist", async () => {
+    mockSpawnService.getSpawn.mockResolvedValue(null);
+    const result = await AssetService.getResolvedAssetSettings(
+      "invalid-spawn",
+      "sa-1"
+    );
+    expect(result).toBeNull();
   });
 
-  describe("removeSpawnAssetSettings", () => {
-    it("successfully removes existing settings", () => {
-      const existingSettings = {
-        spawns: {
-          "spawn-1": {
-            assets: {
-              "asset-1": mockSpawnAssetSettings,
-            },
-          },
-          "spawn-2": {
-            assets: {
-              "asset-2": { duration: 4000 },
-            },
-          },
+  it("resolves correctly for duplicate base asset instances", async () => {
+    const spawn = {
+      ...baseSpawn,
+      assets: [
+        {
+          id: "sa-1",
+          assetId: "asset-1",
+          overrides: { duration: 2000 },
+          enabled: true,
+          order: 0,
         },
-      };
-      localStorageMock.getItem.mockReturnValue(
-        JSON.stringify(existingSettings)
-      );
-
-      const result = AssetService.removeSpawnAssetSettings(
-        "spawn-1",
-        "asset-1"
-      );
-
-      expect(result.success).toBe(true);
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        "mediaspawner_spawn_asset_settings",
-        JSON.stringify({
-          spawns: {
-            "spawn-2": {
-              assets: {
-                "asset-2": { duration: 4000 },
-              },
-            },
-          },
-        })
-      );
-    });
-
-    it("returns success when settings don't exist", () => {
-      localStorageMock.getItem.mockReturnValue(null);
-
-      const result = AssetService.removeSpawnAssetSettings(
-        "spawn-1",
-        "asset-1"
-      );
-
-      expect(result.success).toBe(true);
-      expect(localStorageMock.setItem).not.toHaveBeenCalled();
-    });
-
-    it("handles localStorage errors gracefully", () => {
-      // Provide existing data so the method actually tries to remove something
-      const existingSettings = {
-        spawns: {
-          "spawn-1": {
-            assets: {
-              "asset-1": { duration: 3000 },
-            },
-          },
+        {
+          id: "sa-2",
+          assetId: "asset-1",
+          overrides: { duration: 7000 },
+          enabled: true,
+          order: 1,
         },
-      };
-      localStorageMock.getItem.mockReturnValue(
-        JSON.stringify(existingSettings)
-      );
+      ],
+    };
+    mockSpawnService.getSpawn.mockResolvedValue(spawn as unknown as Spawn);
 
-      localStorageMock.setItem.mockImplementation(() => {
-        throw new Error("localStorage error");
-      });
+    const r1 = await AssetService.getResolvedAssetSettings("spawn-1", "sa-1");
+    const r2 = await AssetService.getResolvedAssetSettings("spawn-1", "sa-2");
 
-      const result = AssetService.removeSpawnAssetSettings(
-        "spawn-1",
-        "asset-1"
-      );
+    expect(r1?.duration).toBe(2000);
+    expect(r2?.duration).toBe(7000);
+    expect(r1?.trigger).toEqual(spawn.trigger);
+    expect(r2?.trigger).toEqual(spawn.trigger);
+  });
+});
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBe("localStorage error");
-    });
+describe("AssetService integration: assets list", () => {
+  const mockAsset: MediaAsset = {
+    id: "asset-1",
+    type: "video",
+    name: "Test Video",
+    path: "/path/to/video.mp4",
+    isUrl: false,
+  };
 
-    it("handles JSON parsing errors", () => {
-      localStorageMock.getItem.mockReturnValue("invalid json");
+  let localStorageMock: ReturnType<typeof createLocalStorageMock>;
 
-      const result = AssetService.removeSpawnAssetSettings(
-        "spawn-1",
-        "asset-1"
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe(
-        "Unexpected token 'i', \"invalid json\" is not valid JSON"
-      );
-    });
+  beforeEach(() => {
+    localStorageMock = createLocalStorageMock();
+    setupLocalStorageMock(localStorageMock);
+    vi.clearAllMocks();
+    mockCacheService.get.mockImplementation((_key, fetcher) => fetcher());
   });
 
-  describe("getSpawnAssetSettingsForSpawn", () => {
-    it("returns all settings for a specific spawn", () => {
-      const allSettings = {
-        spawns: {
-          "spawn-1": {
-            assets: {
-              "asset-1": { duration: 3000 },
-              "asset-2": { duration: 4000 },
-            },
-          },
-          "spawn-2": {
-            assets: {
-              "asset-1": { duration: 5000 },
-            },
-          },
-        },
-      };
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(allSettings));
-
-      const result = AssetService.getSpawnAssetSettingsForSpawn("spawn-1");
-
-      expect(result).toEqual({
-        "asset-1": { duration: 3000 },
-        "asset-2": { duration: 4000 },
-      });
-    });
-
-    it("returns empty object when no settings exist", () => {
-      localStorageMock.getItem.mockReturnValue(null);
-
-      const result = AssetService.getSpawnAssetSettingsForSpawn("spawn-1");
-
-      expect(result).toEqual({});
-    });
-
-    it("handles localStorage errors gracefully", () => {
-      localStorageMock.getItem.mockImplementation(() => {
-        throw new Error("localStorage error");
-      });
-
-      const result = AssetService.getSpawnAssetSettingsForSpawn("spawn-1");
-
-      expect(result).toEqual({});
-      expect(console.error).toHaveBeenCalledWith(
-        "Failed to get spawn asset settings for spawn:",
-        expect.any(Error)
-      );
-    });
-  });
-
-  describe("getSpawnAssetSettingsForAsset", () => {
-    it("returns all settings for a specific asset", () => {
-      const allSettings = {
-        spawns: {
-          "spawn-1": {
-            assets: {
-              "asset-1": { duration: 3000 },
-              "asset-2": { duration: 5000 },
-            },
-          },
-          "spawn-2": {
-            assets: {
-              "asset-1": { duration: 4000 },
-            },
-          },
-        },
-      };
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(allSettings));
-
-      const result = AssetService.getSpawnAssetSettingsForAsset("asset-1");
-
-      expect(result).toEqual({
-        "spawn-1": { duration: 3000 },
-        "spawn-2": { duration: 4000 },
-      });
-    });
-
-    it("returns empty object when no settings exist", () => {
-      localStorageMock.getItem.mockReturnValue(null);
-
-      const result = AssetService.getSpawnAssetSettingsForAsset("asset-1");
-
-      expect(result).toEqual({});
-    });
-
-    it("handles localStorage errors gracefully", () => {
-      localStorageMock.getItem.mockImplementation(() => {
-        throw new Error("localStorage error");
-      });
-
-      const result = AssetService.getSpawnAssetSettingsForAsset("asset-1");
-
-      expect(result).toEqual({});
-      expect(console.error).toHaveBeenCalledWith(
-        "Failed to get spawn asset settings for asset:",
-        expect.any(Error)
-      );
-    });
-  });
-
-  describe("clearSpawnAssetSettings", () => {
-    it("clears all spawn asset settings", () => {
-      AssetService.clearSpawnAssetSettings();
-
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith(
-        "mediaspawner_spawn_asset_settings"
-      );
-    });
-
-    it("handles localStorage errors gracefully", () => {
-      localStorageMock.removeItem.mockImplementation(() => {
-        throw new Error("localStorage error");
-      });
-
-      // Should not throw
-      expect(() => AssetService.clearSpawnAssetSettings()).not.toThrow();
-      expect(console.error).toHaveBeenCalledWith(
-        "Failed to clear spawn asset settings:",
-        expect.any(Error)
-      );
-    });
-  });
-
-  describe("cleanupOrphanedSpawnAssetSettings", () => {
-    beforeEach(() => {
-      vi.spyOn(AssetService, "getAssetById").mockReturnValue(mockAsset);
-    });
-
-    it("removes settings for deleted spawns", async () => {
-      const allSettings = {
-        spawns: {
-          "spawn-1": {
-            assets: {
-              "asset-1": { duration: 3000 },
-            },
-          },
-          "spawn-2": {
-            assets: {
-              "asset-1": { duration: 4000 },
-            },
-          },
-        },
-      };
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(allSettings));
-      mockSpawnService.getSpawn
-        .mockResolvedValueOnce(mockSpawn) // spawn-1 exists
-        .mockResolvedValueOnce(null); // spawn-2 doesn't exist
-
-      const result = await AssetService.cleanupOrphanedSpawnAssetSettings();
-
-      expect(result.removedSettings).toBe(1);
-      expect(result.remainingSettings).toBe(1);
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        "mediaspawner_spawn_asset_settings",
-        JSON.stringify({
-          spawns: {
-            "spawn-1": {
-              assets: {
-                "asset-1": { duration: 3000 },
-              },
-            },
-          },
-        })
-      );
-    });
-
-    it("removes settings for deleted assets", async () => {
-      const allSettings = {
-        spawns: {
-          "spawn-1": {
-            assets: {
-              "asset-1": { duration: 3000 },
-              "asset-2": { duration: 4000 },
-            },
-          },
-        },
-      };
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(allSettings));
-      vi.spyOn(AssetService, "getAssetById")
-        .mockReturnValueOnce(mockAsset) // asset-1 exists
-        .mockReturnValueOnce(undefined); // asset-2 doesn't exist
-
-      const result = await AssetService.cleanupOrphanedSpawnAssetSettings();
-
-      expect(result.removedSettings).toBe(1);
-      expect(result.remainingSettings).toBe(1);
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        "mediaspawner_spawn_asset_settings",
-        JSON.stringify({
-          spawns: {
-            "spawn-1": {
-              assets: {
-                "asset-1": { duration: 3000 },
-              },
-            },
-          },
-        })
-      );
-    });
-
-    it("keeps settings for valid spawn-asset combinations", async () => {
-      const allSettings = {
-        spawns: {
-          "spawn-1": {
-            assets: {
-              "asset-1": { duration: 3000 },
-            },
-          },
-          "spawn-2": {
-            assets: {
-              "asset-2": { duration: 4000 },
-            },
-          },
-        },
-      };
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(allSettings));
-
-      const result = await AssetService.cleanupOrphanedSpawnAssetSettings();
-
-      expect(result.removedSettings).toBe(0);
-      expect(result.remainingSettings).toBe(2);
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        "mediaspawner_spawn_asset_settings",
-        JSON.stringify(allSettings)
-      );
-    });
-
-    it("returns correct counts when no settings exist", async () => {
-      localStorageMock.getItem.mockReturnValue(null);
-
-      const result = await AssetService.cleanupOrphanedSpawnAssetSettings();
-
-      expect(result.removedSettings).toBe(0);
-      expect(result.remainingSettings).toBe(0);
-    });
-
-    it("handles localStorage errors gracefully", async () => {
-      localStorageMock.getItem.mockImplementation(() => {
-        throw new Error("localStorage error");
-      });
-
-      const result = await AssetService.cleanupOrphanedSpawnAssetSettings();
-
-      expect(result.removedSettings).toBe(0);
-      expect(result.remainingSettings).toBe(0);
-      expect(console.error).toHaveBeenCalledWith(
-        "Failed to cleanup orphaned spawn asset settings:",
-        expect.any(Error)
-      );
-    });
-
-    it("handles JSON parsing errors", async () => {
-      localStorageMock.getItem.mockReturnValue("invalid json");
-
-      const result = await AssetService.cleanupOrphanedSpawnAssetSettings();
-
-      expect(result.removedSettings).toBe(0);
-      expect(result.remainingSettings).toBe(0);
-      expect(console.error).toHaveBeenCalledWith(
-        "Failed to cleanup orphaned spawn asset settings:",
-        expect.any(Error)
-      );
-    });
-  });
-
-  describe("Integration", () => {
-    it("maintains backward compatibility with existing AssetService methods", () => {
-      // Test that existing methods still work
-      const assets = [mockAsset];
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(assets));
-
-      const result = AssetService.getAssets();
-
-      expect(result).toEqual(assets);
-      expect(mockCacheService.get).toHaveBeenCalledWith(
-        CACHE_KEYS.ASSETS,
-        expect.any(Function)
-      );
-    });
-
-    it("works correctly with SpawnService.getSpawn()", async () => {
-      vi.spyOn(AssetService, "getAssetById").mockReturnValue(mockAsset);
-      vi.spyOn(AssetService, "getSpawnAssetSettings").mockReturnValue(null);
-
-      await AssetService.getResolvedAssetSettings("spawn-1", "asset-1");
-
-      expect(mockSpawnService.getSpawn).toHaveBeenCalledWith("spawn-1");
-    });
-
-    it("works correctly with AssetService.getAssetById()", async () => {
-      vi.spyOn(AssetService, "getAssetById").mockReturnValue(mockAsset);
-      vi.spyOn(AssetService, "getSpawnAssetSettings").mockReturnValue(null);
-
-      await AssetService.getResolvedAssetSettings("spawn-1", "asset-1");
-
-      expect(AssetService.getAssetById).toHaveBeenCalledWith("asset-1");
-    });
-  });
-
-  describe("Edge Cases", () => {
-    it("handles empty settings objects", () => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify({ spawns: {} }));
-
-      const result = AssetService.getSpawnAssetSettings("spawn-1", "asset-1");
-
-      expect(result).toBeNull();
-    });
-
-    it("handles malformed localStorage data", () => {
-      localStorageMock.getItem.mockReturnValue("null");
-
-      const result = AssetService.getSpawnAssetSettings("spawn-1", "asset-1");
-
-      expect(result).toBeNull();
-    });
+  it("returns assets via cache layer", () => {
+    const assets = [mockAsset];
+    localStorageMock.getItem.mockReturnValue(JSON.stringify(assets));
+    const result = AssetService.getAssets();
+    expect(result).toEqual(assets);
+    expect(mockCacheService.get).toHaveBeenCalledWith(
+      CACHE_KEYS.ASSETS,
+      expect.any(Function)
+    );
   });
 });

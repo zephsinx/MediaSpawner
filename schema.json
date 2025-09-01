@@ -79,7 +79,7 @@
                 "trigger": {
                     "$ref": "#/$defs/Trigger"
                 },
-                "durationMs": {
+                "duration": {
                     "type": "integer",
                     "minimum": 0
                 },
@@ -111,7 +111,17 @@
                     "minimum": 0
                 },
                 "overrides": {
-                    "$ref": "#/$defs/AssetSettings"
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "duration": {
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "properties": {
+                            "$ref": "#/$defs/AssetSettings"
+                        }
+                    }
                 }
             },
             "required": [
