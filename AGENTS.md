@@ -16,6 +16,11 @@ This file guides coding agents working on MediaSpawner. It complements README.md
 - Preview production build: `npm run preview`
 - Lint all files: `npm run lint`
 
+## Project vision and scope
+
+- Configuration-only application; no runtime media simulation or playback.
+- Manual save model with explicit unsaved-changes warnings; no auto-save on edit.
+
 ## Testing instructions
 
 - Test runner: Vitest with JSDOM environment and Testing Library.
@@ -31,6 +36,13 @@ This file guides coding agents working on MediaSpawner. It complements README.md
   - Reset mocks between tests so they do not affect each other (use `beforeEach` with `vi.resetAllMocks()` or equivalent).
   - Keep the entire suite green before merging; add/update tests for changed behavior.
 
+## Testing expectations and assertions
+
+- Persist only diffs for per-asset overrides (`buildOverridesDiff`).
+- Dispatch global events after successful saves.
+- Mode routing must honor the unsaved-changes guard.
+- `resolveEffectiveProperties` never falls back to base asset values; use `sourceMap: "none"` when unset.
+
 ## Code style and quality
 
 - TypeScript strict mode is enabled (see `tsconfig.app.json` and `tsconfig.node.json`).
@@ -39,6 +51,20 @@ This file guides coding agents working on MediaSpawner. It complements README.md
 - Favor readable names and guard clauses over deep nesting.
 - Delete unused or replaced code; do not leave legacy code commented out.
 - Write comments only to explain non-obvious "why" decisions, not "what" the code does.
+- UI guidelines and tokens: see `planning/UI_STYLE_GUIDE.md`.
+
+## Layout and modes
+
+- Three-panel layout:
+  - Left: Spawn list and navigation
+  - Center: Editor (spawn settings or asset settings)
+  - Right: Asset management (assets-in-spawn and library)
+- `LayoutContext` keys:
+  - `selectedSpawnId: string | undefined`
+  - `selectedSpawnAssetId: string | undefined`
+  - `centerPanelMode: 'spawn-settings' | 'asset-settings'`
+  - `hasUnsavedChanges: boolean`
+- Mode routing via events; switching must guard on `hasUnsavedChanges`.
 
 ## Directory structure hints
 
@@ -46,15 +72,52 @@ This file guides coding agents working on MediaSpawner. It complements README.md
 - `src/services/` app logic; `src/utils/` helpers; `src/types/` shared types.
 - `planning/` contains epics/stories and project documentation.
 
-## PR and commit guidelines
+## Core data model and inheritance
 
-- Before committing, run: `npm run lint` and `npm run test`.
-- Update or add tests for any code you change.
-- Keep commits focused and descriptive; prefer conventional messages if possible.
+- Hierarchy: `SpawnProfile → Spawn → SpawnAsset`.
+- Effective property value precedence: override > spawn default; otherwise undefined.
+- No base-asset fallback; do not store behavioral properties on `MediaAsset`.
+- Persist per-asset overrides as diffs only.
+
+## Services and events
+
+- Services:
+  - `SpawnService`: CRUD for spawn data; accepts `defaultProperties`.
+  - `AssetService`: global asset library; assets are descriptive only (no behavioral `properties`).
+  - `CacheService`, `ConfigurationService`, `ImportExportService`, `SettingsService`, `SpawnProfileService` exported via `src/services/index.ts`.
+- Global events:
+  - After saving spawn changes: `mediaspawner:spawn-updated` with `{ spawnId, updatedSpawn? }`.
+  - Request mode switch: `mediaspawner:request-center-switch` with `{ mode: 'spawn-settings' | 'asset-settings', spawnAssetId? }`.
+  - After asset library changes: `mediaspawner:assets-updated`.
+
+## Shared UI patterns
+
+- Center panel forms share a Save/Cancel action row and track dirty state via `setUnsavedChanges`.
+- Per-field override toggles gate editability; read-only inherited values when off.
+- Global Reset restores current spawn defaults; Dimensions and Position use group toggles.
+
+## Validation and UX
+
+- Live validation (examples): Volume 0–100; Dimensions > 0; Position ≥ 0; Scale ≥ 0.
+- Inline errors; Save disabled while invalid; confirm dialogs for destructive or data-loss actions.
+
+## Utilities invariants
+
+- `resolveEffectiveProperties({ spawn, overrides? }) -> { effective, sourceMap }` where `sourceMap` in `"override" | "spawn-default" | "none"`.
+- `buildOverridesDiff(effective, spawnDefaults, desired)` stores only keys different from spawn defaults.
 
 ## Environment and tooling notes
 
 - Vite base path auto-configures for GitHub Pages when `GITHUB_REPOSITORY` is present (see `vite.config.ts`). No manual action needed for local dev.
+
+## CI expectations
+
+- Pull requests run on Node 22 with `npm ci`, then `npm run lint`, `npm run build`, and `npm run test` (see `.github/workflows/pr-checks.yml`).
+- Keep CI green; fix lint, type, and test failures before merging.
+
+## Windows PowerShell note
+
+- When running npm scripts in PowerShell, do not pipe to `cat` (e.g., avoid `npm run test | cat`). Just run the command directly: `npm run test`.
 
 ## Expectations for agents
 
