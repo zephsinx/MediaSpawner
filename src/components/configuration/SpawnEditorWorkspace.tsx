@@ -187,6 +187,7 @@ const SpawnEditorWorkspace: React.FC = () => {
   const [showTriggerTypeDialog, setShowTriggerTypeDialog] = useState(false);
   const pendingTriggerTypeRef = useRef<TriggerType | null>(null);
   const [bucketsDraft, setBucketsDraft] = useState<RandomizationBucket[]>([]);
+  const [duration, setDuration] = useState<number>(0);
 
   const assetDraftCacheRef = useRef<
     Record<
@@ -294,6 +295,7 @@ const SpawnEditorWorkspace: React.FC = () => {
       setDescription(selectedSpawn.description || "");
       setEnabled(!!selectedSpawn.enabled);
       setTrigger(selectedSpawn.trigger || getDefaultTrigger("manual"));
+      setDuration(selectedSpawn.duration);
       const toggles: Partial<Record<FieldKey, boolean>> = {};
       DEFAULT_FIELDS.forEach((k) => {
         const dp = selectedSpawn.defaultProperties;
@@ -320,6 +322,7 @@ const SpawnEditorWorkspace: React.FC = () => {
     const baselineDesc = selectedSpawn.description || "";
     const triggerChanged =
       JSON.stringify(trigger) !== JSON.stringify(selectedSpawn.trigger || null);
+    const durationChanged = duration !== selectedSpawn.duration;
     const currentEnabledDefaults = buildEnabledDefaults(
       draftDefaults,
       defaultsEnabled
@@ -334,6 +337,7 @@ const SpawnEditorWorkspace: React.FC = () => {
     return (
       name !== baselineName ||
       description !== baselineDesc ||
+      durationChanged ||
       defaultsChanged ||
       triggerChanged ||
       bucketsChanged
@@ -342,6 +346,7 @@ const SpawnEditorWorkspace: React.FC = () => {
     name,
     description,
     selectedSpawn,
+    duration,
     draftDefaults,
     defaultsEnabled,
     trigger,
@@ -400,6 +405,7 @@ const SpawnEditorWorkspace: React.FC = () => {
     setName(selectedSpawn.name);
     setDescription(selectedSpawn.description || "");
     setTrigger(selectedSpawn.trigger || getDefaultTrigger("manual"));
+    setDuration(selectedSpawn.duration);
     const toggles: Partial<Record<FieldKey, boolean>> = {};
     DEFAULT_FIELDS.forEach((k) => {
       const dp = selectedSpawn.defaultProperties;
@@ -437,7 +443,7 @@ const SpawnEditorWorkspace: React.FC = () => {
         name: trimmedName,
         description: description.trim() || undefined,
         trigger: trigger || undefined,
-        duration: selectedSpawn.duration,
+        duration,
         defaultProperties,
         randomizationBuckets: bucketsDraft,
       });
@@ -611,6 +617,7 @@ const SpawnEditorWorkspace: React.FC = () => {
             }
             setName(selectedSpawn.name);
             setDescription(selectedSpawn.description || "");
+            setDuration(selectedSpawn.duration);
             const toggles: Partial<Record<FieldKey, boolean>> = {};
             DEFAULT_FIELDS.forEach((k) => {
               const dp = selectedSpawn.defaultProperties;
@@ -2337,12 +2344,10 @@ const SpawnEditorWorkspace: React.FC = () => {
                   <input
                     type="number"
                     min={0}
-                    value={selectedSpawn?.duration ?? 0}
+                    value={duration}
                     onChange={(e) => {
                       const val = Math.max(0, Number(e.target.value) || 0);
-                      if (!selectedSpawn) return;
-                      setSelectedSpawn({ ...selectedSpawn, duration: val });
-                      setUnsavedChanges(true);
+                      setDuration(val);
                     }}
                     className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                   />

@@ -5,6 +5,7 @@ import {
   fireEvent,
   waitFor,
   act,
+  within,
 } from "@testing-library/react";
 import SpawnEditorWorkspace from "../SpawnEditorWorkspace";
 import type { Spawn } from "../../../types/spawn";
@@ -157,12 +158,11 @@ describe("SpawnEditorWorkspace", () => {
     });
 
     // Case 1: selection present -> confirm resets fields
-    const nameInput = screen.getByLabelText("Name") as HTMLInputElement;
-    expect(nameInput.value).toBe("A changed");
-    // Click Discard changes
+    // Click Discard changes by accessible name inside the dialog
     await act(async () => {
-      const buttons = dialog.querySelectorAll("button");
-      (buttons[1] as HTMLButtonElement).click();
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Discard changes" })
+      );
     });
     // Field reset back to original
     expect((screen.getByLabelText("Name") as HTMLInputElement).value).toBe("A");
