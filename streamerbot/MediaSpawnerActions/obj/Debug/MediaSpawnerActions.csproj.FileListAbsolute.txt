@@ -1,0 +1,6 @@
+E:\Projects\Software\MediaSpawner\streamerbot\MediaSpawnerActions\bin\Debug\MediaSpawnerActions.dll
+E:\Projects\Software\MediaSpawner\streamerbot\MediaSpawnerActions\bin\Debug\MediaSpawnerActions.pdb
+E:\Projects\Software\MediaSpawner\streamerbot\MediaSpawnerActions\obj\Debug\MediaSpawnerActions.csproj.AssemblyReference.cache
+E:\Projects\Software\MediaSpawner\streamerbot\MediaSpawnerActions\obj\Debug\MediaSpawnerActions.csproj.CoreCompileInputs.cache
+E:\Projects\Software\MediaSpawner\streamerbot\MediaSpawnerActions\obj\Debug\MediaSpawnerActions.dll
+E:\Projects\Software\MediaSpawner\streamerbot\MediaSpawnerActions\obj\Debug\MediaSpawnerActions.pdb
