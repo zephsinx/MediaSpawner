@@ -22,17 +22,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"],
-  "exclude": [
-    // "src/**/*.test.ts",
-    // "src/**/*.test.tsx",
-    // "src/**/__tests__/**",
-    "src/components/configuration/AudioPropertiesForm.tsx",
-    "src/components/configuration/ImagePropertiesForm.tsx",
-    "src/components/configuration/VideoPropertiesForm.tsx",
-    "src/components/configuration/PropertyModal.tsx",
-    "src/components/configuration/AssetGroupBuilder.tsx",
-    "src/components/configuration/UnifiedConfigurationBuilder.tsx",
-    "src/components/config-editor/ConfigEditorPage.tsx"
-  ]
+  "include": ["src"]
 }
