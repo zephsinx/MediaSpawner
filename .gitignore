@@ -101,5 +101,8 @@ temp/
 *.suo
 *.ntvs*
 *.njsproj
-*.sln
 *.sw?
+
+
+streamerbot/MediaSpawnerActions/obj/*
+streamerbot/MediaSpawnerActions/bin/*
