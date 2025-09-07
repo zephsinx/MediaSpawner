@@ -3,16 +3,14 @@ import { PathInput } from "./PathInput";
 import { SettingsService } from "../../services/settingsService";
 import { usePanelState } from "../../hooks";
 import type { Settings } from "../../types/settings";
+import { toast } from "sonner";
 
 const SettingsPage: React.FC = () => {
   const { hasUnsavedChanges, setUnsavedChanges } = usePanelState();
   const [settings, setSettings] = useState<Settings>({ workingDirectory: "" });
   const [workingDirectory, setWorkingDirectory] = useState("");
   const [isWorkingDirValid, setIsWorkingDirValid] = useState(true);
-  const [saveStatus, setSaveStatus] = useState<
-    "idle" | "saving" | "saved" | "error"
-  >("idle");
-  const [errorMessage, setErrorMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   // Load settings on component mount
   useEffect(() => {
@@ -24,48 +22,38 @@ const SettingsPage: React.FC = () => {
   // Check for unsaved changes
   useEffect(() => {
     setUnsavedChanges(workingDirectory !== settings.workingDirectory);
-    setSaveStatus("idle");
   }, [workingDirectory, settings.workingDirectory, setUnsavedChanges]);
 
   const handleWorkingDirectoryChange = (value: string, isValid: boolean) => {
     setWorkingDirectory(value);
     setIsWorkingDirValid(isValid);
-    setErrorMessage("");
   };
 
   const handleSave = () => {
     if (!isWorkingDirValid) {
-      setErrorMessage("Cannot save: Working directory path is invalid");
-      setSaveStatus("error");
+      toast.error("Cannot save: Working directory path is invalid");
       return;
     }
 
-    setSaveStatus("saving");
+    setIsSaving(true);
 
     const result = SettingsService.updateWorkingDirectory(workingDirectory);
 
     if (result.success) {
       setSettings(result.settings!);
-      setSaveStatus("saved");
       setUnsavedChanges(false);
-      setErrorMessage("");
-
-      // Clear "saved" status after 3 seconds
-      setTimeout(() => {
-        setSaveStatus("idle");
-      }, 3000);
+      toast.success("Settings saved successfully");
     } else {
-      setErrorMessage(result.error || "Failed to save settings");
-      setSaveStatus("error");
+      toast.error(result.error || "Failed to save settings");
     }
+
+    setIsSaving(false);
   };
 
   const handleReset = () => {
     const currentSettings = SettingsService.getSettings();
     setWorkingDirectory(currentSettings.workingDirectory);
     setUnsavedChanges(false);
-    setErrorMessage("");
-    setSaveStatus("idle");
   };
 
   const handleResetToDefaults = () => {
@@ -78,40 +66,25 @@ const SettingsPage: React.FC = () => {
       setSettings(defaultSettings);
       setWorkingDirectory(defaultSettings.workingDirectory);
       setUnsavedChanges(false);
-      setErrorMessage("");
-      setSaveStatus("idle");
+      toast.success("Settings reset to defaults");
     }
   };
 
   const getSaveButtonText = () => {
-    switch (saveStatus) {
-      case "saving":
-        return "Saving...";
-      case "saved":
-        return "Saved ✓";
-      case "error":
-        return "Save";
-      default:
-        return "Save Settings";
-    }
+    return isSaving ? "Saving..." : "Save Settings";
   };
 
   const getSaveButtonClasses = () => {
     const baseClasses =
-      "px-4 py-2 rounded-md font-medium transition-colors duration-200";
+      "px-3 py-1.5 rounded-md font-medium transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2";
 
-    switch (saveStatus) {
-      case "saving":
-        return `${baseClasses} bg-gray-400 text-white cursor-not-allowed`;
-      case "saved":
-        return `${baseClasses} bg-green-500 text-white cursor-default`;
-      case "error":
-        return `${baseClasses} bg-red-500 text-white hover:bg-red-600`;
-      default:
-        return hasUnsavedChanges && isWorkingDirValid
-          ? `${baseClasses} bg-blue-500 text-white hover:bg-blue-600`
-          : `${baseClasses} bg-gray-300 text-gray-500 cursor-not-allowed`;
+    if (isSaving) {
+      return `${baseClasses} bg-gray-400 text-white cursor-not-allowed`;
     }
+
+    return hasUnsavedChanges && isWorkingDirValid
+      ? `${baseClasses} bg-indigo-600 text-white hover:bg-indigo-700`
+      : `${baseClasses} bg-gray-300 text-gray-500 cursor-not-allowed`;
   };
 
   const settingsInfo = SettingsService.getSettingsInfo();
@@ -147,14 +120,10 @@ const SettingsPage: React.FC = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center gap-2">
           <button
             onClick={handleSave}
-            disabled={
-              !hasUnsavedChanges ||
-              !isWorkingDirValid ||
-              saveStatus === "saving"
-            }
+            disabled={!hasUnsavedChanges || !isWorkingDirValid || isSaving}
             className={getSaveButtonClasses()}
           >
             {getSaveButtonText()}
@@ -162,27 +131,20 @@ const SettingsPage: React.FC = () => {
 
           <button
             onClick={handleReset}
-            disabled={!hasUnsavedChanges || saveStatus === "saving"}
-            className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200"
+            disabled={!hasUnsavedChanges || isSaving}
+            className="px-3 py-1.5 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
           >
             Reset
           </button>
 
           <button
             onClick={handleResetToDefaults}
-            disabled={saveStatus === "saving"}
-            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200"
+            disabled={isSaving}
+            className="px-3 py-1.5 rounded-md text-white bg-red-600 hover:bg-red-700 disabled:bg-red-300 disabled:cursor-not-allowed transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
           >
             Reset to Defaults
           </button>
         </div>
-
-        {/* Error Message */}
-        {errorMessage && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-sm text-red-600">{errorMessage}</p>
-          </div>
-        )}
 
         {/* Unsaved Changes Warning */}
         {hasUnsavedChanges && (
@@ -229,8 +191,8 @@ const SettingsPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-          <p className="text-sm text-blue-700">
+        <div className="mt-4 p-3 bg-indigo-50 border border-indigo-200 rounded-md">
+          <p className="text-sm text-indigo-700">
             <strong>Note:</strong> Settings are stored locally in your browser.
           </p>
         </div>
