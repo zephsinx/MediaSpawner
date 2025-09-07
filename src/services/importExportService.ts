@@ -16,6 +16,7 @@ import type {
 } from "../types";
 import { SpawnProfileService } from "./spawnProfileService";
 import { AssetService } from "./assetService";
+import { SettingsService } from "./settingsService";
 
 /**
  * Result of export operations
@@ -188,9 +189,20 @@ export class ImportExportService {
    */
   static async exportConfiguration(): Promise<ExportResult> {
     try {
+      // Get data from services
       const profiles = SpawnProfileService.getAllProfiles();
       const assets = AssetService.getAssets();
 
+      // Validate that we have data to export
+      if (profiles.length === 0 && assets.length === 0) {
+        return {
+          success: false,
+          error:
+            "No data available to export. Please create profiles and assets first.",
+        };
+      }
+
+      // Transform data to exported format
       const exportedProfiles = profiles.map((profile) =>
         this.transformProfileForExport(profile)
       );
@@ -198,14 +210,39 @@ export class ImportExportService {
         this.transformAssetForExport(asset)
       );
 
+      // Validate transformed data
+      const validation = this.validateExportedData(
+        exportedProfiles,
+        exportedAssets
+      );
+      if (!validation.isValid) {
+        return {
+          success: false,
+          error: `Export validation failed: ${validation.errors.join(", ")}`,
+        };
+      }
+
+      // Create configuration object
       const config: MediaSpawnerConfig = {
         version: this.CONFIG_VERSION,
         profiles: exportedProfiles,
         assets: exportedAssets,
       };
 
+      // Serialize to JSON with proper formatting
       const jsonData = JSON.stringify(config, null, 2);
 
+      // Validate JSON serialization
+      try {
+        JSON.parse(jsonData);
+      } catch {
+        return {
+          success: false,
+          error: "Failed to serialize configuration to JSON",
+        };
+      }
+
+      // Create metadata
       const metadata: ExportMetadata = {
         exportedAt: new Date().toISOString(),
         version: this.CONFIG_VERSION,
@@ -223,6 +260,7 @@ export class ImportExportService {
         metadata,
       };
     } catch (error) {
+      console.error("Export configuration failed:", error);
       return {
         success: false,
         error: error instanceof Error ? error.message : "Export failed",
@@ -322,16 +360,91 @@ export class ImportExportService {
   }
 
   /**
+   * Validate exported data before serialization
+   */
+  private static validateExportedData(
+    profiles: ExportedSpawnProfile[],
+    assets: ExportedAsset[]
+  ): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    // Validate profiles
+    profiles.forEach((profile, index) => {
+      if (!profile.id || typeof profile.id !== "string") {
+        errors.push(`Profile ${index} has invalid ID`);
+      }
+      if (!profile.name || typeof profile.name !== "string") {
+        errors.push(`Profile ${index} has invalid name`);
+      }
+      if (!Array.isArray(profile.spawns)) {
+        errors.push(`Profile ${index} has invalid spawns array`);
+      }
+      if (typeof profile.workingDirectory !== "string") {
+        errors.push(`Profile ${index} has invalid workingDirectory`);
+      }
+      if (!profile.lastModified || typeof profile.lastModified !== "string") {
+        errors.push(`Profile ${index} has invalid lastModified`);
+      }
+    });
+
+    // Validate assets
+    assets.forEach((asset, index) => {
+      if (!asset.id || typeof asset.id !== "string") {
+        errors.push(`Asset ${index} has invalid ID`);
+      }
+      if (!asset.name || typeof asset.name !== "string") {
+        errors.push(`Asset ${index} has invalid name`);
+      }
+      if (!asset.path || typeof asset.path !== "string") {
+        errors.push(`Asset ${index} has invalid path`);
+      }
+      if (typeof asset.isUrl !== "boolean") {
+        errors.push(`Asset ${index} has invalid isUrl`);
+      }
+      if (!asset.type || !["image", "video", "audio"].includes(asset.type)) {
+        errors.push(`Asset ${index} has invalid type`);
+      }
+    });
+
+    // Check for duplicate IDs
+    const profileIds = profiles.map((p) => p.id);
+    const duplicateProfileIds = profileIds.filter(
+      (id, index) => profileIds.indexOf(id) !== index
+    );
+    if (duplicateProfileIds.length > 0) {
+      errors.push(
+        `Duplicate profile IDs found: ${duplicateProfileIds.join(", ")}`
+      );
+    }
+
+    const assetIds = assets.map((a) => a.id);
+    const duplicateAssetIds = assetIds.filter(
+      (id, index) => assetIds.indexOf(id) !== index
+    );
+    if (duplicateAssetIds.length > 0) {
+      errors.push(`Duplicate asset IDs found: ${duplicateAssetIds.join(", ")}`);
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings,
+    };
+  }
+
+  /**
    * Transform internal spawn profile to exported format
    */
   private static transformProfileForExport(
     profile: SpawnProfile
   ): ExportedSpawnProfile {
+    const settings = SettingsService.getSettings();
     return {
       id: profile.id,
       name: profile.name,
       description: profile.description,
-      workingDirectory: "", // Placeholder - not used in current schema
+      workingDirectory: settings.workingDirectory || "",
       spawns: profile.spawns.map((spawn) =>
         this.transformSpawnForExport(spawn)
       ),
