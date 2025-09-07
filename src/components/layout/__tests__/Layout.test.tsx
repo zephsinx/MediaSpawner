@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  render,
   screen,
   waitForElementToBeRemoved,
   act,
@@ -9,6 +8,7 @@ import {
 import Layout from "../Layout";
 import { SpawnService } from "../../../services/spawnService";
 import type { Spawn } from "../../../types/spawn";
+import { renderWithAllProviders } from "./testUtils";
 
 // Mock the SpawnService
 vi.mock("../../../services/spawnService", () => ({
@@ -67,7 +67,7 @@ describe("Layout", () => {
     it("renders the three-panel layout structure", async () => {
       let container!: HTMLElement;
       await act(async () => {
-        const r = render(<Layout />);
+        const r = renderWithAllProviders(<Layout />);
         container = r.container as unknown as HTMLElement;
       });
 
@@ -85,7 +85,7 @@ describe("Layout", () => {
       vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
 
       await act(async () => {
-        render(<Layout />);
+        renderWithAllProviders(<Layout />);
       });
       const loading1 = screen.queryByText("Loading spawns...");
       if (loading1) {
@@ -111,7 +111,7 @@ describe("Layout", () => {
       vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
 
       await act(async () => {
-        render(<Layout />);
+        renderWithAllProviders(<Layout />);
       });
       const loading = screen.queryByText("Loading spawns...");
       if (loading) {
@@ -154,7 +154,7 @@ describe("Layout", () => {
       });
 
       await act(async () => {
-        render(<Layout />);
+        renderWithAllProviders(<Layout />);
       });
       const loading = screen.queryByText("Loading spawns...");
       if (loading) {
@@ -202,7 +202,7 @@ describe("Layout", () => {
       });
 
       await act(async () => {
-        render(<Layout />);
+        renderWithAllProviders(<Layout />);
       });
       const loading = screen.queryByText("Loading spawns...");
       if (loading) {
@@ -247,7 +247,7 @@ describe("Layout", () => {
       vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
 
       await act(async () => {
-        render(<Layout />);
+        renderWithAllProviders(<Layout />);
       });
       const loading = screen.queryByText("Loading spawns...");
       if (loading) {
@@ -282,7 +282,7 @@ describe("Layout", () => {
       });
 
       await act(async () => {
-        render(<Layout />);
+        renderWithAllProviders(<Layout />);
       });
       const loading = screen.queryByText("Loading spawns...");
       if (loading) {
@@ -308,7 +308,7 @@ describe("Layout", () => {
       vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
 
       await act(async () => {
-        render(<Layout />);
+        renderWithAllProviders(<Layout />);
       });
       const loading = screen.queryByText("Loading spawns...");
       if (loading) {
@@ -358,7 +358,7 @@ describe("Layout", () => {
       });
 
       await act(async () => {
-        render(<Layout />);
+        renderWithAllProviders(<Layout />);
       });
       const loading = screen.queryByText("Loading spawns...");
       if (loading) {
@@ -401,7 +401,7 @@ describe("Layout", () => {
       });
 
       await act(async () => {
-        render(<Layout />);
+        renderWithAllProviders(<Layout />);
       });
       const loading = screen.queryByText("Loading spawns...");
       if (loading) {
@@ -430,7 +430,7 @@ describe("Layout", () => {
       vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([]);
 
       await act(async () => {
-        render(<Layout />);
+        renderWithAllProviders(<Layout />);
       });
       const loading2 = screen.queryByText("Loading spawns...");
       if (loading2) {
@@ -450,7 +450,7 @@ describe("Layout", () => {
       vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
 
       await act(async () => {
-        render(<Layout />);
+        renderWithAllProviders(<Layout />);
       });
       const loading3 = screen.queryByText("Loading spawns...");
       if (loading3) {
@@ -496,7 +496,7 @@ describe("Layout", () => {
       });
 
       await act(async () => {
-        render(<Layout />);
+        renderWithAllProviders(<Layout />);
       });
       const loading = screen.queryByText("Loading spawns...");
       if (loading) {
@@ -516,7 +516,7 @@ describe("Layout", () => {
       vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
 
       await act(async () => {
-        render(<Layout />);
+        renderWithAllProviders(<Layout />);
       });
       const loading4 = screen.queryByText("Loading spawns...");
       if (loading4) {
@@ -535,7 +535,7 @@ describe("Layout", () => {
       vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(mockSpawns);
 
       await act(async () => {
-        render(<Layout />);
+        renderWithAllProviders(<Layout />);
       });
       const loading5 = screen.queryByText("Loading spawns...");
       if (loading5) {
@@ -552,7 +552,7 @@ describe("Layout", () => {
     it("applies correct width distribution", async () => {
       let container!: HTMLElement;
       await act(async () => {
-        const r = render(<Layout />);
+        const r = renderWithAllProviders(<Layout />);
         container = r.container as unknown as HTMLElement;
       });
 
@@ -568,7 +568,7 @@ describe("Layout", () => {
     it("applies minimum width constraints", async () => {
       let container!: HTMLElement;
       await act(async () => {
-        const r = render(<Layout />);
+        const r = renderWithAllProviders(<Layout />);
         container = r.container as unknown as HTMLElement;
       });
 
@@ -584,7 +584,7 @@ describe("Layout", () => {
     it("applies proper styling to panels", async () => {
       let container!: HTMLElement;
       await act(async () => {
-        const r = render(<Layout />);
+        const r = renderWithAllProviders(<Layout />);
         container = r.container as unknown as HTMLElement;
       });
 
@@ -604,7 +604,7 @@ describe("Layout", () => {
     it("maintains full height layout", async () => {
       let container!: HTMLElement;
       await act(async () => {
-        const r = render(<Layout />);
+        const r = renderWithAllProviders(<Layout />);
         container = r.container as unknown as HTMLElement;
       });
 
@@ -617,7 +617,7 @@ describe("Layout", () => {
     it("applies minimum container width", async () => {
       let container!: HTMLElement;
       await act(async () => {
-        const r = render(<Layout />);
+        const r = renderWithAllProviders(<Layout />);
         container = r.container as unknown as HTMLElement;
       });
 
@@ -628,7 +628,7 @@ describe("Layout", () => {
     it("ensures panels have proper height containers", async () => {
       let container!: HTMLElement;
       await act(async () => {
-        const r = render(<Layout />);
+        const r = renderWithAllProviders(<Layout />);
         container = r.container as unknown as HTMLElement;
       });
 
@@ -642,7 +642,7 @@ describe("Layout", () => {
     it("applies correct background to main container", async () => {
       let container!: HTMLElement;
       await act(async () => {
-        const r = render(<Layout />);
+        const r = renderWithAllProviders(<Layout />);
         container = r.container as unknown as HTMLElement;
       });
 
@@ -653,7 +653,7 @@ describe("Layout", () => {
     it("applies overflow handling to prevent content overflow", async () => {
       let container!: HTMLElement;
       await act(async () => {
-        const r = render(<Layout />);
+        const r = renderWithAllProviders(<Layout />);
         container = r.container as unknown as HTMLElement;
       });
 
