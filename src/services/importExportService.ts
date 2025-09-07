@@ -17,6 +17,8 @@ import type {
 import { SpawnProfileService } from "./spawnProfileService";
 import { AssetService } from "./assetService";
 import { SettingsService } from "./settingsService";
+import { validateTrigger } from "../utils/triggerValidation";
+import { validateSpawn, validateSpawnProfile } from "../types/spawn";
 
 /**
  * Result of export operations
@@ -29,6 +31,30 @@ export interface ExportResult {
 }
 
 /**
+ * Import options for handling conflicts and merge strategies
+ */
+export interface ImportOptions {
+  /** Strategy for handling profile conflicts */
+  profileConflictStrategy: "skip" | "overwrite" | "rename";
+  /** Strategy for handling asset conflicts */
+  assetConflictStrategy: "skip" | "overwrite" | "rename";
+  /** Whether to update working directory from imported profiles */
+  updateWorkingDirectory: boolean;
+  /** Whether to validate asset references */
+  validateAssetReferences: boolean;
+}
+
+/**
+ * Default import options
+ */
+export const DEFAULT_IMPORT_OPTIONS: ImportOptions = {
+  profileConflictStrategy: "rename",
+  assetConflictStrategy: "rename",
+  updateWorkingDirectory: true,
+  validateAssetReferences: true,
+};
+
+/**
  * Result of import operations
  */
 export interface ImportResult {
@@ -37,6 +63,17 @@ export interface ImportResult {
   assets?: MediaAsset[];
   error?: string;
   metadata?: ImportMetadata;
+  conflicts?: ImportConflicts;
+}
+
+/**
+ * Information about conflicts encountered during import
+ */
+export interface ImportConflicts {
+  profileConflicts: string[];
+  assetConflicts: string[];
+  invalidAssetReferences: string[];
+  workingDirectoryConflicts: boolean;
 }
 
 /**
@@ -271,8 +308,12 @@ export class ImportExportService {
   /**
    * Import configuration from schema-compliant JSON
    */
-  static async importConfiguration(jsonData: string): Promise<ImportResult> {
+  static async importConfiguration(
+    jsonData: string,
+    options: ImportOptions = DEFAULT_IMPORT_OPTIONS
+  ): Promise<ImportResult> {
     try {
+      // Parse JSON data
       const config = JSON.parse(jsonData) as MediaSpawnerConfig;
 
       // Validate the imported configuration
@@ -285,32 +326,80 @@ export class ImportExportService {
       }
 
       // Transform imported data back to internal format
-      const profiles = config.profiles.map((profile) =>
+      const importedProfiles = config.profiles.map((profile) =>
         this.transformProfileFromImport(profile)
       );
-      const assets = config.assets.map((asset) =>
+      const importedAssets = config.assets.map((asset) =>
         this.transformAssetFromImport(asset)
       );
 
+      // Validate transformed data
+      const dataValidation = this.validateImportedData(
+        importedProfiles,
+        importedAssets
+      );
+      if (!dataValidation.isValid) {
+        return {
+          success: false,
+          error: `Data validation failed: ${dataValidation.errors.join(", ")}`,
+        };
+      }
+
+      // Handle conflicts and merge data
+      const mergeResult = await this.mergeImportedData(
+        importedProfiles,
+        importedAssets,
+        options
+      );
+
+      if (!mergeResult.success) {
+        return {
+          success: false,
+          error: mergeResult.error,
+        };
+      }
+
+      // Update working directory if requested
+      if (options.updateWorkingDirectory && config.profiles.length > 0) {
+        const firstProfile = config.profiles[0];
+        if (firstProfile.workingDirectory) {
+          const settingsResult = SettingsService.updateWorkingDirectory(
+            firstProfile.workingDirectory
+          );
+          if (!settingsResult.success) {
+            console.warn(
+              "Failed to update working directory:",
+              settingsResult.error
+            );
+          }
+        }
+      }
+
+      // Create metadata
       const metadata: ImportMetadata = {
         importedAt: new Date().toISOString(),
         version: config.version,
-        profileCount: profiles.length,
-        assetCount: assets.length,
-        spawnCount: profiles.reduce(
+        profileCount: mergeResult.profiles.length,
+        assetCount: mergeResult.assets.length,
+        spawnCount: mergeResult.profiles.reduce(
           (total, profile) => total + profile.spawns.length,
           0
         ),
-        validationWarnings: validation.warnings,
+        validationWarnings: [
+          ...validation.warnings,
+          ...dataValidation.warnings,
+        ],
       };
 
       return {
         success: true,
-        profiles,
-        assets,
+        profiles: mergeResult.profiles,
+        assets: mergeResult.assets,
         metadata,
+        conflicts: mergeResult.conflicts,
       };
     } catch (error) {
+      console.error("Import configuration failed:", error);
       return {
         success: false,
         error: error instanceof Error ? error.message : "Import failed",
@@ -431,6 +520,246 @@ export class ImportExportService {
       errors,
       warnings,
     };
+  }
+
+  /**
+   * Validate imported data after transformation
+   */
+  private static validateImportedData(
+    profiles: SpawnProfile[],
+    assets: MediaAsset[]
+  ): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    // Validate profiles
+    profiles.forEach((profile, index) => {
+      const profileValidation = validateSpawnProfile(profile);
+      if (!profileValidation.isValid) {
+        errors.push(`Profile ${index}: ${profileValidation.errors.join(", ")}`);
+      }
+
+      // Validate spawns within profile
+      profile.spawns.forEach((spawn, spawnIndex) => {
+        const spawnValidation = validateSpawn(spawn);
+        if (!spawnValidation.isValid) {
+          errors.push(
+            `Profile ${index}, Spawn ${spawnIndex}: ${spawnValidation.errors.join(
+              ", "
+            )}`
+          );
+        }
+
+        // Validate triggers
+        const triggerValidation = validateTrigger(spawn.trigger);
+        if (!triggerValidation.isValid) {
+          errors.push(
+            `Profile ${index}, Spawn ${spawnIndex}, Trigger: ${triggerValidation.errors.join(
+              ", "
+            )}`
+          );
+        }
+        warnings.push(...triggerValidation.warnings);
+      });
+    });
+
+    // Validate assets
+    assets.forEach((asset, index) => {
+      if (!asset.id || typeof asset.id !== "string") {
+        errors.push(`Asset ${index} has invalid ID`);
+      }
+      if (!asset.name || typeof asset.name !== "string") {
+        errors.push(`Asset ${index} has invalid name`);
+      }
+      if (!asset.path || typeof asset.path !== "string") {
+        errors.push(`Asset ${index} has invalid path`);
+      }
+      if (typeof asset.isUrl !== "boolean") {
+        errors.push(`Asset ${index} has invalid isUrl`);
+      }
+      if (!asset.type || !["image", "video", "audio"].includes(asset.type)) {
+        errors.push(`Asset ${index} has invalid type`);
+      }
+    });
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings,
+    };
+  }
+
+  /**
+   * Merge imported data with existing data, handling conflicts
+   */
+  private static async mergeImportedData(
+    importedProfiles: SpawnProfile[],
+    importedAssets: MediaAsset[],
+    options: ImportOptions
+  ): Promise<{
+    success: boolean;
+    profiles: SpawnProfile[];
+    assets: MediaAsset[];
+    conflicts?: ImportConflicts;
+    error?: string;
+  }> {
+    try {
+      const conflicts: ImportConflicts = {
+        profileConflicts: [],
+        assetConflicts: [],
+        invalidAssetReferences: [],
+        workingDirectoryConflicts: false,
+      };
+
+      // Get existing data
+      const existingProfiles = SpawnProfileService.getAllProfiles();
+      const existingAssets = AssetService.getAssets();
+
+      // Handle asset conflicts
+      const mergedAssets = [...existingAssets];
+      const assetIdMap = new Map<string, string>(); // old ID -> new ID mapping
+
+      for (const importedAsset of importedAssets) {
+        const existingAsset = existingAssets.find(
+          (asset) => asset.id === importedAsset.id
+        );
+
+        if (existingAsset) {
+          conflicts.assetConflicts.push(importedAsset.name);
+
+          switch (options.assetConflictStrategy) {
+            case "skip": {
+              // Keep existing asset, map to existing ID
+              assetIdMap.set(importedAsset.id, existingAsset.id);
+              break;
+            }
+            case "overwrite": {
+              // Replace existing asset
+              const assetIndex = mergedAssets.findIndex(
+                (asset) => asset.id === importedAsset.id
+              );
+              if (assetIndex !== -1) {
+                mergedAssets[assetIndex] = importedAsset;
+              }
+              assetIdMap.set(importedAsset.id, importedAsset.id);
+              break;
+            }
+            case "rename": {
+              // Create new asset with new ID
+              const newAsset = { ...importedAsset, id: crypto.randomUUID() };
+              mergedAssets.push(newAsset);
+              assetIdMap.set(importedAsset.id, newAsset.id);
+              break;
+            }
+          }
+        } else {
+          // No conflict, add asset
+          mergedAssets.push(importedAsset);
+          assetIdMap.set(importedAsset.id, importedAsset.id);
+        }
+      }
+
+      // Handle profile conflicts
+      const mergedProfiles = [...existingProfiles];
+
+      for (const importedProfile of importedProfiles) {
+        const existingProfile = existingProfiles.find(
+          (profile) => profile.id === importedProfile.id
+        );
+
+        if (existingProfile) {
+          conflicts.profileConflicts.push(importedProfile.name);
+
+          switch (options.profileConflictStrategy) {
+            case "skip": {
+              // Keep existing profile
+              break;
+            }
+            case "overwrite": {
+              // Replace existing profile
+              const profileIndex = mergedProfiles.findIndex(
+                (profile) => profile.id === importedProfile.id
+              );
+              if (profileIndex !== -1) {
+                mergedProfiles[profileIndex] = importedProfile;
+              }
+              break;
+            }
+            case "rename": {
+              // Create new profile with new ID and update asset references
+              const newProfile = {
+                ...importedProfile,
+                id: crypto.randomUUID(),
+                spawns: importedProfile.spawns.map((spawn) => ({
+                  ...spawn,
+                  id: crypto.randomUUID(),
+                  assets: spawn.assets.map((spawnAsset) => ({
+                    ...spawnAsset,
+                    id: crypto.randomUUID(),
+                    assetId:
+                      assetIdMap.get(spawnAsset.assetId) || spawnAsset.assetId,
+                  })),
+                })),
+              };
+              mergedProfiles.push(newProfile);
+              break;
+            }
+          }
+        } else {
+          // No conflict, add profile with updated asset references
+          const updatedProfile = {
+            ...importedProfile,
+            spawns: importedProfile.spawns.map((spawn) => ({
+              ...spawn,
+              id: crypto.randomUUID(),
+              assets: spawn.assets.map((spawnAsset) => ({
+                ...spawnAsset,
+                id: crypto.randomUUID(),
+                assetId:
+                  assetIdMap.get(spawnAsset.assetId) || spawnAsset.assetId,
+              })),
+            })),
+          };
+          mergedProfiles.push(updatedProfile);
+        }
+      }
+
+      // Validate asset references
+      if (options.validateAssetReferences) {
+        for (const profile of mergedProfiles) {
+          for (const spawn of profile.spawns) {
+            for (const spawnAsset of spawn.assets) {
+              const assetExists = mergedAssets.some(
+                (asset) => asset.id === spawnAsset.assetId
+              );
+              if (!assetExists) {
+                conflicts.invalidAssetReferences.push(
+                  `Profile "${profile.name}", Spawn "${spawn.name}": Asset "${spawnAsset.assetId}" not found`
+                );
+              }
+            }
+          }
+        }
+      }
+
+      // Save merged data
+      SpawnProfileService.replaceProfiles(mergedProfiles);
+      AssetService.saveAssets(mergedAssets);
+
+      return {
+        success: true,
+        profiles: mergedProfiles,
+        assets: mergedAssets,
+        conflicts,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Merge failed",
+        profiles: [],
+        assets: [],
+      };
+    }
   }
 
   /**
