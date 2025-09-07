@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { SpawnProfileService } from "../../services/spawnProfileService";
 import type { SpawnProfile } from "../../types/spawn";
 import { usePanelState, useStreamerbotStatus } from "../../hooks";
@@ -90,12 +91,18 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
 
           {/* Profile Management Actions */}
           <div className="flex items-center space-x-2 lg:space-x-3 xl:space-x-4">
-            <a
-              href="/assets"
+            <Link
+              to="/assets"
               className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors whitespace-nowrap"
             >
               Open Asset Library
-            </a>
+            </Link>
+            <Link
+              to="/settings"
+              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors whitespace-nowrap"
+            >
+              Settings
+            </Link>
             <button
               onClick={handleCreateProfile}
               className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap"

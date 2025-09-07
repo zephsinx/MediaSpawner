@@ -13,7 +13,7 @@ vi.mock("../../../services/spawnProfileService", () => ({
 // Import after mocking
 import Header from "../Header";
 import { SpawnProfileService } from "../../../services/spawnProfileService";
-import { renderWithLayoutProvider, mockLocalStorage } from "./testUtils";
+import { renderWithAllProviders, mockLocalStorage } from "./testUtils";
 
 const mockSpawnProfileService = vi.mocked(SpawnProfileService);
 
@@ -72,20 +72,20 @@ describe("Header", () => {
 
   describe("Basic Rendering", () => {
     it("renders application title and branding", () => {
-      renderWithLayoutProvider(<Header />);
+      renderWithAllProviders(<Header />);
 
       expect(screen.getByText("MediaSpawner")).toBeInTheDocument();
     });
 
     it("renders spawn profile selector", () => {
-      renderWithLayoutProvider(<Header />);
+      renderWithAllProviders(<Header />);
 
       expect(screen.getByText("Active Profile:")).toBeInTheDocument();
       expect(screen.getByRole("combobox")).toBeInTheDocument();
     });
 
     it("renders profile management action buttons", () => {
-      renderWithLayoutProvider(<Header />);
+      renderWithAllProviders(<Header />);
 
       expect(screen.getByText("Create Profile")).toBeInTheDocument();
       expect(screen.getByText("Edit Profile")).toBeInTheDocument();
@@ -95,7 +95,7 @@ describe("Header", () => {
 
   describe("Profile Selector Functionality", () => {
     it("displays all available profiles in dropdown", () => {
-      renderWithLayoutProvider(<Header />);
+      renderWithAllProviders(<Header />);
 
       const select = screen.getByRole("combobox");
       const options = select.querySelectorAll("option");
@@ -111,14 +111,14 @@ describe("Header", () => {
     });
 
     it("shows currently active profile as selected", () => {
-      renderWithLayoutProvider(<Header />);
+      renderWithAllProviders(<Header />);
 
       const select = screen.getByRole("combobox") as HTMLSelectElement;
       expect(select.value).toBe("profile-1");
     });
 
     it("calls SpawnProfileService.getProfilesWithActiveInfo on mount", () => {
-      renderWithLayoutProvider(<Header />);
+      renderWithAllProviders(<Header />);
 
       expect(
         mockSpawnProfileService.getProfilesWithActiveInfo
@@ -126,7 +126,7 @@ describe("Header", () => {
     });
 
     it("handles profile switching correctly", () => {
-      renderWithLayoutProvider(<Header />);
+      renderWithAllProviders(<Header />);
 
       const select = screen.getByRole("combobox");
       fireEvent.change(select, { target: { value: "profile-2" } });
@@ -137,7 +137,7 @@ describe("Header", () => {
     });
 
     it("updates local state when profile switching succeeds", () => {
-      renderWithLayoutProvider(<Header />);
+      renderWithAllProviders(<Header />);
 
       const select = screen.getByRole("combobox") as HTMLSelectElement;
       fireEvent.change(select, { target: { value: "profile-2" } });
@@ -154,7 +154,7 @@ describe("Header", () => {
         error: "Profile not found",
       });
 
-      renderWithLayoutProvider(<Header />);
+      renderWithAllProviders(<Header />);
 
       const select = screen.getByRole("combobox");
       fireEvent.change(select, { target: { value: "invalid-profile" } });
@@ -170,7 +170,7 @@ describe("Header", () => {
     it("calls placeholder functions for profile management actions", () => {
       const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
-      renderWithLayoutProvider(<Header />);
+      renderWithAllProviders(<Header />);
 
       // Test Create Profile button
       fireEvent.click(screen.getByText("Create Profile"));
@@ -199,7 +199,7 @@ describe("Header", () => {
         activeProfileId: undefined,
       });
 
-      renderWithLayoutProvider(<Header />);
+      renderWithAllProviders(<Header />);
 
       const editButton = screen.getByText("Edit Profile");
       const deleteButton = screen.getByText("Delete Profile");
@@ -209,7 +209,7 @@ describe("Header", () => {
     });
 
     it("enables Edit and Delete buttons when active profile exists", () => {
-      renderWithLayoutProvider(<Header />);
+      renderWithAllProviders(<Header />);
 
       const editButton = screen.getByText("Edit Profile");
       const deleteButton = screen.getByText("Delete Profile");
@@ -226,7 +226,7 @@ describe("Header", () => {
         activeProfileId: undefined,
       });
 
-      renderWithLayoutProvider(<Header />);
+      renderWithAllProviders(<Header />);
 
       const select = screen.getByRole("combobox") as HTMLSelectElement;
       expect(select.value).toBe("");
@@ -249,7 +249,7 @@ describe("Header", () => {
         activeProfileId: "profile-1",
       });
 
-      renderWithLayoutProvider(<Header />);
+      renderWithAllProviders(<Header />);
 
       const select = screen.getByRole("combobox");
       const options = select.querySelectorAll("option");
@@ -264,7 +264,7 @@ describe("Header", () => {
       );
 
       // Should not crash the component
-      expect(() => renderWithLayoutProvider(<Header />)).not.toThrow();
+      expect(() => renderWithAllProviders(<Header />)).not.toThrow();
     });
   });
 });

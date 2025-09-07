@@ -4,7 +4,9 @@ const Layout = lazy(() => import("./components/layout/Layout"));
 const AssetLibraryPage = lazy(
   () => import("./components/asset-library/AssetLibraryPage")
 );
-const SettingsPage = lazy(() => import("./components/common/SettingsPage"));
+const SettingsPageWrapper = lazy(
+  () => import("./components/common/SettingsPageWrapper")
+);
 import { useAppInitialization } from "./hooks";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { Toaster } from "sonner";
@@ -60,7 +62,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Layout />} />
             <Route path="/assets" element={<AssetLibraryPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/settings" element={<SettingsPageWrapper />} />
           </Routes>
         </Suspense>
       </BrowserRouter>
