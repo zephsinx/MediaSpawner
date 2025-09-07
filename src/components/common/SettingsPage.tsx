@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { PathInput } from "./PathInput";
 import { SettingsService } from "../../services/settingsService";
 import { usePanelState } from "../../hooks";
@@ -6,6 +7,7 @@ import type { Settings } from "../../types/settings";
 import { toast } from "sonner";
 
 const SettingsPage: React.FC = () => {
+  const navigate = useNavigate();
   const { hasUnsavedChanges, setUnsavedChanges } = usePanelState();
   const [settings, setSettings] = useState<Settings>({ workingDirectory: "" });
   const [workingDirectory, setWorkingDirectory] = useState("");
@@ -92,10 +94,20 @@ const SettingsPage: React.FC = () => {
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Settings</h1>
-        <p className="text-gray-600">
-          Configure application settings and manage your preferences.
-        </p>
+        <div className="flex justify-between items-center mb-2">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">Settings</h1>
+            <p className="text-gray-600">
+              Configure application settings and manage your preferences.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate("/")}
+            className="px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded hover:bg-gray-50 transition-colors"
+          >
+            Back to Editor
+          </button>
+        </div>
       </div>
 
       {/* Settings Form */}
