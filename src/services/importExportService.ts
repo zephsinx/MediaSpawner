@@ -9,8 +9,6 @@ import type { SpawnProfile, MediaAsset } from "../types";
 import { SpawnProfileService } from "./spawnProfileService";
 import { AssetService } from "./assetService";
 import { SettingsService } from "./settingsService";
-import { validateTrigger } from "../utils/triggerValidation";
-import { validateSpawn, validateSpawnProfile } from "../types/spawn";
 import {
   transformProfileToSchema,
   transformAssetToSchema,
@@ -20,6 +18,11 @@ import {
   type ExportedSpawnProfile,
   type ExportedAsset,
 } from "../utils/dataTransformation";
+import {
+  validateExportData,
+  validateImportData,
+  validateWorkingDirectory,
+} from "../utils/importExportValidation";
 
 /**
  * Result of export operations
@@ -152,10 +155,7 @@ export class ImportExportService {
       );
 
       // Validate transformed data
-      const validation = this.validateExportedData(
-        exportedProfiles,
-        exportedAssets
-      );
+      const validation = validateExportData(exportedProfiles, exportedAssets);
       if (!validation.isValid) {
         return {
           success: false,
@@ -238,7 +238,7 @@ export class ImportExportService {
       );
 
       // Validate transformed data
-      const dataValidation = this.validateImportedData(
+      const dataValidation = validateImportData(
         importedProfiles,
         importedAssets
       );
@@ -267,6 +267,16 @@ export class ImportExportService {
       if (options.updateWorkingDirectory && config.profiles.length > 0) {
         const firstProfile = config.profiles[0];
         if (firstProfile.workingDirectory) {
+          const workingDirValidation = validateWorkingDirectory(
+            firstProfile.workingDirectory
+          );
+          if (!workingDirValidation.isValid) {
+            console.warn(
+              "Invalid working directory in imported data:",
+              workingDirValidation.errors.join(", ")
+            );
+          }
+
           const normalizedPath = normalizeWorkingDirectory(
             firstProfile.workingDirectory
           );
@@ -346,147 +356,6 @@ export class ImportExportService {
         `Version mismatch: expected ${this.CONFIG_VERSION}, got ${configObj.version}`
       );
     }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-      warnings,
-    };
-  }
-
-  /**
-   * Validate exported data before serialization
-   */
-  private static validateExportedData(
-    profiles: ExportedSpawnProfile[],
-    assets: ExportedAsset[]
-  ): ValidationResult {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-
-    // Validate profiles
-    profiles.forEach((profile, index) => {
-      if (!profile.id || typeof profile.id !== "string") {
-        errors.push(`Profile ${index} has invalid ID`);
-      }
-      if (!profile.name || typeof profile.name !== "string") {
-        errors.push(`Profile ${index} has invalid name`);
-      }
-      if (!Array.isArray(profile.spawns)) {
-        errors.push(`Profile ${index} has invalid spawns array`);
-      }
-      if (typeof profile.workingDirectory !== "string") {
-        errors.push(`Profile ${index} has invalid workingDirectory`);
-      }
-      if (!profile.lastModified || typeof profile.lastModified !== "string") {
-        errors.push(`Profile ${index} has invalid lastModified`);
-      }
-    });
-
-    // Validate assets
-    assets.forEach((asset, index) => {
-      if (!asset.id || typeof asset.id !== "string") {
-        errors.push(`Asset ${index} has invalid ID`);
-      }
-      if (!asset.name || typeof asset.name !== "string") {
-        errors.push(`Asset ${index} has invalid name`);
-      }
-      if (!asset.path || typeof asset.path !== "string") {
-        errors.push(`Asset ${index} has invalid path`);
-      }
-      if (typeof asset.isUrl !== "boolean") {
-        errors.push(`Asset ${index} has invalid isUrl`);
-      }
-      if (!asset.type || !["image", "video", "audio"].includes(asset.type)) {
-        errors.push(`Asset ${index} has invalid type`);
-      }
-    });
-
-    // Check for duplicate IDs
-    const profileIds = profiles.map((p) => p.id);
-    const duplicateProfileIds = profileIds.filter(
-      (id, index) => profileIds.indexOf(id) !== index
-    );
-    if (duplicateProfileIds.length > 0) {
-      errors.push(
-        `Duplicate profile IDs found: ${duplicateProfileIds.join(", ")}`
-      );
-    }
-
-    const assetIds = assets.map((a) => a.id);
-    const duplicateAssetIds = assetIds.filter(
-      (id, index) => assetIds.indexOf(id) !== index
-    );
-    if (duplicateAssetIds.length > 0) {
-      errors.push(`Duplicate asset IDs found: ${duplicateAssetIds.join(", ")}`);
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-      warnings,
-    };
-  }
-
-  /**
-   * Validate imported data after transformation
-   */
-  private static validateImportedData(
-    profiles: SpawnProfile[],
-    assets: MediaAsset[]
-  ): ValidationResult {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-
-    // Validate profiles
-    profiles.forEach((profile, index) => {
-      const profileValidation = validateSpawnProfile(profile);
-      if (!profileValidation.isValid) {
-        errors.push(`Profile ${index}: ${profileValidation.errors.join(", ")}`);
-      }
-
-      // Validate spawns within profile
-      profile.spawns.forEach((spawn, spawnIndex) => {
-        const spawnValidation = validateSpawn(spawn);
-        if (!spawnValidation.isValid) {
-          errors.push(
-            `Profile ${index}, Spawn ${spawnIndex}: ${spawnValidation.errors.join(
-              ", "
-            )}`
-          );
-        }
-
-        // Validate triggers
-        const triggerValidation = validateTrigger(spawn.trigger);
-        if (!triggerValidation.isValid) {
-          errors.push(
-            `Profile ${index}, Spawn ${spawnIndex}, Trigger: ${triggerValidation.errors.join(
-              ", "
-            )}`
-          );
-        }
-        warnings.push(...triggerValidation.warnings);
-      });
-    });
-
-    // Validate assets
-    assets.forEach((asset, index) => {
-      if (!asset.id || typeof asset.id !== "string") {
-        errors.push(`Asset ${index} has invalid ID`);
-      }
-      if (!asset.name || typeof asset.name !== "string") {
-        errors.push(`Asset ${index} has invalid name`);
-      }
-      if (!asset.path || typeof asset.path !== "string") {
-        errors.push(`Asset ${index} has invalid path`);
-      }
-      if (typeof asset.isUrl !== "boolean") {
-        errors.push(`Asset ${index} has invalid isUrl`);
-      }
-      if (!asset.type || !["image", "video", "audio"].includes(asset.type)) {
-        errors.push(`Asset ${index} has invalid type`);
-      }
-    });
 
     return {
       isValid: errors.length === 0,

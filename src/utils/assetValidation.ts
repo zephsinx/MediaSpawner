@@ -1,6 +1,9 @@
 import type { MediaAsset } from "../types/media";
 import type { Dimensions, Position } from "../types/media";
-import { detectAssetTypeFromPath } from "./assetTypeDetection";
+import {
+  detectAssetTypeFromPath,
+  isValidAssetPath,
+} from "./assetTypeDetection";
 
 export type AssetType = MediaAsset["type"];
 
@@ -32,8 +35,7 @@ export function validateLocalPathFormat(path: string): ValidationResult {
     return { isValid: false, error: "Path contains invalid characters" };
   }
   // Must have a supported extension; no existence checks
-  const type = detectAssetTypeFromPath(trimmed);
-  if (!type) {
+  if (!isValidAssetPath(trimmed)) {
     return { isValid: false, error: "Unsupported file type" };
   }
   return { isValid: true };
