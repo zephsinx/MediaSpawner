@@ -1,4 +1,8 @@
-import { useEffect, useRef } from "react";
+import * as React from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { AlertTriangle, Info, X } from "lucide-react";
+import { cn } from "../../utils/cn";
+import { Button } from "../ui/Button";
 
 export interface ConfirmDialogProps {
   isOpen: boolean;
@@ -23,139 +27,83 @@ export function ConfirmDialog({
   onCancel,
   extraContent,
 }: ConfirmDialogProps) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const cancelButtonRef = useRef<HTMLButtonElement>(null);
-
-  // Handle keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
-
-      switch (e.key) {
-        case "Escape":
-          onCancel();
-          break;
-        case "Enter":
-          onConfirm();
-          break;
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onConfirm, onCancel]);
-
-  // Focus management
-  useEffect(() => {
-    if (isOpen && cancelButtonRef.current) {
-      cancelButtonRef.current.focus();
-    }
-  }, [isOpen]);
-
-  // Prevent body scroll when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-    }
-
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, [isOpen]);
-
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onCancel();
-    }
-  };
-
   const getVariantStyles = () => {
     switch (variant) {
       case "danger":
         return {
-          confirmButton: "bg-red-600 hover:bg-red-700 focus:ring-red-500",
-          icon: "❗",
-          iconColor: "text-red-600",
+          confirmButton: "destructive" as const,
+          icon: X,
+          iconColor: "text-[rgb(var(--color-error))]",
+          iconBg: "bg-[rgb(var(--color-error-bg))]",
         };
       case "warning":
         return {
-          confirmButton:
-            "bg-orange-600 hover:bg-orange-700 focus:ring-orange-500",
-          icon: "⚠️",
-          iconColor: "text-orange-600",
+          confirmButton: "outline" as const,
+          icon: AlertTriangle,
+          iconColor: "text-[rgb(var(--color-warning))]",
+          iconBg: "bg-[rgb(var(--color-warning))]/10",
         };
       case "info":
         return {
-          confirmButton: "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500",
-          icon: "ℹ️",
-          iconColor: "text-blue-600",
+          confirmButton: "primary" as const,
+          icon: Info,
+          iconColor: "text-[rgb(var(--color-accent))]",
+          iconBg: "bg-[rgb(var(--color-accent))]/10",
         };
     }
   };
 
   const styles = getVariantStyles();
-
-  if (!isOpen) {
-    return null;
-  }
+  const IconComponent = styles.icon;
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-gray-900/40 flex items-center justify-center p-4"
-      onClick={handleBackdropClick}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="confirm-dialog-title"
-      aria-describedby="confirm-dialog-message"
-    >
-      <div
-        ref={dialogRef}
-        className="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center space-x-3 mb-4">
-          <div className={`text-2xl ${styles.iconColor}`}>{styles.icon}</div>
-          <h3
-            id="confirm-dialog-title"
-            className="text-lg font-medium text-gray-900"
-          >
-            {title}
-          </h3>
-        </div>
+    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onCancel()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <Dialog.Content
+          className={cn(
+            "fixed left-[50%] top-[50%] z-50 grid w-full max-w-md translate-x-[-50%] translate-y-[-50%] gap-4 border bg-[rgb(var(--color-bg))] p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
+            "border-[rgb(var(--color-border))] text-[rgb(var(--color-fg))]"
+          )}
+        >
+          {/* Header */}
+          <div className="flex items-center space-x-3">
+            <div
+              className={cn(
+                "flex h-10 w-10 items-center justify-center rounded-full",
+                styles.iconBg
+              )}
+            >
+              <IconComponent className={cn("h-5 w-5", styles.iconColor)} />
+            </div>
+            <Dialog.Title className="text-lg font-semibold text-[rgb(var(--color-fg))]">
+              {title}
+            </Dialog.Title>
+          </div>
 
-        {/* Message */}
-        <div className="mb-6">
-          <p
-            id="confirm-dialog-message"
-            className="text-sm text-gray-600 leading-relaxed"
-          >
+          {/* Message */}
+          <Dialog.Description className="text-sm text-[rgb(var(--color-muted-foreground))] leading-relaxed">
             {message}
-          </p>
-        </div>
+          </Dialog.Description>
 
-        {/* Optional extra content (e.g., checkboxes) */}
-        {extraContent && <div className="mb-3">{extraContent}</div>}
+          {/* Optional extra content (e.g., checkboxes) */}
+          {extraContent && <div>{extraContent}</div>}
 
-        {/* Actions */}
-        <div className="flex space-x-3 justify-end">
-          <button
-            ref={cancelButtonRef}
-            onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-          >
-            {cancelText}
-          </button>
-          <button
-            onClick={onConfirm}
-            className={`px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${styles.confirmButton}`}
-          >
-            {confirmText}
-          </button>
-        </div>
-      </div>
-    </div>
+          {/* Actions */}
+          <div className="flex space-x-3 justify-end">
+            <Dialog.Close asChild>
+              <Button variant="outline" onClick={onCancel}>
+                {cancelText}
+              </Button>
+            </Dialog.Close>
+            <Dialog.Close asChild>
+              <Button variant={styles.confirmButton} onClick={onConfirm}>
+                {confirmText}
+              </Button>
+            </Dialog.Close>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
