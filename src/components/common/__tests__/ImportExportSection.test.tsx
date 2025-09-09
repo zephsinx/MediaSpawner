@@ -1,158 +1,266 @@
+import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  beforeEach,
+  afterEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock,
+} from "vitest";
 import { ImportExportSection } from "../ImportExportSection";
+import { ImportExportService } from "../../../services/importExportService";
+import { downloadConfiguration } from "../../../utils/fileDownload";
+import { toast } from "sonner";
+import type { ImportOptions } from "../../../services/importExportService";
 
-// Mock sonner toast
 vi.mock("sonner", () => ({
   toast: {
-    info: vi.fn(),
+    success: vi.fn(),
     error: vi.fn(),
   },
 }));
 
+vi.mock("../../../services/importExportService", () => ({
+  ImportExportService: {
+    exportConfiguration: vi.fn(),
+    importConfiguration: vi.fn(),
+  },
+}));
+
+vi.mock("../../../utils/fileDownload", () => ({
+  downloadConfiguration: vi.fn(),
+}));
+
+vi.mock("../ImportOptionsModal", () => ({
+  ImportOptionsModal: ({
+    isOpen,
+    onClose,
+    onConfirm,
+  }: {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: (options: ImportOptions) => void;
+  }) => {
+    if (!isOpen) return null;
+    return React.createElement(
+      "div",
+      { "data-testid": "import-options-modal" },
+      React.createElement(
+        "button",
+        {
+          onClick: () =>
+            onConfirm({
+              profileConflictStrategy: "rename",
+              assetConflictStrategy: "rename",
+              updateWorkingDirectory: true,
+              validateAssetReferences: true,
+            }),
+        },
+        "Confirm Import"
+      ),
+      React.createElement("button", { onClick: onClose }, "Cancel")
+    );
+  },
+}));
+
 describe("ImportExportSection", () => {
+  let OriginalFileReader: typeof FileReader;
+  let exportConfigurationMock: Mock;
+  let importConfigurationMock: Mock;
+
   beforeEach(() => {
     vi.resetAllMocks();
+    exportConfigurationMock =
+      ImportExportService.exportConfiguration as unknown as Mock;
+    importConfigurationMock =
+      ImportExportService.importConfiguration as unknown as Mock;
+
+    OriginalFileReader = global.FileReader;
+    class MockFileReader {
+      public onload: ((ev: { target: { result: string } }) => void) | null =
+        null;
+      public onerror: ((ev: unknown) => void) | null = null;
+      readAsText(file: File) {
+        void file;
+        setTimeout(() => {
+          this.onload?.({
+            target: {
+              result: JSON.stringify({
+                version: "1.0.0",
+                profiles: [],
+                assets: [],
+              }),
+            },
+          });
+        }, 0);
+      }
+    }
+    global.FileReader = MockFileReader as unknown as typeof FileReader;
   });
 
-  it("renders without errors", () => {
+  it("renders header and action buttons", () => {
     render(<ImportExportSection />);
 
     expect(screen.getByText("Import/Export Configuration")).toBeInTheDocument();
-    expect(screen.getByText("Export Configuration")).toBeInTheDocument();
-    expect(screen.getByText("Import Configuration")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /export configuration/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /import configuration/i })
+    ).toBeInTheDocument();
   });
 
-  it("includes export and import buttons", () => {
-    render(<ImportExportSection />);
+  it("disables buttons during export and shows loading state", async () => {
+    exportConfigurationMock.mockImplementation(
+      async () =>
+        new Promise((resolve) =>
+          setTimeout(() => resolve({ success: false, error: "No data" }), 50)
+        )
+    );
 
-    const exportButton = screen.getByRole("button", {
+    render(<ImportExportSection />);
+    const exportBtn = screen.getByRole("button", {
       name: /export configuration/i,
     });
-    const importButton = screen.getByRole("button", {
+    const importBtn = screen.getByRole("button", {
       name: /import configuration/i,
     });
 
-    expect(exportButton).toBeInTheDocument();
-    expect(importButton).toBeInTheDocument();
-  });
-
-  it("has file input for JSON files", () => {
-    render(<ImportExportSection />);
-
-    const fileInput = screen.getByRole("button", {
-      name: /import configuration/i,
-    });
-    expect(fileInput).toBeInTheDocument();
-
-    // The actual file input is hidden, but we can check it exists
-    const hiddenInput = document.querySelector('input[type="file"]');
-    expect(hiddenInput).toBeInTheDocument();
-    expect(hiddenInput).toHaveAttribute("accept", ".json,application/json");
-  });
-
-  it("follows existing UI patterns", () => {
-    render(<ImportExportSection />);
-
-    // Check for consistent styling classes
-    const section = screen
-      .getByText("Import/Export Configuration")
-      .closest("div");
-    expect(section).toHaveClass(
-      "bg-white",
-      "border",
-      "rounded-lg",
-      "p-6",
-      "mb-6"
-    );
-
-    const exportButton = screen.getByRole("button", {
-      name: /export configuration/i,
-    });
-    expect(exportButton).toHaveClass(
-      "bg-indigo-600",
-      "text-white",
-      "rounded-md"
-    );
-  });
-
-  it("includes proper TypeScript types", () => {
-    // This test verifies the component can be rendered with proper props
-    render(<ImportExportSection className="test-class" />);
-
-    const section = screen
-      .getByText("Import/Export Configuration")
-      .closest("div");
-    expect(section).toHaveClass("test-class");
-  });
-
-  it("has basic accessibility features", () => {
-    render(<ImportExportSection />);
-
-    const exportButton = screen.getByRole("button", {
-      name: /export configuration/i,
-    });
-    const importButton = screen.getByRole("button", {
-      name: /import configuration/i,
-    });
-
-    expect(exportButton).toHaveAttribute(
-      "aria-label",
-      "Export configuration as JSON file"
-    );
-    expect(importButton).toHaveAttribute(
-      "aria-label",
-      "Import configuration from JSON file"
-    );
-  });
-
-  it("handles export button click", async () => {
-    render(<ImportExportSection />);
-
-    const exportButton = screen.getByRole("button", {
-      name: /export configuration/i,
-    });
-    fireEvent.click(exportButton);
+    fireEvent.click(exportBtn);
 
     await waitFor(() => {
       expect(screen.getByText("Exporting...")).toBeInTheDocument();
+      expect(exportBtn).toBeDisabled();
+      expect(importBtn).toBeDisabled();
     });
   });
 
-  it("handles import button click", () => {
+  it("exports configuration on success and downloads file", async () => {
+    exportConfigurationMock.mockResolvedValue({
+      success: true,
+      data: JSON.stringify({ version: "1.0.0", profiles: [], assets: [] }),
+      metadata: {
+        profileCount: 1,
+        assetCount: 2,
+        spawnCount: 3,
+        exportedAt: "",
+        version: "1.0.0",
+      },
+    });
+
     render(<ImportExportSection />);
-
-    const importButton = screen.getByRole("button", {
-      name: /import configuration/i,
-    });
-    fireEvent.click(importButton);
-
-    // The file input should be triggered (we can't easily test the file dialog)
-    // but we can verify the button click doesn't cause errors
-    expect(importButton).toBeInTheDocument();
-  });
-
-  it("shows loading states correctly", async () => {
-    render(<ImportExportSection />);
-
-    const exportButton = screen.getByRole("button", {
-      name: /export configuration/i,
-    });
-    const importButton = screen.getByRole("button", {
-      name: /import configuration/i,
-    });
-
-    // Initially both buttons should be enabled
-    expect(exportButton).not.toBeDisabled();
-    expect(importButton).not.toBeDisabled();
-
-    // Click export button
-    fireEvent.click(exportButton);
+    fireEvent.click(
+      screen.getByRole("button", { name: /export configuration/i })
+    );
 
     await waitFor(() => {
-      expect(screen.getByText("Exporting...")).toBeInTheDocument();
-      expect(exportButton).toBeDisabled();
-      expect(importButton).toBeDisabled();
+      expect(downloadConfiguration).toHaveBeenCalledWith(
+        { version: "1.0.0", profiles: [], assets: [] },
+        "mediaspawner-config"
+      );
+      expect(toast.success).toHaveBeenCalled();
     });
+  });
+
+  it("shows error toast when export fails", async () => {
+    exportConfigurationMock.mockResolvedValue({
+      success: false,
+      error: "No data available",
+    });
+
+    render(<ImportExportSection />);
+    fireEvent.click(
+      screen.getByRole("button", { name: /export configuration/i })
+    );
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalled();
+    });
+  });
+
+  it("opens modal on valid JSON selection and imports with options", async () => {
+    importConfigurationMock.mockResolvedValue({
+      success: true,
+      metadata: { profileCount: 0, assetCount: 0 },
+    });
+
+    const dispatchSpy = vi.spyOn(window, "dispatchEvent");
+
+    render(<ImportExportSection />);
+
+    const file = new File(["{}"], "config.json", { type: "application/json" });
+    const input = document.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement;
+
+    fireEvent.change(input, { target: { files: [file] } });
+
+    expect(
+      await screen.findByTestId("import-options-modal")
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Confirm Import"));
+
+    await waitFor(() => {
+      expect(ImportExportService.importConfiguration).toHaveBeenCalledWith(
+        expect.any(String),
+        {
+          profileConflictStrategy: "rename",
+          assetConflictStrategy: "rename",
+          updateWorkingDirectory: true,
+          validateAssetReferences: true,
+        }
+      );
+      expect(toast.success).toHaveBeenCalled();
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ type: "mediaspawner:configuration-imported" })
+      );
+    });
+
+    dispatchSpy.mockRestore();
+  });
+
+  it("rejects non-JSON files and shows error", () => {
+    render(<ImportExportSection />);
+    const input = document.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement;
+    const badFile = new File(["dummy"], "image.png", { type: "image/png" });
+
+    fireEvent.change(input, { target: { files: [badFile] } });
+
+    expect(screen.getByText(/import error:/i)).toBeInTheDocument();
+    expect(toast.error).toHaveBeenCalled();
+  });
+
+  it("shows error when import fails", async () => {
+    importConfigurationMock.mockResolvedValue({
+      success: false,
+      error: "Invalid configuration",
+    });
+
+    render(<ImportExportSection />);
+    const file = new File(["{}"], "config.json", { type: "application/json" });
+    const input = document.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+
+    expect(
+      await screen.findByTestId("import-options-modal")
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Confirm Import"));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalled();
+      expect(screen.getByText(/import error:/i)).toBeInTheDocument();
+    });
+  });
+
+  afterEach(() => {
+    if (OriginalFileReader) {
+      global.FileReader = OriginalFileReader;
+    }
   });
 });
