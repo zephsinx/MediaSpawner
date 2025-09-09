@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import type { MediaAsset } from "../../types/media";
 import { AssetCard } from "./AssetCard";
 import { ConfirmDialog } from "../common/ConfirmDialog";
+import { TypeFilterDropdown } from "./TypeFilterDropdown";
 
 export type ViewMode = "grid" | "list";
 export type AssetTypeFilter = "all" | "image" | "video" | "audio";
@@ -127,23 +128,6 @@ export function AssetList({
     return counts;
   }, [assets]);
 
-  const getTypeFilterCount = (type: AssetTypeFilter) => {
-    return typeCounts[type];
-  };
-
-  const getAssetTypeIcon = (type: MediaAsset["type"]) => {
-    switch (type) {
-      case "image":
-        return "🖼️";
-      case "video":
-        return "🎥";
-      case "audio":
-        return "🎵";
-      default:
-        return "📄";
-    }
-  };
-
   const GridView = () => (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
       {filteredAssets.map((asset) => (
@@ -224,51 +208,13 @@ export function AssetList({
           )}
         </div>
 
-        {/* Type Filters */}
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => handleTypeFilterChange("all")}
-            className={`px-3 py-1 text-sm font-medium rounded-full transition-colors ${
-              currentTypeFilter === "all"
-                ? "bg-blue-500 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            All ({getTypeFilterCount("all")})
-          </button>
-          <button
-            onClick={() => handleTypeFilterChange("image")}
-            className={`px-3 py-1 text-sm font-medium rounded-full transition-colors inline-flex items-center space-x-1 ${
-              currentTypeFilter === "image"
-                ? "bg-blue-500 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            <span>{getAssetTypeIcon("image")}</span>
-            <span>Images ({getTypeFilterCount("image")})</span>
-          </button>
-          <button
-            onClick={() => handleTypeFilterChange("video")}
-            className={`px-3 py-1 text-sm font-medium rounded-full transition-colors inline-flex items-center space-x-1 ${
-              currentTypeFilter === "video"
-                ? "bg-blue-500 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            <span>{getAssetTypeIcon("video")}</span>
-            <span>Videos ({getTypeFilterCount("video")})</span>
-          </button>
-          <button
-            onClick={() => handleTypeFilterChange("audio")}
-            className={`px-3 py-1 text-sm font-medium rounded-full transition-colors inline-flex items-center space-x-1 ${
-              currentTypeFilter === "audio"
-                ? "bg-blue-500 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            <span>{getAssetTypeIcon("audio")}</span>
-            <span>Audio ({getTypeFilterCount("audio")})</span>
-          </button>
+        {/* Type Filter Dropdown */}
+        <div className="flex items-center space-x-4">
+          <TypeFilterDropdown
+            currentFilter={currentTypeFilter}
+            onFilterChange={handleTypeFilterChange}
+            typeCounts={typeCounts}
+          />
         </div>
       </div>
 
