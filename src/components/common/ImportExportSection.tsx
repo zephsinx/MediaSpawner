@@ -2,6 +2,8 @@ import React, { useState, useRef } from "react";
 import { Download, Upload, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { ImportOptionsModal } from "./ImportOptionsModal";
+import { ImportExportService } from "../../services/importExportService";
+import { downloadConfiguration } from "../../utils/fileDownload";
 import type { ImportOptions } from "../../services/importExportService";
 
 /**
@@ -28,20 +30,54 @@ export function ImportExportSection({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   /**
+   * Read file content as text
+   */
+  const readFileAsText = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          resolve(event.target.result as string);
+        } else {
+          reject(new Error("Failed to read file"));
+        }
+      };
+      reader.onerror = () => {
+        reject(new Error("Failed to read file"));
+      };
+      reader.readAsText(file);
+    });
+  };
+
+  /**
    * Handle export button click
-   * This will be implemented in a later task when we integrate with ImportExportService
+   * Exports current configuration to a JSON file
    */
   const handleExport = async () => {
     setIsExporting(true);
     setImportError(null);
 
     try {
-      // TODO: Integrate with ImportExportService.exportConfiguration()
-      // For now, show a placeholder message
-      toast.info("Export functionality will be implemented in the next task");
+      // Call the export service
+      const result = await ImportExportService.exportConfiguration();
 
-      // Simulate async operation
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (result.success && result.data) {
+        // Download the configuration file
+        await downloadConfiguration(
+          JSON.parse(result.data),
+          "mediaspawner-config"
+        );
+
+        // Show success message with metadata
+        const metadata = result.metadata;
+        const message = metadata
+          ? `Configuration exported successfully! (${metadata.profileCount} profiles, ${metadata.assetCount} assets, ${metadata.spawnCount} spawns)`
+          : "Configuration exported successfully!";
+
+        toast.success(message);
+      } else {
+        throw new Error(result.error || "Export failed");
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Export failed";
@@ -83,7 +119,7 @@ export function ImportExportSection({
 
   /**
    * Handle import confirmation with options
-   * This will be implemented in a later task when we integrate with ImportExportService
+   * Reads the selected file and imports the configuration
    */
   const handleImportConfirm = async (options: ImportOptions) => {
     if (!selectedFile) return;
@@ -93,16 +129,30 @@ export function ImportExportSection({
     setImportError(null);
 
     try {
-      // TODO: Integrate with ImportExportService.importConfiguration()
-      // For now, show a placeholder message
-      toast.info(
-        `Import functionality will be implemented in the next task. Options: ${JSON.stringify(
-          options
-        )}`
+      // Read the file content
+      const fileContent = await readFileAsText(selectedFile);
+
+      // Call the import service
+      const result = await ImportExportService.importConfiguration(
+        fileContent,
+        options
       );
 
-      // Simulate async operation
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (result.success) {
+        // Show success message with metadata
+        const message = result.metadata
+          ? `Configuration imported successfully! (${result.metadata.profileCount} profiles, ${result.metadata.assetCount} assets)`
+          : "Configuration imported successfully!";
+
+        toast.success(message);
+
+        // Dispatch event to refresh the UI
+        window.dispatchEvent(
+          new CustomEvent("mediaspawner:configuration-imported")
+        );
+      } else {
+        throw new Error(result.error || "Import failed");
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Import failed";
