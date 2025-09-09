@@ -83,7 +83,7 @@ export interface ImportConflicts {
 /**
  * Result of validation operations
  */
-export interface ValidationResult {
+export interface ImportExportServiceValidationResult {
   isValid: boolean;
   errors: string[];
   warnings: string[];
@@ -326,7 +326,7 @@ export class ImportExportService {
   /**
    * Validate imported configuration data
    */
-  static validateImportedConfig(config: unknown): ValidationResult {
+  static validateImportedConfig(config: unknown): ImportExportServiceValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
 

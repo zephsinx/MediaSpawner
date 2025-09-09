@@ -27,20 +27,20 @@ import {
 } from "./assetValidation";
 import { isValidIsoString } from "./dataTransformation";
 
-export interface ValidationResult {
+export interface ImportExportValidationResult {
   isValid: boolean;
   errors: string[];
   warnings: string[];
   fieldErrors: Record<string, string[]>;
 }
 
-export interface ExportValidationResult extends ValidationResult {
+export interface ExportValidationResult extends ImportExportValidationResult {
   profileErrors: Record<number, string[]>;
   assetErrors: Record<number, string[]>;
   spawnErrors: Record<string, string[]>; // profileIndex-spawnIndex
 }
 
-export interface ImportValidationResult extends ValidationResult {
+export interface ImportValidationResult extends ImportExportValidationResult {
   profileErrors: Record<number, string[]>;
   assetErrors: Record<number, string[]>;
   spawnErrors: Record<string, string[]>; // profileIndex-spawnIndex
@@ -494,8 +494,10 @@ export function validateImportData(
 /**
  * Validate exported trigger
  */
-function validateExportedTrigger(trigger: ExportedTrigger): ValidationResult {
-  const result: ValidationResult = {
+function validateExportedTrigger(
+  trigger: ExportedTrigger
+): ImportExportValidationResult {
+  const result: ImportExportValidationResult = {
     isValid: true,
     errors: [],
     warnings: [],
@@ -529,8 +531,8 @@ function validateExportedTrigger(trigger: ExportedTrigger): ValidationResult {
 function validateExportedRandomizationBuckets(
   buckets: ExportedRandomizationBucket[],
   spawnAssets: ExportedSpawnAsset[]
-): ValidationResult {
-  const result: ValidationResult = {
+): ImportExportValidationResult {
+  const result: ImportExportValidationResult = {
     isValid: true,
     errors: [],
     warnings: [],
@@ -626,8 +628,8 @@ function validateExportedRandomizationBuckets(
  */
 function validateExportedAssetSettings(
   settings: ExportedAssetSettings
-): ValidationResult {
-  const result: ValidationResult = {
+): ImportExportValidationResult {
+  const result: ImportExportValidationResult = {
     isValid: true,
     errors: [],
     warnings: [],
@@ -697,8 +699,10 @@ function validateExportedAssetSettings(
 /**
  * Validate working directory path
  */
-export function validateWorkingDirectory(path: string): ValidationResult {
-  const result: ValidationResult = {
+export function validateWorkingDirectory(
+  path: string
+): ImportExportValidationResult {
+  const result: ImportExportValidationResult = {
     isValid: true,
     errors: [],
     warnings: [],
@@ -733,8 +737,8 @@ export function validateWorkingDirectory(path: string): ValidationResult {
  */
 export function validateAssetAccessibility(
   asset: MediaAsset
-): ValidationResult {
-  const result: ValidationResult = {
+): ImportExportValidationResult {
+  const result: ImportExportValidationResult = {
     isValid: true,
     errors: [],
     warnings: [],
