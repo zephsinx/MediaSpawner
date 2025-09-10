@@ -252,26 +252,39 @@ export const AssetCard = memo(function AssetCard({
         onKeyDown={(e) => {
           if (!isEditing && e.key === "F2") {
             beginEdit();
+          } else if (!isEditing && (e.key === "Enter" || e.key === " ")) {
+            e.preventDefault();
+            handleCardClick(e as unknown as React.MouseEvent);
           }
         }}
         tabIndex={0}
         role="button"
-        aria-label={`Asset: ${asset.name}`}
+        aria-label={`Asset: ${asset.name}, ${asset.type}, ${
+          asset.isUrl ? "URL" : "file"
+        }`}
         aria-selected={isSelected}
+        aria-describedby={`asset-${asset.id}-list-description`}
       >
         <div className="flex items-center space-x-4 p-4">
           <div className="flex-shrink-0 w-16">{renderPreview()}</div>
           <div className="flex-1 min-w-0">{nameField}</div>
-          <div className="flex-shrink-0 flex items-center space-x-2">
-            <div className="flex items-center gap-1 text-xs text-[rgb(var(--color-muted-foreground))] bg-[rgb(var(--color-muted))]/10 px-2 py-1 rounded">
-              <TypeIcon className="h-3 w-3" />
+          <div
+            id={`asset-${asset.id}-list-description`}
+            className="flex-shrink-0 flex items-center space-x-2"
+          >
+            <div
+              className="flex items-center gap-1 text-xs text-[rgb(var(--color-muted-foreground))] bg-[rgb(var(--color-muted))]/10 px-2 py-1 rounded"
+              aria-label={`Asset type: ${asset.type}`}
+            >
+              <TypeIcon className="h-3 w-3" aria-hidden="true" />
               <span className="capitalize">{asset.type}</span>
             </div>
             <div
               className="flex items-center gap-1 text-xs text-[rgb(var(--color-muted-foreground))] bg-[rgb(var(--color-muted))]/10 px-2 py-1 rounded"
               title={getAssetSourceTooltip(asset.isUrl)}
+              aria-label={getAssetSourceTooltip(asset.isUrl)}
             >
-              <SourceIcon className="h-3 w-3" />
+              <SourceIcon className="h-3 w-3" aria-hidden="true" />
             </div>
             <Button
               variant="ghost"
@@ -279,9 +292,9 @@ export const AssetCard = memo(function AssetCard({
               onClick={beginEdit}
               className="h-8 w-8 p-0 text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))]"
               title="Rename asset"
-              aria-label="Rename asset"
+              aria-label={`Rename asset: ${asset.name}`}
             >
-              <Edit className="h-4 w-4" />
+              <Edit className="h-4 w-4" aria-hidden="true" />
             </Button>
             {canPreview && (
               <Button
@@ -290,9 +303,9 @@ export const AssetCard = memo(function AssetCard({
                 onClick={handlePreviewClick}
                 className="h-8 w-8 p-0 text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))]"
                 title="Preview asset"
-                aria-label="Preview asset"
+                aria-label={`Preview asset: ${asset.name}`}
               >
-                <Eye className="h-4 w-4" />
+                <Eye className="h-4 w-4" aria-hidden="true" />
               </Button>
             )}
             {onDelete && (
@@ -302,9 +315,9 @@ export const AssetCard = memo(function AssetCard({
                 onClick={handleDeleteClick}
                 className="h-8 w-8 p-0 text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-error))]"
                 title="Delete asset"
-                aria-label="Delete asset"
+                aria-label={`Delete asset: ${asset.name}`}
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
               </Button>
             )}
           </div>
@@ -328,12 +341,18 @@ export const AssetCard = memo(function AssetCard({
       onKeyDown={(e) => {
         if (!isEditing && e.key === "F2") {
           beginEdit();
+        } else if (!isEditing && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          handleCardClick(e as unknown as React.MouseEvent);
         }
       }}
       tabIndex={0}
       role="button"
-      aria-label={`Asset: ${asset.name}`}
+      aria-label={`Asset: ${asset.name}, ${asset.type}, ${
+        asset.isUrl ? "URL" : "file"
+      }`}
       aria-selected={isSelected}
+      aria-describedby={`asset-${asset.id}-description`}
     >
       <div className="flex flex-col p-3">
         {/* Preview */}
@@ -344,32 +363,43 @@ export const AssetCard = memo(function AssetCard({
           <div className="text-sm truncate w-full mb-1 text-[rgb(var(--color-fg))]">
             {nameField}
           </div>
-          <div className="flex items-center justify-center space-x-1 mb-2">
-            <div className="flex items-center gap-1 text-xs text-[rgb(var(--color-muted-foreground))] bg-[rgb(var(--color-muted))]/10 px-2 py-1 rounded">
-              <TypeIcon className="h-3 w-3" />
+          <div
+            id={`asset-${asset.id}-description`}
+            className="flex items-center justify-center space-x-1 mb-2"
+          >
+            <div
+              className="flex items-center gap-1 text-xs text-[rgb(var(--color-muted-foreground))] bg-[rgb(var(--color-muted))]/10 px-2 py-1 rounded"
+              aria-label={`Asset type: ${asset.type}`}
+            >
+              <TypeIcon className="h-3 w-3" aria-hidden="true" />
               <span className="capitalize">{asset.type}</span>
             </div>
             <div
               className="flex items-center gap-1 text-xs text-[rgb(var(--color-muted-foreground))] bg-[rgb(var(--color-muted))]/10 px-2 py-1 rounded"
               title={getAssetSourceTooltip(asset.isUrl)}
+              aria-label={getAssetSourceTooltip(asset.isUrl)}
             >
-              <SourceIcon className="h-3 w-3" />
+              <SourceIcon className="h-3 w-3" aria-hidden="true" />
             </div>
           </div>
         </div>
 
         {/* Action Buttons */}
         {(canPreview || onDelete) && (
-          <div className="mt-2 flex justify-center space-x-2">
+          <div
+            className="mt-2 flex justify-center space-x-2"
+            role="group"
+            aria-label="Asset actions"
+          >
             <Button
               variant="ghost"
               size="sm"
               onClick={beginEdit}
               className="text-xs text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))] h-7 px-2"
               title="Rename asset"
-              aria-label="Rename asset"
+              aria-label={`Rename asset: ${asset.name}`}
             >
-              <Edit className="h-3 w-3 mr-1" />
+              <Edit className="h-3 w-3 mr-1" aria-hidden="true" />
               Rename
             </Button>
             {canPreview && (
@@ -379,9 +409,9 @@ export const AssetCard = memo(function AssetCard({
                 onClick={handlePreviewClick}
                 className="text-xs text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))] h-7 px-2"
                 title="Preview asset"
-                aria-label="Preview asset"
+                aria-label={`Preview asset: ${asset.name}`}
               >
-                <Eye className="h-3 w-3 mr-1" />
+                <Eye className="h-3 w-3 mr-1" aria-hidden="true" />
                 Preview
               </Button>
             )}
@@ -392,9 +422,9 @@ export const AssetCard = memo(function AssetCard({
                 onClick={handleDeleteClick}
                 className="text-xs text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-error))] h-7 px-2"
                 title="Delete asset"
-                aria-label="Delete asset"
+                aria-label={`Delete asset: ${asset.name}`}
               >
-                <Trash2 className="h-3 w-3 mr-1" />
+                <Trash2 className="h-3 w-3 mr-1" aria-hidden="true" />
                 Delete
               </Button>
             )}

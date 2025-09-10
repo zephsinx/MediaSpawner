@@ -61,13 +61,15 @@ export function TypeFilterDropdown({
         <Button
           variant="outline"
           className={cn("justify-between min-w-[140px] h-9 px-3", className)}
-          aria-label="Filter assets by type"
+          aria-label={`Filter assets by type. Current: ${currentOption?.label}`}
+          aria-haspopup="menu"
+          aria-expanded="false"
         >
           <div className="flex items-center space-x-2">
-            <CurrentIcon className="h-4 w-4" />
+            <CurrentIcon className="h-4 w-4" aria-hidden="true" />
             <span>{currentOption?.label}</span>
           </div>
-          <ChevronDown className="h-4 w-4 opacity-50" />
+          <ChevronDown className="h-4 w-4 opacity-50" aria-hidden="true" />
         </Button>
       </DropdownMenu.Trigger>
 
@@ -82,6 +84,8 @@ export function TypeFilterDropdown({
             "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
           )}
           sideOffset={4}
+          role="menu"
+          aria-label="Asset type filter options"
         >
           {filterOptions.map((option) => {
             const Icon = option.icon;
@@ -99,9 +103,12 @@ export function TypeFilterDropdown({
                     "bg-[rgb(var(--color-accent))]/10 text-[rgb(var(--color-accent))]"
                 )}
                 onSelect={() => onFilterChange(option.value)}
+                role="menuitemradio"
+                aria-checked={isSelected}
+                aria-label={`Filter by ${option.label} (${count} assets)`}
               >
                 <div className="flex items-center space-x-2">
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-4 w-4" aria-hidden="true" />
                   <span>{option.label}</span>
                 </div>
                 <span
@@ -111,6 +118,7 @@ export function TypeFilterDropdown({
                       ? "bg-[rgb(var(--color-accent))] text-[rgb(var(--color-accent-foreground))]"
                       : "bg-[rgb(var(--color-muted))] text-[rgb(var(--color-muted-foreground))]"
                   )}
+                  aria-label={`${count} assets`}
                 >
                   {count}
                 </span>

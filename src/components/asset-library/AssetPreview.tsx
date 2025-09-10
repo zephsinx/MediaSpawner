@@ -235,32 +235,51 @@ export function AssetPreview({
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <Dialog.Overlay
+          className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+          aria-hidden="true"
+        />
         <Dialog.Content
           className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-7xl translate-x-[-50%] translate-y-[-50%] gap-4 border bg-[rgb(var(--color-bg))] p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg border-[rgb(var(--color-border))] h-[90vh]"
           onPointerDownOutside={(e) => e.preventDefault()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="asset-preview-title"
+          aria-describedby="asset-preview-description"
         >
           {/* Header with Close Button */}
           <div className="flex items-center justify-between mb-4">
-            <Dialog.Title className="text-lg font-semibold text-[rgb(var(--color-fg))] truncate">
-              {asset.name}
-            </Dialog.Title>
+            <div>
+              <Dialog.Title
+                id="asset-preview-title"
+                className="text-lg font-semibold text-[rgb(var(--color-fg))] truncate"
+              >
+                {asset.name}
+              </Dialog.Title>
+              <Dialog.Description
+                id="asset-preview-description"
+                className="text-sm text-[rgb(var(--color-muted-foreground))]"
+              >
+                {asset.type.charAt(0).toUpperCase() + asset.type.slice(1)} file
+                preview
+              </Dialog.Description>
+            </div>
             <div className="flex items-center gap-2">
               {/* Media Controls */}
               {(asset.type === "video" || asset.type === "audio") &&
                 canPreview && (
-                  <>
+                  <div role="group" aria-label="Media playback controls">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={handlePlayPause}
                       className="h-8 w-8 p-0"
-                      aria-label={isPlaying ? "Pause" : "Play"}
+                      aria-label={isPlaying ? "Pause playback" : "Play media"}
                     >
                       {isPlaying ? (
-                        <Pause className="h-4 w-4" />
+                        <Pause className="h-4 w-4" aria-hidden="true" />
                       ) : (
-                        <Play className="h-4 w-4" />
+                        <Play className="h-4 w-4" aria-hidden="true" />
                       )}
                     </Button>
                     <Button
@@ -268,33 +287,33 @@ export function AssetPreview({
                       size="sm"
                       onClick={handleMuteToggle}
                       className="h-8 w-8 p-0"
-                      aria-label={isMuted ? "Unmute" : "Mute"}
+                      aria-label={isMuted ? "Unmute audio" : "Mute audio"}
                     >
                       {isMuted ? (
-                        <VolumeX className="h-4 w-4" />
+                        <VolumeX className="h-4 w-4" aria-hidden="true" />
                       ) : (
-                        <Volume2 className="h-4 w-4" />
+                        <Volume2 className="h-4 w-4" aria-hidden="true" />
                       )}
                     </Button>
-                  </>
+                  </div>
                 )}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleDownload}
                 className="h-8 w-8 p-0"
-                aria-label="Download asset"
+                aria-label={`Download ${asset.name}`}
               >
-                <Download className="h-4 w-4" />
+                <Download className="h-4 w-4" aria-hidden="true" />
               </Button>
               <Dialog.Close asChild>
                 <Button
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0"
-                  aria-label="Close preview"
+                  aria-label="Close preview dialog"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </Dialog.Close>
             </div>
@@ -307,9 +326,9 @@ export function AssetPreview({
               size="sm"
               onClick={onPrevious}
               className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 h-12 w-12 p-0 bg-black/50 hover:bg-black/70 text-white"
-              aria-label="Previous asset"
+              aria-label="View previous asset"
             >
-              <ChevronLeft className="h-6 w-6" />
+              <ChevronLeft className="h-6 w-6" aria-hidden="true" />
             </Button>
           )}
 
@@ -319,14 +338,18 @@ export function AssetPreview({
               size="sm"
               onClick={onNext}
               className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 h-12 w-12 p-0 bg-black/50 hover:bg-black/70 text-white"
-              aria-label="Next asset"
+              aria-label="View next asset"
             >
-              <ChevronRight className="h-6 w-6" />
+              <ChevronRight className="h-6 w-6" aria-hidden="true" />
             </Button>
           )}
 
           {/* Preview Content */}
-          <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden">
+          <div
+            className="flex-1 min-h-0 flex items-center justify-center overflow-hidden"
+            role="img"
+            aria-label={`Preview of ${asset.name}`}
+          >
             {renderPreviewContent()}
           </div>
 
@@ -336,13 +359,13 @@ export function AssetPreview({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-4 text-sm text-[rgb(var(--color-muted-foreground))]">
                   <span className="capitalize font-medium">{asset.type}</span>
-                  <span>•</span>
+                  <span aria-hidden="true">•</span>
                   <span className="truncate" title={asset.path}>
                     {asset.path}
                   </span>
                   {videoDimensions && (
                     <>
-                      <span>•</span>
+                      <span aria-hidden="true">•</span>
                       <span>
                         {videoDimensions.width} × {videoDimensions.height}
                       </span>
@@ -352,7 +375,7 @@ export function AssetPreview({
               </div>
               {(hasNext || hasPrevious) && (
                 <div className="flex-shrink-0 ml-4 text-sm text-[rgb(var(--color-muted))]">
-                  Use ← → keys to navigate
+                  Use ← → keys to navigate between assets
                 </div>
               )}
             </div>

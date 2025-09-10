@@ -120,9 +120,23 @@ const AssetLibraryPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[rgb(var(--color-bg))] p-6">
+      {/* Skip Links */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-[rgb(var(--color-accent))] text-[rgb(var(--color-accent-foreground))] px-4 py-2 rounded-md z-50"
+      >
+        Skip to main content
+      </a>
+      <a
+        href="#asset-list"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-16 focus:left-4 bg-[rgb(var(--color-accent))] text-[rgb(var(--color-accent-foreground))] px-4 py-2 rounded-md z-50"
+      >
+        Skip to asset list
+      </a>
+
       <div className="max-w-7xl mx-auto">
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 gap-4">
+        <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 gap-4">
           <div>
             <h1 className="text-3xl font-bold text-[rgb(var(--color-fg))] mb-2">
               Asset Library
@@ -153,14 +167,21 @@ const AssetLibraryPage: React.FC = () => {
               {showAddForm ? "Cancel" : "Add Asset"}
             </Button>
           </div>
-        </div>
+        </header>
 
         {/* Add Asset Form */}
         {showAddForm && (
-          <Card className="mb-8">
+          <Card
+            className="mb-8"
+            role="region"
+            aria-labelledby="add-asset-title"
+          >
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-[rgb(var(--color-fg))]">
+                <h2
+                  id="add-asset-title"
+                  className="text-xl font-semibold text-[rgb(var(--color-fg))]"
+                >
                   Add New Asset
                 </h2>
                 <Button
@@ -176,13 +197,27 @@ const AssetLibraryPage: React.FC = () => {
 
               {/* Error Message */}
               {error && (
-                <div className="mb-4 p-3 bg-[rgb(var(--color-error-bg))] border border-[rgb(var(--color-error-border))] rounded-md flex items-center gap-2 text-[rgb(var(--color-error))]">
-                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <div
+                  className="mb-4 p-3 bg-[rgb(var(--color-error-bg))] border border-[rgb(var(--color-error-border))] rounded-md flex items-center gap-2 text-[rgb(var(--color-error))]"
+                  role="alert"
+                  aria-live="polite"
+                >
+                  <AlertCircle
+                    className="h-4 w-4 flex-shrink-0"
+                    aria-hidden="true"
+                  />
                   <span className="text-sm">{error}</span>
                 </div>
               )}
 
-              <div className="space-y-6">
+              <form
+                className="space-y-6"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleAddAsset();
+                }}
+                aria-label="Add new asset form"
+              >
                 <div>
                   <label
                     htmlFor="asset-name"
@@ -273,21 +308,30 @@ const AssetLibraryPage: React.FC = () => {
                     Cancel
                   </Button>
                 </div>
-              </div>
+              </form>
             </div>
           </Card>
         )}
 
         {/* Asset List */}
-        <AssetList
-          assets={assets}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          typeFilter={typeFilter}
-          onTypeFilterChange={setTypeFilter}
-          onAssetDelete={handleAssetDelete}
-          onAssetSelect={handleAssetPreview}
-        />
+        <main id="main-content" role="main" aria-label="Asset library content">
+          <section
+            id="asset-list"
+            aria-label="Asset list"
+            aria-live="polite"
+            aria-atomic="false"
+          >
+            <AssetList
+              assets={assets}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              typeFilter={typeFilter}
+              onTypeFilterChange={setTypeFilter}
+              onAssetDelete={handleAssetDelete}
+              onAssetSelect={handleAssetPreview}
+            />
+          </section>
+        </main>
 
         {/* Asset Preview Modal */}
         {previewAsset && (

@@ -140,8 +140,14 @@ export function AssetList({
   }, [assets]);
 
   const GridView = () => (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-      {filteredAssets.map((asset) => (
+    <div
+      className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"
+      role="grid"
+      aria-label="Asset grid view"
+      aria-rowcount={Math.ceil(filteredAssets.length / 6)}
+      aria-colcount={6}
+    >
+      {filteredAssets.map((asset, index) => (
         <AssetCard
           key={asset.id}
           asset={asset}
@@ -149,14 +155,16 @@ export function AssetList({
           isSelected={selectedAssets.includes(asset.id)}
           onClick={handleAssetClick}
           onDelete={onAssetDelete ? handleAssetDelete : undefined}
+          aria-rowindex={Math.floor(index / 6) + 1}
+          aria-colindex={(index % 6) + 1}
         />
       ))}
     </div>
   );
 
   const ListView = () => (
-    <div className="space-y-2">
-      {filteredAssets.map((asset) => (
+    <div className="space-y-2" role="list" aria-label="Asset list view">
+      {filteredAssets.map((asset, index) => (
         <AssetCard
           key={asset.id}
           asset={asset}
@@ -164,27 +172,45 @@ export function AssetList({
           isSelected={selectedAssets.includes(asset.id)}
           onClick={handleAssetClick}
           onDelete={onAssetDelete ? handleAssetDelete : undefined}
+          aria-posinset={index + 1}
+          aria-setsize={filteredAssets.length}
         />
       ))}
     </div>
   );
 
   return (
-    <div className={`w-full ${className}`}>
+    <div
+      className={`w-full ${className}`}
+      role="region"
+      aria-label="Asset management interface"
+    >
       {/* Search and Filters */}
-      <div className="mb-6 space-y-4">
+      <div
+        className="mb-6 space-y-4"
+        role="search"
+        aria-label="Search and filter assets"
+      >
         {/* Search Input */}
         <div className="relative">
+          <label htmlFor="asset-search" className="sr-only">
+            Search assets by name or path
+          </label>
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-[rgb(var(--color-muted-foreground))]" />
+            <Search
+              className="h-4 w-4 text-[rgb(var(--color-muted-foreground))]"
+              aria-hidden="true"
+            />
           </div>
           <Input
+            id="asset-search"
             type="text"
             placeholder="Search assets by name or path..."
             value={currentSearchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-10 pr-10"
-            aria-label="Search assets"
+            aria-label="Search assets by name or path"
+            aria-describedby="search-help"
           />
           {currentSearchQuery && (
             <Button
@@ -198,9 +224,16 @@ export function AssetList({
             </Button>
           )}
         </div>
+        <div id="search-help" className="sr-only">
+          Type to search through your assets by name or file path
+        </div>
 
         {/* Type Filter Dropdown */}
-        <div className="flex items-center space-x-4">
+        <div
+          className="flex items-center space-x-4"
+          role="group"
+          aria-label="Asset type filters"
+        >
           <TypeFilterDropdown
             currentFilter={currentTypeFilter}
             onFilterChange={handleTypeFilterChange}
@@ -210,8 +243,16 @@ export function AssetList({
       </div>
 
       {/* View Mode Toggle and Results Count */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="text-sm text-[rgb(var(--color-muted-foreground))]">
+      <div
+        className="flex justify-between items-center mb-6"
+        role="toolbar"
+        aria-label="Asset view controls"
+      >
+        <div
+          className="text-sm text-[rgb(var(--color-muted-foreground))]"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           <span className="font-medium text-[rgb(var(--color-fg))]">
             {filteredAssets.length}
           </span>{" "}
@@ -223,7 +264,11 @@ export function AssetList({
             </span>
           )}
         </div>
-        <div className="flex rounded-lg border border-[rgb(var(--color-border))] overflow-hidden bg-[rgb(var(--color-bg))]">
+        <div
+          className="flex rounded-lg border border-[rgb(var(--color-border))] overflow-hidden bg-[rgb(var(--color-bg))]"
+          role="group"
+          aria-label="View mode selection"
+        >
           <Button
             variant={currentViewMode === "grid" ? "primary" : "ghost"}
             size="sm"
@@ -235,9 +280,10 @@ export function AssetList({
                 : "text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))] hover:bg-[rgb(var(--color-muted))]/10"
             )}
             aria-label="Grid view"
+            aria-pressed={currentViewMode === "grid"}
             title="Switch to grid view"
           >
-            <Grid3X3 className="h-4 w-4 mr-1" />
+            <Grid3X3 className="h-4 w-4 mr-1" aria-hidden="true" />
             Grid
           </Button>
           <Button
@@ -251,9 +297,10 @@ export function AssetList({
                 : "text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))] hover:bg-[rgb(var(--color-muted))]/10"
             )}
             aria-label="List view"
+            aria-pressed={currentViewMode === "list"}
             title="Switch to list view"
           >
-            <List className="h-4 w-4 mr-1" />
+            <List className="h-4 w-4 mr-1" aria-hidden="true" />
             List
           </Button>
         </div>
@@ -261,12 +308,22 @@ export function AssetList({
 
       {/* Asset Display */}
       {filteredAssets.length === 0 ? (
-        <div className="text-center py-16 text-[rgb(var(--color-muted-foreground))]">
+        <div
+          className="text-center py-16 text-[rgb(var(--color-muted-foreground))]"
+          role="status"
+          aria-live="polite"
+        >
           <div className="mb-6">
             {currentSearchQuery || currentTypeFilter !== "all" ? (
-              <SearchIcon className="h-16 w-16 mx-auto text-[rgb(var(--color-muted))]/50" />
+              <SearchIcon
+                className="h-16 w-16 mx-auto text-[rgb(var(--color-muted))]/50"
+                aria-hidden="true"
+              />
             ) : (
-              <FolderOpen className="h-16 w-16 mx-auto text-[rgb(var(--color-muted))]/50" />
+              <FolderOpen
+                className="h-16 w-16 mx-auto text-[rgb(var(--color-muted))]/50"
+                aria-hidden="true"
+              />
             )}
           </div>
           <div className="text-xl font-medium mb-3 text-[rgb(var(--color-fg))]">
@@ -288,14 +345,17 @@ export function AssetList({
                 handleTypeFilterChange("all");
               }}
               className="mt-6"
+              aria-label="Clear all search and filter criteria"
             >
-              <X className="h-4 w-4 mr-2" />
+              <X className="h-4 w-4 mr-2" aria-hidden="true" />
               Clear all filters
             </Button>
           )}
         </div>
       ) : (
-        <div>{currentViewMode === "grid" ? <GridView /> : <ListView />}</div>
+        <div role="region" aria-label={`Asset ${currentViewMode} view`}>
+          {currentViewMode === "grid" ? <GridView /> : <ListView />}
+        </div>
       )}
 
       {/* Delete Confirmation Dialog */}
