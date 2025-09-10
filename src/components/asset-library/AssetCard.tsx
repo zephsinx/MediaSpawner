@@ -1,8 +1,22 @@
 import { memo, useEffect, useRef, useState } from "react";
+import {
+  Image,
+  Video,
+  Music,
+  Edit,
+  Eye,
+  Trash2,
+  Globe,
+  Folder,
+} from "lucide-react";
 import type { MediaAsset } from "../../types/media";
 import { computeDisplayPath } from "../../utils/pathDisplay";
 import { MediaPreview } from "../common/MediaPreview";
 import { AssetService } from "../../services/assetService";
+import { Card } from "../ui/Card";
+import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+import { cn } from "../../utils/cn";
 
 export interface AssetCardProps {
   asset: MediaAsset;
@@ -132,8 +146,21 @@ export const AssetCard = memo(function AssetCard({
     }
   };
 
-  const getAssetSourceIndicator = (isUrl: boolean) => {
-    return isUrl ? "🌐" : "📁";
+  const getAssetTypeIcon = (type: string) => {
+    switch (type) {
+      case "image":
+        return Image;
+      case "video":
+        return Video;
+      case "audio":
+        return Music;
+      default:
+        return Music;
+    }
+  };
+
+  const getAssetSourceIcon = (isUrl: boolean) => {
+    return isUrl ? Globe : Folder;
   };
 
   const getAssetSourceTooltip = (isUrl: boolean) => {
@@ -150,10 +177,10 @@ export const AssetCard = memo(function AssetCard({
   };
 
   const nameField = (
-    <div className="font-medium truncate text-gray-900">
+    <div className="font-medium truncate text-[rgb(var(--color-fg))]">
       {isEditing ? (
         <div className="flex items-center gap-2 min-w-0">
-          <input
+          <Input
             ref={inputRef}
             type="text"
             value={draftName}
@@ -168,27 +195,30 @@ export const AssetCard = memo(function AssetCard({
             aria-describedby={
               errorText ? `asset-${asset.id}-name-error` : undefined
             }
-            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+            variant={errorText ? "error" : "default"}
+            className="flex-1 text-sm"
             disabled={isSaving}
           />
-          <button
+          <Button
             type="button"
-            className="text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+            variant="outline"
+            size="sm"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => void commitEdit()}
             disabled={isSaving || Boolean(validateName(draftName))}
           >
             Save
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+            variant="outline"
+            size="sm"
             onMouseDown={(e) => e.preventDefault()}
             onClick={cancelEdit}
             disabled={isSaving}
           >
             Cancel
-          </button>
+          </Button>
         </div>
       ) : (
         <span onDoubleClick={beginEdit} className="truncate" title={asset.name}>
@@ -198,7 +228,7 @@ export const AssetCard = memo(function AssetCard({
       {isEditing && errorText && (
         <div
           id={`asset-${asset.id}-name-error`}
-          className="mt-1 text-xs text-red-600"
+          className="mt-1 text-xs text-[rgb(var(--color-error))]"
         >
           {errorText}
         </div>
@@ -207,18 +237,16 @@ export const AssetCard = memo(function AssetCard({
   );
 
   if (variant === "list") {
+    const TypeIcon = getAssetTypeIcon(asset.type);
+    const SourceIcon = getAssetSourceIcon(asset.isUrl);
+
     return (
-      <div
-        className={`
-          border rounded-lg p-4 cursor-pointer transition-all duration-200
-          hover:shadow-md hover:border-blue-300
-          ${
-            isSelected
-              ? "border-blue-500 bg-blue-50"
-              : "border-gray-200 bg-white"
-          }
-          ${className}
-        `}
+      <Card
+        variant={isSelected ? "selected" : "default"}
+        className={cn(
+          "cursor-pointer transition-all duration-200 hover:shadow-md",
+          className
+        )}
         onClick={handleCardClick}
         title={computeDisplayPath(asset.path)}
         onKeyDown={(e) => {
@@ -227,62 +255,74 @@ export const AssetCard = memo(function AssetCard({
           }
         }}
         tabIndex={0}
+        role="button"
+        aria-label={`Asset: ${asset.name}`}
+        aria-selected={isSelected}
       >
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 p-4">
           <div className="flex-shrink-0 w-16">{renderPreview()}</div>
           <div className="flex-1 min-w-0">{nameField}</div>
           <div className="flex-shrink-0 flex items-center space-x-2">
-            <span className="text-sm text-gray-500 capitalize bg-gray-100 px-2 py-1 rounded text-xs">
-              {asset.type}
-            </span>
-            <span
-              className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded text-xs"
+            <div className="flex items-center gap-1 text-xs text-[rgb(var(--color-muted-foreground))] bg-[rgb(var(--color-muted))]/10 px-2 py-1 rounded">
+              <TypeIcon className="h-3 w-3" />
+              <span className="capitalize">{asset.type}</span>
+            </div>
+            <div
+              className="flex items-center gap-1 text-xs text-[rgb(var(--color-muted-foreground))] bg-[rgb(var(--color-muted))]/10 px-2 py-1 rounded"
               title={getAssetSourceTooltip(asset.isUrl)}
             >
-              {getAssetSourceIndicator(asset.isUrl)}
-            </span>
-            <button
+              <SourceIcon className="h-3 w-3" />
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={beginEdit}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="h-8 w-8 p-0 text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))]"
               title="Rename asset"
               aria-label="Rename asset"
             >
-              ✏️
-            </button>
+              <Edit className="h-4 w-4" />
+            </Button>
             {canPreview && (
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={handlePreviewClick}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="h-8 w-8 p-0 text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))]"
                 title="Preview asset"
+                aria-label="Preview asset"
               >
-                👁️
-              </button>
+                <Eye className="h-4 w-4" />
+              </Button>
             )}
             {onDelete && (
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={handleDeleteClick}
-                className="text-gray-400 hover:text-red-600 transition-colors"
+                className="h-8 w-8 p-0 text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-error))]"
                 title="Delete asset"
+                aria-label="Delete asset"
               >
-                🗑️
-              </button>
+                <Trash2 className="h-4 w-4" />
+              </Button>
             )}
           </div>
         </div>
-      </div>
+      </Card>
     );
   }
 
+  const TypeIcon = getAssetTypeIcon(asset.type);
+  const SourceIcon = getAssetSourceIcon(asset.isUrl);
+
   return (
-    <div
-      className={`
-        border rounded-lg p-3 cursor-pointer transition-all duration-200
-        hover:shadow-md hover:border-blue-300
-        ${
-          isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200 bg-white"
-        }
-        ${className}
-      `}
+    <Card
+      variant={isSelected ? "selected" : "default"}
+      className={cn(
+        "cursor-pointer transition-all duration-200 hover:shadow-md",
+        className
+      )}
       onClick={handleCardClick}
       title={computeDisplayPath(asset.path)}
       onKeyDown={(e) => {
@@ -291,61 +331,76 @@ export const AssetCard = memo(function AssetCard({
         }
       }}
       tabIndex={0}
+      role="button"
+      aria-label={`Asset: ${asset.name}`}
+      aria-selected={isSelected}
     >
-      <div className="flex flex-col">
+      <div className="flex flex-col p-3">
         {/* Preview */}
         <div className="mb-3">{renderPreview()}</div>
 
         {/* Asset Information */}
         <div className="text-center">
-          <div className="text-sm truncate w-full mb-1 text-gray-900">
+          <div className="text-sm truncate w-full mb-1 text-[rgb(var(--color-fg))]">
             {nameField}
           </div>
           <div className="flex items-center justify-center space-x-1 mb-2">
-            <span className="text-xs text-gray-500 capitalize bg-gray-100 px-2 py-1 rounded">
-              {asset.type}
-            </span>
-            <span
-              className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded"
+            <div className="flex items-center gap-1 text-xs text-[rgb(var(--color-muted-foreground))] bg-[rgb(var(--color-muted))]/10 px-2 py-1 rounded">
+              <TypeIcon className="h-3 w-3" />
+              <span className="capitalize">{asset.type}</span>
+            </div>
+            <div
+              className="flex items-center gap-1 text-xs text-[rgb(var(--color-muted-foreground))] bg-[rgb(var(--color-muted))]/10 px-2 py-1 rounded"
               title={getAssetSourceTooltip(asset.isUrl)}
             >
-              {getAssetSourceIndicator(asset.isUrl)}
-            </span>
+              <SourceIcon className="h-3 w-3" />
+            </div>
           </div>
         </div>
 
         {/* Action Buttons */}
         {(canPreview || onDelete) && (
-          <div className="mt-2 flex justify-center space-x-4">
-            <button
+          <div className="mt-2 flex justify-center space-x-2">
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={beginEdit}
-              className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+              className="text-xs text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))] h-7 px-2"
               title="Rename asset"
               aria-label="Rename asset"
             >
-              ✏️ Rename
-            </button>
+              <Edit className="h-3 w-3 mr-1" />
+              Rename
+            </Button>
             {canPreview && (
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={handlePreviewClick}
-                className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                className="text-xs text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))] h-7 px-2"
                 title="Preview asset"
+                aria-label="Preview asset"
               >
-                👁️ Preview
-              </button>
+                <Eye className="h-3 w-3 mr-1" />
+                Preview
+              </Button>
             )}
             {onDelete && (
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={handleDeleteClick}
-                className="text-xs text-gray-500 hover:text-red-600 transition-colors"
+                className="text-xs text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-error))] h-7 px-2"
                 title="Delete asset"
+                aria-label="Delete asset"
               >
-                🗑️ Delete
-              </button>
+                <Trash2 className="h-3 w-3 mr-1" />
+                Delete
+              </Button>
             )}
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 });
