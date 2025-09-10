@@ -15,7 +15,7 @@ import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { cn } from "../../utils/cn";
 
-export type ViewMode = "grid" | "list";
+export type ViewMode = "grid" | "list" | "condensed";
 export type AssetTypeFilter = "all" | "image" | "video" | "audio";
 
 export interface AssetListProps {
@@ -24,6 +24,7 @@ export interface AssetListProps {
   onViewModeChange?: (mode: ViewMode) => void;
   onAssetSelect?: (asset: MediaAsset) => void;
   onAssetDelete?: (asset: MediaAsset) => void;
+  onPreview?: (asset: MediaAsset) => void;
   selectedAssets?: string[]; // Array of asset IDs
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
@@ -38,6 +39,7 @@ export function AssetList({
   onViewModeChange,
   onAssetSelect,
   onAssetDelete,
+  onPreview,
   selectedAssets = [],
   searchQuery: controlledSearchQuery,
   onSearchChange,
@@ -154,6 +156,7 @@ export function AssetList({
           variant="grid"
           isSelected={selectedAssets.includes(asset.id)}
           onClick={handleAssetClick}
+          onPreview={onPreview}
           onDelete={onAssetDelete ? handleAssetDelete : undefined}
           aria-rowindex={Math.floor(index / 6) + 1}
           aria-colindex={(index % 6) + 1}
@@ -171,11 +174,32 @@ export function AssetList({
           variant="list"
           isSelected={selectedAssets.includes(asset.id)}
           onClick={handleAssetClick}
+          onPreview={onPreview}
           onDelete={onAssetDelete ? handleAssetDelete : undefined}
           aria-posinset={index + 1}
           aria-setsize={filteredAssets.length}
         />
       ))}
+    </div>
+  );
+
+  const CondensedView = () => (
+    <div className="max-w-4xl mx-auto">
+      <div className="space-y-1" role="list" aria-label="Asset condensed view">
+        {filteredAssets.map((asset, index) => (
+          <AssetCard
+            key={asset.id}
+            asset={asset}
+            variant="condensed"
+            isSelected={selectedAssets.includes(asset.id)}
+            onClick={handleAssetClick}
+            onPreview={onPreview}
+            onDelete={onAssetDelete ? handleAssetDelete : undefined}
+            aria-posinset={index + 1}
+            aria-setsize={filteredAssets.length}
+          />
+        ))}
+      </div>
     </div>
   );
 
@@ -303,6 +327,23 @@ export function AssetList({
             <List className="h-4 w-4 mr-1" aria-hidden="true" />
             List
           </Button>
+          <Button
+            variant={currentViewMode === "condensed" ? "primary" : "ghost"}
+            size="sm"
+            onClick={() => handleViewModeToggle("condensed")}
+            className={cn(
+              "rounded-none border-0 border-l border-[rgb(var(--color-border))] font-medium transition-all",
+              currentViewMode === "condensed"
+                ? "bg-[rgb(var(--color-accent))] text-[rgb(var(--color-accent-foreground))] shadow-sm"
+                : "text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))] hover:bg-[rgb(var(--color-muted))]/10"
+            )}
+            aria-label="Condensed view"
+            aria-pressed={currentViewMode === "condensed"}
+            title="Switch to condensed view"
+          >
+            <List className="h-3 w-3 mr-1" aria-hidden="true" />
+            Condensed
+          </Button>
         </div>
       </div>
 
@@ -354,7 +395,13 @@ export function AssetList({
         </div>
       ) : (
         <div role="region" aria-label={`Asset ${currentViewMode} view`}>
-          {currentViewMode === "grid" ? <GridView /> : <ListView />}
+          {currentViewMode === "grid" ? (
+            <GridView />
+          ) : currentViewMode === "list" ? (
+            <ListView />
+          ) : (
+            <CondensedView />
+          )}
         </div>
       )}
 

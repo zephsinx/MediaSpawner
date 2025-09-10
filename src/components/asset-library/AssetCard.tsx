@@ -20,7 +20,7 @@ import { cn } from "../../utils/cn";
 
 export interface AssetCardProps {
   asset: MediaAsset;
-  variant?: "grid" | "list";
+  variant?: "grid" | "list" | "condensed";
   isSelected?: boolean;
   onClick?: (asset: MediaAsset) => void;
   onPreview?: (asset: MediaAsset) => void;
@@ -59,6 +59,7 @@ export const AssetCard = memo(function AssetCard({
 
   const handleCardClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isEditing) return; // Don't trigger card click when editing
     if (onClick) {
       onClick(asset);
     }
@@ -85,7 +86,8 @@ export const AssetCard = memo(function AssetCard({
     setIsEditing(true);
   };
 
-  const cancelEdit = () => {
+  const cancelEdit = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     setIsEditing(false);
     setDraftName(asset.name);
     setErrorText(null);
@@ -172,14 +174,14 @@ export const AssetCard = memo(function AssetCard({
   const isImageOrVideo = asset.type === "image" || asset.type === "video";
   const canPreview = isImageOrVideo && asset.isUrl;
 
-  const renderPreview = () => {
-    return <MediaPreview asset={asset} fit="contain" />;
+  const renderPreview = (previewSize?: "small" | "medium" | "large") => {
+    return <MediaPreview asset={asset} fit="contain" size={previewSize} />;
   };
 
   const nameField = (
     <div className="font-medium truncate text-[rgb(var(--color-fg))]">
       {isEditing ? (
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex flex-col space-y-2">
           <Input
             ref={inputRef}
             type="text"
@@ -196,29 +198,31 @@ export const AssetCard = memo(function AssetCard({
               errorText ? `asset-${asset.id}-name-error` : undefined
             }
             variant={errorText ? "error" : "default"}
-            className="flex-1 text-sm"
+            className="w-full text-sm"
             disabled={isSaving}
           />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => void commitEdit()}
-            disabled={isSaving || Boolean(validateName(draftName))}
-          >
-            Save
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={cancelEdit}
-            disabled={isSaving}
-          >
-            Cancel
-          </Button>
+          <div className="flex justify-center space-x-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => void commitEdit()}
+              disabled={isSaving || Boolean(validateName(draftName))}
+            >
+              Save
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => cancelEdit(e)}
+              disabled={isSaving}
+            >
+              Cancel
+            </Button>
+          </div>
         </div>
       ) : (
         <span onDoubleClick={beginEdit} className="truncate" title={asset.name}>
@@ -266,7 +270,7 @@ export const AssetCard = memo(function AssetCard({
         aria-describedby={`asset-${asset.id}-list-description`}
       >
         <div className="flex items-center space-x-4 p-4">
-          <div className="flex-shrink-0 w-16">{renderPreview()}</div>
+          <div className="flex-shrink-0 w-16">{renderPreview("medium")}</div>
           <div className="flex-1 min-w-0">{nameField}</div>
           <div
             id={`asset-${asset.id}-list-description`}
@@ -281,6 +285,96 @@ export const AssetCard = memo(function AssetCard({
             </div>
             <div
               className="flex items-center gap-1 text-xs text-[rgb(var(--color-muted-foreground))] bg-[rgb(var(--color-muted))]/10 px-2 py-1 rounded"
+              title={getAssetSourceTooltip(asset.isUrl)}
+              aria-label={getAssetSourceTooltip(asset.isUrl)}
+            >
+              <SourceIcon className="h-3 w-3" aria-hidden="true" />
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={beginEdit}
+              className="h-8 w-8 p-0 text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))]"
+              title="Rename asset"
+              aria-label={`Rename asset: ${asset.name}`}
+            >
+              <Edit className="h-4 w-4" aria-hidden="true" />
+            </Button>
+            {canPreview && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handlePreviewClick}
+                className="h-8 w-8 p-0 text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))]"
+                title="Preview asset"
+                aria-label={`Preview asset: ${asset.name}`}
+              >
+                <Eye className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            )}
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDeleteClick}
+                className="h-8 w-8 p-0 text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-error))]"
+                title="Delete asset"
+                aria-label={`Delete asset: ${asset.name}`}
+              >
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            )}
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  if (variant === "condensed") {
+    const TypeIcon = getAssetTypeIcon(asset.type);
+    const SourceIcon = getAssetSourceIcon(asset.isUrl);
+
+    return (
+      <Card
+        variant={isSelected ? "selected" : "default"}
+        className={cn(
+          "cursor-pointer transition-all duration-200 hover:shadow-md",
+          className
+        )}
+        onClick={handleCardClick}
+        title={computeDisplayPath(asset.path)}
+        onKeyDown={(e) => {
+          if (!isEditing && e.key === "F2") {
+            beginEdit();
+          } else if (!isEditing && (e.key === "Enter" || e.key === " ")) {
+            e.preventDefault();
+            handleCardClick(e as unknown as React.MouseEvent);
+          }
+        }}
+        tabIndex={0}
+        role="button"
+        aria-label={`Asset: ${asset.name}, ${asset.type}, ${
+          asset.isUrl ? "URL" : "file"
+        }`}
+        aria-selected={isSelected}
+        aria-describedby={`asset-${asset.id}-condensed-description`}
+      >
+        <div className="flex items-center space-x-2 px-3 py-2">
+          <div className="flex-shrink-0 w-8 h-8">{renderPreview("small")}</div>
+          <div className="flex-1 min-w-0">{nameField}</div>
+          <div
+            id={`asset-${asset.id}-condensed-description`}
+            className="flex-shrink-0 flex items-center space-x-1"
+          >
+            <div
+              className="flex items-center gap-1 text-xs text-[rgb(var(--color-muted-foreground))] bg-[rgb(var(--color-muted))]/10 px-1.5 py-0.5 rounded"
+              aria-label={`Asset type: ${asset.type}`}
+            >
+              <TypeIcon className="h-3 w-3" aria-hidden="true" />
+              <span className="capitalize">{asset.type}</span>
+            </div>
+            <div
+              className="flex items-center gap-1 text-xs text-[rgb(var(--color-muted-foreground))] bg-[rgb(var(--color-muted))]/10 px-1.5 py-0.5 rounded"
               title={getAssetSourceTooltip(asset.isUrl)}
               aria-label={getAssetSourceTooltip(asset.isUrl)}
             >
@@ -356,7 +450,7 @@ export const AssetCard = memo(function AssetCard({
     >
       <div className="flex flex-col p-3">
         {/* Preview */}
-        <div className="mb-3">{renderPreview()}</div>
+        <div className="mb-3">{renderPreview("large")}</div>
 
         {/* Asset Information */}
         <div className="text-center">
@@ -387,7 +481,7 @@ export const AssetCard = memo(function AssetCard({
         {/* Action Buttons */}
         {(canPreview || onDelete) && (
           <div
-            className="mt-2 flex justify-center space-x-2"
+            className="mt-2 flex justify-center space-x-1 flex-wrap"
             role="group"
             aria-label="Asset actions"
           >
@@ -395,7 +489,7 @@ export const AssetCard = memo(function AssetCard({
               variant="ghost"
               size="sm"
               onClick={beginEdit}
-              className="text-xs text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))] h-7 px-2"
+              className="text-[10px] text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))] h-7 px-1"
               title="Rename asset"
               aria-label={`Rename asset: ${asset.name}`}
             >
@@ -407,7 +501,7 @@ export const AssetCard = memo(function AssetCard({
                 variant="ghost"
                 size="sm"
                 onClick={handlePreviewClick}
-                className="text-xs text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))] h-7 px-2"
+                className="text-[10px] text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))] h-7 px-1"
                 title="Preview asset"
                 aria-label={`Preview asset: ${asset.name}`}
               >
@@ -420,7 +514,7 @@ export const AssetCard = memo(function AssetCard({
                 variant="ghost"
                 size="sm"
                 onClick={handleDeleteClick}
-                className="text-xs text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-error))] h-7 px-2"
+                className="text-[10px] text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-error))] h-7 px-1"
                 title="Delete asset"
                 aria-label={`Delete asset: ${asset.name}`}
               >

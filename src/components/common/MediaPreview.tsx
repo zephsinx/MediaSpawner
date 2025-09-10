@@ -9,6 +9,7 @@ export interface MediaPreviewProps {
   onLoad?: () => void;
   onError?: () => void;
   fit?: "cover" | "contain";
+  size?: "small" | "medium" | "large";
 }
 
 /**
@@ -46,6 +47,7 @@ export function MediaPreview({
   onLoad,
   onError,
   fit = "cover",
+  size = "medium",
 }: MediaPreviewProps) {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
@@ -68,13 +70,26 @@ export function MediaPreview({
   const isAnimatedImage =
     asset.type === "image" && isLikelyAnimatedImage(asset.path);
 
+  // Get size-based styling
+  const getSizeClasses = () => {
+    switch (size) {
+      case "small":
+        return "w-8 h-8 aspect-square";
+      case "medium":
+        return "w-16 h-16 aspect-square";
+      case "large":
+        return "w-full h-24 aspect-square";
+      default:
+        return "w-16 h-16 aspect-square";
+    }
+  };
+
   if (asset.type === "image" && canPreview) {
     if (isAnimatedImage) {
       // Use react-freezeframe for animated images (GIF, WebP, APNG, etc.)
       return (
         <div
-          className={`relative w-full h-24 bg-gray-100 rounded overflow-hidden ${className}`}
-          style={{ aspectRatio: "1 / 1" }}
+          className={`relative bg-gray-100 rounded overflow-hidden ${getSizeClasses()} ${className}`}
         >
           {imageLoading && (
             <div className="absolute inset-0 flex items-center justify-center z-10">
@@ -97,8 +112,7 @@ export function MediaPreview({
       // Regular static image
       return (
         <div
-          className={`relative w-full h-24 bg-gray-100 rounded overflow-hidden ${className}`}
-          style={{ aspectRatio: "1 / 1" }}
+          className={`relative bg-gray-100 rounded overflow-hidden ${getSizeClasses()} ${className}`}
         >
           {imageLoading && (
             <div className="absolute inset-0 flex items-center justify-center">
@@ -121,7 +135,7 @@ export function MediaPreview({
     // Video with paused controls
     return (
       <div
-        className={`relative w-full h-24 bg-gray-100 rounded overflow-hidden ${className}`}
+        className={`relative bg-gray-100 rounded overflow-hidden ${getSizeClasses()} ${className}`}
       >
         <video
           src={asset.path}
@@ -158,8 +172,7 @@ export function MediaPreview({
 
     return (
       <div
-        className={`w-full h-24 bg-gray-100 rounded flex items-center justify-center ${className}`}
-        style={{ aspectRatio: "1 / 1" }}
+        className={`bg-gray-100 rounded flex items-center justify-center ${getSizeClasses()} ${className}`}
       >
         <div className="text-3xl">{getAssetTypeIcon(asset.type)}</div>
       </div>

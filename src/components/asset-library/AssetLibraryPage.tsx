@@ -329,6 +329,7 @@ const AssetLibraryPage: React.FC = () => {
               onTypeFilterChange={setTypeFilter}
               onAssetDelete={handleAssetDelete}
               onAssetSelect={handleAssetPreview}
+              onPreview={handleAssetPreview}
             />
           </section>
         </main>
