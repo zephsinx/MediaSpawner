@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Plus, X, AlertCircle } from "lucide-react";
 import { AssetList, type AssetTypeFilter } from "./AssetList";
 import { AssetPreview } from "./AssetPreview";
 import { FileReferenceInput } from "../common/FileReferenceInput";
 import { AssetService } from "../../services/assetService";
 import { detectAssetTypeFromPath } from "../../utils/assetTypeDetection";
 import type { MediaAsset } from "../../types/media";
+import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+import { Card } from "../ui/Card";
 
 const AssetLibraryPage: React.FC = () => {
   const navigate = useNavigate();
@@ -16,6 +20,12 @@ const AssetLibraryPage: React.FC = () => {
   const [newAssetName, setNewAssetName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<AssetTypeFilter>("all");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<{
+    name?: string;
+    path?: string;
+  }>({});
 
   // Load assets on component mount
   useEffect(() => {
@@ -50,119 +60,244 @@ const AssetLibraryPage: React.FC = () => {
     setPreviewAsset(null);
   };
 
-  const handleAddAsset = () => {
-    if (!newAssetPath.trim() || !newAssetName.trim()) {
+  const validateForm = () => {
+    const errors: { name?: string; path?: string } = {};
+
+    if (!newAssetName.trim()) {
+      errors.name = "Asset name is required";
+    } else if (newAssetName.trim().length > 120) {
+      errors.name = "Asset name must be 120 characters or fewer";
+    }
+
+    if (!newAssetPath.trim()) {
+      errors.path = "File path or URL is required";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleAddAsset = async () => {
+    if (!validateForm()) {
       return;
     }
 
-    // Use the new asset type detection utility
-    const type = detectAssetTypeFromPath(newAssetPath.trim());
+    setIsLoading(true);
+    setError(null);
 
-    AssetService.addAsset(type, newAssetName.trim(), newAssetPath.trim());
-    setAssets(AssetService.getAssets());
-    setNewAssetPath("");
-    setNewAssetName("");
-    setShowAddForm(false);
+    try {
+      // Use the new asset type detection utility
+      const type = detectAssetTypeFromPath(newAssetPath.trim());
+      const success = AssetService.addAsset(
+        type,
+        newAssetName.trim(),
+        newAssetPath.trim()
+      );
+
+      if (success) {
+        setAssets(AssetService.getAssets());
+        setNewAssetPath("");
+        setNewAssetName("");
+        setShowAddForm(false);
+        setFormErrors({});
+      } else {
+        setError("Failed to add asset. Please try again.");
+      }
+    } catch {
+      setError("An error occurred while adding the asset. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCancelAdd = () => {
     setNewAssetPath("");
     setNewAssetName("");
     setShowAddForm(false);
+    setFormErrors({});
+    setError(null);
   };
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Asset Library
-          </h1>
-          <p className="text-gray-600">
-            Manage your media files (images, videos, audio) here.
-          </p>
-        </div>
-        <div className="flex space-x-3">
-          <button
-            onClick={() => navigate("/")}
-            className="px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded hover:bg-gray-50 transition-colors"
-          >
-            Back to Editor
-          </button>
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-          >
-            Add Asset
-          </button>
-        </div>
-      </div>
-
-      {/* Add Asset Form */}
-      {showAddForm && (
-        <div className="bg-white border rounded-lg p-4 mb-6">
-          <h3 className="text-lg font-medium mb-4">Add New Asset</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Asset Name
-              </label>
-              <input
-                type="text"
-                value={newAssetName}
-                onChange={(e) => setNewAssetName(e.target.value)}
-                placeholder="Enter asset name"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                File Path or URL
-              </label>
-              <FileReferenceInput
-                value={newAssetPath}
-                onChange={setNewAssetPath}
-                placeholder="Enter file path or URL"
-              />
-            </div>
-            <div className="flex space-x-3">
-              <button
-                onClick={handleAddAsset}
-                disabled={!newAssetPath.trim() || !newAssetName.trim()}
-                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-gray-300 transition-colors"
-              >
-                Add Asset
-              </button>
-              <button
-                onClick={handleCancelAdd}
-                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
+    <div className="min-h-screen bg-[rgb(var(--color-bg))] p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-[rgb(var(--color-fg))] mb-2">
+              Asset Library
+            </h1>
+            <p className="text-[rgb(var(--color-muted-foreground))] text-lg">
+              Manage your media files (images, videos, audio) here.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              variant="outline"
+              onClick={() => navigate("/")}
+              className="flex items-center gap-2"
+              aria-label="Return to main editor"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Editor
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="flex items-center gap-2"
+              aria-label={
+                showAddForm ? "Hide add asset form" : "Show add asset form"
+              }
+            >
+              <Plus className="h-4 w-4" />
+              {showAddForm ? "Cancel" : "Add Asset"}
+            </Button>
           </div>
         </div>
-      )}
 
-      {/* Asset List */}
-      <AssetList
-        assets={assets}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        typeFilter={typeFilter}
-        onTypeFilterChange={setTypeFilter}
-        onAssetDelete={handleAssetDelete}
-        onAssetSelect={handleAssetPreview}
-      />
+        {/* Add Asset Form */}
+        {showAddForm && (
+          <Card className="mb-8">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-[rgb(var(--color-fg))]">
+                  Add New Asset
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCancelAdd}
+                  className="h-8 w-8 p-0"
+                  aria-label="Close add asset form"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
 
-      {/* Asset Preview Modal */}
-      {previewAsset && (
-        <AssetPreview
-          asset={previewAsset}
-          isOpen={true}
-          onClose={handleClosePreview}
+              {/* Error Message */}
+              {error && (
+                <div className="mb-4 p-3 bg-[rgb(var(--color-error-bg))] border border-[rgb(var(--color-error-border))] rounded-md flex items-center gap-2 text-[rgb(var(--color-error))]">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  <span className="text-sm">{error}</span>
+                </div>
+              )}
+
+              <div className="space-y-6">
+                <div>
+                  <label
+                    htmlFor="asset-name"
+                    className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-2"
+                  >
+                    Asset Name
+                  </label>
+                  <Input
+                    id="asset-name"
+                    type="text"
+                    value={newAssetName}
+                    onChange={(e) => {
+                      setNewAssetName(e.target.value);
+                      if (formErrors.name) {
+                        setFormErrors((prev) => ({ ...prev, name: undefined }));
+                      }
+                    }}
+                    placeholder="Enter asset name"
+                    variant={formErrors.name ? "error" : "default"}
+                    aria-describedby={
+                      formErrors.name ? "asset-name-error" : undefined
+                    }
+                    aria-invalid={!!formErrors.name}
+                  />
+                  {formErrors.name && (
+                    <p
+                      id="asset-name-error"
+                      className="mt-1 text-sm text-[rgb(var(--color-error))]"
+                    >
+                      {formErrors.name}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="asset-path"
+                    className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-2"
+                  >
+                    File Path or URL
+                  </label>
+                  <FileReferenceInput
+                    value={newAssetPath}
+                    onChange={(value) => {
+                      setNewAssetPath(value);
+                      if (formErrors.path) {
+                        setFormErrors((prev) => ({ ...prev, path: undefined }));
+                      }
+                    }}
+                    placeholder="Enter file path or URL"
+                  />
+                  {formErrors.path && (
+                    <p className="mt-1 text-sm text-[rgb(var(--color-error))]">
+                      {formErrors.path}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                  <Button
+                    onClick={handleAddAsset}
+                    disabled={
+                      isLoading || !newAssetPath.trim() || !newAssetName.trim()
+                    }
+                    className="flex items-center gap-2"
+                    aria-label="Add new asset to library"
+                  >
+                    {isLoading ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4" />
+                        Add Asset
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleCancelAdd}
+                    disabled={isLoading}
+                    className="flex items-center gap-2"
+                    aria-label="Cancel adding asset"
+                  >
+                    <X className="h-4 w-4" />
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Asset List */}
+        <AssetList
+          assets={assets}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          typeFilter={typeFilter}
+          onTypeFilterChange={setTypeFilter}
+          onAssetDelete={handleAssetDelete}
+          onAssetSelect={handleAssetPreview}
         />
-      )}
+
+        {/* Asset Preview Modal */}
+        {previewAsset && (
+          <AssetPreview
+            asset={previewAsset}
+            isOpen={true}
+            onClose={handleClosePreview}
+          />
+        )}
+      </div>
     </div>
   );
 };
