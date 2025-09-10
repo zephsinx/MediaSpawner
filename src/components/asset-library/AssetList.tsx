@@ -1,8 +1,19 @@
 import { useState, useMemo } from "react";
+import {
+  Search,
+  X,
+  Grid3X3,
+  List,
+  FolderOpen,
+  Search as SearchIcon,
+} from "lucide-react";
 import type { MediaAsset } from "../../types/media";
 import { AssetCard } from "./AssetCard";
 import { ConfirmDialog } from "../common/ConfirmDialog";
 import { TypeFilterDropdown } from "./TypeFilterDropdown";
+import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+import { cn } from "../../utils/cn";
 
 export type ViewMode = "grid" | "list";
 export type AssetTypeFilter = "all" | "image" | "video" | "audio";
@@ -161,50 +172,30 @@ export function AssetList({
   return (
     <div className={`w-full ${className}`}>
       {/* Search and Filters */}
-      <div className="mb-4 space-y-4">
+      <div className="mb-6 space-y-4">
         {/* Search Input */}
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg
-              className="h-4 w-4 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
+            <Search className="h-4 w-4 text-[rgb(var(--color-muted-foreground))]" />
           </div>
-          <input
+          <Input
             type="text"
             placeholder="Search assets by name or path..."
             value={currentSearchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            className="pl-10 pr-10"
+            aria-label="Search assets"
           />
           {currentSearchQuery && (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => handleSearchChange("")}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              className="absolute inset-y-0 right-0 pr-3 h-full w-8 p-0 text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))]"
+              aria-label="Clear search"
             >
-              <svg
-                className="h-4 w-4 text-gray-400 hover:text-gray-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+              <X className="h-4 w-4" />
+            </Button>
           )}
         </div>
 
@@ -219,73 +210,88 @@ export function AssetList({
       </div>
 
       {/* View Mode Toggle and Results Count */}
-      <div className="flex justify-between items-center mb-4">
-        <div className="text-sm text-gray-600">
-          {filteredAssets.length}{" "}
+      <div className="flex justify-between items-center mb-6">
+        <div className="text-sm text-[rgb(var(--color-muted-foreground))]">
+          <span className="font-medium text-[rgb(var(--color-fg))]">
+            {filteredAssets.length}
+          </span>{" "}
           {filteredAssets.length === 1 ? "asset" : "assets"}
           {(currentSearchQuery || currentTypeFilter !== "all") && (
-            <span className="text-gray-400">
+            <span className="text-[rgb(var(--color-muted-foreground))]">
               {" "}
               (filtered from {assets.length} total)
             </span>
           )}
         </div>
-        <div className="flex rounded-lg border border-gray-300 overflow-hidden">
-          <button
+        <div className="flex rounded-lg border border-[rgb(var(--color-border))] overflow-hidden bg-[rgb(var(--color-bg))]">
+          <Button
+            variant={currentViewMode === "grid" ? "primary" : "ghost"}
+            size="sm"
             onClick={() => handleViewModeToggle("grid")}
-            className={`
-              px-3 py-1 text-sm font-medium transition-colors
-              ${
-                currentViewMode === "grid"
-                  ? "bg-blue-500 text-white"
-                  : "bg-white text-gray-700 hover:bg-gray-50"
-              }
-            `}
+            className={cn(
+              "rounded-none border-0 font-medium transition-all",
+              currentViewMode === "grid"
+                ? "bg-[rgb(var(--color-accent))] text-[rgb(var(--color-accent-foreground))] shadow-sm"
+                : "text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))] hover:bg-[rgb(var(--color-muted))]/10"
+            )}
+            aria-label="Grid view"
+            title="Switch to grid view"
           >
+            <Grid3X3 className="h-4 w-4 mr-1" />
             Grid
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={currentViewMode === "list" ? "primary" : "ghost"}
+            size="sm"
             onClick={() => handleViewModeToggle("list")}
-            className={`
-              px-3 py-1 text-sm font-medium transition-colors border-l border-gray-300
-              ${
-                currentViewMode === "list"
-                  ? "bg-blue-500 text-white"
-                  : "bg-white text-gray-700 hover:bg-gray-50"
-              }
-            `}
+            className={cn(
+              "rounded-none border-0 border-l border-[rgb(var(--color-border))] font-medium transition-all",
+              currentViewMode === "list"
+                ? "bg-[rgb(var(--color-accent))] text-[rgb(var(--color-accent-foreground))] shadow-sm"
+                : "text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))] hover:bg-[rgb(var(--color-muted))]/10"
+            )}
+            aria-label="List view"
+            title="Switch to list view"
           >
+            <List className="h-4 w-4 mr-1" />
             List
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Asset Display */}
       {filteredAssets.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          <div className="text-4xl mb-4">
-            {currentSearchQuery || currentTypeFilter !== "all" ? "🔍" : "📁"}
+        <div className="text-center py-16 text-[rgb(var(--color-muted-foreground))]">
+          <div className="mb-6">
+            {currentSearchQuery || currentTypeFilter !== "all" ? (
+              <SearchIcon className="h-16 w-16 mx-auto text-[rgb(var(--color-muted))]/50" />
+            ) : (
+              <FolderOpen className="h-16 w-16 mx-auto text-[rgb(var(--color-muted))]/50" />
+            )}
           </div>
-          <div className="text-lg font-medium mb-2">
+          <div className="text-xl font-medium mb-3 text-[rgb(var(--color-fg))]">
             {currentSearchQuery || currentTypeFilter !== "all"
               ? "No assets match your search"
               : "No assets found"}
           </div>
-          <div className="text-sm">
+          <div className="text-sm max-w-md mx-auto">
             {currentSearchQuery || currentTypeFilter !== "all"
-              ? "Try adjusting your search terms or filters"
-              : "Add your first media asset to get started"}
+              ? "Try adjusting your search terms or filters to find what you're looking for"
+              : "Add your first media asset to get started with MediaSpawner"}
           </div>
           {(currentSearchQuery || currentTypeFilter !== "all") && (
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => {
                 handleSearchChange("");
                 handleTypeFilterChange("all");
               }}
-              className="mt-3 text-blue-500 hover:text-blue-700 text-sm font-medium"
+              className="mt-6"
             >
+              <X className="h-4 w-4 mr-2" />
               Clear all filters
-            </button>
+            </Button>
           )}
         </div>
       ) : (
