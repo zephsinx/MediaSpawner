@@ -1,11 +1,11 @@
 import type { Spawn } from "../types/spawn";
 
-export interface ValidationResult {
+export interface RandomizationBucketsValidationResult {
   isValid: boolean;
   errors: string[];
 }
 
-export function validateRandomizationBuckets(spawn: Spawn): ValidationResult {
+export function validateRandomizationBuckets(spawn: Spawn): RandomizationBucketsValidationResult {
   const errors: string[] = [];
   const buckets = spawn.randomizationBuckets || [];
 

@@ -1,4 +1,7 @@
-import { useEffect, useRef } from "react";
+import * as React from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { X } from "lucide-react";
+import { cn } from "../../utils/cn";
 
 export interface ModalProps {
   isOpen: boolean;
@@ -15,41 +18,6 @@ export function Modal({
   children,
   size = "md",
 }: ModalProps) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-
-  // Handle keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
-
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
-
-  // Prevent body scroll when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-    }
-
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, [isOpen]);
-
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
   const getSizeStyles = () => {
     switch (size) {
       case "sm":
@@ -65,40 +33,37 @@ export function Modal({
     }
   };
 
-  if (!isOpen) {
-    return null;
-  }
-
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
-      onClick={handleBackdropClick}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-title"
-    >
-      <div
-        ref={dialogRef}
-        className={`bg-white rounded-lg shadow-xl ${getSizeStyles()} w-full max-h-[90vh] overflow-y-auto`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex justify-between items-center p-4 border-b border-gray-200">
-          <h3 id="modal-title" className="text-lg font-medium text-gray-900">
-            {title}
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-xl font-semibold w-6 h-6 flex items-center justify-center transition-colors"
-            aria-label="Close modal"
-          >
-            ×
-          </button>
-        </div>
+    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <Dialog.Content
+          className={cn(
+            "fixed left-[50%] top-[50%] z-50 grid w-full translate-x-[-50%] translate-y-[-50%] gap-4 border bg-[rgb(var(--color-bg))] p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
+            "border-[rgb(var(--color-border))] text-[rgb(var(--color-fg))]",
+            getSizeStyles(),
+            "max-h-[90vh] overflow-y-auto"
+          )}
+        >
+          {/* Header */}
+          <div className="flex justify-between items-center border-b border-[rgb(var(--color-border))] pb-4">
+            <Dialog.Title className="text-lg font-semibold text-[rgb(var(--color-fg))]">
+              {title}
+            </Dialog.Title>
+            <Dialog.Close asChild>
+              <button
+                className="text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))] transition-colors focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-ring))] focus:ring-offset-2 rounded-sm"
+                aria-label="Close modal"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </Dialog.Close>
+          </div>
 
-        {/* Content */}
-        <div className="p-4">{children}</div>
-      </div>
-    </div>
+          {/* Content */}
+          <div className="text-[rgb(var(--color-fg))]">{children}</div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

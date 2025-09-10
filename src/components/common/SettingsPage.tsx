@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { PathInput } from "./PathInput";
+import { ImportExportSection } from "./ImportExportSection";
 import { SettingsService } from "../../services/settingsService";
 import { usePanelState } from "../../hooks";
 import type { Settings } from "../../types/settings";
@@ -166,6 +167,18 @@ const SettingsPage: React.FC = () => {
             </p>
           </div>
         )}
+      </div>
+
+      {/* Import/Export Section */}
+      <div className="bg-white border rounded-lg p-6 mb-6">
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">
+          Import/Export Configuration
+        </h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Export your MediaSpawner configuration to a JSON file for backup or
+          sharing, or import a configuration from a JSON file.
+        </p>
+        <ImportExportSection />
       </div>
 
       {/* Settings Information */}

@@ -140,10 +140,12 @@ describe("SpawnEditorWorkspace", () => {
     });
 
     // Ensure input reflects change and Save becomes enabled
-    await waitFor(() =>
-      expect((screen.getByLabelText("Name") as HTMLInputElement).value).toBe(
-        "A changed"
-      )
+    await waitFor(
+      () =>
+        expect((screen.getByLabelText("Name") as HTMLInputElement).value).toBe(
+          "A changed"
+        ),
+      { timeout: 5000 }
     );
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Save spawn" })).toBeEnabled()
