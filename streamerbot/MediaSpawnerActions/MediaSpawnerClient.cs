@@ -1,15 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 
 public class CPHInline
 {
-  private static readonly string MediaSpawnerConfigGuid = "59d16b77-5aa7-4336-9b18-eeb6af51a823";
+  private const string MediaSpawnerConfigGuid = "59d16b77-5aa7-4336-9b18-eeb6af51a823";
   private readonly string MediaSpawnerConfigVarName = $"MediaSpawnerConfig-{MediaSpawnerConfigGuid}";
   private readonly string MediaSpawnerShaVarName = $"MediaSpawnerSha-{MediaSpawnerConfigGuid}";
 
@@ -51,6 +49,329 @@ public class CPHInline
     }
   }
 
+  // Cached configuration for performance
+  private static MediaSpawnerConfig _cachedConfig;
+  private static string _cachedConfigSha;
+
+  /// <summary>
+  /// Load MediaSpawner configuration from global variables
+  /// </summary>
+  /// <returns>True if configuration loaded successfully, false otherwise</returns>
+  public bool LoadMediaSpawnerConfig()
+  {
+    try
+    {
+      string configJson = CPH.GetGlobalVar<string>(MediaSpawnerConfigVarName);
+      if (string.IsNullOrWhiteSpace(configJson))
+      {
+        CPH.LogError("LoadMediaSpawnerConfig: No MediaSpawner configuration found in global variables");
+        return false;
+      }
+
+      // Check if we need to reload (config might have changed)
+      string currentSha = ComputeSha256(configJson);
+      if (_cachedConfig != null && _cachedConfigSha == currentSha)
+      {
+        CPH.LogInfo("LoadMediaSpawnerConfig: Using cached configuration");
+        return true;
+      }
+
+      // Deserialize configuration
+      if (!MediaSpawnerConfig.TryDeserialize(configJson, out MediaSpawnerConfig config, out string error))
+      {
+        CPH.LogError($"LoadMediaSpawnerConfig: Failed to deserialize configuration: {error}");
+        return false;
+      }
+
+      // Cache the configuration
+      _cachedConfig = config;
+      _cachedConfigSha = currentSha;
+
+      CPH.LogInfo($"LoadMediaSpawnerConfig: Successfully loaded configuration with {config.Profiles.Count} profiles and {config.Assets.Count} assets");
+      return true;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"LoadMediaSpawnerConfig: Unexpected error: {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Get a spawn profile by ID
+  /// </summary>
+  /// <returns>True if profile found and set in global variable, false otherwise</returns>
+  public bool GetSpawnProfile()
+  {
+    try
+    {
+      if (!CPH.TryGetArg("profileId", out string profileId) || string.IsNullOrWhiteSpace(profileId))
+      {
+        CPH.LogError("GetSpawnProfile: Missing required argument 'profileId'");
+        return false;
+      }
+
+      if (_cachedConfig == null)
+      {
+        CPH.LogError("GetSpawnProfile: No configuration loaded. Call LoadMediaSpawnerConfig first.");
+        return false;
+      }
+
+      SpawnProfile profile = _cachedConfig.FindProfileById(profileId);
+      if (profile == null)
+      {
+        CPH.LogError($"GetSpawnProfile: Profile with ID '{profileId}' not found");
+        return false;
+      }
+
+      // Set profile data in global variables for use by other actions
+      CPH.SetGlobalVar("MediaSpawner_CurrentProfile", JsonConvert.SerializeObject(profile), persisted: false);
+      CPH.SetGlobalVar("MediaSpawner_CurrentProfileId", profile.Id, persisted: false);
+      CPH.SetGlobalVar("MediaSpawner_CurrentProfileName", profile.Name, persisted: false);
+
+      CPH.LogInfo($"GetSpawnProfile: Successfully loaded profile '{profile.Name}' with {profile.Spawns.Count} spawns");
+      return true;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"GetSpawnProfile: Unexpected error: {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Get an asset by ID
+  /// </summary>
+  /// <returns>True if asset found and set in global variable, false otherwise</returns>
+  public bool GetAsset()
+  {
+    try
+    {
+      if (!CPH.TryGetArg("assetId", out string assetId) || string.IsNullOrWhiteSpace(assetId))
+      {
+        CPH.LogError("GetAsset: Missing required argument 'assetId'");
+        return false;
+      }
+
+      if (_cachedConfig == null)
+      {
+        CPH.LogError("GetAsset: No configuration loaded. Call LoadMediaSpawnerConfig first.");
+        return false;
+      }
+
+      MediaAsset asset = _cachedConfig.FindAssetById(assetId);
+      if (asset == null)
+      {
+        CPH.LogError($"GetAsset: Asset with ID '{assetId}' not found");
+        return false;
+      }
+
+      // Set asset data in global variables for use by other actions
+      CPH.SetGlobalVar("MediaSpawner_CurrentAsset", JsonConvert.SerializeObject(asset), persisted: false);
+      CPH.SetGlobalVar("MediaSpawner_CurrentAssetId", asset.Id, persisted: false);
+      CPH.SetGlobalVar("MediaSpawner_CurrentAssetName", asset.Name, persisted: false);
+      CPH.SetGlobalVar("MediaSpawner_CurrentAssetType", asset.Type, persisted: false);
+      CPH.SetGlobalVar("MediaSpawner_CurrentAssetPath", asset.Path, persisted: false);
+
+      CPH.LogInfo($"GetAsset: Successfully loaded asset '{asset.Name}' ({asset.Type})");
+      return true;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"GetAsset: Unexpected error: {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Get all enabled spawns from the loaded configuration
+  /// </summary>
+  /// <returns>True if spawns found and set in global variable, false otherwise</returns>
+  public bool GetEnabledSpawns()
+  {
+    try
+    {
+      if (_cachedConfig == null)
+      {
+        CPH.LogError("GetEnabledSpawns: No configuration loaded. Call LoadMediaSpawnerConfig first.");
+        return false;
+      }
+
+      List<Spawn> enabledSpawns = _cachedConfig.GetEnabledSpawns();
+      if (enabledSpawns.Count == 0)
+      {
+        CPH.LogWarn("GetEnabledSpawns: No enabled spawns found in configuration");
+        CPH.SetGlobalVar("MediaSpawner_EnabledSpawns", "[]", persisted: false);
+        CPH.SetGlobalVar("MediaSpawner_EnabledSpawnsCount", "0", persisted: false);
+        return true;
+      }
+
+      // Set spawns data in global variables
+      CPH.SetGlobalVar("MediaSpawner_EnabledSpawns", JsonConvert.SerializeObject(enabledSpawns), persisted: false);
+      CPH.SetGlobalVar("MediaSpawner_EnabledSpawnsCount", enabledSpawns.Count.ToString(), persisted: false);
+
+      CPH.LogInfo($"GetEnabledSpawns: Found {enabledSpawns.Count} enabled spawns");
+      return true;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"GetEnabledSpawns: Unexpected error: {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Validate the loaded MediaSpawner configuration
+  /// </summary>
+  /// <returns>True if configuration is valid, false otherwise</returns>
+  public bool ValidateConfig()
+  {
+    try
+    {
+      if (_cachedConfig == null)
+      {
+        CPH.LogError("ValidateConfig: No configuration loaded. Call LoadMediaSpawnerConfig first.");
+        return false;
+      }
+
+      ValidationResult validationResult = _cachedConfig.Validate();
+
+      if (validationResult.IsValid)
+      {
+        CPH.LogInfo("ValidateConfig: Configuration is valid");
+        if (validationResult.Warnings.Count > 0)
+        {
+          CPH.LogWarn($"ValidateConfig: {validationResult.Warnings.Count} warnings found: {string.Join(", ", validationResult.Warnings)}");
+        }
+
+        return true;
+      }
+      else
+      {
+        CPH.LogError($"ValidateConfig: Configuration validation failed with {validationResult.Errors.Count} errors: {string.Join(", ", validationResult.Errors)}");
+        return false;
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"ValidateConfig: Unexpected error: {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Get assets filtered by type
+  /// </summary>
+  /// <returns>True if assets found and set in global variable, false otherwise</returns>
+  public bool GetAssetsByType()
+  {
+    try
+    {
+      if (!CPH.TryGetArg("assetType", out string assetType) || string.IsNullOrWhiteSpace(assetType))
+      {
+        CPH.LogError("GetAssetsByType: Missing required argument 'assetType'");
+        return false;
+      }
+
+      if (_cachedConfig == null)
+      {
+        CPH.LogError("GetAssetsByType: No configuration loaded. Call LoadMediaSpawnerConfig first.");
+        return false;
+      }
+
+      List<MediaAsset> assets = _cachedConfig.GetAssetsByType(assetType);
+
+      // Set assets data in global variables
+      CPH.SetGlobalVar("MediaSpawner_FilteredAssets", JsonConvert.SerializeObject(assets), persisted: false);
+      CPH.SetGlobalVar("MediaSpawner_FilteredAssetsCount", assets.Count.ToString(), persisted: false);
+      CPH.SetGlobalVar("MediaSpawner_FilteredAssetsType", assetType, persisted: false);
+
+      CPH.LogInfo($"GetAssetsByType: Found {assets.Count} assets of type '{assetType}'");
+      return true;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"GetAssetsByType: Unexpected error: {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Get a spawn by ID from a specific profile
+  /// </summary>
+  /// <returns>True if spawn found and set in global variable, false otherwise</returns>
+  public bool GetSpawnById()
+  {
+    try
+    {
+      if (!CPH.TryGetArg("profileId", out string profileId) || string.IsNullOrWhiteSpace(profileId))
+      {
+        CPH.LogError("GetSpawnById: Missing required argument 'profileId'");
+        return false;
+      }
+
+      if (!CPH.TryGetArg("spawnId", out string spawnId) || string.IsNullOrWhiteSpace(spawnId))
+      {
+        CPH.LogError("GetSpawnById: Missing required argument 'spawnId'");
+        return false;
+      }
+
+      if (_cachedConfig == null)
+      {
+        CPH.LogError("GetSpawnById: No configuration loaded. Call LoadMediaSpawnerConfig first.");
+        return false;
+      }
+
+      SpawnProfile profile = _cachedConfig.FindProfileById(profileId);
+      if (profile == null)
+      {
+        CPH.LogError($"GetSpawnById: Profile with ID '{profileId}' not found");
+        return false;
+      }
+
+      Spawn spawn = profile.FindSpawnById(spawnId);
+      if (spawn == null)
+      {
+        CPH.LogError($"GetSpawnById: Spawn with ID '{spawnId}' not found in profile '{profile.Name}'");
+        return false;
+      }
+
+      // Set spawn data in global variables
+      CPH.SetGlobalVar("MediaSpawner_CurrentSpawn", JsonConvert.SerializeObject(spawn), persisted: false);
+      CPH.SetGlobalVar("MediaSpawner_CurrentSpawnId", spawn.Id, persisted: false);
+      CPH.SetGlobalVar("MediaSpawner_CurrentSpawnName", spawn.Name, persisted: false);
+      CPH.SetGlobalVar("MediaSpawner_CurrentSpawnEnabled", spawn.Enabled.ToString(), persisted: false);
+
+      CPH.LogInfo($"GetSpawnById: Successfully loaded spawn '{spawn.Name}' from profile '{profile.Name}'");
+      return true;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"GetSpawnById: Unexpected error: {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Clear cached configuration (useful for testing or when config changes)
+  /// </summary>
+  /// <returns>True if cache cleared successfully</returns>
+  public bool ClearConfigCache()
+  {
+    try
+    {
+      _cachedConfig = null;
+      _cachedConfigSha = null;
+      CPH.LogInfo("ClearConfigCache: Configuration cache cleared");
+      return true;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"ClearConfigCache: Unexpected error: {ex.Message}");
+      return false;
+    }
+  }
+
   #region MediaSpawnerConfig classes
 
   /// <summary>
@@ -66,8 +387,6 @@ public class CPHInline
 
     [JsonProperty("assets")]
     public List<MediaAsset> Assets { get; set; } = new List<MediaAsset>();
-
-    public MediaSpawnerConfig() { }
 
     /// <summary>
     /// Deserialize MediaSpawnerConfig from JSON string
@@ -85,7 +404,7 @@ public class CPHInline
           throw new ArgumentException("JSON string cannot be null or empty", nameof(json));
         }
 
-        var result = JsonConvert.DeserializeObject<MediaSpawnerConfig>(json);
+        MediaSpawnerConfig result = JsonConvert.DeserializeObject<MediaSpawnerConfig>(json);
         if (result == null)
         {
           throw new InvalidOperationException("Failed to deserialize MediaSpawnerConfig - result is null");
@@ -146,7 +465,7 @@ public class CPHInline
     /// <returns>Validation result with errors and warnings</returns>
     public ValidationResult Validate()
     {
-      var result = new ValidationResult();
+      ValidationResult result = new ValidationResult();
 
       if (string.IsNullOrWhiteSpace(Version))
       {
@@ -161,11 +480,12 @@ public class CPHInline
       {
         for (int i = 0; i < Profiles.Count; i++)
         {
-          var profileResult = Profiles[i].Validate();
+          ValidationResult profileResult = Profiles[i].Validate();
           if (!profileResult.IsValid)
           {
             result.AddError($"Profile {i}: {string.Join(", ", profileResult.Errors)}");
           }
+
           result.AddWarnings(profileResult.Warnings);
         }
       }
@@ -178,11 +498,12 @@ public class CPHInline
       {
         for (int i = 0; i < Assets.Count; i++)
         {
-          var assetResult = Assets[i].Validate();
+          ValidationResult assetResult = Assets[i].Validate();
           if (!assetResult.IsValid)
           {
             result.AddError($"Asset {i}: {string.Join(", ", assetResult.Errors)}");
           }
+
           result.AddWarnings(assetResult.Warnings);
         }
       }
@@ -222,11 +543,11 @@ public class CPHInline
     /// <returns>List of all enabled spawns</returns>
     public List<Spawn> GetEnabledSpawns()
     {
-      var enabledSpawns = new List<Spawn>();
+      List<Spawn> enabledSpawns = new List<Spawn>();
 
       if (Profiles != null)
       {
-        foreach (var profile in Profiles)
+        foreach (SpawnProfile profile in Profiles)
         {
           enabledSpawns.AddRange(profile.GetEnabledSpawns());
         }
@@ -272,15 +593,13 @@ public class CPHInline
     [JsonProperty("lastModified")]
     public string LastModified { get; set; } = string.Empty;
 
-    public SpawnProfile() { }
-
     /// <summary>
     /// Validate the SpawnProfile data integrity
     /// </summary>
     /// <returns>Validation result with errors and warnings</returns>
     public ValidationResult Validate()
     {
-      var result = new ValidationResult();
+      ValidationResult result = new ValidationResult();
 
       if (string.IsNullOrWhiteSpace(Id))
       {
@@ -300,11 +619,12 @@ public class CPHInline
       {
         for (int i = 0; i < Spawns.Count; i++)
         {
-          var spawnResult = Spawns[i].Validate();
+          ValidationResult spawnResult = Spawns[i].Validate();
           if (!spawnResult.IsValid)
           {
             result.AddError($"Spawn {i}: {string.Join(", ", spawnResult.Errors)}");
           }
+
           result.AddWarnings(spawnResult.Warnings);
         }
       }
@@ -370,15 +690,13 @@ public class CPHInline
     [JsonProperty("defaultProperties")]
     public AssetSettings DefaultProperties { get; set; } = new AssetSettings();
 
-    public Spawn() { }
-
     /// <summary>
     /// Validate the Spawn data integrity
     /// </summary>
     /// <returns>Validation result with errors and warnings</returns>
     public ValidationResult Validate()
     {
-      var result = new ValidationResult();
+      ValidationResult result = new ValidationResult();
 
       if (string.IsNullOrWhiteSpace(Id))
       {
@@ -401,11 +719,12 @@ public class CPHInline
       }
       else
       {
-        var triggerResult = Trigger.Validate();
+        ValidationResult triggerResult = Trigger.Validate();
         if (!triggerResult.IsValid)
         {
           result.AddError($"Trigger: {string.Join(", ", triggerResult.Errors)}");
         }
+
         result.AddWarnings(triggerResult.Warnings);
       }
 
@@ -417,11 +736,12 @@ public class CPHInline
       {
         for (int i = 0; i < Assets.Count; i++)
         {
-          var assetResult = Assets[i].Validate();
+          ValidationResult assetResult = Assets[i].Validate();
           if (!assetResult.IsValid)
           {
             result.AddError($"Asset {i}: {string.Join(", ", assetResult.Errors)}");
           }
+
           result.AddWarnings(assetResult.Warnings);
         }
       }
@@ -430,11 +750,12 @@ public class CPHInline
       {
         for (int i = 0; i < RandomizationBuckets.Count; i++)
         {
-          var bucketResult = RandomizationBuckets[i].Validate();
+          ValidationResult bucketResult = RandomizationBuckets[i].Validate();
           if (!bucketResult.IsValid)
           {
             result.AddError($"RandomizationBucket {i}: {string.Join(", ", bucketResult.Errors)}");
           }
+
           result.AddWarnings(bucketResult.Warnings);
         }
       }
@@ -473,11 +794,11 @@ public class CPHInline
     /// <returns>List of all bucket members across all buckets</returns>
     public List<RandomizationBucketMember> GetRandomizationBucketMembers()
     {
-      var members = new List<RandomizationBucketMember>();
+      List<RandomizationBucketMember> members = new List<RandomizationBucketMember>();
 
       if (RandomizationBuckets != null)
       {
-        foreach (var bucket in RandomizationBuckets)
+        foreach (RandomizationBucket bucket in RandomizationBuckets)
         {
           if (bucket.Members != null)
           {
@@ -510,15 +831,13 @@ public class CPHInline
     [JsonProperty("overrides")]
     public SpawnAssetOverrides Overrides { get; set; } = new SpawnAssetOverrides();
 
-    public SpawnAsset() { }
-
     /// <summary>
     /// Validate the SpawnAsset data integrity
     /// </summary>
     /// <returns>Validation result with errors and warnings</returns>
     public ValidationResult Validate()
     {
-      var result = new ValidationResult();
+      ValidationResult result = new ValidationResult();
 
       if (string.IsNullOrWhiteSpace(Id))
       {
@@ -557,8 +876,6 @@ public class CPHInline
 
     [JsonProperty("properties")]
     public AssetSettings Properties { get; set; } = new AssetSettings();
-
-    public SpawnAssetOverrides() { }
   }
 
   /// <summary>
@@ -581,15 +898,13 @@ public class CPHInline
     [JsonProperty("type")]
     public string Type { get; set; } = string.Empty;
 
-    public MediaAsset() { }
-
     /// <summary>
     /// Validate the MediaAsset data integrity
     /// </summary>
     /// <returns>Validation result with errors and warnings</returns>
     public ValidationResult Validate()
     {
-      var result = new ValidationResult();
+      ValidationResult result = new ValidationResult();
 
       if (string.IsNullOrWhiteSpace(Id))
       {
@@ -628,7 +943,7 @@ public class CPHInline
       if (string.IsNullOrWhiteSpace(type))
         return false;
 
-      var validTypes = new[] { "image", "video", "audio" };
+      string[] validTypes = new[] { "image", "video", "audio" };
       return validTypes.Contains(type.ToLowerInvariant());
     }
 
@@ -637,7 +952,7 @@ public class CPHInline
     /// </summary>
     /// <param name="type">The type to check</param>
     /// <returns>True if the asset is of the specified type</returns>
-    public bool IsType(string type)
+    private bool IsType(string type)
     {
       if (string.IsNullOrWhiteSpace(type) || string.IsNullOrWhiteSpace(Type))
         return false;
@@ -692,15 +1007,13 @@ public class CPHInline
     [JsonProperty("config")]
     public Dictionary<string, object> Config { get; set; } = new Dictionary<string, object>();
 
-    public Trigger() { }
-
     /// <summary>
     /// Validate the Trigger data integrity
     /// </summary>
     /// <returns>Validation result with errors and warnings</returns>
     public ValidationResult Validate()
     {
-      var result = new ValidationResult();
+      ValidationResult result = new ValidationResult();
 
       if (string.IsNullOrWhiteSpace(Type))
       {
@@ -742,15 +1055,13 @@ public class CPHInline
     [JsonProperty("members")]
     public List<RandomizationBucketMember> Members { get; set; } = new List<RandomizationBucketMember>();
 
-    public RandomizationBucket() { }
-
     /// <summary>
     /// Validate the RandomizationBucket data integrity
     /// </summary>
     /// <returns>Validation result with errors and warnings</returns>
     public ValidationResult Validate()
     {
-      var result = new ValidationResult();
+      ValidationResult result = new ValidationResult();
 
       if (string.IsNullOrWhiteSpace(Id))
       {
@@ -798,7 +1109,7 @@ public class CPHInline
       if (string.IsNullOrWhiteSpace(selection))
         return false;
 
-      var validTypes = new[] { "one", "n" };
+      string[] validTypes = new[] { "one", "n" };
       return validTypes.Contains(selection.ToLowerInvariant());
     }
   }
@@ -813,8 +1124,6 @@ public class CPHInline
 
     [JsonProperty("weight")]
     public double? Weight { get; set; }
-
-    public RandomizationBucketMember() { }
   }
 
   /// <summary>
@@ -851,8 +1160,6 @@ public class CPHInline
 
     [JsonProperty("muted")]
     public bool? Muted { get; set; }
-
-    public AssetSettings() { }
   }
 
   /// <summary>
@@ -881,7 +1188,7 @@ public class CPHInline
     {
       if (warnings != null)
       {
-        foreach (var warning in warnings)
+        foreach (string warning in warnings)
         {
           AddWarning(warning);
         }
@@ -890,7 +1197,7 @@ public class CPHInline
 
     public override string ToString()
     {
-      var result = new List<string>();
+      List<string> result = new List<string>();
       if (Errors.Count > 0)
         result.Add($"Errors: {string.Join(", ", Errors)}");
       if (Warnings.Count > 0)

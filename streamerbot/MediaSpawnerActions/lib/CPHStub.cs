@@ -82,30 +82,10 @@ public static class CPH
     /// </summary>
     /// <param name="varName">The name of the global variable</param>
     /// <returns>The variable value or null if not found</returns>
-    public static object GetGlobalVar(string varName)
+    public static T GetGlobalVar<T>(string varName)
     {
-        return null;
-    }
-
-    /// <summary>
-    /// Sets a user variable.
-    /// </summary>
-    /// <param name="varName">The name of the user variable</param>
-    /// <param name="value">The value to set</param>
-    /// <param name="persisted">Whether the variable should persist across restarts</param>
-    public static void SetUserVar(string varName, object value, bool persisted = true)
-    {
-        // No-op for development
-    }
-
-    /// <summary>
-    /// Gets a user variable value.
-    /// </summary>
-    /// <param name="varName">The name of the user variable</param>
-    /// <returns>The variable value or null if not found</returns>
-    public static object GetUserVar(string varName)
-    {
-        return null;
+        _ = varName;
+        return default;
     }
 
     /// <summary>
