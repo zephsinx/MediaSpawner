@@ -41,8 +41,9 @@
         <Reference Include="Streamer.bot.Plugin.Interface">
             <HintPath>lib\Streamer.bot.Plugin.Interface.dll</HintPath>
         </Reference>
-        <Reference Include="Newtonsoft.Json" />
-        <Reference Include="Newtonsoft.Json.Converters" />
+        <Reference Include="Newtonsoft.Json">
+            <HintPath>packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+        </Reference>
     </ItemGroup>
     <ItemGroup>
         <Compile Include="MediaSpawnerClient.cs" />
