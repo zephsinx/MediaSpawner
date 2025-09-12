@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -10,6 +11,65 @@ public class CPHInline
   private const string MediaSpawnerConfigGuid = "59d16b77-5aa7-4336-9b18-eeb6af51a823";
   private readonly string MediaSpawnerConfigVarName = $"MediaSpawnerConfig-{MediaSpawnerConfigGuid}";
   private readonly string MediaSpawnerShaVarName = $"MediaSpawnerSha-{MediaSpawnerConfigGuid}";
+
+  #region State Management Fields
+
+  /// <summary>
+  /// Cached configuration for performance optimization
+  /// </summary>
+  private MediaSpawnerConfig _cachedConfig;
+
+  /// <summary>
+  /// Cached configuration SHA for change detection
+  /// </summary>
+  private string _cachedConfigSha;
+
+  /// <summary>
+  /// Configuration cache timestamp for invalidation
+  /// </summary>
+  private DateTime _configCacheTimestamp = DateTime.MinValue;
+
+  /// <summary>
+  /// Configuration cache TTL (Time To Live) in minutes
+  /// </summary>
+  private readonly int _configCacheTtlMinutes = 5;
+
+  /// <summary>
+  /// Currently active spawn executions
+  /// </summary>
+  private readonly Dictionary<string, ActiveSpawnExecution> _activeSpawns = new Dictionary<string, ActiveSpawnExecution>();
+
+  /// <summary>
+  /// Execution history for debugging and analytics
+  /// </summary>
+  private readonly List<ExecutionRecord> _executionHistory = new List<ExecutionRecord>();
+
+  /// <summary>
+  /// Maximum number of execution records to keep in memory
+  /// </summary>
+  private readonly int _maxExecutionHistory = 100;
+
+  /// <summary>
+  /// Randomization bucket selection history for consistent patterns
+  /// </summary>
+  private readonly Dictionary<string, RandomizationHistory> _randomizationHistory = new Dictionary<string, RandomizationHistory>();
+
+  /// <summary>
+  /// Performance metrics tracking
+  /// </summary>
+  private readonly PerformanceMetrics _performanceMetrics = new PerformanceMetrics();
+
+  /// <summary>
+  /// Spawn execution queue for managing concurrent executions
+  /// </summary>
+  private readonly Queue<SpawnExecutionRequest> _executionQueue = new Queue<SpawnExecutionRequest>();
+
+  /// <summary>
+  /// Lock object for thread-safe state management
+  /// </summary>
+  private readonly object _stateLock = new object();
+
+  #endregion
 
   /// <summary>
   /// Main entry point for MediaSpawner spawn execution
@@ -79,6 +139,130 @@ public class CPHInline
   }
 
   /// <summary>
+  /// Export analytics data to a file
+  /// </summary>
+  /// <returns>True if export succeeded, false otherwise</returns>
+  public bool ExportAnalytics()
+  {
+    try
+    {
+      // Get export parameters
+      if (!CPH.TryGetArg("filePath", out string filePath) || string.IsNullOrWhiteSpace(filePath))
+      {
+        // Default to desktop if no path provided
+        string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+        filePath = Path.Combine(desktopPath, $"MediaSpawner_Analytics_{DateTime.Now:yyyyMMdd_HHmmss}.json");
+      }
+
+      // Get optional parameters
+      CPH.TryGetArg("includeHistory", out bool includeHistory);
+      CPH.TryGetArg("includeActiveSpawns", out bool includeActiveSpawns);
+      CPH.TryGetArg("includeRandomization", out bool includeRandomization);
+
+      // Prepare analytics data
+      var analyticsData = new Dictionary<string, object>
+      {
+        ["exportTimestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+        ["exportVersion"] = "1.0",
+        ["performanceMetrics"] = new Dictionary<string, object>
+        {
+          ["totalExecutions"] = _performanceMetrics.TotalExecutions,
+          ["successfulExecutions"] = _performanceMetrics.SuccessfulExecutions,
+          ["failedExecutions"] = _performanceMetrics.FailedExecutions,
+          ["successRate"] = _performanceMetrics.TotalExecutions > 0 ?
+            (double)_performanceMetrics.SuccessfulExecutions / _performanceMetrics.TotalExecutions : 0.0,
+          ["averageExecutionTime"] = _performanceMetrics.AverageExecutionTime.ToString(),
+          ["maxExecutionTime"] = _performanceMetrics.MaxExecutionTime.ToString(),
+          ["minExecutionTime"] = _performanceMetrics.MinExecutionTime.ToString(),
+          ["totalExecutionTime"] = _performanceMetrics.TotalExecutionTime.ToString(),
+          ["lastResetTime"] = _performanceMetrics.LastResetTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+        },
+        ["systemState"] = new Dictionary<string, object>
+        {
+          ["activeSpawnsCount"] = _activeSpawns.Count,
+          ["executionHistoryCount"] = _executionHistory.Count,
+          ["randomizationHistoryCount"] = _randomizationHistory.Count,
+          ["configCacheValid"] = IsConfigCacheValid(),
+          ["configCacheAge"] = _configCacheTimestamp == DateTime.MinValue ?
+            "Never" : DateTime.UtcNow.Subtract(_configCacheTimestamp).ToString()
+        }
+      };
+
+      // Add execution history if requested
+      if (includeHistory)
+      {
+        var historyData = _executionHistory.Select(record => new Dictionary<string, object>
+        {
+          ["executionId"] = record.ExecutionId,
+          ["spawnId"] = record.SpawnId,
+          ["spawnName"] = record.SpawnName,
+          ["triggerType"] = record.TriggerType,
+          ["startTime"] = record.StartTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+          ["endTime"] = record.EndTime?.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+          ["duration"] = record.Duration?.ToString(),
+          ["status"] = record.Status,
+          ["errorMessage"] = record.ErrorMessage,
+          ["context"] = record.Context
+        }).ToList();
+
+        analyticsData["executionHistory"] = historyData;
+      }
+
+      // Add active spawns if requested
+      if (includeActiveSpawns)
+      {
+        var activeSpawnsData = _activeSpawns.Values.Select(execution => new Dictionary<string, object>
+        {
+          ["executionId"] = execution.ExecutionId,
+          ["spawnId"] = execution.SpawnId,
+          ["spawnName"] = execution.SpawnName,
+          ["triggerType"] = execution.TriggerType,
+          ["startTime"] = execution.StartTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+          ["expectedEndTime"] = execution.ExpectedEndTime?.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+          ["status"] = execution.Status,
+          ["context"] = execution.Context
+        }).ToList();
+
+        analyticsData["activeSpawns"] = activeSpawnsData;
+      }
+
+      // Add randomization history if requested
+      if (includeRandomization)
+      {
+        var randomizationData = _randomizationHistory.Values.Select(history => new Dictionary<string, object>
+        {
+          ["bucketId"] = history.BucketId,
+          ["selectionCount"] = history.SelectionCount,
+          ["lastSelectionTime"] = history.LastSelectionTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+          ["lastSelectedMembers"] = history.LastSelectedMembers,
+          ["selectionPattern"] = history.SelectionPattern
+        }).ToList();
+
+        analyticsData["randomizationHistory"] = randomizationData;
+      }
+
+      // Serialize and write to file
+      string jsonData = JsonConvert.SerializeObject(analyticsData, Formatting.Indented);
+      File.WriteAllText(filePath, jsonData);
+
+      CPH.LogInfo($"ExportAnalytics: Successfully exported analytics to {filePath}");
+      CPH.LogInfo($"ExportAnalytics: Exported {_executionHistory.Count} execution records, {_activeSpawns.Count} active spawns, {_randomizationHistory.Count} randomization histories");
+
+      // Set result in global variable for other actions
+      CPH.SetGlobalVar("MediaSpawner_ExportPath", filePath, persisted: false);
+      CPH.SetGlobalVar("MediaSpawner_ExportSuccess", true, persisted: false);
+
+      return true;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"ExportAnalytics: Error exporting analytics: {ex.Message}");
+      CPH.SetGlobalVar("MediaSpawner_ExportSuccess", false, persisted: false);
+      return false;
+    }
+  }
+
+  /// <summary>
   /// Handle command-based triggers (Streamer.bot commands)
   /// </summary>
   /// <param name="source">The command source</param>
@@ -128,13 +312,13 @@ public class CPHInline
       foreach (Spawn spawn in validSpawns)
       {
         ValidationResult spawnValidation = ValidateSpawnForExecution(spawn, "streamerbot.command");
-        if (spawnValidation.IsValid && HasEnabledAssets(spawn) && !IsSpawnOnCooldown(spawn))
+        if (spawnValidation.IsValid && HasEnabledAssets(spawn))
         {
           executableSpawns.Add(spawn);
         }
         else
         {
-          CPH.LogWarn($"HandleCommandTrigger: Skipping spawn '{spawn.Name}' - validation failed or on cooldown");
+          CPH.LogWarn($"HandleCommandTrigger: Skipping spawn '{spawn.Name}' - validation failed");
         }
       }
 
@@ -157,14 +341,6 @@ public class CPHInline
         ["executionTime"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
       });
 
-      // Update cooldowns for successfully executed spawns
-      if (executionResult)
-      {
-        foreach (Spawn spawn in executableSpawns)
-        {
-          UpdateSpawnCooldown(spawn);
-        }
-      }
 
       return executionResult;
     }
@@ -223,7 +399,7 @@ public class CPHInline
       foreach (Spawn spawn in validSpawns)
       {
         ValidationResult spawnValidation = ValidateSpawnForExecution(spawn, $"twitch.{twitchEventType}");
-        if (spawnValidation.IsValid && HasEnabledAssets(spawn) && !IsSpawnOnCooldown(spawn))
+        if (spawnValidation.IsValid && HasEnabledAssets(spawn))
         {
           // Additional Twitch-specific validation
           if (ValidateTwitchEventConditions(spawn, twitchEventType, eventData))
@@ -237,7 +413,7 @@ public class CPHInline
         }
         else
         {
-          CPH.LogWarn($"HandleTwitchTrigger: Skipping spawn '{spawn.Name}' - validation failed or on cooldown");
+          CPH.LogWarn($"HandleTwitchTrigger: Skipping spawn '{spawn.Name}' - validation failed");
         }
       }
 
@@ -250,14 +426,6 @@ public class CPHInline
       // Execute matching spawns
       bool executionResult = ExecuteSpawns(executableSpawns, $"twitch.{twitchEventType}", eventData);
 
-      // Update cooldowns for successfully executed spawns
-      if (executionResult)
-      {
-        foreach (Spawn spawn in executableSpawns)
-        {
-          UpdateSpawnCooldown(spawn);
-        }
-      }
 
       return executionResult;
     }
@@ -316,13 +484,13 @@ public class CPHInline
       foreach (Spawn spawn in validSpawns)
       {
         ValidationResult spawnValidation = ValidateSpawnForExecution(spawn, $"time.{timeTriggerType}");
-        if (spawnValidation.IsValid && HasEnabledAssets(spawn) && !IsSpawnOnCooldown(spawn))
+        if (spawnValidation.IsValid && HasEnabledAssets(spawn))
         {
           executableSpawns.Add(spawn);
         }
         else
         {
-          CPH.LogWarn($"HandleTimeTrigger: Skipping spawn '{spawn.Name}' - validation failed or on cooldown");
+          CPH.LogWarn($"HandleTimeTrigger: Skipping spawn '{spawn.Name}' - validation failed");
         }
       }
 
@@ -335,14 +503,6 @@ public class CPHInline
       // Execute matching spawns
       bool executionResult = ExecuteSpawns(executableSpawns, $"time.{timeTriggerType}", timeData);
 
-      // Update cooldowns for successfully executed spawns
-      if (executionResult)
-      {
-        foreach (Spawn spawn in executableSpawns)
-        {
-          UpdateSpawnCooldown(spawn);
-        }
-      }
 
       return executionResult;
     }
@@ -413,12 +573,6 @@ public class CPHInline
         return false;
       }
 
-      // Check cooldown if configured
-      if (IsSpawnOnCooldown(targetSpawn))
-      {
-        CPH.LogInfo($"HandleManualTrigger: Spawn '{targetSpawn.Name}' is on cooldown, skipping execution");
-        return true; // Not an error, just respecting cooldown
-      }
 
       // Execute the specific spawn
       bool executionResult = ExecuteSpawns(new List<Spawn> { targetSpawn }, "manual", new Dictionary<string, object>
@@ -428,11 +582,6 @@ public class CPHInline
         ["executionTime"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
       });
 
-      // Update cooldown if execution was successful
-      if (executionResult)
-      {
-        UpdateSpawnCooldown(targetSpawn);
-      }
 
       return executionResult;
     }
@@ -879,7 +1028,7 @@ public class CPHInline
   }
 
   /// <summary>
-  /// Execute a list of spawns with the given trigger context
+  /// Execute a list of spawns with the given trigger context and state management
   /// </summary>
   /// <param name="spawns">List of spawns to execute</param>
   /// <param name="triggerType">The type of trigger that activated these spawns</param>
@@ -891,6 +1040,10 @@ public class CPHInline
       return true;
 
     bool allSuccessful = true;
+    List<string> executionIds = new List<string>();
+
+    // Clean up any completed spawns before starting new ones
+    CleanupCompletedSpawns();
 
     foreach (Spawn spawn in spawns)
     {
@@ -898,11 +1051,16 @@ public class CPHInline
       {
         CPH.LogInfo($"ExecuteSpawns: Executing spawn '{spawn.Name}' (ID: {spawn.Id})");
 
+        // Start tracking this spawn execution
+        string executionId = StartSpawnExecution(spawn, triggerType, contextData);
+        executionIds.Add(executionId);
+
         // Set spawn context in global variables for other actions
         CPH.SetGlobalVar("MediaSpawner_CurrentSpawn", JsonConvert.SerializeObject(spawn), persisted: false);
         CPH.SetGlobalVar("MediaSpawner_CurrentSpawnId", spawn.Id, persisted: false);
         CPH.SetGlobalVar("MediaSpawner_CurrentSpawnName", spawn.Name, persisted: false);
         CPH.SetGlobalVar("MediaSpawner_TriggerType", triggerType, persisted: false);
+        CPH.SetGlobalVar("MediaSpawner_ExecutionId", executionId, persisted: false);
 
         // Set context data
         foreach (var kvp in contextData)
@@ -912,6 +1070,10 @@ public class CPHInline
 
         // Execute the spawn
         bool spawnResult = ExecuteSpawn(spawn, triggerType, contextData);
+
+        // Complete tracking
+        CompleteSpawnExecution(executionId, spawnResult ? "Success" : "Failed");
+
         if (!spawnResult)
         {
           allSuccessful = false;
@@ -920,9 +1082,21 @@ public class CPHInline
       catch (Exception ex)
       {
         CPH.LogError($"ExecuteSpawns: Error executing spawn '{spawn.Name}': {ex.Message}");
+
+        // Complete tracking with error status
+        if (executionIds.Count > 0)
+        {
+          string lastExecutionId = executionIds[executionIds.Count - 1];
+          CompleteSpawnExecution(lastExecutionId, "Failed", ex.Message);
+        }
+
         allSuccessful = false;
       }
     }
+
+    // Log state summary
+    var stateSummary = GetStateSummary();
+    CPH.LogInfo($"ExecuteSpawns: Execution completed. State summary: {JsonConvert.SerializeObject(stateSummary)}");
 
     return allSuccessful;
   }
@@ -2120,51 +2294,59 @@ public class CPHInline
     }
   }
 
-  // Cached configuration for performance
-  private static MediaSpawnerConfig _cachedConfig;
-  private static string _cachedConfigSha;
 
   /// <summary>
-  /// Load MediaSpawner configuration from global variables
+  /// Load MediaSpawner configuration from global variables with caching
   /// </summary>
   /// <returns>True if configuration loaded successfully, false otherwise</returns>
   public bool LoadMediaSpawnerConfig()
   {
-    try
+    lock (_stateLock)
     {
-      string configJson = CPH.GetGlobalVar<string>(MediaSpawnerConfigVarName);
-      if (string.IsNullOrWhiteSpace(configJson))
+      try
       {
-        CPH.LogError("LoadMediaSpawnerConfig: No MediaSpawner configuration found in global variables");
-        return false;
-      }
+        // Check if cached config is still valid
+        if (_cachedConfig != null && IsConfigCacheValid())
+        {
+          CPH.LogInfo("LoadMediaSpawnerConfig: Using cached configuration");
+          return true;
+        }
 
-      // Check if we need to reload (config might have changed)
-      string currentSha = ComputeSha256(configJson);
-      if (_cachedConfig != null && _cachedConfigSha == currentSha)
-      {
-        CPH.LogInfo("LoadMediaSpawnerConfig: Using cached configuration");
+        string configJson = CPH.GetGlobalVar<string>(MediaSpawnerConfigVarName);
+        if (string.IsNullOrWhiteSpace(configJson))
+        {
+          CPH.LogError("LoadMediaSpawnerConfig: No MediaSpawner configuration found in global variables");
+          return false;
+        }
+
+        // Check if we need to reload (config might have changed)
+        string currentSha = ComputeSha256(configJson);
+        if (_cachedConfig != null && _cachedConfigSha == currentSha && IsConfigCacheValid())
+        {
+          CPH.LogInfo("LoadMediaSpawnerConfig: Using cached configuration (SHA match)");
+          return true;
+        }
+
+        // Deserialize configuration
+        if (!MediaSpawnerConfig.TryDeserialize(configJson, out MediaSpawnerConfig config, out string error))
+        {
+          CPH.LogError($"LoadMediaSpawnerConfig: Failed to deserialize configuration: {error}");
+          return false;
+        }
+
+        // Cache the configuration with timestamp
+        _cachedConfig = config;
+        _cachedConfigSha = currentSha;
+        _configCacheTimestamp = DateTime.UtcNow;
+
+        CPH.LogInfo($"LoadMediaSpawnerConfig: Successfully loaded configuration with {config.Profiles.Count} profiles and {config.Assets.Count} assets");
         return true;
       }
-
-      // Deserialize configuration
-      if (!MediaSpawnerConfig.TryDeserialize(configJson, out MediaSpawnerConfig config, out string error))
+      catch (Exception ex)
       {
-        CPH.LogError($"LoadMediaSpawnerConfig: Failed to deserialize configuration: {error}");
+        CPH.LogError($"LoadMediaSpawnerConfig: Unexpected error: {ex.Message}");
         return false;
       }
-
-      // Cache the configuration
-      _cachedConfig = config;
-      _cachedConfigSha = currentSha;
-
-      CPH.LogInfo($"LoadMediaSpawnerConfig: Successfully loaded configuration with {config.Profiles.Count} profiles and {config.Assets.Count} assets");
-      return true;
-    }
-    catch (Exception ex)
-    {
-      CPH.LogError($"LoadMediaSpawnerConfig: Unexpected error: {ex.Message}");
-      return false;
     }
   }
 
@@ -3345,59 +3527,6 @@ public class CPHInline
     return spawn.Assets.Any(asset => asset.Enabled);
   }
 
-  /// <summary>
-  /// Check if spawn is on cooldown
-  /// </summary>
-  /// <param name="spawn">The spawn to check</param>
-  /// <returns>True if on cooldown, false otherwise</returns>
-  private bool IsSpawnOnCooldown(Spawn spawn)
-  {
-    if (spawn?.Id == null)
-      return false;
-
-    string cooldownKey = $"MediaSpawner_Cooldown_{spawn.Id}";
-
-    try
-    {
-      string lastExecutionStr = CPH.GetGlobalVar<string>(cooldownKey);
-      if (!string.IsNullOrWhiteSpace(lastExecutionStr) &&
-          DateTime.TryParse(lastExecutionStr, out DateTime lastExecution))
-      {
-        // Default cooldown of 5 seconds if not configured
-        int cooldownSeconds = 5;
-
-        // Check if spawn has custom cooldown configuration
-        if (spawn.Trigger?.Config != null &&
-            spawn.Trigger.Config.ContainsKey("cooldownSeconds") &&
-            spawn.Trigger.Config["cooldownSeconds"] is int customCooldown)
-        {
-          cooldownSeconds = customCooldown;
-        }
-
-        DateTime cooldownEnd = lastExecution.AddSeconds(cooldownSeconds);
-        return DateTime.UtcNow < cooldownEnd;
-      }
-    }
-    catch (Exception ex)
-    {
-      CPH.LogWarn($"IsSpawnOnCooldown: Error checking cooldown for spawn '{spawn.Id}': {ex.Message}");
-    }
-
-    return false;
-  }
-
-  /// <summary>
-  /// Update spawn cooldown timestamp
-  /// </summary>
-  /// <param name="spawn">The spawn to update cooldown for</param>
-  private void UpdateSpawnCooldown(Spawn spawn)
-  {
-    if (spawn?.Id == null)
-      return;
-
-    string cooldownKey = $"MediaSpawner_Cooldown_{spawn.Id}";
-    CPH.SetGlobalVar(cooldownKey, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
-  }
 
   /// <summary>
   /// Validate Twitch event conditions for a spawn
@@ -3543,6 +3672,431 @@ public class CPHInline
     }
 
     return true;
+  }
+
+  #endregion
+
+  #region State Management Methods
+
+  /// <summary>
+  /// Check if the configuration cache is still valid
+  /// </summary>
+  /// <returns>True if cache is valid, false otherwise</returns>
+  private bool IsConfigCacheValid()
+  {
+    if (_cachedConfig == null || _configCacheTimestamp == DateTime.MinValue)
+      return false;
+
+    return DateTime.UtcNow.Subtract(_configCacheTimestamp).TotalMinutes < _configCacheTtlMinutes;
+  }
+
+  /// <summary>
+  /// Invalidate the configuration cache
+  /// </summary>
+  private void InvalidateConfigCache()
+  {
+    lock (_stateLock)
+    {
+      _cachedConfig = null;
+      _cachedConfigSha = null;
+      _configCacheTimestamp = DateTime.MinValue;
+      CPH.LogInfo("StateManagement: Configuration cache invalidated");
+    }
+  }
+
+  /// <summary>
+  /// Start tracking an active spawn execution
+  /// </summary>
+  /// <param name="spawn">The spawn being executed</param>
+  /// <param name="triggerType">The trigger type</param>
+  /// <param name="context">Execution context</param>
+  /// <returns>Execution ID for tracking</returns>
+  private string StartSpawnExecution(Spawn spawn, string triggerType, Dictionary<string, object> context)
+  {
+    lock (_stateLock)
+    {
+      string executionId = Guid.NewGuid().ToString();
+      var activeExecution = new ActiveSpawnExecution
+      {
+        SpawnId = spawn.Id,
+        SpawnName = spawn.Name,
+        TriggerType = triggerType,
+        StartTime = DateTime.UtcNow,
+        ExpectedEndTime = DateTime.UtcNow.AddMilliseconds(spawn.Duration),
+        Status = "Running",
+        ExecutionId = executionId,
+        Context = new Dictionary<string, object>(context)
+      };
+
+      _activeSpawns[executionId] = activeExecution;
+
+      // Add to execution history
+      var executionRecord = new ExecutionRecord
+      {
+        ExecutionId = executionId,
+        SpawnId = spawn.Id,
+        SpawnName = spawn.Name,
+        TriggerType = triggerType,
+        StartTime = DateTime.UtcNow,
+        Status = "Running",
+        Context = new Dictionary<string, object>(context)
+      };
+
+      AddExecutionRecord(executionRecord);
+
+      CPH.LogInfo($"StateManagement: Started tracking execution {executionId} for spawn '{spawn.Name}'");
+      return executionId;
+    }
+  }
+
+  /// <summary>
+  /// Complete tracking of an active spawn execution
+  /// </summary>
+  /// <param name="executionId">The execution ID</param>
+  /// <param name="status">Final status (Success, Failed, Cancelled)</param>
+  /// <param name="errorMessage">Error message if failed</param>
+  private void CompleteSpawnExecution(string executionId, string status, string errorMessage = "")
+  {
+    lock (_stateLock)
+    {
+      if (_activeSpawns.TryGetValue(executionId, out ActiveSpawnExecution activeExecution))
+      {
+        activeExecution.Status = status;
+        _activeSpawns.Remove(executionId);
+
+        // Update execution history
+        var executionRecord = _executionHistory.FirstOrDefault(r => r.ExecutionId == executionId);
+        if (executionRecord != null)
+        {
+          executionRecord.EndTime = DateTime.UtcNow;
+          executionRecord.Status = status;
+          executionRecord.ErrorMessage = errorMessage;
+        }
+
+        // Update performance metrics
+        UpdatePerformanceMetrics(executionRecord);
+
+        CPH.LogInfo($"StateManagement: Completed execution {executionId} with status '{status}'");
+      }
+    }
+  }
+
+  /// <summary>
+  /// Add an execution record to history
+  /// </summary>
+  /// <param name="record">The execution record</param>
+  private void AddExecutionRecord(ExecutionRecord record)
+  {
+    lock (_stateLock)
+    {
+      _executionHistory.Add(record);
+
+      // Maintain history size limit
+      while (_executionHistory.Count > _maxExecutionHistory)
+      {
+        _executionHistory.RemoveAt(0);
+      }
+    }
+  }
+
+  /// <summary>
+  /// Update performance metrics
+  /// </summary>
+  /// <param name="record">The execution record</param>
+  private void UpdatePerformanceMetrics(ExecutionRecord record)
+  {
+    if (record?.Duration == null)
+      return;
+
+    lock (_stateLock)
+    {
+      _performanceMetrics.TotalExecutions++;
+
+      if (record.Status == "Success")
+        _performanceMetrics.SuccessfulExecutions++;
+      else
+        _performanceMetrics.FailedExecutions++;
+
+      TimeSpan duration = record.Duration.Value;
+      _performanceMetrics.TotalExecutionTime = _performanceMetrics.TotalExecutionTime.Add(duration);
+
+      if (duration > _performanceMetrics.MaxExecutionTime)
+        _performanceMetrics.MaxExecutionTime = duration;
+
+      if (duration < _performanceMetrics.MinExecutionTime)
+        _performanceMetrics.MinExecutionTime = duration;
+
+      if (_performanceMetrics.TotalExecutions > 0)
+      {
+        _performanceMetrics.AverageExecutionTime = TimeSpan.FromTicks(
+          _performanceMetrics.TotalExecutionTime.Ticks / _performanceMetrics.TotalExecutions);
+      }
+    }
+  }
+
+  /// <summary>
+  /// Track randomization bucket selection
+  /// </summary>
+  /// <param name="bucketId">The bucket ID</param>
+  /// <param name="selectedMembers">The selected members</param>
+  private void TrackRandomizationSelection(string bucketId, List<string> selectedMembers)
+  {
+    lock (_stateLock)
+    {
+      if (!_randomizationHistory.TryGetValue(bucketId, out RandomizationHistory history))
+      {
+        history = new RandomizationHistory
+        {
+          BucketId = bucketId,
+          MaxPatternLength = 10
+        };
+        _randomizationHistory[bucketId] = history;
+      }
+
+      history.LastSelectedMembers = new List<string>(selectedMembers);
+      history.SelectionCount++;
+      history.LastSelectionTime = DateTime.UtcNow;
+
+      // Update selection pattern
+      history.SelectionPattern.AddRange(selectedMembers);
+      while (history.SelectionPattern.Count > history.MaxPatternLength)
+      {
+        history.SelectionPattern.RemoveAt(0);
+      }
+
+      CPH.LogInfo($"StateManagement: Tracked randomization selection for bucket '{bucketId}'");
+    }
+  }
+
+  /// <summary>
+  /// Get randomization history for a bucket
+  /// </summary>
+  /// <param name="bucketId">The bucket ID</param>
+  /// <returns>Randomization history or null if not found</returns>
+  private RandomizationHistory GetRandomizationHistory(string bucketId)
+  {
+    lock (_stateLock)
+    {
+      return _randomizationHistory.TryGetValue(bucketId, out RandomizationHistory history) ? history : null;
+    }
+  }
+
+  /// <summary>
+  /// Clean up completed spawn executions
+  /// </summary>
+  private void CleanupCompletedSpawns()
+  {
+    lock (_stateLock)
+    {
+      var completedSpawns = _activeSpawns.Values
+        .Where(execution => execution.Status != "Running" ||
+                           (execution.ExpectedEndTime.HasValue &&
+                            DateTime.UtcNow > execution.ExpectedEndTime.Value))
+        .ToList();
+
+      foreach (var execution in completedSpawns)
+      {
+        _activeSpawns.Remove(execution.ExecutionId);
+        CPH.LogInfo($"StateManagement: Cleaned up completed execution {execution.ExecutionId}");
+      }
+    }
+  }
+
+  /// <summary>
+  /// Get current state summary
+  /// </summary>
+  /// <returns>State summary information</returns>
+  private Dictionary<string, object> GetStateSummary()
+  {
+    lock (_stateLock)
+    {
+      return new Dictionary<string, object>
+      {
+        ["activeSpawns"] = _activeSpawns.Count,
+        ["executionHistoryCount"] = _executionHistory.Count,
+        ["randomizationHistoryCount"] = _randomizationHistory.Count,
+        ["performanceMetrics"] = new Dictionary<string, object>
+        {
+          ["totalExecutions"] = _performanceMetrics.TotalExecutions,
+          ["successfulExecutions"] = _performanceMetrics.SuccessfulExecutions,
+          ["failedExecutions"] = _performanceMetrics.FailedExecutions,
+          ["averageExecutionTime"] = _performanceMetrics.AverageExecutionTime.ToString(),
+          ["maxExecutionTime"] = _performanceMetrics.MaxExecutionTime.ToString(),
+          ["minExecutionTime"] = _performanceMetrics.MinExecutionTime.ToString()
+        },
+        ["configCacheValid"] = IsConfigCacheValid(),
+        ["configCacheAge"] = _configCacheTimestamp == DateTime.MinValue ?
+          "Never" : DateTime.UtcNow.Subtract(_configCacheTimestamp).ToString()
+      };
+    }
+  }
+
+  /// <summary>
+  /// Reset performance metrics
+  /// </summary>
+  private void ResetPerformanceMetrics()
+  {
+    lock (_stateLock)
+    {
+      _performanceMetrics.TotalExecutions = 0;
+      _performanceMetrics.SuccessfulExecutions = 0;
+      _performanceMetrics.FailedExecutions = 0;
+      _performanceMetrics.AverageExecutionTime = TimeSpan.Zero;
+      _performanceMetrics.MaxExecutionTime = TimeSpan.Zero;
+      _performanceMetrics.MinExecutionTime = TimeSpan.MaxValue;
+      _performanceMetrics.TotalExecutionTime = TimeSpan.Zero;
+      _performanceMetrics.LastResetTime = DateTime.UtcNow;
+
+      CPH.LogInfo("StateManagement: Performance metrics reset");
+    }
+  }
+
+  #endregion
+
+  #region State Management Classes
+
+  /// <summary>
+  /// Represents an active spawn execution
+  /// </summary>
+  public class ActiveSpawnExecution
+  {
+    [JsonProperty("spawnId")]
+    public string SpawnId { get; set; } = string.Empty;
+
+    [JsonProperty("spawnName")]
+    public string SpawnName { get; set; } = string.Empty;
+
+    [JsonProperty("triggerType")]
+    public string TriggerType { get; set; } = string.Empty;
+
+    [JsonProperty("startTime")]
+    public DateTime StartTime { get; set; }
+
+    [JsonProperty("expectedEndTime")]
+    public DateTime? ExpectedEndTime { get; set; }
+
+    [JsonProperty("status")]
+    public string Status { get; set; } = "Running"; // Running, Completed, Failed, Cancelled
+
+    [JsonProperty("executionId")]
+    public string ExecutionId { get; set; } = string.Empty;
+
+    [JsonProperty("context")]
+    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
+  }
+
+  /// <summary>
+  /// Represents an execution record for history tracking
+  /// </summary>
+  public class ExecutionRecord
+  {
+    [JsonProperty("executionId")]
+    public string ExecutionId { get; set; } = string.Empty;
+
+    [JsonProperty("spawnId")]
+    public string SpawnId { get; set; } = string.Empty;
+
+    [JsonProperty("spawnName")]
+    public string SpawnName { get; set; } = string.Empty;
+
+    [JsonProperty("triggerType")]
+    public string TriggerType { get; set; } = string.Empty;
+
+    [JsonProperty("startTime")]
+    public DateTime StartTime { get; set; }
+
+    [JsonProperty("endTime")]
+    public DateTime? EndTime { get; set; }
+
+    [JsonProperty("duration")]
+    public TimeSpan? Duration => EndTime?.Subtract(StartTime);
+
+    [JsonProperty("status")]
+    public string Status { get; set; } = string.Empty; // Success, Failed, Cancelled
+
+    [JsonProperty("errorMessage")]
+    public string ErrorMessage { get; set; } = string.Empty;
+
+    [JsonProperty("context")]
+    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
+  }
+
+  /// <summary>
+  /// Tracks randomization bucket selection history
+  /// </summary>
+  public class RandomizationHistory
+  {
+    [JsonProperty("bucketId")]
+    public string BucketId { get; set; } = string.Empty;
+
+    [JsonProperty("lastSelectedMembers")]
+    public List<string> LastSelectedMembers { get; set; } = new List<string>();
+
+    [JsonProperty("selectionCount")]
+    public int SelectionCount { get; set; }
+
+    [JsonProperty("lastSelectionTime")]
+    public DateTime LastSelectionTime { get; set; }
+
+    [JsonProperty("selectionPattern")]
+    public List<string> SelectionPattern { get; set; } = new List<string>();
+
+    [JsonProperty("maxPatternLength")]
+    public int MaxPatternLength { get; set; } = 10;
+  }
+
+  /// <summary>
+  /// Performance metrics tracking
+  /// </summary>
+  public class PerformanceMetrics
+  {
+    [JsonProperty("totalExecutions")]
+    public int TotalExecutions { get; set; }
+
+    [JsonProperty("successfulExecutions")]
+    public int SuccessfulExecutions { get; set; }
+
+    [JsonProperty("failedExecutions")]
+    public int FailedExecutions { get; set; }
+
+    [JsonProperty("averageExecutionTime")]
+    public TimeSpan AverageExecutionTime { get; set; }
+
+    [JsonProperty("maxExecutionTime")]
+    public TimeSpan MaxExecutionTime { get; set; }
+
+    [JsonProperty("minExecutionTime")]
+    public TimeSpan MinExecutionTime { get; set; } = TimeSpan.MaxValue;
+
+    [JsonProperty("totalExecutionTime")]
+    public TimeSpan TotalExecutionTime { get; set; }
+
+    [JsonProperty("lastResetTime")]
+    public DateTime LastResetTime { get; set; } = DateTime.UtcNow;
+  }
+
+  /// <summary>
+  /// Represents a spawn execution request in the queue
+  /// </summary>
+  public class SpawnExecutionRequest
+  {
+    [JsonProperty("requestId")]
+    public string RequestId { get; set; } = string.Empty;
+
+    [JsonProperty("spawnId")]
+    public string SpawnId { get; set; } = string.Empty;
+
+    [JsonProperty("triggerType")]
+    public string TriggerType { get; set; } = string.Empty;
+
+    [JsonProperty("context")]
+    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
+
+    [JsonProperty("priority")]
+    public int Priority { get; set; } = 0; // Higher number = higher priority
+
+    [JsonProperty("requestTime")]
+    public DateTime RequestTime { get; set; } = DateTime.UtcNow;
   }
 
   #endregion
