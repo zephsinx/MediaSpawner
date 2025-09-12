@@ -1285,6 +1285,20 @@ public class CPHInline
     {
       CPH.LogInfo($"CreateOBSSource: Creating OBS source '{sourceName}' for asset '{asset.Name}' ({asset.Type})");
 
+      // Validate OBS connection first
+      if (!ValidateOBSConnection())
+      {
+        CPH.LogError("CreateOBSSource: OBS connection validation failed");
+        return false;
+      }
+
+      // Check if source already exists
+      if (OBSSourceExists(sourceName))
+      {
+        CPH.LogWarn($"CreateOBSSource: Source '{sourceName}' already exists, skipping creation");
+        return true;
+      }
+
       // Determine source type based on asset type
       string obsSourceType = GetOBSSourceType(asset.Type);
       if (string.IsNullOrEmpty(obsSourceType))
@@ -1293,24 +1307,59 @@ public class CPHInline
         return false;
       }
 
+      // Get current scene
+      string currentScene = GetCurrentOBSScene();
+      if (string.IsNullOrEmpty(currentScene))
+      {
+        CPH.LogError("CreateOBSSource: Could not determine current OBS scene");
+        return false;
+      }
+
       // Build source settings
       Dictionary<string, object> sourceSettings = BuildOBSSourceSettings(asset, properties);
 
-      // Create the source using OBS WebSocket API
-      // Note: This is a placeholder for OBS source creation
-      // In a real implementation, you would use the appropriate Streamer.bot OBS methods
-      bool sourceCreated = true; // Placeholder - would use actual OBS API calls
+      // Create OBS request for source creation
+      Dictionary<string, object> createSourceRequest = new Dictionary<string, object>
+      {
+        ["requestType"] = "CreateSource",
+        ["requestId"] = Guid.NewGuid().ToString(),
+        ["requestData"] = new Dictionary<string, object>
+        {
+          ["sourceName"] = sourceName,
+          ["sourceKind"] = obsSourceType,
+          ["sceneName"] = currentScene,
+          ["sourceSettings"] = sourceSettings
+        }
+      };
 
-      if (sourceCreated)
+      // Send the request to OBS
+      string response = CPH.ObsSendRaw("CreateSource", JsonConvert.SerializeObject(createSourceRequest));
+      if (string.IsNullOrEmpty(response))
       {
-        CPH.LogInfo($"CreateOBSSource: Successfully created OBS source '{sourceName}'");
-        return true;
-      }
-      else
-      {
-        CPH.LogError($"CreateOBSSource: Failed to create OBS source '{sourceName}'");
+        CPH.LogError($"CreateOBSSource: No response from OBS for source creation '{sourceName}'");
         return false;
       }
+
+      // Parse response to check for success
+      Dictionary<string, object> responseData = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
+      if (responseData.ContainsKey("requestStatus") && responseData["requestStatus"] is Dictionary<string, object> status)
+      {
+        bool result = status.ContainsKey("result") && status["result"] is bool success && success;
+        if (result)
+        {
+          CPH.LogInfo($"CreateOBSSource: Successfully created OBS source '{sourceName}'");
+          return true;
+        }
+        else
+        {
+          string error = status.ContainsKey("comment") ? status["comment"].ToString() : "Unknown error";
+          CPH.LogError($"CreateOBSSource: Failed to create OBS source '{sourceName}': {error}");
+          return false;
+        }
+      }
+
+      CPH.LogError($"CreateOBSSource: Invalid response format from OBS for source creation '{sourceName}'");
+      return false;
     }
     catch (Exception ex)
     {
@@ -1332,24 +1381,47 @@ public class CPHInline
     {
       CPH.LogInfo($"ApplyAssetPropertiesToOBS: Applying properties to source '{sourceName}'");
 
-      bool allPropertiesApplied = true;
+      string currentScene = GetCurrentOBSScene();
+      if (string.IsNullOrEmpty(currentScene))
+      {
+        CPH.LogError("ApplyAssetPropertiesToOBS: Could not determine current OBS scene");
+        return false;
+      }
+
+      // Build batch requests for efficient property application
+      List<Dictionary<string, object>> batchRequests = new List<Dictionary<string, object>>();
 
       // Apply volume
       if (properties.ContainsKey("volume") && properties["volume"] is double volume)
       {
-        // Note: This is a placeholder for OBS volume setting
-        // In a real implementation, you would use the appropriate Streamer.bot OBS methods
-        bool volumeApplied = true; // Placeholder - would use actual OBS API calls
-        if (!volumeApplied) allPropertiesApplied = false;
+        Dictionary<string, object> volumeRequest = new Dictionary<string, object>
+        {
+          ["requestType"] = "SetSourceVolume",
+          ["requestId"] = Guid.NewGuid().ToString(),
+          ["requestData"] = new Dictionary<string, object>
+          {
+            ["sourceName"] = sourceName,
+            ["volume"] = volume
+          }
+        };
+        batchRequests.Add(volumeRequest);
       }
 
       // Apply scale
       if (properties.ContainsKey("scale") && properties["scale"] is double scale)
       {
-        // Note: This is a placeholder for OBS scale setting
-        // In a real implementation, you would use the appropriate Streamer.bot OBS methods
-        bool scaleApplied = true; // Placeholder - would use actual OBS API calls
-        if (!scaleApplied) allPropertiesApplied = false;
+        Dictionary<string, object> scaleRequest = new Dictionary<string, object>
+        {
+          ["requestType"] = "SetSourceScale",
+          ["requestId"] = Guid.NewGuid().ToString(),
+          ["requestData"] = new Dictionary<string, object>
+          {
+            ["sourceName"] = sourceName,
+            ["scaleX"] = scale,
+            ["scaleY"] = scale
+          }
+        };
+        batchRequests.Add(scaleRequest);
       }
 
       // Apply position
@@ -1358,10 +1430,18 @@ public class CPHInline
         double x = position.ContainsKey("x") && position["x"] is double xVal ? xVal : 0;
         double y = position.ContainsKey("y") && position["y"] is double yVal ? yVal : 0;
 
-        // Note: This is a placeholder for OBS position setting
-        // In a real implementation, you would use the appropriate Streamer.bot OBS methods
-        bool positionApplied = true; // Placeholder - would use actual OBS API calls
-        if (!positionApplied) allPropertiesApplied = false;
+        Dictionary<string, object> positionRequest = new Dictionary<string, object>
+        {
+          ["requestType"] = "SetSourcePosition",
+          ["requestId"] = Guid.NewGuid().ToString(),
+          ["requestData"] = new Dictionary<string, object>
+          {
+            ["sourceName"] = sourceName,
+            ["x"] = x,
+            ["y"] = y
+          }
+        };
+        batchRequests.Add(positionRequest);
       }
 
       // Apply dimensions
@@ -1372,10 +1452,18 @@ public class CPHInline
 
         if (width > 0 && height > 0)
         {
-          // Note: This is a placeholder for OBS size setting
-          // In a real implementation, you would use the appropriate Streamer.bot OBS methods
-          bool dimensionsApplied = true; // Placeholder - would use actual OBS API calls
-          if (!dimensionsApplied) allPropertiesApplied = false;
+          Dictionary<string, object> sizeRequest = new Dictionary<string, object>
+          {
+            ["requestType"] = "SetSourceSize",
+            ["requestId"] = Guid.NewGuid().ToString(),
+            ["requestData"] = new Dictionary<string, object>
+            {
+              ["sourceName"] = sourceName,
+              ["width"] = width,
+              ["height"] = height
+            }
+          };
+          batchRequests.Add(sizeRequest);
         }
       }
 
@@ -1385,24 +1473,73 @@ public class CPHInline
         // Apply loop setting
         if (properties.ContainsKey("loop") && properties["loop"] is bool loop)
         {
-          // Note: This is a placeholder for OBS loop setting
-          // In a real implementation, you would use the appropriate Streamer.bot OBS methods
-          bool loopApplied = true; // Placeholder - would use actual OBS API calls
-          if (!loopApplied) allPropertiesApplied = false;
+          Dictionary<string, object> loopRequest = new Dictionary<string, object>
+          {
+            ["requestType"] = "SetSourceSettings",
+            ["requestId"] = Guid.NewGuid().ToString(),
+            ["requestData"] = new Dictionary<string, object>
+            {
+              ["sourceName"] = sourceName,
+              ["sourceSettings"] = new Dictionary<string, object>
+              {
+                ["looping"] = loop
+              }
+            }
+          };
+          batchRequests.Add(loopRequest);
         }
 
         // Apply muted setting
         if (properties.ContainsKey("muted") && properties["muted"] is bool muted)
         {
-          // Note: This is a placeholder for OBS muted setting
-          // In a real implementation, you would use the appropriate Streamer.bot OBS methods
-          bool mutedApplied = true; // Placeholder - would use actual OBS API calls
-          if (!mutedApplied) allPropertiesApplied = false;
+          Dictionary<string, object> mutedRequest = new Dictionary<string, object>
+          {
+            ["requestType"] = "SetSourceMuted",
+            ["requestId"] = Guid.NewGuid().ToString(),
+            ["requestData"] = new Dictionary<string, object>
+            {
+              ["sourceName"] = sourceName,
+              ["muted"] = muted
+            }
+          };
+          batchRequests.Add(mutedRequest);
         }
       }
 
-      CPH.LogInfo($"ApplyAssetPropertiesToOBS: Properties applied to source '{sourceName}' - Success: {allPropertiesApplied}");
-      return allPropertiesApplied;
+      // Execute batch requests if any were created
+      if (batchRequests.Count > 0)
+      {
+        string batchResponse = CPH.ObsSendBatchRaw(JsonConvert.SerializeObject(batchRequests));
+        if (string.IsNullOrEmpty(batchResponse))
+        {
+          CPH.LogError($"ApplyAssetPropertiesToOBS: No response from OBS for property application to '{sourceName}'");
+          return false;
+        }
+
+        // Parse batch response to check for success
+        List<Dictionary<string, object>> responses = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(batchResponse);
+        bool allSuccessful = true;
+
+        foreach (Dictionary<string, object> response in responses)
+        {
+          if (response.ContainsKey("requestStatus") && response["requestStatus"] is Dictionary<string, object> status)
+          {
+            bool success = status.ContainsKey("result") && status["result"] is bool result && result;
+            if (!success)
+            {
+              allSuccessful = false;
+              string error = status.ContainsKey("comment") ? status["comment"].ToString() : "Unknown error";
+              CPH.LogWarn($"ApplyAssetPropertiesToOBS: Property application failed for '{sourceName}': {error}");
+            }
+          }
+        }
+
+        CPH.LogInfo($"ApplyAssetPropertiesToOBS: Properties applied to source '{sourceName}' - Success: {allSuccessful}");
+        return allSuccessful;
+      }
+
+      CPH.LogInfo($"ApplyAssetPropertiesToOBS: No properties to apply to source '{sourceName}'");
+      return true;
     }
     catch (Exception ex)
     {
@@ -1422,11 +1559,10 @@ public class CPHInline
     {
       CPH.LogInfo($"ShowOBSSource: Showing OBS source '{sourceName}'");
 
-      // Note: This is a placeholder for OBS source visibility setting
-      // In a real implementation, you would use the appropriate Streamer.bot OBS methods
-      bool sourceShown = true; // Placeholder - would use actual OBS API calls
+      // Use built-in Streamer.bot method to show the source
+      bool success = CPH.ObsShowSource(sourceName);
 
-      if (sourceShown)
+      if (success)
       {
         CPH.LogInfo($"ShowOBSSource: Successfully showed OBS source '{sourceName}'");
         return true;
@@ -1455,11 +1591,10 @@ public class CPHInline
     {
       CPH.LogInfo($"HideOBSSource: Hiding OBS source '{sourceName}'");
 
-      // Note: This is a placeholder for OBS source visibility setting
-      // In a real implementation, you would use the appropriate Streamer.bot OBS methods
-      bool sourceHidden = true; // Placeholder - would use actual OBS API calls
+      // Use built-in Streamer.bot method to hide the source
+      bool success = CPH.ObsHideSource(sourceName);
 
-      if (sourceHidden)
+      if (success)
       {
         CPH.LogInfo($"HideOBSSource: Successfully hid OBS source '{sourceName}'");
         return true;
@@ -1488,20 +1623,53 @@ public class CPHInline
     {
       CPH.LogInfo($"DeleteOBSSource: Deleting OBS source '{sourceName}'");
 
-      // Note: This is a placeholder for OBS source deletion
-      // In a real implementation, you would use the appropriate Streamer.bot OBS methods
-      bool sourceDeleted = true; // Placeholder - would use actual OBS API calls
-
-      if (sourceDeleted)
+      string currentScene = GetCurrentOBSScene();
+      if (string.IsNullOrEmpty(currentScene))
       {
-        CPH.LogInfo($"DeleteOBSSource: Successfully deleted OBS source '{sourceName}'");
-        return true;
-      }
-      else
-      {
-        CPH.LogError($"DeleteOBSSource: Failed to delete OBS source '{sourceName}'");
+        CPH.LogError("DeleteOBSSource: Could not determine current OBS scene");
         return false;
       }
+
+      // Create OBS request to delete the source
+      Dictionary<string, object> deleteSourceRequest = new Dictionary<string, object>
+      {
+        ["requestType"] = "RemoveSceneItem",
+        ["requestId"] = Guid.NewGuid().ToString(),
+        ["requestData"] = new Dictionary<string, object>
+        {
+          ["sceneName"] = currentScene,
+          ["item"] = sourceName
+        }
+      };
+
+      // Send the request to OBS
+      string response = CPH.ObsSendRaw("RemoveSceneItem", JsonConvert.SerializeObject(deleteSourceRequest));
+      if (string.IsNullOrEmpty(response))
+      {
+        CPH.LogError($"DeleteOBSSource: No response from OBS for deleting source '{sourceName}'");
+        return false;
+      }
+
+      // Parse response to check for success
+      Dictionary<string, object> responseData = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
+      if (responseData.ContainsKey("requestStatus") && responseData["requestStatus"] is Dictionary<string, object> status)
+      {
+        bool result = status.ContainsKey("result") && status["result"] is bool success && success;
+        if (result)
+        {
+          CPH.LogInfo($"DeleteOBSSource: Successfully deleted OBS source '{sourceName}'");
+          return true;
+        }
+        else
+        {
+          string error = status.ContainsKey("comment") ? status["comment"].ToString() : "Unknown error";
+          CPH.LogError($"DeleteOBSSource: Failed to delete OBS source '{sourceName}': {error}");
+          return false;
+        }
+      }
+
+      CPH.LogError($"DeleteOBSSource: Invalid response format from OBS for deleting source '{sourceName}'");
+      return false;
     }
     catch (Exception ex)
     {
@@ -1569,10 +1737,17 @@ public class CPHInline
   {
     try
     {
-      // Note: This is a placeholder for getting current OBS scene
-      // In a real implementation, you would use the appropriate Streamer.bot OBS methods
-      // For now, return a default scene name
-      return "Default";
+      // Use built-in Streamer.bot method to get current scene
+      string sceneName = CPH.ObsGetCurrentScene();
+
+      if (string.IsNullOrEmpty(sceneName))
+      {
+        CPH.LogWarn("GetCurrentOBSScene: No scene name returned from OBS");
+        return "Default";
+      }
+
+      CPH.LogInfo($"GetCurrentOBSScene: Current scene is '{sceneName}'");
+      return sceneName;
     }
     catch (Exception ex)
     {
@@ -1581,6 +1756,159 @@ public class CPHInline
 
     // Fallback to default scene
     return "Default";
+  }
+
+  /// <summary>
+  /// Validate OBS connection and get basic information
+  /// </summary>
+  /// <returns>True if OBS is connected and responsive</returns>
+  private bool ValidateOBSConnection()
+  {
+    try
+    {
+      CPH.LogInfo("ValidateOBSConnection: Checking OBS connection");
+
+      // Use built-in Streamer.bot method to check OBS connection
+      bool isConnected = CPH.ObsIsConnected();
+
+      if (isConnected)
+      {
+        CPH.LogInfo("ValidateOBSConnection: OBS connection is valid and responsive");
+        return true;
+      }
+      else
+      {
+        CPH.LogError("ValidateOBSConnection: OBS is not connected");
+        return false;
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"ValidateOBSConnection: Error validating OBS connection: {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Execute multiple OBS operations in a single batch for efficiency
+  /// </summary>
+  /// <param name="operations">List of OBS operations to execute</param>
+  /// <returns>True if all operations succeeded</returns>
+  private bool ExecuteOBSBatchOperations(List<Dictionary<string, object>> operations)
+  {
+    try
+    {
+      if (operations == null || operations.Count == 0)
+      {
+        CPH.LogInfo("ExecuteOBSBatchOperations: No operations to execute");
+        return true;
+      }
+
+      CPH.LogInfo($"ExecuteOBSBatchOperations: Executing {operations.Count} OBS operations in batch");
+
+      // Send batch request to OBS
+      string batchResponse = CPH.ObsSendBatchRaw(JsonConvert.SerializeObject(operations));
+      if (string.IsNullOrEmpty(batchResponse))
+      {
+        CPH.LogError("ExecuteOBSBatchOperations: No response from OBS for batch operations");
+        return false;
+      }
+
+      // Parse batch response to check for success
+      List<Dictionary<string, object>> responses = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(batchResponse);
+      bool allSuccessful = true;
+
+      foreach (Dictionary<string, object> response in responses)
+      {
+        if (response.ContainsKey("requestStatus") && response["requestStatus"] is Dictionary<string, object> status)
+        {
+          bool success = status.ContainsKey("result") && status["result"] is bool result && result;
+          if (!success)
+          {
+            allSuccessful = false;
+            string error = status.ContainsKey("comment") ? status["comment"].ToString() : "Unknown error";
+            CPH.LogWarn($"ExecuteOBSBatchOperations: Operation failed: {error}");
+          }
+        }
+      }
+
+      CPH.LogInfo($"ExecuteOBSBatchOperations: Batch operations completed - Success: {allSuccessful}");
+      return allSuccessful;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"ExecuteOBSBatchOperations: Error executing batch operations: {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Check if an OBS source exists in the current scene
+  /// </summary>
+  /// <param name="sourceName">The name of the source to check</param>
+  /// <returns>True if source exists</returns>
+  private bool OBSSourceExists(string sourceName)
+  {
+    try
+    {
+      string currentScene = GetCurrentOBSScene();
+      if (string.IsNullOrEmpty(currentScene))
+      {
+        CPH.LogError("OBSSourceExists: Could not determine current OBS scene");
+        return false;
+      }
+
+      // Create OBS request to get scene items
+      Dictionary<string, object> getSceneItemsRequest = new Dictionary<string, object>
+      {
+        ["requestType"] = "GetSceneItemList",
+        ["requestId"] = Guid.NewGuid().ToString(),
+        ["requestData"] = new Dictionary<string, object>
+        {
+          ["sceneName"] = currentScene
+        }
+      };
+
+      // Send the request to OBS
+      string response = CPH.ObsSendRaw("GetSceneItemList", JsonConvert.SerializeObject(getSceneItemsRequest));
+      if (string.IsNullOrEmpty(response))
+      {
+        CPH.LogError($"OBSSourceExists: No response from OBS for checking source '{sourceName}'");
+        return false;
+      }
+
+      // Parse response to check for source existence
+      Dictionary<string, object> responseData = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
+      if (responseData.ContainsKey("requestStatus") && responseData["requestStatus"] is Dictionary<string, object> status)
+      {
+        bool success = status.ContainsKey("result") && status["result"] is bool result && result;
+        if (success && responseData.ContainsKey("responseData") && responseData["responseData"] is Dictionary<string, object> responseDataDict)
+        {
+          if (responseDataDict.ContainsKey("sceneItems") && responseDataDict["sceneItems"] is List<object> sceneItems)
+          {
+            foreach (object item in sceneItems)
+            {
+              if (item is Dictionary<string, object> sceneItem)
+              {
+                if (sceneItem.ContainsKey("sourceName") && sceneItem["sourceName"] is string itemName && itemName == sourceName)
+                {
+                  CPH.LogInfo($"OBSSourceExists: Source '{sourceName}' exists in scene '{currentScene}'");
+                  return true;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      CPH.LogInfo($"OBSSourceExists: Source '{sourceName}' does not exist in scene '{currentScene}'");
+      return false;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"OBSSourceExists: Error checking if source '{sourceName}' exists: {ex.Message}");
+      return false;
+    }
   }
 
   #endregion

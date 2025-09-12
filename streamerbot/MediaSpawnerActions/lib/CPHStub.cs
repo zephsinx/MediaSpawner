@@ -116,4 +116,77 @@ public static class CPH
     {
         // No-op for development
     }
+
+    /// <summary>
+    /// Sends a raw request to OBS Studio via WebSocket.
+    /// </summary>
+    /// <param name="requestType">The type of OBS request to send</param>
+    /// <param name="data">The JSON data for the request</param>
+    /// <param name="connection">The OBS connection index (default: 0)</param>
+    /// <returns>The response from OBS as a JSON string</returns>
+    public static string ObsSendRaw(string requestType, string data, int connection = 0)
+    {
+        // No-op for development - return empty response
+        return "{}";
+    }
+
+    /// <summary>
+    /// Sends a batch of raw requests to OBS Studio via WebSocket.
+    /// </summary>
+    /// <param name="data">The JSON array of OBS requests to send</param>
+    /// <param name="haltOnFailure">Whether to stop processing if any request fails (default: false)</param>
+    /// <param name="executionType">The execution type for the batch (default: 0)</param>
+    /// <param name="connection">The OBS connection index (default: 0)</param>
+    /// <returns>The response from OBS as a JSON array string</returns>
+    public static string ObsSendBatchRaw(string data, bool haltOnFailure = false, int executionType = 0, int connection = 0)
+    {
+        // No-op for development - return empty response array
+        return "[]";
+    }
+
+    /// <summary>
+    /// Gets the current scene name from OBS Studio.
+    /// </summary>
+    /// <param name="connection">The OBS connection index (default: 0)</param>
+    /// <returns>The current scene name</returns>
+    public static string ObsGetCurrentScene(int connection = 0)
+    {
+        // No-op for development - return default scene
+        return "Default";
+    }
+
+    /// <summary>
+    /// Shows a source in OBS Studio.
+    /// </summary>
+    /// <param name="sourceName">The name of the source to show</param>
+    /// <param name="connection">The OBS connection index (default: 0)</param>
+    /// <returns>True if the source was shown successfully</returns>
+    public static bool ObsShowSource(string sourceName, int connection = 0)
+    {
+        // No-op for development - return success
+        return true;
+    }
+
+    /// <summary>
+    /// Hides a source in OBS Studio.
+    /// </summary>
+    /// <param name="sourceName">The name of the source to hide</param>
+    /// <param name="connection">The OBS connection index (default: 0)</param>
+    /// <returns>True if the source was hidden successfully</returns>
+    public static bool ObsHideSource(string sourceName, int connection = 0)
+    {
+        // No-op for development - return success
+        return true;
+    }
+
+    /// <summary>
+    /// Checks if OBS Studio is connected.
+    /// </summary>
+    /// <param name="connection">The OBS connection index (default: 0)</param>
+    /// <returns>True if OBS is connected</returns>
+    public static bool ObsIsConnected(int connection = 0)
+    {
+        // No-op for development - return connected
+        return true;
+    }
 }
