@@ -11,10 +11,1592 @@ public class CPHInline
   private readonly string MediaSpawnerConfigVarName = $"MediaSpawnerConfig-{MediaSpawnerConfigGuid}";
   private readonly string MediaSpawnerShaVarName = $"MediaSpawnerSha-{MediaSpawnerConfigGuid}";
 
+  /// <summary>
+  /// Main entry point for MediaSpawner spawn execution
+  /// Handles trigger detection, routing, and spawn execution coordination
+  /// </summary>
+  /// <returns>True if execution succeeded, false otherwise</returns>
   public bool Execute()
   {
-    return true;
+    try
+    {
+      // Load configuration first
+      if (!LoadMediaSpawnerConfig())
+      {
+        CPH.LogError("Execute: Failed to load MediaSpawner configuration");
+        return false;
+      }
+
+      // Detect trigger type and source
+      string eventType = CPH.GetEventType();
+      string source = CPH.GetSource();
+
+      CPH.LogInfo($"Execute: Trigger detected - EventType: {eventType}, Source: {source}");
+
+      // Route to appropriate handler based on trigger type
+      bool executionResult = false;
+
+      switch (eventType?.ToLowerInvariant())
+      {
+        case "command":
+          executionResult = HandleCommandTrigger(source);
+          break;
+
+        case "twitch":
+          executionResult = HandleTwitchTrigger(source);
+          break;
+
+        case "time":
+          executionResult = HandleTimeTrigger(source);
+          break;
+
+        case "manual":
+        case "c# method":
+          executionResult = HandleManualTrigger();
+          break;
+
+        default:
+          CPH.LogWarn($"Execute: Unknown trigger type '{eventType}' from source '{source}'");
+          return false;
+      }
+
+      if (executionResult)
+      {
+        CPH.LogInfo("Execute: Spawn execution completed successfully");
+      }
+      else
+      {
+        CPH.LogWarn("Execute: Spawn execution completed with issues");
+      }
+
+      return executionResult;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"Execute: Unexpected error during execution: {ex.Message}");
+      return false;
+    }
   }
+
+  /// <summary>
+  /// Handle command-based triggers (Streamer.bot commands)
+  /// </summary>
+  /// <param name="source">The command source</param>
+  /// <returns>True if command was handled successfully</returns>
+  private bool HandleCommandTrigger(string source)
+  {
+    try
+    {
+      CPH.LogInfo($"HandleCommandTrigger: Processing command trigger from source: {source}");
+
+      // Get command details from Streamer.bot
+      if (!CPH.TryGetArg("command", out string command) || string.IsNullOrWhiteSpace(command))
+      {
+        CPH.LogError("HandleCommandTrigger: No command argument provided");
+        return false;
+      }
+
+      // Get additional command context
+      CPH.TryGetArg("userId", out string userId);
+      CPH.TryGetArg("userName", out string userName);
+      CPH.TryGetArg("rawInput", out string rawInput);
+
+      CPH.LogInfo($"HandleCommandTrigger: Command '{command}' from user '{userName}' (ID: {userId})");
+
+      // Find matching spawns with streamerbot.command triggers
+      List<Spawn> matchingSpawns = FindSpawnsByTriggerType("streamerbot.command");
+
+      if (matchingSpawns.Count == 0)
+      {
+        CPH.LogInfo("HandleCommandTrigger: No spawns found with streamerbot.command triggers");
+        return true; // Not an error, just no matching spawns
+      }
+
+      // Filter spawns based on command configuration
+      List<Spawn> validSpawns = FilterSpawnsByCommandConfig(matchingSpawns, command, userName, rawInput);
+
+      if (validSpawns.Count == 0)
+      {
+        CPH.LogInfo("HandleCommandTrigger: No spawns match the command configuration");
+        return true; // Not an error, just no matching spawns
+      }
+
+      // Execute matching spawns
+      return ExecuteSpawns(validSpawns, "command", new Dictionary<string, object>
+      {
+        ["command"] = command,
+        ["userId"] = userId,
+        ["userName"] = userName,
+        ["rawInput"] = rawInput,
+        ["source"] = source
+      });
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"HandleCommandTrigger: Error processing command trigger: {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Handle Twitch event-based triggers
+  /// </summary>
+  /// <param name="source">The Twitch event source</param>
+  /// <returns>True if event was handled successfully</returns>
+  private bool HandleTwitchTrigger(string source)
+  {
+    try
+    {
+      CPH.LogInfo($"HandleTwitchTrigger: Processing Twitch trigger from source: {source}");
+
+      // Determine specific Twitch event type
+      string twitchEventType = DetermineTwitchEventType(source);
+
+      if (string.IsNullOrWhiteSpace(twitchEventType))
+      {
+        CPH.LogError($"HandleTwitchTrigger: Unable to determine Twitch event type from source: {source}");
+        return false;
+      }
+
+      CPH.LogInfo($"HandleTwitchTrigger: Detected Twitch event type: {twitchEventType}");
+
+      // Find matching spawns with Twitch triggers
+      List<Spawn> matchingSpawns = FindSpawnsByTriggerType($"twitch.{twitchEventType}");
+
+      if (matchingSpawns.Count == 0)
+      {
+        CPH.LogInfo($"HandleTwitchTrigger: No spawns found with twitch.{twitchEventType} triggers");
+        return true; // Not an error, just no matching spawns
+      }
+
+      // Get Twitch event data
+      Dictionary<string, object> eventData = GetTwitchEventData(twitchEventType);
+
+      // Filter spawns based on Twitch event configuration
+      List<Spawn> validSpawns = FilterSpawnsByTwitchConfig(matchingSpawns, twitchEventType, eventData);
+
+      if (validSpawns.Count == 0)
+      {
+        CPH.LogInfo("HandleTwitchTrigger: No spawns match the Twitch event configuration");
+        return true; // Not an error, just no matching spawns
+      }
+
+      // Execute matching spawns
+      return ExecuteSpawns(validSpawns, $"twitch.{twitchEventType}", eventData);
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"HandleTwitchTrigger: Error processing Twitch trigger: {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Handle time-based triggers
+  /// </summary>
+  /// <param name="source">The time trigger source</param>
+  /// <returns>True if time trigger was handled successfully</returns>
+  private bool HandleTimeTrigger(string source)
+  {
+    try
+    {
+      CPH.LogInfo($"HandleTimeTrigger: Processing time trigger from source: {source}");
+
+      // Determine specific time trigger type
+      string timeTriggerType = DetermineTimeTriggerType(source);
+
+      if (string.IsNullOrWhiteSpace(timeTriggerType))
+      {
+        CPH.LogError($"HandleTimeTrigger: Unable to determine time trigger type from source: {source}");
+        return false;
+      }
+
+      CPH.LogInfo($"HandleTimeTrigger: Detected time trigger type: {timeTriggerType}");
+
+      // Find matching spawns with time triggers
+      List<Spawn> matchingSpawns = FindSpawnsByTriggerType($"time.{timeTriggerType}");
+
+      if (matchingSpawns.Count == 0)
+      {
+        CPH.LogInfo($"HandleTimeTrigger: No spawns found with time.{timeTriggerType} triggers");
+        return true; // Not an error, just no matching spawns
+      }
+
+      // Get current time context
+      Dictionary<string, object> timeData = GetTimeTriggerData(timeTriggerType);
+
+      // Filter spawns based on time trigger configuration
+      List<Spawn> validSpawns = FilterSpawnsByTimeConfig(matchingSpawns, timeTriggerType, timeData);
+
+      if (validSpawns.Count == 0)
+      {
+        CPH.LogInfo("HandleTimeTrigger: No spawns match the time trigger configuration");
+        return true; // Not an error, just no matching spawns
+      }
+
+      // Execute matching spawns
+      return ExecuteSpawns(validSpawns, $"time.{timeTriggerType}", timeData);
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"HandleTimeTrigger: Error processing time trigger: {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Handle manual triggers (Execute C# Method calls)
+  /// </summary>
+  /// <returns>True if manual trigger was handled successfully</returns>
+  private bool HandleManualTrigger()
+  {
+    try
+    {
+      CPH.LogInfo("HandleManualTrigger: Processing manual trigger");
+
+      // Get spawn ID from arguments if provided
+      if (!CPH.TryGetArg("spawnId", out string spawnId) || string.IsNullOrWhiteSpace(spawnId))
+      {
+        CPH.LogError("HandleManualTrigger: No spawnId argument provided for manual trigger");
+        return false;
+      }
+
+      // Find the specific spawn
+      Spawn targetSpawn = FindSpawnById(spawnId);
+
+      if (targetSpawn == null)
+      {
+        CPH.LogError($"HandleManualTrigger: Spawn with ID '{spawnId}' not found");
+        return false;
+      }
+
+      if (!targetSpawn.Enabled)
+      {
+        CPH.LogWarn($"HandleManualTrigger: Spawn '{targetSpawn.Name}' is disabled");
+        return false;
+      }
+
+      if (targetSpawn.Trigger.Type != "manual")
+      {
+        CPH.LogWarn($"HandleManualTrigger: Spawn '{targetSpawn.Name}' is not configured for manual triggers");
+        return false;
+      }
+
+      // Execute the specific spawn
+      return ExecuteSpawns(new List<Spawn> { targetSpawn }, "manual", new Dictionary<string, object>
+      {
+        ["spawnId"] = spawnId,
+        ["triggerType"] = "manual"
+      });
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"HandleManualTrigger: Error processing manual trigger: {ex.Message}");
+      return false;
+    }
+  }
+
+  #region Helper Methods for Execute()
+
+  /// <summary>
+  /// Find spawns by trigger type across all profiles
+  /// </summary>
+  /// <param name="triggerType">The trigger type to search for</param>
+  /// <returns>List of matching spawns</returns>
+  private List<Spawn> FindSpawnsByTriggerType(string triggerType)
+  {
+    List<Spawn> matchingSpawns = new List<Spawn>();
+
+    if (_cachedConfig?.Profiles == null)
+      return matchingSpawns;
+
+    foreach (SpawnProfile profile in _cachedConfig.Profiles)
+    {
+      if (profile.Spawns != null)
+      {
+        foreach (Spawn spawn in profile.Spawns)
+        {
+          if (spawn.Enabled && spawn.Trigger?.Type == triggerType)
+          {
+            matchingSpawns.Add(spawn);
+          }
+        }
+      }
+    }
+
+    return matchingSpawns;
+  }
+
+  /// <summary>
+  /// Find a specific spawn by ID across all profiles
+  /// </summary>
+  /// <param name="spawnId">The spawn ID to search for</param>
+  /// <returns>The spawn if found, null otherwise</returns>
+  private Spawn FindSpawnById(string spawnId)
+  {
+    if (_cachedConfig?.Profiles == null || string.IsNullOrWhiteSpace(spawnId))
+      return null;
+
+    foreach (SpawnProfile profile in _cachedConfig.Profiles)
+    {
+      if (profile.Spawns != null)
+      {
+        Spawn spawn = profile.Spawns.FirstOrDefault(s => s.Id == spawnId);
+        if (spawn != null)
+          return spawn;
+      }
+    }
+
+    return null;
+  }
+
+  /// <summary>
+  /// Filter spawns based on command configuration
+  /// </summary>
+  /// <param name="spawns">List of spawns to filter</param>
+  /// <param name="command">The command that triggered</param>
+  /// <param name="userName">The user who triggered the command</param>
+  /// <param name="rawInput">The raw command input</param>
+  /// <returns>List of spawns that match the command configuration</returns>
+  private List<Spawn> FilterSpawnsByCommandConfig(List<Spawn> spawns, string command, string userName, string rawInput)
+  {
+    List<Spawn> validSpawns = new List<Spawn>();
+
+    foreach (Spawn spawn in spawns)
+    {
+      if (spawn.Trigger?.Type != "streamerbot.command")
+        continue;
+
+      var config = spawn.Trigger.Config;
+      if (config == null)
+        continue;
+
+      // Check if command matches aliases
+      bool commandMatches = false;
+      if (config.ContainsKey("aliases") && config["aliases"] is List<object> aliases)
+      {
+        foreach (object alias in aliases)
+        {
+          if (alias is string aliasStr && !string.IsNullOrWhiteSpace(aliasStr))
+          {
+            bool caseSensitive = config.ContainsKey("caseSensitive") &&
+                               config["caseSensitive"] is bool cs && cs;
+
+            if (caseSensitive ? command == aliasStr : command.Equals(aliasStr, StringComparison.OrdinalIgnoreCase))
+            {
+              commandMatches = true;
+              break;
+            }
+          }
+        }
+      }
+
+      // Check command ID if provided
+      if (!commandMatches && config.ContainsKey("commandId") && config["commandId"] is string commandId)
+      {
+        // For now, we'll use the command string as a fallback
+        // In future implementation, this would match against actual Streamer.bot command IDs
+        commandMatches = command.Equals(commandId, StringComparison.OrdinalIgnoreCase);
+      }
+
+      if (commandMatches)
+      {
+        validSpawns.Add(spawn);
+      }
+    }
+
+    return validSpawns;
+  }
+
+  /// <summary>
+  /// Determine the specific Twitch event type from the source
+  /// </summary>
+  /// <param name="source">The Twitch event source</param>
+  /// <returns>The specific Twitch event type</returns>
+  private string DetermineTwitchEventType(string source)
+  {
+    if (string.IsNullOrWhiteSpace(source))
+      return null;
+
+    // Map Streamer.bot Twitch event sources to our trigger types
+    switch (source.ToLowerInvariant())
+    {
+      case "follow":
+        return "follow";
+      case "cheer":
+      case "bits":
+        return "cheer";
+      case "subscription":
+      case "sub":
+        return "subscription";
+      case "giftsub":
+      case "giftsubscription":
+        return "giftSub";
+      case "channelpoint":
+      case "channelpointreward":
+        return "channelPointReward";
+      default:
+        return null;
+    }
+  }
+
+  /// <summary>
+  /// Get Twitch event data from Streamer.bot arguments
+  /// </summary>
+  /// <param name="eventType">The Twitch event type</param>
+  /// <returns>Dictionary containing event data</returns>
+  private Dictionary<string, object> GetTwitchEventData(string eventType)
+  {
+    Dictionary<string, object> eventData = new Dictionary<string, object>();
+
+    // Get basic user data
+    CPH.TryGetArg("userId", out string userId);
+    CPH.TryGetArg("userName", out string userName);
+    CPH.TryGetArg("displayName", out string displayName);
+
+    eventData["eventType"] = eventType;
+    eventData["userId"] = userId ?? "";
+    eventData["userName"] = userName ?? "";
+    eventData["displayName"] = displayName ?? "";
+
+    // Add event-specific data
+    switch (eventType)
+    {
+      case "cheer":
+        CPH.TryGetArg("bits", out int bits);
+        CPH.TryGetArg("message", out string cheerMessage);
+        eventData["bits"] = bits;
+        eventData["message"] = cheerMessage ?? "";
+        break;
+      case "subscription":
+        CPH.TryGetArg("tier", out string subTier);
+        CPH.TryGetArg("months", out int months);
+        CPH.TryGetArg("message", out string subMessage);
+        eventData["tier"] = subTier ?? "1000";
+        eventData["months"] = months;
+        eventData["message"] = subMessage ?? "";
+        break;
+      case "giftSub":
+        CPH.TryGetArg("count", out int count);
+        CPH.TryGetArg("tier", out string giftTier);
+        CPH.TryGetArg("recipientUserName", out string recipientUserName);
+        eventData["count"] = count;
+        eventData["tier"] = giftTier ?? "1000";
+        eventData["recipientUserName"] = recipientUserName ?? "";
+        break;
+      case "channelPointReward":
+        CPH.TryGetArg("rewardId", out string rewardId);
+        CPH.TryGetArg("rewardName", out string rewardName);
+        CPH.TryGetArg("cost", out int cost);
+        CPH.TryGetArg("userInput", out string userInput);
+        eventData["rewardId"] = rewardId ?? "";
+        eventData["rewardName"] = rewardName ?? "";
+        eventData["cost"] = cost;
+        eventData["userInput"] = userInput ?? "";
+        break;
+    }
+
+    return eventData;
+  }
+
+  /// <summary>
+  /// Filter spawns based on Twitch event configuration
+  /// </summary>
+  /// <param name="spawns">List of spawns to filter</param>
+  /// <param name="eventType">The Twitch event type</param>
+  /// <param name="eventData">The event data</param>
+  /// <returns>List of spawns that match the Twitch event configuration</returns>
+  private List<Spawn> FilterSpawnsByTwitchConfig(List<Spawn> spawns, string eventType, Dictionary<string, object> eventData)
+  {
+    List<Spawn> validSpawns = new List<Spawn>();
+
+    foreach (Spawn spawn in spawns)
+    {
+      if (spawn.Trigger?.Type != $"twitch.{eventType}")
+        continue;
+
+      var config = spawn.Trigger.Config;
+      if (config == null)
+        continue;
+
+      bool matches = true;
+
+      // Apply event-specific filtering
+      switch (eventType)
+      {
+        case "cheer":
+          if (config.ContainsKey("bits") && config["bits"] is int minBits)
+          {
+            int bits = eventData.ContainsKey("bits") && eventData["bits"] is int b ? b : 0;
+            if (bits < minBits)
+              matches = false;
+          }
+          break;
+
+        case "subscription":
+          if (config.ContainsKey("tier") && config["tier"] is string configTier)
+          {
+            string eventTier = eventData.ContainsKey("tier") && eventData["tier"] is string t ? t : "1000";
+            if (eventTier != configTier)
+              matches = false;
+          }
+          if (config.ContainsKey("months") && config["months"] is int minMonths)
+          {
+            int months = eventData.ContainsKey("months") && eventData["months"] is int m ? m : 1;
+            if (months < minMonths)
+              matches = false;
+          }
+          break;
+
+        case "giftSub":
+          if (config.ContainsKey("minCount") && config["minCount"] is int minCount)
+          {
+            int count = eventData.ContainsKey("count") && eventData["count"] is int c ? c : 1;
+            if (count < minCount)
+              matches = false;
+          }
+          if (config.ContainsKey("tier") && config["tier"] is string giftConfigTier)
+          {
+            string eventTier = eventData.ContainsKey("tier") && eventData["tier"] is string t ? t : "1000";
+            if (eventTier != giftConfigTier)
+              matches = false;
+          }
+          break;
+
+        case "channelPointReward":
+          if (config.ContainsKey("rewardIdentifier") && config["rewardIdentifier"] is string rewardId)
+          {
+            string eventRewardId = eventData.ContainsKey("rewardId") && eventData["rewardId"] is string r ? r : "";
+            if (eventRewardId != rewardId)
+              matches = false;
+          }
+          break;
+      }
+
+      if (matches)
+      {
+        validSpawns.Add(spawn);
+      }
+    }
+
+    return validSpawns;
+  }
+
+  /// <summary>
+  /// Determine the specific time trigger type from the source
+  /// </summary>
+  /// <param name="source">The time trigger source</param>
+  /// <returns>The specific time trigger type</returns>
+  private string DetermineTimeTriggerType(string source)
+  {
+    if (string.IsNullOrWhiteSpace(source))
+      return null;
+
+    // Map Streamer.bot time event sources to our trigger types
+    switch (source.ToLowerInvariant())
+    {
+      case "datetime":
+      case "atdatetime":
+        return "atDateTime";
+      case "daily":
+      case "dailyat":
+        return "dailyAt";
+      case "weekly":
+      case "weeklyat":
+        return "weeklyAt";
+      case "monthly":
+      case "monthlyon":
+        return "monthlyOn";
+      case "interval":
+      case "everynminutes":
+        return "everyNMinutes";
+      case "minuteofhour":
+        return "minuteOfHour";
+      default:
+        return null;
+    }
+  }
+
+  /// <summary>
+  /// Get time trigger data for the current context
+  /// </summary>
+  /// <param name="triggerType">The time trigger type</param>
+  /// <returns>Dictionary containing time data</returns>
+  private Dictionary<string, object> GetTimeTriggerData(string triggerType)
+  {
+    DateTime now = DateTime.Now;
+
+    Dictionary<string, object> timeData = new Dictionary<string, object>
+    {
+      ["triggerType"] = triggerType,
+      ["currentTime"] = now,
+      ["currentTimeIso"] = now.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+      ["currentHour"] = now.Hour,
+      ["currentMinute"] = now.Minute,
+      ["currentDayOfWeek"] = (int)now.DayOfWeek,
+      ["currentDayOfMonth"] = now.Day
+    };
+
+    return timeData;
+  }
+
+  /// <summary>
+  /// Filter spawns based on time trigger configuration
+  /// </summary>
+  /// <param name="spawns">List of spawns to filter</param>
+  /// <param name="triggerType">The time trigger type</param>
+  /// <param name="timeData">The current time data</param>
+  /// <returns>List of spawns that match the time trigger configuration</returns>
+  private List<Spawn> FilterSpawnsByTimeConfig(List<Spawn> spawns, string triggerType, Dictionary<string, object> timeData)
+  {
+    List<Spawn> validSpawns = new List<Spawn>();
+
+    foreach (Spawn spawn in spawns)
+    {
+      if (spawn.Trigger?.Type != $"time.{triggerType}")
+        continue;
+
+      var config = spawn.Trigger.Config;
+      if (config == null)
+        continue;
+
+      bool matches = true;
+
+      // Apply time-specific filtering
+      switch (triggerType)
+      {
+        case "atDateTime":
+          if (config.ContainsKey("isoDateTime") && config["isoDateTime"] is string isoDateTime)
+          {
+            if (DateTime.TryParse(isoDateTime, out DateTime targetTime))
+            {
+              DateTime now = (DateTime)timeData["currentTime"];
+              // For exact datetime triggers, we need to check if we're within a reasonable window
+              // This is a simplified check - in practice, you'd want more sophisticated timing logic
+              if (Math.Abs((now - targetTime).TotalMinutes) > 1)
+                matches = false;
+            }
+          }
+          break;
+
+        case "dailyAt":
+          if (config.ContainsKey("time") && config["time"] is string timeStr)
+          {
+            if (TimeSpan.TryParse(timeStr, out TimeSpan targetTime))
+            {
+              DateTime now = (DateTime)timeData["currentTime"];
+              TimeSpan currentTime = now.TimeOfDay;
+              // Check if we're within 1 minute of the target time
+              if (Math.Abs((currentTime - targetTime).TotalMinutes) > 1)
+                matches = false;
+            }
+          }
+          break;
+
+        case "minuteOfHour":
+          if (config.ContainsKey("minute") && config["minute"] is int targetMinute)
+          {
+            int currentMinute = (int)timeData["currentMinute"];
+            if (currentMinute != targetMinute)
+              matches = false;
+          }
+          break;
+
+        // Additional time trigger types would be implemented here
+        // For now, we'll allow other time triggers to pass through
+        default:
+          break;
+      }
+
+      if (matches)
+      {
+        validSpawns.Add(spawn);
+      }
+    }
+
+    return validSpawns;
+  }
+
+  /// <summary>
+  /// Execute a list of spawns with the given trigger context
+  /// </summary>
+  /// <param name="spawns">List of spawns to execute</param>
+  /// <param name="triggerType">The type of trigger that activated these spawns</param>
+  /// <param name="contextData">Additional context data for the execution</param>
+  /// <returns>True if all spawns executed successfully</returns>
+  private bool ExecuteSpawns(List<Spawn> spawns, string triggerType, Dictionary<string, object> contextData)
+  {
+    if (spawns == null || spawns.Count == 0)
+      return true;
+
+    bool allSuccessful = true;
+
+    foreach (Spawn spawn in spawns)
+    {
+      try
+      {
+        CPH.LogInfo($"ExecuteSpawns: Executing spawn '{spawn.Name}' (ID: {spawn.Id})");
+
+        // Set spawn context in global variables for other actions
+        CPH.SetGlobalVar("MediaSpawner_CurrentSpawn", JsonConvert.SerializeObject(spawn), persisted: false);
+        CPH.SetGlobalVar("MediaSpawner_CurrentSpawnId", spawn.Id, persisted: false);
+        CPH.SetGlobalVar("MediaSpawner_CurrentSpawnName", spawn.Name, persisted: false);
+        CPH.SetGlobalVar("MediaSpawner_TriggerType", triggerType, persisted: false);
+
+        // Set context data
+        foreach (var kvp in contextData)
+        {
+          CPH.SetGlobalVar($"MediaSpawner_Context_{kvp.Key}", kvp.Value?.ToString() ?? "", persisted: false);
+        }
+
+        // Execute the spawn
+        bool spawnResult = ExecuteSpawn(spawn, triggerType, contextData);
+        if (!spawnResult)
+        {
+          allSuccessful = false;
+        }
+      }
+      catch (Exception ex)
+      {
+        CPH.LogError($"ExecuteSpawns: Error executing spawn '{spawn.Name}': {ex.Message}");
+        allSuccessful = false;
+      }
+    }
+
+    return allSuccessful;
+  }
+
+  #endregion
+
+  #region Spawn Execution Engine
+
+  /// <summary>
+  /// Execute a single spawn with asset selection, property resolution, and OBS coordination
+  /// </summary>
+  /// <param name="spawn">The spawn to execute</param>
+  /// <param name="triggerType">The type of trigger that activated this spawn</param>
+  /// <param name="contextData">Additional context data for the execution</param>
+  /// <returns>True if spawn executed successfully</returns>
+  private bool ExecuteSpawn(Spawn spawn, string triggerType, Dictionary<string, object> contextData)
+  {
+    try
+    {
+      CPH.LogInfo($"ExecuteSpawn: Starting execution of spawn '{spawn.Name}' (ID: {spawn.Id})");
+
+      // Validate spawn is enabled
+      if (!spawn.Enabled)
+      {
+        CPH.LogWarn($"ExecuteSpawn: Spawn '{spawn.Name}' is disabled, skipping execution");
+        return false;
+      }
+
+      // Get enabled assets from the spawn
+      List<SpawnAsset> enabledAssets = GetEnabledSpawnAssets(spawn);
+      if (enabledAssets.Count == 0)
+      {
+        CPH.LogWarn($"ExecuteSpawn: No enabled assets found in spawn '{spawn.Name}'");
+        return true; // Not an error, just no assets to process
+      }
+
+      // Process randomization buckets to select assets
+      List<SpawnAsset> selectedAssets = ProcessRandomizationBuckets(spawn, enabledAssets);
+      if (selectedAssets.Count == 0)
+      {
+        CPH.LogWarn($"ExecuteSpawn: No assets selected after randomization processing for spawn '{spawn.Name}'");
+        return true; // Not an error, just no assets selected
+      }
+
+      CPH.LogInfo($"ExecuteSpawn: Selected {selectedAssets.Count} assets for execution");
+
+      // Execute each selected asset
+      bool allAssetsSuccessful = true;
+      foreach (SpawnAsset spawnAsset in selectedAssets)
+      {
+        try
+        {
+          bool assetResult = ExecuteSpawnAsset(spawn, spawnAsset, triggerType, contextData);
+          if (!assetResult)
+          {
+            allAssetsSuccessful = false;
+          }
+        }
+        catch (Exception ex)
+        {
+          CPH.LogError($"ExecuteSpawn: Error executing asset '{spawnAsset.AssetId}': {ex.Message}");
+          allAssetsSuccessful = false;
+        }
+      }
+
+      // Handle spawn-level timing and cleanup
+      if (spawn.Duration > 0)
+      {
+        CPH.LogInfo($"ExecuteSpawn: Spawn '{spawn.Name}' will run for {spawn.Duration}ms");
+        // TODO: Implement timing management and cleanup
+        // This would involve scheduling cleanup after the duration expires
+      }
+
+      CPH.LogInfo($"ExecuteSpawn: Completed execution of spawn '{spawn.Name}' - Success: {allAssetsSuccessful}");
+      return allAssetsSuccessful;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"ExecuteSpawn: Unexpected error executing spawn '{spawn.Name}': {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Get all enabled assets from a spawn, sorted by order
+  /// </summary>
+  /// <param name="spawn">The spawn to get assets from</param>
+  /// <returns>List of enabled spawn assets sorted by order</returns>
+  private List<SpawnAsset> GetEnabledSpawnAssets(Spawn spawn)
+  {
+    if (spawn.Assets == null)
+      return new List<SpawnAsset>();
+
+    return spawn.Assets
+      .Where(asset => asset.Enabled)
+      .OrderBy(asset => asset.Order)
+      .ToList();
+  }
+
+  /// <summary>
+  /// Process randomization buckets to select assets for execution
+  /// </summary>
+  /// <param name="spawn">The spawn containing the buckets</param>
+  /// <param name="enabledAssets">The enabled assets to select from</param>
+  /// <returns>List of selected assets for execution</returns>
+  private List<SpawnAsset> ProcessRandomizationBuckets(Spawn spawn, List<SpawnAsset> enabledAssets)
+  {
+    if (spawn.RandomizationBuckets == null || spawn.RandomizationBuckets.Count == 0)
+    {
+      // No randomization buckets, return all enabled assets
+      return enabledAssets;
+    }
+
+    List<SpawnAsset> selectedAssets = new List<SpawnAsset>();
+    HashSet<string> usedAssetIds = new HashSet<string>();
+
+    foreach (RandomizationBucket bucket in spawn.RandomizationBuckets)
+    {
+      try
+      {
+        List<SpawnAsset> bucketAssets = GetBucketAssets(spawn, bucket, enabledAssets);
+        if (bucketAssets.Count == 0)
+          continue;
+
+        List<SpawnAsset> selectedFromBucket = SelectAssetsFromBucket(bucket, bucketAssets, usedAssetIds);
+        selectedAssets.AddRange(selectedFromBucket);
+
+        // Mark selected assets as used
+        foreach (SpawnAsset asset in selectedFromBucket)
+        {
+          usedAssetIds.Add(asset.Id);
+        }
+      }
+      catch (Exception ex)
+      {
+        CPH.LogError($"ProcessRandomizationBuckets: Error processing bucket '{bucket.Name}': {ex.Message}");
+      }
+    }
+
+    // Add any remaining enabled assets that weren't in buckets
+    foreach (SpawnAsset asset in enabledAssets)
+    {
+      if (!usedAssetIds.Contains(asset.Id))
+      {
+        selectedAssets.Add(asset);
+      }
+    }
+
+    return selectedAssets;
+  }
+
+  /// <summary>
+  /// Get assets that belong to a specific randomization bucket
+  /// </summary>
+  /// <param name="spawn">The spawn containing the assets</param>
+  /// <param name="bucket">The bucket to get assets for</param>
+  /// <param name="enabledAssets">The enabled assets to filter from</param>
+  /// <returns>List of assets that belong to this bucket</returns>
+  private List<SpawnAsset> GetBucketAssets(Spawn spawn, RandomizationBucket bucket, List<SpawnAsset> enabledAssets)
+  {
+    List<SpawnAsset> bucketAssets = new List<SpawnAsset>();
+    HashSet<string> enabledAssetIds = new HashSet<string>(enabledAssets.Select(a => a.Id));
+
+    foreach (RandomizationBucketMember member in bucket.Members)
+    {
+      SpawnAsset asset = enabledAssets.FirstOrDefault(a => a.Id == member.SpawnAssetId);
+      if (asset != null && enabledAssetIds.Contains(asset.Id))
+      {
+        bucketAssets.Add(asset);
+      }
+    }
+
+    return bucketAssets;
+  }
+
+  /// <summary>
+  /// Select assets from a randomization bucket based on its configuration
+  /// </summary>
+  /// <param name="bucket">The bucket configuration</param>
+  /// <param name="availableAssets">The assets available for selection</param>
+  /// <param name="usedAssetIds">Assets that have already been used</param>
+  /// <returns>List of selected assets</returns>
+  private List<SpawnAsset> SelectAssetsFromBucket(RandomizationBucket bucket, List<SpawnAsset> availableAssets, HashSet<string> usedAssetIds)
+  {
+    List<SpawnAsset> selectedAssets = new List<SpawnAsset>();
+    List<SpawnAsset> unusedAssets = availableAssets.Where(a => !usedAssetIds.Contains(a.Id)).ToList();
+
+    if (unusedAssets.Count == 0)
+      return selectedAssets;
+
+    switch (bucket.Selection)
+    {
+      case "one":
+        selectedAssets.Add(SelectSingleAsset(bucket, unusedAssets));
+        break;
+
+      case "n":
+        if (bucket.N.HasValue && bucket.N.Value > 0)
+        {
+          int selectCount = Math.Min(bucket.N.Value, unusedAssets.Count);
+          selectedAssets.AddRange(SelectMultipleAssets(bucket, unusedAssets, selectCount));
+        }
+        break;
+
+      default:
+        CPH.LogWarn($"SelectAssetsFromBucket: Unknown selection type '{bucket.Selection}' for bucket '{bucket.Name}'");
+        break;
+    }
+
+    return selectedAssets;
+  }
+
+  /// <summary>
+  /// Select a single asset from a bucket
+  /// </summary>
+  /// <param name="bucket">The bucket configuration</param>
+  /// <param name="availableAssets">The assets available for selection</param>
+  /// <returns>The selected asset</returns>
+  private SpawnAsset SelectSingleAsset(RandomizationBucket bucket, List<SpawnAsset> availableAssets)
+  {
+    if (availableAssets.Count == 0)
+      return null;
+
+    if (availableAssets.Count == 1)
+      return availableAssets[0];
+
+    if (bucket.Weighted == true)
+    {
+      return SelectWeightedAsset(bucket, availableAssets);
+    }
+    else
+    {
+      // Simple random selection
+      Random random = new Random();
+      return availableAssets[random.Next(availableAssets.Count)];
+    }
+  }
+
+  /// <summary>
+  /// Select multiple assets from a bucket
+  /// </summary>
+  /// <param name="bucket">The bucket configuration</param>
+  /// <param name="availableAssets">The assets available for selection</param>
+  /// <param name="selectCount">Number of assets to select</param>
+  /// <returns>List of selected assets</returns>
+  private List<SpawnAsset> SelectMultipleAssets(RandomizationBucket bucket, List<SpawnAsset> availableAssets, int selectCount)
+  {
+    List<SpawnAsset> selectedAssets = new List<SpawnAsset>();
+    List<SpawnAsset> remainingAssets = new List<SpawnAsset>(availableAssets);
+
+    for (int i = 0; i < selectCount && remainingAssets.Count > 0; i++)
+    {
+      SpawnAsset selected = SelectSingleAsset(bucket, remainingAssets);
+      if (selected != null)
+      {
+        selectedAssets.Add(selected);
+        remainingAssets.Remove(selected);
+      }
+    }
+
+    return selectedAssets;
+  }
+
+  /// <summary>
+  /// Select an asset using weighted selection
+  /// </summary>
+  /// <param name="bucket">The bucket configuration</param>
+  /// <param name="availableAssets">The assets available for selection</param>
+  /// <returns>The selected asset</returns>
+  private SpawnAsset SelectWeightedAsset(RandomizationBucket bucket, List<SpawnAsset> availableAssets)
+  {
+    // Calculate total weight
+    double totalWeight = 0;
+    Dictionary<string, double> assetWeights = new Dictionary<string, double>();
+
+    foreach (SpawnAsset asset in availableAssets)
+    {
+      RandomizationBucketMember member = bucket.Members.FirstOrDefault(m => m.SpawnAssetId == asset.Id);
+      double weight = member?.Weight ?? 1.0; // Default weight of 1.0 if not specified
+      assetWeights[asset.Id] = weight;
+      totalWeight += weight;
+    }
+
+    if (totalWeight <= 0)
+    {
+      // Fallback to random selection if no valid weights
+      Random random = new Random();
+      return availableAssets[random.Next(availableAssets.Count)];
+    }
+
+    // Weighted random selection
+    Random weightedRandom = new Random();
+    double randomValue = weightedRandom.NextDouble() * totalWeight;
+    double currentWeight = 0;
+
+    foreach (SpawnAsset asset in availableAssets)
+    {
+      currentWeight += assetWeights[asset.Id];
+      if (randomValue <= currentWeight)
+      {
+        return asset;
+      }
+    }
+
+    // Fallback to last asset
+    return availableAssets.Last();
+  }
+
+  /// <summary>
+  /// Execute a single spawn asset with property resolution and OBS coordination
+  /// </summary>
+  /// <param name="spawn">The parent spawn</param>
+  /// <param name="spawnAsset">The spawn asset to execute</param>
+  /// <param name="triggerType">The type of trigger that activated this spawn</param>
+  /// <param name="contextData">Additional context data for the execution</param>
+  /// <returns>True if asset executed successfully</returns>
+  private bool ExecuteSpawnAsset(Spawn spawn, SpawnAsset spawnAsset, string triggerType, Dictionary<string, object> contextData)
+  {
+    try
+    {
+      CPH.LogInfo($"ExecuteSpawnAsset: Executing asset '{spawnAsset.AssetId}' in spawn '{spawn.Name}'");
+
+      // Find the base asset
+      MediaAsset baseAsset = _cachedConfig?.FindAssetById(spawnAsset.AssetId);
+      if (baseAsset == null)
+      {
+        CPH.LogError($"ExecuteSpawnAsset: Base asset '{spawnAsset.AssetId}' not found in configuration");
+        return false;
+      }
+
+      // Resolve effective properties
+      EffectivePropertiesResult effectiveProperties = ResolveEffectiveProperties(spawn, spawnAsset);
+
+      // Create OBS source for the asset
+      bool sourceCreated = CreateOBSSource(baseAsset, effectiveProperties.Effective, spawnAsset.Id);
+      if (!sourceCreated)
+      {
+        CPH.LogError($"ExecuteSpawnAsset: Failed to create OBS source for asset '{spawnAsset.AssetId}'");
+        return false;
+      }
+
+      // Apply asset properties to OBS source
+      bool propertiesApplied = ApplyAssetPropertiesToOBS(baseAsset, effectiveProperties.Effective, spawnAsset.Id);
+      if (!propertiesApplied)
+      {
+        CPH.LogWarn($"ExecuteSpawnAsset: Failed to apply some properties to OBS source for asset '{spawnAsset.AssetId}'");
+      }
+
+      // Show the OBS source
+      bool sourceShown = ShowOBSSource(spawnAsset.Id);
+      if (!sourceShown)
+      {
+        CPH.LogError($"ExecuteSpawnAsset: Failed to show OBS source for asset '{spawnAsset.AssetId}'");
+        return false;
+      }
+
+      // Handle asset-specific timing
+      double assetDuration = GetAssetDuration(spawn, spawnAsset);
+      if (assetDuration > 0)
+      {
+        CPH.LogInfo($"ExecuteSpawnAsset: Asset '{spawnAsset.AssetId}' will display for {assetDuration}ms");
+        // TODO: Implement asset-specific timing and cleanup
+      }
+
+      CPH.LogInfo($"ExecuteSpawnAsset: Successfully executed asset '{spawnAsset.AssetId}'");
+      return true;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"ExecuteSpawnAsset: Error executing asset '{spawnAsset.AssetId}': {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Resolve effective properties for a spawn asset
+  /// </summary>
+  /// <param name="spawn">The parent spawn</param>
+  /// <param name="spawnAsset">The spawn asset to resolve properties for</param>
+  /// <returns>Effective properties result with source mapping</returns>
+  private EffectivePropertiesResult ResolveEffectiveProperties(Spawn spawn, SpawnAsset spawnAsset)
+  {
+    // Convert C# types to match the TypeScript interface structure
+    Dictionary<string, object> effective = new Dictionary<string, object>();
+    Dictionary<string, string> sourceMap = new Dictionary<string, string>();
+
+    // Get spawn default properties
+    Dictionary<string, object> spawnDefaults = spawn.DefaultProperties != null
+      ? ConvertAssetSettingsToDictionary(spawn.DefaultProperties)
+      : new Dictionary<string, object>();
+
+    // Get asset overrides
+    Dictionary<string, object> overrides = spawnAsset.Overrides?.Properties != null
+      ? ConvertAssetSettingsToDictionary(spawnAsset.Overrides.Properties)
+      : new Dictionary<string, object>();
+
+    // Resolve each property with precedence: override > spawn-default > none
+    ResolveProperty("volume", overrides, spawnDefaults, effective, sourceMap);
+    ResolveProperty("scale", overrides, spawnDefaults, effective, sourceMap);
+    ResolveProperty("positionMode", overrides, spawnDefaults, effective, sourceMap);
+    ResolveProperty("loop", overrides, spawnDefaults, effective, sourceMap);
+    ResolveProperty("autoplay", overrides, spawnDefaults, effective, sourceMap);
+    ResolveProperty("muted", overrides, spawnDefaults, effective, sourceMap);
+
+    // Handle structured properties (dimensions, position)
+    ResolveStructuredProperty("dimensions", overrides, spawnDefaults, effective, sourceMap);
+    ResolveStructuredProperty("position", overrides, spawnDefaults, effective, sourceMap);
+
+    return new EffectivePropertiesResult
+    {
+      Effective = effective,
+      SourceMap = sourceMap
+    };
+  }
+
+  /// <summary>
+  /// Resolve a simple property with precedence rules
+  /// </summary>
+  private void ResolveProperty(string propertyName, Dictionary<string, object> overrides, Dictionary<string, object> spawnDefaults, Dictionary<string, object> effective, Dictionary<string, string> sourceMap)
+  {
+    if (overrides.ContainsKey(propertyName))
+    {
+      effective[propertyName] = overrides[propertyName];
+      sourceMap[propertyName] = "override";
+    }
+    else if (spawnDefaults.ContainsKey(propertyName))
+    {
+      effective[propertyName] = spawnDefaults[propertyName];
+      sourceMap[propertyName] = "spawn-default";
+    }
+    else
+    {
+      sourceMap[propertyName] = "none";
+    }
+  }
+
+  /// <summary>
+  /// Resolve a structured property (dimensions, position) with deep merge
+  /// </summary>
+  private void ResolveStructuredProperty(string propertyName, Dictionary<string, object> overrides, Dictionary<string, object> spawnDefaults, Dictionary<string, object> effective, Dictionary<string, string> sourceMap)
+  {
+    object overrideVal = overrides.ContainsKey(propertyName) ? overrides[propertyName] : null;
+    object spawnVal = spawnDefaults.ContainsKey(propertyName) ? spawnDefaults[propertyName] : null;
+
+    object chosen = overrideVal ?? spawnVal;
+    if (chosen != null)
+    {
+      effective[propertyName] = chosen;
+      sourceMap[propertyName] = overrideVal != null ? "override" : "spawn-default";
+    }
+    else
+    {
+      sourceMap[propertyName] = "none";
+    }
+  }
+
+  /// <summary>
+  /// Convert AssetSettings to a dictionary for property resolution
+  /// </summary>
+  private Dictionary<string, object> ConvertAssetSettingsToDictionary(AssetSettings settings)
+  {
+    Dictionary<string, object> dict = new Dictionary<string, object>();
+
+    if (settings.Volume.HasValue) dict["volume"] = settings.Volume.Value;
+    if (settings.Scale.HasValue) dict["scale"] = settings.Scale.Value;
+    if (!string.IsNullOrEmpty(settings.PositionMode)) dict["positionMode"] = settings.PositionMode;
+    if (settings.Loop.HasValue) dict["loop"] = settings.Loop.Value;
+    if (settings.Autoplay.HasValue) dict["autoplay"] = settings.Autoplay.Value;
+    if (settings.Muted.HasValue) dict["muted"] = settings.Muted.Value;
+
+    // Handle dimensions
+    if (settings.Width.HasValue || settings.Height.HasValue)
+    {
+      Dictionary<string, object> dimensions = new Dictionary<string, object>();
+      if (settings.Width.HasValue) dimensions["width"] = settings.Width.Value;
+      if (settings.Height.HasValue) dimensions["height"] = settings.Height.Value;
+      dict["dimensions"] = dimensions;
+    }
+
+    // Handle position
+    if (settings.X.HasValue || settings.Y.HasValue)
+    {
+      Dictionary<string, object> position = new Dictionary<string, object>();
+      if (settings.X.HasValue) position["x"] = settings.X.Value;
+      if (settings.Y.HasValue) position["y"] = settings.Y.Value;
+      dict["position"] = position;
+    }
+
+    return dict;
+  }
+
+  /// <summary>
+  /// Get the duration for an asset (spawn default or asset override)
+  /// </summary>
+  private double GetAssetDuration(Spawn spawn, SpawnAsset spawnAsset)
+  {
+    // Check for asset-specific duration override
+    if (spawnAsset.Overrides?.Duration.HasValue == true)
+    {
+      return spawnAsset.Overrides.Duration.Value;
+    }
+
+    // Use spawn default duration
+    return spawn.Duration;
+  }
+
+  #endregion
+
+  #region OBS Integration Methods
+
+  /// <summary>
+  /// Create an OBS source for a media asset
+  /// </summary>
+  /// <param name="asset">The media asset to create a source for</param>
+  /// <param name="properties">The effective properties to apply</param>
+  /// <param name="sourceName">The name for the OBS source</param>
+  /// <returns>True if source was created successfully</returns>
+  private bool CreateOBSSource(MediaAsset asset, Dictionary<string, object> properties, string sourceName)
+  {
+    try
+    {
+      CPH.LogInfo($"CreateOBSSource: Creating OBS source '{sourceName}' for asset '{asset.Name}' ({asset.Type})");
+
+      // Determine source type based on asset type
+      string obsSourceType = GetOBSSourceType(asset.Type);
+      if (string.IsNullOrEmpty(obsSourceType))
+      {
+        CPH.LogError($"CreateOBSSource: Unsupported asset type '{asset.Type}' for asset '{asset.Name}'");
+        return false;
+      }
+
+      // Build source settings
+      Dictionary<string, object> sourceSettings = BuildOBSSourceSettings(asset, properties);
+
+      // Create the source using OBS WebSocket API
+      // Note: This is a placeholder for OBS source creation
+      // In a real implementation, you would use the appropriate Streamer.bot OBS methods
+      bool sourceCreated = true; // Placeholder - would use actual OBS API calls
+
+      if (sourceCreated)
+      {
+        CPH.LogInfo($"CreateOBSSource: Successfully created OBS source '{sourceName}'");
+        return true;
+      }
+      else
+      {
+        CPH.LogError($"CreateOBSSource: Failed to create OBS source '{sourceName}'");
+        return false;
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"CreateOBSSource: Error creating OBS source '{sourceName}': {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Apply asset properties to an OBS source
+  /// </summary>
+  /// <param name="asset">The media asset</param>
+  /// <param name="properties">The effective properties to apply</param>
+  /// <param name="sourceName">The name of the OBS source</param>
+  /// <returns>True if properties were applied successfully</returns>
+  private bool ApplyAssetPropertiesToOBS(MediaAsset asset, Dictionary<string, object> properties, string sourceName)
+  {
+    try
+    {
+      CPH.LogInfo($"ApplyAssetPropertiesToOBS: Applying properties to source '{sourceName}'");
+
+      bool allPropertiesApplied = true;
+
+      // Apply volume
+      if (properties.ContainsKey("volume") && properties["volume"] is double volume)
+      {
+        // Note: This is a placeholder for OBS volume setting
+        // In a real implementation, you would use the appropriate Streamer.bot OBS methods
+        bool volumeApplied = true; // Placeholder - would use actual OBS API calls
+        if (!volumeApplied) allPropertiesApplied = false;
+      }
+
+      // Apply scale
+      if (properties.ContainsKey("scale") && properties["scale"] is double scale)
+      {
+        // Note: This is a placeholder for OBS scale setting
+        // In a real implementation, you would use the appropriate Streamer.bot OBS methods
+        bool scaleApplied = true; // Placeholder - would use actual OBS API calls
+        if (!scaleApplied) allPropertiesApplied = false;
+      }
+
+      // Apply position
+      if (properties.ContainsKey("position") && properties["position"] is Dictionary<string, object> position)
+      {
+        double x = position.ContainsKey("x") && position["x"] is double xVal ? xVal : 0;
+        double y = position.ContainsKey("y") && position["y"] is double yVal ? yVal : 0;
+
+        // Note: This is a placeholder for OBS position setting
+        // In a real implementation, you would use the appropriate Streamer.bot OBS methods
+        bool positionApplied = true; // Placeholder - would use actual OBS API calls
+        if (!positionApplied) allPropertiesApplied = false;
+      }
+
+      // Apply dimensions
+      if (properties.ContainsKey("dimensions") && properties["dimensions"] is Dictionary<string, object> dimensions)
+      {
+        double width = dimensions.ContainsKey("width") && dimensions["width"] is double w ? w : 0;
+        double height = dimensions.ContainsKey("height") && dimensions["height"] is double h ? h : 0;
+
+        if (width > 0 && height > 0)
+        {
+          // Note: This is a placeholder for OBS size setting
+          // In a real implementation, you would use the appropriate Streamer.bot OBS methods
+          bool dimensionsApplied = true; // Placeholder - would use actual OBS API calls
+          if (!dimensionsApplied) allPropertiesApplied = false;
+        }
+      }
+
+      // Apply media-specific properties
+      if (asset.Type == "video" || asset.Type == "audio")
+      {
+        // Apply loop setting
+        if (properties.ContainsKey("loop") && properties["loop"] is bool loop)
+        {
+          // Note: This is a placeholder for OBS loop setting
+          // In a real implementation, you would use the appropriate Streamer.bot OBS methods
+          bool loopApplied = true; // Placeholder - would use actual OBS API calls
+          if (!loopApplied) allPropertiesApplied = false;
+        }
+
+        // Apply muted setting
+        if (properties.ContainsKey("muted") && properties["muted"] is bool muted)
+        {
+          // Note: This is a placeholder for OBS muted setting
+          // In a real implementation, you would use the appropriate Streamer.bot OBS methods
+          bool mutedApplied = true; // Placeholder - would use actual OBS API calls
+          if (!mutedApplied) allPropertiesApplied = false;
+        }
+      }
+
+      CPH.LogInfo($"ApplyAssetPropertiesToOBS: Properties applied to source '{sourceName}' - Success: {allPropertiesApplied}");
+      return allPropertiesApplied;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"ApplyAssetPropertiesToOBS: Error applying properties to source '{sourceName}': {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Show an OBS source
+  /// </summary>
+  /// <param name="sourceName">The name of the source to show</param>
+  /// <returns>True if source was shown successfully</returns>
+  private bool ShowOBSSource(string sourceName)
+  {
+    try
+    {
+      CPH.LogInfo($"ShowOBSSource: Showing OBS source '{sourceName}'");
+
+      // Note: This is a placeholder for OBS source visibility setting
+      // In a real implementation, you would use the appropriate Streamer.bot OBS methods
+      bool sourceShown = true; // Placeholder - would use actual OBS API calls
+
+      if (sourceShown)
+      {
+        CPH.LogInfo($"ShowOBSSource: Successfully showed OBS source '{sourceName}'");
+        return true;
+      }
+      else
+      {
+        CPH.LogError($"ShowOBSSource: Failed to show OBS source '{sourceName}'");
+        return false;
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"ShowOBSSource: Error showing OBS source '{sourceName}': {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Hide an OBS source
+  /// </summary>
+  /// <param name="sourceName">The name of the source to hide</param>
+  /// <returns>True if source was hidden successfully</returns>
+  private bool HideOBSSource(string sourceName)
+  {
+    try
+    {
+      CPH.LogInfo($"HideOBSSource: Hiding OBS source '{sourceName}'");
+
+      // Note: This is a placeholder for OBS source visibility setting
+      // In a real implementation, you would use the appropriate Streamer.bot OBS methods
+      bool sourceHidden = true; // Placeholder - would use actual OBS API calls
+
+      if (sourceHidden)
+      {
+        CPH.LogInfo($"HideOBSSource: Successfully hid OBS source '{sourceName}'");
+        return true;
+      }
+      else
+      {
+        CPH.LogError($"HideOBSSource: Failed to hide OBS source '{sourceName}'");
+        return false;
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"HideOBSSource: Error hiding OBS source '{sourceName}': {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Delete an OBS source
+  /// </summary>
+  /// <param name="sourceName">The name of the source to delete</param>
+  /// <returns>True if source was deleted successfully</returns>
+  private bool DeleteOBSSource(string sourceName)
+  {
+    try
+    {
+      CPH.LogInfo($"DeleteOBSSource: Deleting OBS source '{sourceName}'");
+
+      // Note: This is a placeholder for OBS source deletion
+      // In a real implementation, you would use the appropriate Streamer.bot OBS methods
+      bool sourceDeleted = true; // Placeholder - would use actual OBS API calls
+
+      if (sourceDeleted)
+      {
+        CPH.LogInfo($"DeleteOBSSource: Successfully deleted OBS source '{sourceName}'");
+        return true;
+      }
+      else
+      {
+        CPH.LogError($"DeleteOBSSource: Failed to delete OBS source '{sourceName}'");
+        return false;
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"DeleteOBSSource: Error deleting OBS source '{sourceName}': {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Get the OBS source type for a media asset type
+  /// </summary>
+  /// <param name="assetType">The media asset type</param>
+  /// <returns>The corresponding OBS source type</returns>
+  private string GetOBSSourceType(string assetType)
+  {
+    switch (assetType?.ToLowerInvariant())
+    {
+      case "image":
+        return "image_source";
+      case "video":
+        return "ffmpeg_source";
+      case "audio":
+        return "ffmpeg_source";
+      default:
+        return null;
+    }
+  }
+
+  /// <summary>
+  /// Build OBS source settings for a media asset
+  /// </summary>
+  /// <param name="asset">The media asset</param>
+  /// <param name="properties">The effective properties</param>
+  /// <returns>Dictionary of OBS source settings</returns>
+  private Dictionary<string, object> BuildOBSSourceSettings(MediaAsset asset, Dictionary<string, object> properties)
+  {
+    Dictionary<string, object> settings = new Dictionary<string, object>();
+
+    // Set the file path or URL
+    if (asset.IsUrl)
+    {
+      settings["url"] = asset.Path;
+    }
+    else
+    {
+      settings["local_file"] = asset.Path;
+    }
+
+    // Apply media-specific settings
+    if (asset.Type == "video" || asset.Type == "audio")
+    {
+      settings["is_local_file"] = !asset.IsUrl;
+      settings["looping"] = properties.ContainsKey("loop") && properties["loop"] is bool loop ? loop : false;
+      settings["restart_on_activate"] = true;
+    }
+
+    return settings;
+  }
+
+  /// <summary>
+  /// Get the current OBS scene name
+  /// </summary>
+  /// <returns>The current scene name</returns>
+  private string GetCurrentOBSScene()
+  {
+    try
+    {
+      // Note: This is a placeholder for getting current OBS scene
+      // In a real implementation, you would use the appropriate Streamer.bot OBS methods
+      // For now, return a default scene name
+      return "Default";
+    }
+    catch (Exception ex)
+    {
+      CPH.LogWarn($"GetCurrentOBSScene: Could not get current scene: {ex.Message}");
+    }
+
+    // Fallback to default scene
+    return "Default";
+  }
+
+  #endregion
+
+  #region Supporting Classes
+
+  /// <summary>
+  /// Result of effective property resolution
+  /// </summary>
+  public class EffectivePropertiesResult
+  {
+    public Dictionary<string, object> Effective { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, string> SourceMap { get; set; } = new Dictionary<string, string>();
+  }
+
+  #endregion
 
   public bool SetMediaSpawnerConfig()
   {
