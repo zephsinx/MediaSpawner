@@ -100,6 +100,8 @@ public class CPHInline
       CPH.TryGetArg("userId", out string userId);
       CPH.TryGetArg("userName", out string userName);
       CPH.TryGetArg("rawInput", out string rawInput);
+      CPH.TryGetArg("isInternal", out bool isInternal);
+      CPH.TryGetArg("isBotAccount", out bool isBotAccount);
 
       CPH.LogInfo($"HandleCommandTrigger: Command '{command}' from user '{userName}' (ID: {userId})");
 
@@ -113,7 +115,7 @@ public class CPHInline
       }
 
       // Filter spawns based on command configuration
-      List<Spawn> validSpawns = FilterSpawnsByCommandConfig(matchingSpawns, command, userName, rawInput);
+      List<Spawn> validSpawns = FilterSpawnsByCommandConfig(matchingSpawns, command, userName, rawInput, isInternal, isBotAccount);
 
       if (validSpawns.Count == 0)
       {
@@ -121,15 +123,50 @@ public class CPHInline
         return true; // Not an error, just no matching spawns
       }
 
+      // Validate each spawn before execution
+      List<Spawn> executableSpawns = new List<Spawn>();
+      foreach (Spawn spawn in validSpawns)
+      {
+        ValidationResult spawnValidation = ValidateSpawnForExecution(spawn, "streamerbot.command");
+        if (spawnValidation.IsValid && HasEnabledAssets(spawn) && !IsSpawnOnCooldown(spawn))
+        {
+          executableSpawns.Add(spawn);
+        }
+        else
+        {
+          CPH.LogWarn($"HandleCommandTrigger: Skipping spawn '{spawn.Name}' - validation failed or on cooldown");
+        }
+      }
+
+      if (executableSpawns.Count == 0)
+      {
+        CPH.LogInfo("HandleCommandTrigger: No spawns are ready for execution after validation");
+        return true; // Not an error, just no ready spawns
+      }
+
       // Execute matching spawns
-      return ExecuteSpawns(validSpawns, "command", new Dictionary<string, object>
+      bool executionResult = ExecuteSpawns(executableSpawns, "command", new Dictionary<string, object>
       {
         ["command"] = command,
         ["userId"] = userId,
         ["userName"] = userName,
         ["rawInput"] = rawInput,
-        ["source"] = source
+        ["source"] = source,
+        ["isInternal"] = isInternal,
+        ["isBotAccount"] = isBotAccount,
+        ["executionTime"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
       });
+
+      // Update cooldowns for successfully executed spawns
+      if (executionResult)
+      {
+        foreach (Spawn spawn in executableSpawns)
+        {
+          UpdateSpawnCooldown(spawn);
+        }
+      }
+
+      return executionResult;
     }
     catch (Exception ex)
     {
@@ -181,8 +218,48 @@ public class CPHInline
         return true; // Not an error, just no matching spawns
       }
 
+      // Validate each spawn before execution
+      List<Spawn> executableSpawns = new List<Spawn>();
+      foreach (Spawn spawn in validSpawns)
+      {
+        ValidationResult spawnValidation = ValidateSpawnForExecution(spawn, $"twitch.{twitchEventType}");
+        if (spawnValidation.IsValid && HasEnabledAssets(spawn) && !IsSpawnOnCooldown(spawn))
+        {
+          // Additional Twitch-specific validation
+          if (ValidateTwitchEventConditions(spawn, twitchEventType, eventData))
+          {
+            executableSpawns.Add(spawn);
+          }
+          else
+          {
+            CPH.LogInfo($"HandleTwitchTrigger: Spawn '{spawn.Name}' failed Twitch-specific validation");
+          }
+        }
+        else
+        {
+          CPH.LogWarn($"HandleTwitchTrigger: Skipping spawn '{spawn.Name}' - validation failed or on cooldown");
+        }
+      }
+
+      if (executableSpawns.Count == 0)
+      {
+        CPH.LogInfo("HandleTwitchTrigger: No spawns are ready for execution after validation");
+        return true; // Not an error, just no ready spawns
+      }
+
       // Execute matching spawns
-      return ExecuteSpawns(validSpawns, $"twitch.{twitchEventType}", eventData);
+      bool executionResult = ExecuteSpawns(executableSpawns, $"twitch.{twitchEventType}", eventData);
+
+      // Update cooldowns for successfully executed spawns
+      if (executionResult)
+      {
+        foreach (Spawn spawn in executableSpawns)
+        {
+          UpdateSpawnCooldown(spawn);
+        }
+      }
+
+      return executionResult;
     }
     catch (Exception ex)
     {
@@ -222,7 +299,7 @@ public class CPHInline
         return true; // Not an error, just no matching spawns
       }
 
-      // Get current time context
+      // Get current time context with timezone support
       Dictionary<string, object> timeData = GetTimeTriggerData(timeTriggerType);
 
       // Filter spawns based on time trigger configuration
@@ -234,8 +311,40 @@ public class CPHInline
         return true; // Not an error, just no matching spawns
       }
 
+      // Validate each spawn before execution
+      List<Spawn> executableSpawns = new List<Spawn>();
+      foreach (Spawn spawn in validSpawns)
+      {
+        ValidationResult spawnValidation = ValidateSpawnForExecution(spawn, $"time.{timeTriggerType}");
+        if (spawnValidation.IsValid && HasEnabledAssets(spawn) && !IsSpawnOnCooldown(spawn))
+        {
+          executableSpawns.Add(spawn);
+        }
+        else
+        {
+          CPH.LogWarn($"HandleTimeTrigger: Skipping spawn '{spawn.Name}' - validation failed or on cooldown");
+        }
+      }
+
+      if (executableSpawns.Count == 0)
+      {
+        CPH.LogInfo("HandleTimeTrigger: No spawns are ready for execution after validation");
+        return true; // Not an error, just no ready spawns
+      }
+
       // Execute matching spawns
-      return ExecuteSpawns(validSpawns, $"time.{timeTriggerType}", timeData);
+      bool executionResult = ExecuteSpawns(executableSpawns, $"time.{timeTriggerType}", timeData);
+
+      // Update cooldowns for successfully executed spawns
+      if (executionResult)
+      {
+        foreach (Spawn spawn in executableSpawns)
+        {
+          UpdateSpawnCooldown(spawn);
+        }
+      }
+
+      return executionResult;
     }
     catch (Exception ex)
     {
@@ -261,12 +370,27 @@ public class CPHInline
         return false;
       }
 
+      // Validate spawn ID format
+      if (!IsValidSpawnId(spawnId))
+      {
+        CPH.LogError($"HandleManualTrigger: Invalid spawn ID format: '{spawnId}'");
+        return false;
+      }
+
       // Find the specific spawn
       Spawn targetSpawn = FindSpawnById(spawnId);
 
       if (targetSpawn == null)
       {
         CPH.LogError($"HandleManualTrigger: Spawn with ID '{spawnId}' not found");
+        return false;
+      }
+
+      // Validate spawn state and configuration
+      ValidationResult spawnValidation = ValidateSpawnForExecution(targetSpawn, "manual");
+      if (!spawnValidation.IsValid)
+      {
+        CPH.LogError($"HandleManualTrigger: Spawn validation failed: {spawnValidation}");
         return false;
       }
 
@@ -282,12 +406,35 @@ public class CPHInline
         return false;
       }
 
+      // Check if spawn has any enabled assets
+      if (!HasEnabledAssets(targetSpawn))
+      {
+        CPH.LogWarn($"HandleManualTrigger: Spawn '{targetSpawn.Name}' has no enabled assets");
+        return false;
+      }
+
+      // Check cooldown if configured
+      if (IsSpawnOnCooldown(targetSpawn))
+      {
+        CPH.LogInfo($"HandleManualTrigger: Spawn '{targetSpawn.Name}' is on cooldown, skipping execution");
+        return true; // Not an error, just respecting cooldown
+      }
+
       // Execute the specific spawn
-      return ExecuteSpawns(new List<Spawn> { targetSpawn }, "manual", new Dictionary<string, object>
+      bool executionResult = ExecuteSpawns(new List<Spawn> { targetSpawn }, "manual", new Dictionary<string, object>
       {
         ["spawnId"] = spawnId,
-        ["triggerType"] = "manual"
+        ["triggerType"] = "manual",
+        ["executionTime"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
       });
+
+      // Update cooldown if execution was successful
+      if (executionResult)
+      {
+        UpdateSpawnCooldown(targetSpawn);
+      }
+
+      return executionResult;
     }
     catch (Exception ex)
     {
@@ -357,8 +504,10 @@ public class CPHInline
   /// <param name="command">The command that triggered</param>
   /// <param name="userName">The user who triggered the command</param>
   /// <param name="rawInput">The raw command input</param>
+  /// <param name="isInternal">Whether the command is internal</param>
+  /// <param name="isBotAccount">Whether the command is from a bot account</param>
   /// <returns>List of spawns that match the command configuration</returns>
-  private List<Spawn> FilterSpawnsByCommandConfig(List<Spawn> spawns, string command, string userName, string rawInput)
+  private List<Spawn> FilterSpawnsByCommandConfig(List<Spawn> spawns, string command, string userName, string rawInput, bool isInternal, bool isBotAccount)
   {
     List<Spawn> validSpawns = new List<Spawn>();
 
@@ -401,6 +550,18 @@ public class CPHInline
 
       if (commandMatches)
       {
+        // Check internal command filter
+        if (config.ContainsKey("ignoreInternal") && config["ignoreInternal"] is bool ignoreInternal && ignoreInternal && isInternal)
+        {
+          continue; // Skip internal commands if configured to ignore them
+        }
+
+        // Check bot account filter
+        if (config.ContainsKey("ignoreBotAccount") && config["ignoreBotAccount"] is bool ignoreBotAccount && ignoreBotAccount && isBotAccount)
+        {
+          continue; // Skip bot account commands if configured to ignore them
+        }
+
         validSpawns.Add(spawn);
       }
     }
@@ -3114,6 +3275,274 @@ public class CPHInline
         result.Add($"Warnings: {string.Join(", ", Warnings)}");
       return string.Join("; ", result);
     }
+  }
+
+  #endregion
+
+  #region Trigger-Specific Helper Methods
+
+  /// <summary>
+  /// Validate spawn ID format
+  /// </summary>
+  /// <param name="spawnId">The spawn ID to validate</param>
+  /// <returns>True if valid, false otherwise</returns>
+  private bool IsValidSpawnId(string spawnId)
+  {
+    if (string.IsNullOrWhiteSpace(spawnId))
+      return false;
+
+    // Basic GUID format validation
+    return Guid.TryParse(spawnId, out _);
+  }
+
+  /// <summary>
+  /// Validate spawn for execution
+  /// </summary>
+  /// <param name="spawn">The spawn to validate</param>
+  /// <param name="triggerType">The trigger type being used</param>
+  /// <returns>Validation result</returns>
+  private ValidationResult ValidateSpawnForExecution(Spawn spawn, string triggerType)
+  {
+    ValidationResult result = new ValidationResult();
+
+    if (spawn == null)
+    {
+      result.AddError("Spawn is null");
+      return result;
+    }
+
+    if (!spawn.Enabled)
+    {
+      result.AddError("Spawn is disabled");
+      return result;
+    }
+
+    if (spawn.Trigger?.Type != triggerType)
+    {
+      result.AddError($"Spawn trigger type '{spawn.Trigger?.Type}' does not match expected '{triggerType}'");
+      return result;
+    }
+
+    if (spawn.Assets == null || spawn.Assets.Count == 0)
+    {
+      result.AddError("Spawn has no assets");
+      return result;
+    }
+
+    return result;
+  }
+
+  /// <summary>
+  /// Check if spawn has any enabled assets
+  /// </summary>
+  /// <param name="spawn">The spawn to check</param>
+  /// <returns>True if has enabled assets, false otherwise</returns>
+  private bool HasEnabledAssets(Spawn spawn)
+  {
+    if (spawn?.Assets == null)
+      return false;
+
+    return spawn.Assets.Any(asset => asset.Enabled);
+  }
+
+  /// <summary>
+  /// Check if spawn is on cooldown
+  /// </summary>
+  /// <param name="spawn">The spawn to check</param>
+  /// <returns>True if on cooldown, false otherwise</returns>
+  private bool IsSpawnOnCooldown(Spawn spawn)
+  {
+    if (spawn?.Id == null)
+      return false;
+
+    string cooldownKey = $"MediaSpawner_Cooldown_{spawn.Id}";
+
+    try
+    {
+      string lastExecutionStr = CPH.GetGlobalVar<string>(cooldownKey);
+      if (!string.IsNullOrWhiteSpace(lastExecutionStr) &&
+          DateTime.TryParse(lastExecutionStr, out DateTime lastExecution))
+      {
+        // Default cooldown of 5 seconds if not configured
+        int cooldownSeconds = 5;
+
+        // Check if spawn has custom cooldown configuration
+        if (spawn.Trigger?.Config != null &&
+            spawn.Trigger.Config.ContainsKey("cooldownSeconds") &&
+            spawn.Trigger.Config["cooldownSeconds"] is int customCooldown)
+        {
+          cooldownSeconds = customCooldown;
+        }
+
+        DateTime cooldownEnd = lastExecution.AddSeconds(cooldownSeconds);
+        return DateTime.UtcNow < cooldownEnd;
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogWarn($"IsSpawnOnCooldown: Error checking cooldown for spawn '{spawn.Id}': {ex.Message}");
+    }
+
+    return false;
+  }
+
+  /// <summary>
+  /// Update spawn cooldown timestamp
+  /// </summary>
+  /// <param name="spawn">The spawn to update cooldown for</param>
+  private void UpdateSpawnCooldown(Spawn spawn)
+  {
+    if (spawn?.Id == null)
+      return;
+
+    string cooldownKey = $"MediaSpawner_Cooldown_{spawn.Id}";
+    CPH.SetGlobalVar(cooldownKey, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
+  }
+
+  /// <summary>
+  /// Validate Twitch event conditions for a spawn
+  /// </summary>
+  /// <param name="spawn">The spawn to validate</param>
+  /// <param name="eventType">The Twitch event type</param>
+  /// <param name="eventData">The event data</param>
+  /// <returns>True if conditions are met, false otherwise</returns>
+  private bool ValidateTwitchEventConditions(Spawn spawn, string eventType, Dictionary<string, object> eventData)
+  {
+    if (spawn?.Trigger?.Config == null)
+      return true; // No specific conditions to validate
+
+    var config = spawn.Trigger.Config;
+
+    switch (eventType)
+    {
+      case "cheer":
+        return ValidateCheerConditions(config, eventData);
+      case "subscription":
+        return ValidateSubscriptionConditions(config, eventData);
+      case "giftSub":
+        return ValidateGiftSubConditions(config, eventData);
+      case "channelPointReward":
+        return ValidateChannelPointRewardConditions(config, eventData);
+      default:
+        return true; // No specific validation for other event types
+    }
+  }
+
+  /// <summary>
+  /// Validate cheer event conditions
+  /// </summary>
+  private bool ValidateCheerConditions(Dictionary<string, object> config, Dictionary<string, object> eventData)
+  {
+    if (config.ContainsKey("bits") && config["bits"] is int minBits)
+    {
+      int bits = eventData.ContainsKey("bits") && eventData["bits"] is int b ? b : 0;
+      if (bits < minBits)
+        return false;
+    }
+
+    if (config.ContainsKey("bitsComparator") && config["bitsComparator"] is string comparator)
+    {
+      int bits = eventData.ContainsKey("bits") && eventData["bits"] is int b ? b : 0;
+      int threshold = config.ContainsKey("bits") && config["bits"] is int t ? t : 0;
+
+      switch (comparator)
+      {
+        case "lt":
+          return bits < threshold;
+        case "eq":
+          return bits == threshold;
+        case "gt":
+          return bits > threshold;
+        default:
+          return true;
+      }
+    }
+
+    return true;
+  }
+
+  /// <summary>
+  /// Validate subscription event conditions
+  /// </summary>
+  private bool ValidateSubscriptionConditions(Dictionary<string, object> config, Dictionary<string, object> eventData)
+  {
+    if (config.ContainsKey("tier") && config["tier"] is string configTier)
+    {
+      string eventTier = eventData.ContainsKey("tier") && eventData["tier"] is string t ? t : "1000";
+      if (eventTier != configTier)
+        return false;
+    }
+
+    if (config.ContainsKey("months") && config["months"] is int minMonths)
+    {
+      int months = eventData.ContainsKey("months") && eventData["months"] is int m ? m : 1;
+      if (months < minMonths)
+        return false;
+    }
+
+    if (config.ContainsKey("monthsComparator") && config["monthsComparator"] is string comparator)
+    {
+      int months = eventData.ContainsKey("months") && eventData["months"] is int m ? m : 1;
+      int threshold = config.ContainsKey("months") && config["months"] is int t ? t : 1;
+
+      switch (comparator)
+      {
+        case "lt":
+          return months < threshold;
+        case "eq":
+          return months == threshold;
+        case "gt":
+          return months > threshold;
+        default:
+          return true;
+      }
+    }
+
+    return true;
+  }
+
+  /// <summary>
+  /// Validate gift subscription event conditions
+  /// </summary>
+  private bool ValidateGiftSubConditions(Dictionary<string, object> config, Dictionary<string, object> eventData)
+  {
+    if (config.ContainsKey("minCount") && config["minCount"] is int minCount)
+    {
+      int count = eventData.ContainsKey("count") && eventData["count"] is int c ? c : 1;
+      if (count < minCount)
+        return false;
+    }
+
+    if (config.ContainsKey("tier") && config["tier"] is string configTier)
+    {
+      string eventTier = eventData.ContainsKey("tier") && eventData["tier"] is string t ? t : "1000";
+      if (eventTier != configTier)
+        return false;
+    }
+
+    return true;
+  }
+
+  /// <summary>
+  /// Validate channel point reward event conditions
+  /// </summary>
+  private bool ValidateChannelPointRewardConditions(Dictionary<string, object> config, Dictionary<string, object> eventData)
+  {
+    if (config.ContainsKey("rewardIdentifier") && config["rewardIdentifier"] is string rewardId)
+    {
+      string eventRewardId = eventData.ContainsKey("rewardId") && eventData["rewardId"] is string r ? r : "";
+      if (eventRewardId != rewardId)
+        return false;
+    }
+
+    if (config.ContainsKey("statuses") && config["statuses"] is List<object> statuses)
+    {
+      string eventStatus = eventData.ContainsKey("status") && eventData["status"] is string s ? s : "fulfilled";
+      if (!statuses.Any(status => status is string statusStr && statusStr == eventStatus))
+        return false;
+    }
+
+    return true;
   }
 
   #endregion
