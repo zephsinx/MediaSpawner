@@ -54,10 +54,6 @@ public class CPHInline
   /// </summary>
   private readonly Dictionary<string, RandomizationHistory> _randomizationHistory = new Dictionary<string, RandomizationHistory>();
 
-  /// <summary>
-  /// Performance metrics tracking
-  /// </summary>
-  private readonly PerformanceMetrics _performanceMetrics = new PerformanceMetrics();
 
   /// <summary>
   /// Spawn execution queue for managing concurrent executions
@@ -78,62 +74,104 @@ public class CPHInline
   /// <returns>True if execution succeeded, false otherwise</returns>
   public bool Execute()
   {
+    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+    string executionId = Guid.NewGuid().ToString("N").Substring(0, 8);
+
     try
     {
-      // Load configuration first
-      if (!LoadMediaSpawnerConfig())
+      CPH.LogInfo($"Execute[{executionId}]: Starting MediaSpawner execution");
+
+      // Validate execution environment
+      if (!ValidateExecutionEnvironment())
       {
-        CPH.LogError("Execute: Failed to load MediaSpawner configuration");
+        CPH.LogError($"Execute[{executionId}]: Execution environment validation failed");
         return false;
       }
 
-      // Detect trigger type and source
+      // Load configuration with retry logic
+      if (!LoadMediaSpawnerConfigWithRetry())
+      {
+        CPH.LogError($"Execute[{executionId}]: Failed to load MediaSpawner configuration after retries");
+        return false;
+      }
+
+      // Detect trigger type and source with validation
       string eventType = CPH.GetEventType();
       string source = CPH.GetSource();
 
-      CPH.LogInfo($"Execute: Trigger detected - EventType: {eventType}, Source: {source}");
+      // Validate trigger information
+      if (string.IsNullOrWhiteSpace(eventType))
+      {
+        CPH.LogError($"Execute[{executionId}]: No event type detected from Streamer.bot");
+        return false;
+      }
+
+      CPH.LogInfo($"Execute[{executionId}]: Trigger detected - EventType: '{eventType}', Source: '{source ?? "null"}'");
 
       // Route to appropriate handler based on trigger type
       bool executionResult = false;
+      string handlerName = "";
 
-      switch (eventType?.ToLowerInvariant())
+      try
       {
-        case "command":
-          executionResult = HandleCommandTrigger(source);
-          break;
+        switch (eventType.ToLowerInvariant())
+        {
+          case "command":
+            handlerName = "HandleCommandTrigger";
+            executionResult = HandleCommandTrigger(source);
+            break;
 
-        case "twitch":
-          executionResult = HandleTwitchTrigger(source);
-          break;
+          case "twitch":
+            handlerName = "HandleTwitchTrigger";
+            executionResult = HandleTwitchTrigger(source);
+            break;
 
-        case "time":
-          executionResult = HandleTimeTrigger(source);
-          break;
+          case "time":
+            handlerName = "HandleTimeTrigger";
+            executionResult = HandleTimeTrigger(source);
+            break;
 
-        case "manual":
-        case "c# method":
-          executionResult = HandleManualTrigger();
-          break;
+          case "manual":
+          case "c# method":
+            handlerName = "HandleManualTrigger";
+            executionResult = HandleManualTrigger();
+            break;
 
-        default:
-          CPH.LogWarn($"Execute: Unknown trigger type '{eventType}' from source '{source}'");
-          return false;
+          default:
+            CPH.LogWarn($"Execute[{executionId}]: Unknown trigger type '{eventType}' from source '{source ?? "null"}'");
+            return false;
+        }
       }
+      catch (Exception handlerEx)
+      {
+        CPH.LogError($"Execute[{executionId}]: Error in {handlerName}: {handlerEx.Message}");
+        CPH.LogError($"Execute[{executionId}]: Handler stack trace: {handlerEx.StackTrace}");
+        return false;
+      }
+
+      // Log execution result with performance metrics
+      stopwatch.Stop();
+      var executionTime = stopwatch.ElapsedMilliseconds;
 
       if (executionResult)
       {
-        CPH.LogInfo("Execute: Spawn execution completed successfully");
+        CPH.LogInfo($"Execute[{executionId}]: Spawn execution completed successfully in {executionTime}ms");
       }
       else
       {
-        CPH.LogWarn("Execute: Spawn execution completed with issues");
+        CPH.LogWarn($"Execute[{executionId}]: Spawn execution completed with issues in {executionTime}ms");
       }
 
       return executionResult;
     }
     catch (Exception ex)
     {
-      CPH.LogError($"Execute: Unexpected error during execution: {ex.Message}");
+      stopwatch.Stop();
+      var executionTime = stopwatch.ElapsedMilliseconds;
+
+      CPH.LogError($"Execute[{executionId}]: Unexpected error during execution after {executionTime}ms: {ex.Message}");
+      CPH.LogError($"Execute[{executionId}]: Stack trace: {ex.StackTrace}");
+
       return false;
     }
   }
@@ -164,19 +202,6 @@ public class CPHInline
       {
         ["exportTimestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
         ["exportVersion"] = "1.0",
-        ["performanceMetrics"] = new Dictionary<string, object>
-        {
-          ["totalExecutions"] = _performanceMetrics.TotalExecutions,
-          ["successfulExecutions"] = _performanceMetrics.SuccessfulExecutions,
-          ["failedExecutions"] = _performanceMetrics.FailedExecutions,
-          ["successRate"] = _performanceMetrics.TotalExecutions > 0 ?
-            (double)_performanceMetrics.SuccessfulExecutions / _performanceMetrics.TotalExecutions : 0.0,
-          ["averageExecutionTime"] = _performanceMetrics.AverageExecutionTime.ToString(),
-          ["maxExecutionTime"] = _performanceMetrics.MaxExecutionTime.ToString(),
-          ["minExecutionTime"] = _performanceMetrics.MinExecutionTime.ToString(),
-          ["totalExecutionTime"] = _performanceMetrics.TotalExecutionTime.ToString(),
-          ["lastResetTime"] = _performanceMetrics.LastResetTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
-        },
         ["systemState"] = new Dictionary<string, object>
         {
           ["activeSpawnsCount"] = _activeSpawns.Count,
@@ -1036,69 +1061,158 @@ public class CPHInline
   /// <returns>True if all spawns executed successfully</returns>
   private bool ExecuteSpawns(List<Spawn> spawns, string triggerType, Dictionary<string, object> contextData)
   {
-    if (spawns == null || spawns.Count == 0)
-      return true;
+    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+    string executionId = Guid.NewGuid().ToString("N").Substring(0, 8);
 
-    bool allSuccessful = true;
-    List<string> executionIds = new List<string>();
-
-    // Clean up any completed spawns before starting new ones
-    CleanupCompletedSpawns();
-
-    foreach (Spawn spawn in spawns)
+    try
     {
-      try
+      CPH.LogInfo($"ExecuteSpawns[{executionId}]: Starting execution of {spawns?.Count ?? 0} spawns for trigger '{triggerType}'");
+
+      if (spawns == null || spawns.Count == 0)
       {
-        CPH.LogInfo($"ExecuteSpawns: Executing spawn '{spawn.Name}' (ID: {spawn.Id})");
+        CPH.LogInfo($"ExecuteSpawns[{executionId}]: No spawns to execute");
+        return true;
+      }
 
-        // Start tracking this spawn execution
-        string executionId = StartSpawnExecution(spawn, triggerType, contextData);
-        executionIds.Add(executionId);
+      // Validate input parameters
+      var parameters = new Dictionary<string, object>
+      {
+        ["spawns"] = spawns,
+        ["triggerType"] = triggerType
+      };
 
-        // Set spawn context in global variables for other actions
-        CPH.SetGlobalVar("MediaSpawner_CurrentSpawn", JsonConvert.SerializeObject(spawn), persisted: false);
-        CPH.SetGlobalVar("MediaSpawner_CurrentSpawnId", spawn.Id, persisted: false);
-        CPH.SetGlobalVar("MediaSpawner_CurrentSpawnName", spawn.Name, persisted: false);
-        CPH.SetGlobalVar("MediaSpawner_TriggerType", triggerType, persisted: false);
-        CPH.SetGlobalVar("MediaSpawner_ExecutionId", executionId, persisted: false);
+      if (!ValidateInputParameters("ExecuteSpawns", parameters))
+      {
+        return false;
+      }
 
-        // Set context data
-        foreach (var kvp in contextData)
+      bool allSuccessful = true;
+      List<string> executionIds = new List<string>();
+      int successfulSpawns = 0;
+      int failedSpawns = 0;
+
+      // Clean up any completed spawns before starting new ones
+      var cleanupStopwatch = System.Diagnostics.Stopwatch.StartNew();
+      CleanupCompletedSpawns();
+      cleanupStopwatch.Stop();
+      CPH.LogInfo($"ExecuteSpawns[{executionId}]: Cleanup completed in {cleanupStopwatch.ElapsedMilliseconds}ms");
+
+      foreach (Spawn spawn in spawns)
+      {
+        var spawnStopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        try
         {
-          CPH.SetGlobalVar($"MediaSpawner_Context_{kvp.Key}", kvp.Value?.ToString() ?? "", persisted: false);
+          CPH.LogInfo($"ExecuteSpawns[{executionId}]: Executing spawn '{spawn.Name}' (ID: {spawn.Id})");
+
+          // Start tracking this spawn execution
+          string spawnExecutionId = StartSpawnExecution(spawn, triggerType, contextData);
+          executionIds.Add(spawnExecutionId);
+
+          // Set spawn context in global variables for other actions
+          CPH.SetGlobalVar("MediaSpawner_CurrentSpawn", JsonConvert.SerializeObject(spawn), persisted: false);
+          CPH.SetGlobalVar("MediaSpawner_CurrentSpawnId", spawn.Id, persisted: false);
+          CPH.SetGlobalVar("MediaSpawner_CurrentSpawnName", spawn.Name, persisted: false);
+          CPH.SetGlobalVar("MediaSpawner_TriggerType", triggerType, persisted: false);
+          CPH.SetGlobalVar("MediaSpawner_ExecutionId", spawnExecutionId, persisted: false);
+
+          // Set context data
+          foreach (var kvp in contextData)
+          {
+            CPH.SetGlobalVar($"MediaSpawner_Context_{kvp.Key}", kvp.Value?.ToString() ?? "", persisted: false);
+          }
+
+          // Execute the spawn
+          bool spawnResult = ExecuteSpawn(spawn, triggerType, contextData);
+
+          // Complete tracking
+          CompleteSpawnExecution(spawnExecutionId, spawnResult ? "Success" : "Failed");
+
+          spawnStopwatch.Stop();
+          var spawnExecutionTime = spawnStopwatch.ElapsedMilliseconds;
+
+          if (spawnResult)
+          {
+            successfulSpawns++;
+            CPH.LogInfo($"ExecuteSpawns[{executionId}]: Spawn '{spawn.Name}' executed successfully in {spawnExecutionTime}ms");
+          }
+          else
+          {
+            failedSpawns++;
+            CPH.LogWarn($"ExecuteSpawns[{executionId}]: Spawn '{spawn.Name}' execution failed in {spawnExecutionTime}ms");
+            allSuccessful = false;
+          }
         }
-
-        // Execute the spawn
-        bool spawnResult = ExecuteSpawn(spawn, triggerType, contextData);
-
-        // Complete tracking
-        CompleteSpawnExecution(executionId, spawnResult ? "Success" : "Failed");
-
-        if (!spawnResult)
+        catch (Exception ex)
         {
+          spawnStopwatch.Stop();
+          var spawnExecutionTime = spawnStopwatch.ElapsedMilliseconds;
+
+          var context = new Dictionary<string, object>
+          {
+            ["spawnName"] = spawn?.Name,
+            ["spawnId"] = spawn?.Id,
+            ["triggerType"] = triggerType,
+            ["executionTime"] = spawnExecutionTime
+          };
+
+          string errorMessage = CreateStructuredErrorMessage("ExecuteSpawns", ex, context);
+          CPH.LogError($"ExecuteSpawns[{executionId}]: {errorMessage}");
+
+          // Complete tracking with error status
+          if (executionIds.Count > 0)
+          {
+            string lastExecutionId = executionIds[executionIds.Count - 1];
+            CompleteSpawnExecution(lastExecutionId, "Failed", ex.Message);
+          }
+
+          failedSpawns++;
           allSuccessful = false;
         }
       }
-      catch (Exception ex)
+
+      stopwatch.Stop();
+      var totalExecutionTime = stopwatch.ElapsedMilliseconds;
+
+      // Log comprehensive execution summary
+      var executionSummary = new Dictionary<string, object>
       {
-        CPH.LogError($"ExecuteSpawns: Error executing spawn '{spawn.Name}': {ex.Message}");
+        ["executionId"] = executionId,
+        ["totalSpawns"] = spawns.Count,
+        ["successfulSpawns"] = successfulSpawns,
+        ["failedSpawns"] = failedSpawns,
+        ["successRate"] = spawns.Count > 0 ? (double)successfulSpawns / spawns.Count : 0.0,
+        ["totalExecutionTime"] = totalExecutionTime,
+        ["averageSpawnTime"] = spawns.Count > 0 ? totalExecutionTime / spawns.Count : 0,
+        ["triggerType"] = triggerType,
+        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff")
+      };
 
-        // Complete tracking with error status
-        if (executionIds.Count > 0)
-        {
-          string lastExecutionId = executionIds[executionIds.Count - 1];
-          CompleteSpawnExecution(lastExecutionId, "Failed", ex.Message);
-        }
+      CPH.LogInfo($"ExecuteSpawns[{executionId}]: Execution completed in {totalExecutionTime}ms. Summary: {JsonConvert.SerializeObject(executionSummary)}");
 
-        allSuccessful = false;
-      }
+      // Log state summary
+      var stateSummary = GetStateSummary();
+      CPH.LogInfo($"ExecuteSpawns[{executionId}]: State summary: {JsonConvert.SerializeObject(stateSummary)}");
+
+      return allSuccessful;
     }
+    catch (Exception ex)
+    {
+      stopwatch.Stop();
+      var totalExecutionTime = stopwatch.ElapsedMilliseconds;
 
-    // Log state summary
-    var stateSummary = GetStateSummary();
-    CPH.LogInfo($"ExecuteSpawns: Execution completed. State summary: {JsonConvert.SerializeObject(stateSummary)}");
+      var context = new Dictionary<string, object>
+      {
+        ["spawnCount"] = spawns?.Count ?? 0,
+        ["triggerType"] = triggerType,
+        ["executionTime"] = totalExecutionTime
+      };
 
-    return allSuccessful;
+      string errorMessage = CreateStructuredErrorMessage("ExecuteSpawns", ex, context);
+      CPH.LogError($"ExecuteSpawns[{executionId}]: {errorMessage}");
+
+      return false;
+    }
   }
 
   #endregion
@@ -1114,68 +1228,196 @@ public class CPHInline
   /// <returns>True if spawn executed successfully</returns>
   private bool ExecuteSpawn(Spawn spawn, string triggerType, Dictionary<string, object> contextData)
   {
+    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+    string executionId = Guid.NewGuid().ToString("N").Substring(0, 8);
+
     try
     {
-      CPH.LogInfo($"ExecuteSpawn: Starting execution of spawn '{spawn.Name}' (ID: {spawn.Id})");
+      CPH.LogInfo($"ExecuteSpawn[{executionId}]: Starting execution of spawn '{spawn.Name}' (ID: {spawn.Id})");
+
+      // Validate input parameters
+      var parameters = new Dictionary<string, object>
+      {
+        ["spawn"] = spawn,
+        ["triggerType"] = triggerType
+      };
+
+      if (!ValidateInputParameters("ExecuteSpawn", parameters))
+      {
+        return false;
+      }
 
       // Validate spawn is enabled
       if (!spawn.Enabled)
       {
-        CPH.LogWarn($"ExecuteSpawn: Spawn '{spawn.Name}' is disabled, skipping execution");
+        CPH.LogWarn($"ExecuteSpawn[{executionId}]: Spawn '{spawn.Name}' is disabled, skipping execution");
         return false;
       }
 
       // Get enabled assets from the spawn
+      var assetSelectionStopwatch = System.Diagnostics.Stopwatch.StartNew();
       List<SpawnAsset> enabledAssets = GetEnabledSpawnAssets(spawn);
+      assetSelectionStopwatch.Stop();
+
       if (enabledAssets.Count == 0)
       {
-        CPH.LogWarn($"ExecuteSpawn: No enabled assets found in spawn '{spawn.Name}'");
+        CPH.LogWarn($"ExecuteSpawn[{executionId}]: No enabled assets found in spawn '{spawn.Name}' (selection took {assetSelectionStopwatch.ElapsedMilliseconds}ms)");
         return true; // Not an error, just no assets to process
       }
 
+      CPH.LogInfo($"ExecuteSpawn[{executionId}]: Found {enabledAssets.Count} enabled assets in {assetSelectionStopwatch.ElapsedMilliseconds}ms");
+
       // Process randomization buckets to select assets
+      var randomizationStopwatch = System.Diagnostics.Stopwatch.StartNew();
       List<SpawnAsset> selectedAssets = ProcessRandomizationBuckets(spawn, enabledAssets);
+      randomizationStopwatch.Stop();
+
       if (selectedAssets.Count == 0)
       {
-        CPH.LogWarn($"ExecuteSpawn: No assets selected after randomization processing for spawn '{spawn.Name}'");
+        CPH.LogWarn($"ExecuteSpawn[{executionId}]: No assets selected after randomization processing for spawn '{spawn.Name}' (randomization took {randomizationStopwatch.ElapsedMilliseconds}ms)");
         return true; // Not an error, just no assets selected
       }
 
-      CPH.LogInfo($"ExecuteSpawn: Selected {selectedAssets.Count} assets for execution");
+      CPH.LogInfo($"ExecuteSpawn[{executionId}]: Selected {selectedAssets.Count} assets for execution in {randomizationStopwatch.ElapsedMilliseconds}ms");
 
       // Execute each selected asset
       bool allAssetsSuccessful = true;
+      int successfulAssets = 0;
+      int failedAssets = 0;
+      var assetExecutionStopwatch = System.Diagnostics.Stopwatch.StartNew();
+      var successfulAssetList = new List<SpawnAsset>();
+      var failedAssetList = new List<SpawnAsset>();
+
       foreach (SpawnAsset spawnAsset in selectedAssets)
       {
+        var individualAssetStopwatch = System.Diagnostics.Stopwatch.StartNew();
+
         try
         {
           bool assetResult = ExecuteSpawnAsset(spawn, spawnAsset, triggerType, contextData);
-          if (!assetResult)
+
+          individualAssetStopwatch.Stop();
+          var assetExecutionTime = individualAssetStopwatch.ElapsedMilliseconds;
+
+          if (assetResult)
           {
+            successfulAssets++;
+            successfulAssetList.Add(spawnAsset);
+            CPH.LogInfo($"ExecuteSpawn[{executionId}]: Asset '{spawnAsset.AssetId}' executed successfully in {assetExecutionTime}ms");
+          }
+          else
+          {
+            failedAssets++;
+            failedAssetList.Add(spawnAsset);
+            CPH.LogWarn($"ExecuteSpawn[{executionId}]: Asset '{spawnAsset.AssetId}' execution failed in {assetExecutionTime}ms");
             allAssetsSuccessful = false;
           }
         }
         catch (Exception ex)
         {
-          CPH.LogError($"ExecuteSpawn: Error executing asset '{spawnAsset.AssetId}': {ex.Message}");
+          individualAssetStopwatch.Stop();
+          var assetExecutionTime = individualAssetStopwatch.ElapsedMilliseconds;
+
+          var context = new Dictionary<string, object>
+          {
+            ["spawnName"] = spawn?.Name,
+            ["spawnId"] = spawn?.Id,
+            ["assetId"] = spawnAsset?.AssetId,
+            ["triggerType"] = triggerType,
+            ["executionTime"] = assetExecutionTime
+          };
+
+          string errorMessage = CreateStructuredErrorMessage("ExecuteSpawn", ex, context);
+          CPH.LogError($"ExecuteSpawn[{executionId}]: {errorMessage}");
+
+          failedAssets++;
+          failedAssetList.Add(spawnAsset);
           allAssetsSuccessful = false;
         }
       }
 
+      // Attempt recovery for failed assets
+      if (failedAssetList.Count > 0)
+      {
+        CPH.LogInfo($"ExecuteSpawn[{executionId}]: Attempting recovery for {failedAssetList.Count} failed assets");
+
+        var recoveryStopwatch = System.Diagnostics.Stopwatch.StartNew();
+        bool recoverySuccessful = AttemptSpawnRecovery(spawn, failedAssetList, triggerType, contextData);
+        recoveryStopwatch.Stop();
+
+        if (recoverySuccessful)
+        {
+          CPH.LogInfo($"ExecuteSpawn[{executionId}]: Recovery completed successfully in {recoveryStopwatch.ElapsedMilliseconds}ms");
+          // Update success metrics based on recovery results
+          // Note: This is a simplified approach - in a real implementation, you'd want to track
+          // which specific assets were recovered and update the metrics accordingly
+        }
+        else
+        {
+          CPH.LogWarn($"ExecuteSpawn[{executionId}]: Recovery failed or only partially successful in {recoveryStopwatch.ElapsedMilliseconds}ms");
+
+          // Clean up partial execution if recovery failed completely
+          if (successfulAssetList.Count > 0)
+          {
+            CPH.LogInfo($"ExecuteSpawn[{executionId}]: Cleaning up partial execution due to recovery failure");
+            CleanupPartialExecution(spawn, successfulAssetList, failedAssetList);
+          }
+        }
+      }
+
+      assetExecutionStopwatch.Stop();
+      var totalAssetExecutionTime = assetExecutionStopwatch.ElapsedMilliseconds;
+
       // Handle spawn-level timing and cleanup
       if (spawn.Duration > 0)
       {
-        CPH.LogInfo($"ExecuteSpawn: Spawn '{spawn.Name}' will run for {spawn.Duration}ms");
+        CPH.LogInfo($"ExecuteSpawn[{executionId}]: Spawn '{spawn.Name}' will run for {spawn.Duration}ms");
         // TODO: Implement timing management and cleanup
         // This would involve scheduling cleanup after the duration expires
       }
 
-      CPH.LogInfo($"ExecuteSpawn: Completed execution of spawn '{spawn.Name}' - Success: {allAssetsSuccessful}");
+      stopwatch.Stop();
+      var totalExecutionTime = stopwatch.ElapsedMilliseconds;
+
+      // Log comprehensive execution summary
+      var executionSummary = new Dictionary<string, object>
+      {
+        ["executionId"] = executionId,
+        ["spawnName"] = spawn.Name,
+        ["spawnId"] = spawn.Id,
+        ["totalAssets"] = selectedAssets.Count,
+        ["successfulAssets"] = successfulAssets,
+        ["failedAssets"] = failedAssets,
+        ["successRate"] = selectedAssets.Count > 0 ? (double)successfulAssets / selectedAssets.Count : 0.0,
+        ["totalExecutionTime"] = totalExecutionTime,
+        ["assetSelectionTime"] = assetSelectionStopwatch.ElapsedMilliseconds,
+        ["randomizationTime"] = randomizationStopwatch.ElapsedMilliseconds,
+        ["assetExecutionTime"] = totalAssetExecutionTime,
+        ["averageAssetTime"] = selectedAssets.Count > 0 ? totalAssetExecutionTime / selectedAssets.Count : 0,
+        ["triggerType"] = triggerType,
+        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff")
+      };
+
+      CPH.LogInfo($"ExecuteSpawn[{executionId}]: Execution completed in {totalExecutionTime}ms. Summary: {JsonConvert.SerializeObject(executionSummary)}");
+
       return allAssetsSuccessful;
     }
     catch (Exception ex)
     {
-      CPH.LogError($"ExecuteSpawn: Unexpected error executing spawn '{spawn.Name}': {ex.Message}");
+      stopwatch.Stop();
+      var totalExecutionTime = stopwatch.ElapsedMilliseconds;
+
+      var context = new Dictionary<string, object>
+      {
+        ["spawnName"] = spawn?.Name,
+        ["spawnId"] = spawn?.Id,
+        ["triggerType"] = triggerType,
+        ["executionTime"] = totalExecutionTime
+      };
+
+      string errorMessage = CreateStructuredErrorMessage("ExecuteSpawn", ex, context);
+      CPH.LogError($"ExecuteSpawn[{executionId}]: {errorMessage}");
+
       return false;
     }
   }
@@ -1187,13 +1429,96 @@ public class CPHInline
   /// <returns>List of enabled spawn assets sorted by order</returns>
   private List<SpawnAsset> GetEnabledSpawnAssets(Spawn spawn)
   {
-    if (spawn.Assets == null)
-      return new List<SpawnAsset>();
+    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+    string executionId = Guid.NewGuid().ToString("N").Substring(0, 8);
 
-    return spawn.Assets
-      .Where(asset => asset.Enabled)
-      .OrderBy(asset => asset.Order)
-      .ToList();
+    try
+    {
+      // Validate input parameters
+      if (spawn == null)
+      {
+        LogStructuredError("GetEnabledSpawnAssets", "Spawn parameter is null", new Dictionary<string, object> { ["executionId"] = executionId });
+        return new List<SpawnAsset>();
+      }
+
+      LogStructuredInfo("GetEnabledSpawnAssets", $"Getting enabled assets for spawn '{spawn.Name}'", new Dictionary<string, object>
+      {
+        ["executionId"] = executionId,
+        ["spawnId"] = spawn.Id,
+        ["totalAssetsCount"] = spawn.Assets?.Count ?? 0
+      });
+
+      if (spawn.Assets == null)
+      {
+        LogStructuredWarning("GetEnabledSpawnAssets", "Spawn has no assets", new Dictionary<string, object> { ["executionId"] = executionId, ["spawnName"] = spawn.Name });
+        return new List<SpawnAsset>();
+      }
+
+      var enabledAssets = new List<SpawnAsset>();
+      int enabledCount = 0;
+      int disabledCount = 0;
+      int nullAssetCount = 0;
+
+      foreach (var asset in spawn.Assets)
+      {
+        if (asset == null)
+        {
+          nullAssetCount++;
+          LogStructuredWarning("GetEnabledSpawnAssets", "Encountered null asset in spawn", new Dictionary<string, object> { ["executionId"] = executionId, ["spawnName"] = spawn.Name });
+          continue;
+        }
+
+        if (asset.Enabled)
+        {
+          enabledAssets.Add(asset);
+          enabledCount++;
+        }
+        else
+        {
+          disabledCount++;
+        }
+      }
+
+      // Sort by order
+      enabledAssets = enabledAssets.OrderBy(asset => asset.Order).ToList();
+
+      stopwatch.Stop();
+      var executionTime = stopwatch.ElapsedMilliseconds;
+
+      var summary = new Dictionary<string, object>
+      {
+        ["executionId"] = executionId,
+        ["spawnName"] = spawn.Name,
+        ["spawnId"] = spawn.Id,
+        ["totalAssetsCount"] = spawn.Assets.Count,
+        ["enabledAssetsCount"] = enabledCount,
+        ["disabledAssetsCount"] = disabledCount,
+        ["nullAssetsCount"] = nullAssetCount,
+        ["executionTimeMs"] = executionTime
+      };
+
+      LogStructuredInfo("GetEnabledSpawnAssets", "Enabled asset retrieval completed", summary);
+
+      return enabledAssets;
+    }
+    catch (Exception ex)
+    {
+      stopwatch.Stop();
+      var executionTime = stopwatch.ElapsedMilliseconds;
+
+      var context = new Dictionary<string, object>
+      {
+        ["executionId"] = executionId,
+        ["spawnName"] = spawn?.Name,
+        ["spawnId"] = spawn?.Id,
+        ["executionTimeMs"] = executionTime
+      };
+
+      LogStructuredError("GetEnabledSpawnAssets", $"Unexpected error getting enabled assets: {ex.Message}", context);
+
+      // Return empty list as fallback
+      return new List<SpawnAsset>();
+    }
   }
 
   /// <summary>
@@ -1204,48 +1529,155 @@ public class CPHInline
   /// <returns>List of selected assets for execution</returns>
   private List<SpawnAsset> ProcessRandomizationBuckets(Spawn spawn, List<SpawnAsset> enabledAssets)
   {
-    if (spawn.RandomizationBuckets == null || spawn.RandomizationBuckets.Count == 0)
-    {
-      // No randomization buckets, return all enabled assets
-      return enabledAssets;
-    }
+    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+    string executionId = Guid.NewGuid().ToString("N").Substring(0, 8);
 
-    List<SpawnAsset> selectedAssets = new List<SpawnAsset>();
-    HashSet<string> usedAssetIds = new HashSet<string>();
-
-    foreach (RandomizationBucket bucket in spawn.RandomizationBuckets)
+    try
     {
-      try
+      // Validate input parameters
+      if (spawn == null)
       {
-        List<SpawnAsset> bucketAssets = GetBucketAssets(spawn, bucket, enabledAssets);
-        if (bucketAssets.Count == 0)
-          continue;
+        LogStructuredError("ProcessRandomizationBuckets", "Spawn parameter is null", new Dictionary<string, object> { ["executionId"] = executionId });
+        return new List<SpawnAsset>();
+      }
 
-        List<SpawnAsset> selectedFromBucket = SelectAssetsFromBucket(bucket, bucketAssets, usedAssetIds);
-        selectedAssets.AddRange(selectedFromBucket);
+      if (enabledAssets == null)
+      {
+        LogStructuredWarning("ProcessRandomizationBuckets", "Enabled assets parameter is null, returning empty list", new Dictionary<string, object> { ["executionId"] = executionId });
+        return new List<SpawnAsset>();
+      }
 
-        // Mark selected assets as used
-        foreach (SpawnAsset asset in selectedFromBucket)
+      LogStructuredInfo("ProcessRandomizationBuckets", $"Processing randomization buckets for spawn '{spawn.Name}'", new Dictionary<string, object>
+      {
+        ["executionId"] = executionId,
+        ["spawnId"] = spawn.Id,
+        ["enabledAssetsCount"] = enabledAssets.Count,
+        ["bucketsCount"] = spawn.RandomizationBuckets?.Count ?? 0
+      });
+
+      if (spawn.RandomizationBuckets == null || spawn.RandomizationBuckets.Count == 0)
+      {
+        LogStructuredInfo("ProcessRandomizationBuckets", "No randomization buckets found, returning all enabled assets", new Dictionary<string, object> { ["executionId"] = executionId });
+        return enabledAssets;
+      }
+
+      List<SpawnAsset> selectedAssets = new List<SpawnAsset>();
+      HashSet<string> usedAssetIds = new HashSet<string>();
+      int processedBuckets = 0;
+      int failedBuckets = 0;
+
+      foreach (RandomizationBucket bucket in spawn.RandomizationBuckets)
+      {
+        try
         {
-          usedAssetIds.Add(asset.Id);
+          if (bucket == null)
+          {
+            LogStructuredWarning("ProcessRandomizationBuckets", "Encountered null bucket, skipping", new Dictionary<string, object> { ["executionId"] = executionId });
+            continue;
+          }
+
+          LogStructuredInfo("ProcessRandomizationBuckets", $"Processing bucket '{bucket.Name}'", new Dictionary<string, object>
+          {
+            ["executionId"] = executionId,
+            ["bucketName"] = bucket.Name,
+            ["bucketSelection"] = bucket.Selection,
+            ["bucketN"] = bucket.N
+          });
+
+          List<SpawnAsset> bucketAssets = GetBucketAssets(spawn, bucket, enabledAssets);
+          if (bucketAssets.Count == 0)
+          {
+            LogStructuredWarning("ProcessRandomizationBuckets", $"No assets found in bucket '{bucket.Name}', skipping", new Dictionary<string, object> { ["executionId"] = executionId });
+            continue;
+          }
+
+          List<SpawnAsset> selectedFromBucket = SelectAssetsFromBucket(bucket, bucketAssets, usedAssetIds);
+          selectedAssets.AddRange(selectedFromBucket);
+
+          // Mark selected assets as used
+          foreach (SpawnAsset asset in selectedFromBucket)
+          {
+            if (asset != null && !string.IsNullOrEmpty(asset.Id))
+            {
+              usedAssetIds.Add(asset.Id);
+            }
+          }
+
+          processedBuckets++;
+          LogStructuredInfo("ProcessRandomizationBuckets", $"Successfully processed bucket '{bucket.Name}'", new Dictionary<string, object>
+          {
+            ["executionId"] = executionId,
+            ["bucketName"] = bucket.Name,
+            ["selectedCount"] = selectedFromBucket.Count,
+            ["totalSelected"] = selectedAssets.Count
+          });
+        }
+        catch (Exception ex)
+        {
+          failedBuckets++;
+          var context = new Dictionary<string, object>
+          {
+            ["executionId"] = executionId,
+            ["bucketName"] = bucket?.Name ?? "unknown",
+            ["bucketId"] = bucket?.Id ?? "unknown",
+            ["error"] = ex.Message
+          };
+
+          LogStructuredError("ProcessRandomizationBuckets", $"Error processing bucket '{bucket?.Name ?? "unknown"}': {ex.Message}", context);
         }
       }
-      catch (Exception ex)
-      {
-        CPH.LogError($"ProcessRandomizationBuckets: Error processing bucket '{bucket.Name}': {ex.Message}");
-      }
-    }
 
-    // Add any remaining enabled assets that weren't in buckets
-    foreach (SpawnAsset asset in enabledAssets)
+      // Add any remaining enabled assets that weren't in buckets
+      int remainingAssets = 0;
+      foreach (SpawnAsset asset in enabledAssets)
+      {
+        if (asset != null && !string.IsNullOrEmpty(asset.Id) && !usedAssetIds.Contains(asset.Id))
+        {
+          selectedAssets.Add(asset);
+          remainingAssets++;
+        }
+      }
+
+      stopwatch.Stop();
+      var executionTime = stopwatch.ElapsedMilliseconds;
+
+      var summary = new Dictionary<string, object>
+      {
+        ["executionId"] = executionId,
+        ["spawnName"] = spawn.Name,
+        ["spawnId"] = spawn.Id,
+        ["totalBuckets"] = spawn.RandomizationBuckets.Count,
+        ["processedBuckets"] = processedBuckets,
+        ["failedBuckets"] = failedBuckets,
+        ["enabledAssetsCount"] = enabledAssets.Count,
+        ["selectedAssetsCount"] = selectedAssets.Count,
+        ["remainingAssetsCount"] = remainingAssets,
+        ["executionTimeMs"] = executionTime
+      };
+
+      LogStructuredInfo("ProcessRandomizationBuckets", "Randomization bucket processing completed", summary);
+
+      return selectedAssets;
+    }
+    catch (Exception ex)
     {
-      if (!usedAssetIds.Contains(asset.Id))
-      {
-        selectedAssets.Add(asset);
-      }
-    }
+      stopwatch.Stop();
+      var executionTime = stopwatch.ElapsedMilliseconds;
 
-    return selectedAssets;
+      var context = new Dictionary<string, object>
+      {
+        ["executionId"] = executionId,
+        ["spawnName"] = spawn?.Name,
+        ["spawnId"] = spawn?.Id,
+        ["enabledAssetsCount"] = enabledAssets?.Count ?? 0,
+        ["executionTimeMs"] = executionTime
+      };
+
+      LogStructuredError("ProcessRandomizationBuckets", $"Unexpected error during randomization processing: {ex.Message}", context);
+
+      // Return enabled assets as fallback
+      return enabledAssets ?? new List<SpawnAsset>();
+    }
   }
 
   /// <summary>
@@ -1415,59 +1847,117 @@ public class CPHInline
   /// <returns>True if asset executed successfully</returns>
   private bool ExecuteSpawnAsset(Spawn spawn, SpawnAsset spawnAsset, string triggerType, Dictionary<string, object> contextData)
   {
+    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+    string executionId = Guid.NewGuid().ToString("N").Substring(0, 8);
+
     try
     {
-      CPH.LogInfo($"ExecuteSpawnAsset: Executing asset '{spawnAsset.AssetId}' in spawn '{spawn.Name}'");
+      CPH.LogInfo($"ExecuteSpawnAsset[{executionId}]: Executing asset '{spawnAsset.AssetId}' in spawn '{spawn.Name}'");
 
-      // Find the base asset
+      // Validate input parameters
+      var parameters = new Dictionary<string, object>
+      {
+        ["spawn"] = spawn,
+        ["spawnAsset"] = spawnAsset
+      };
+
+      if (!ValidateInputParameters("ExecuteSpawnAsset", parameters))
+      {
+        return false;
+      }
+
+      // Find the base asset with graceful degradation
       MediaAsset baseAsset = _cachedConfig?.FindAssetById(spawnAsset.AssetId);
       if (baseAsset == null)
       {
-        CPH.LogError($"ExecuteSpawnAsset: Base asset '{spawnAsset.AssetId}' not found in configuration");
-        return false;
+        CPH.LogWarn($"ExecuteSpawnAsset[{executionId}]: Base asset '{spawnAsset.AssetId}' not found in configuration - skipping asset");
+
+        // Try to find a fallback asset or continue without this asset
+        if (TryFindFallbackAsset(spawnAsset, out MediaAsset fallbackAsset))
+        {
+          CPH.LogInfo($"ExecuteSpawnAsset[{executionId}]: Using fallback asset '{fallbackAsset.Name}' for missing asset '{spawnAsset.AssetId}'");
+          baseAsset = fallbackAsset;
+        }
+        else
+        {
+          CPH.LogWarn($"ExecuteSpawnAsset[{executionId}]: No fallback asset available, continuing without asset '{spawnAsset.AssetId}'");
+          return true; // Don't fail the entire spawn for missing assets
+        }
+      }
+
+      // Check OBS connection with graceful degradation
+      if (!ValidateOBSConnection())
+      {
+        CPH.LogWarn($"ExecuteSpawnAsset[{executionId}]: OBS not connected - logging asset execution but not creating OBS sources");
+
+        // Log the asset execution for debugging purposes
+        LogAssetExecutionWithoutOBS(spawn, spawnAsset, baseAsset, contextData);
+        return true; // Don't fail the entire spawn for OBS connection issues
       }
 
       // Resolve effective properties
       EffectivePropertiesResult effectiveProperties = ResolveEffectiveProperties(spawn, spawnAsset);
 
-      // Create OBS source for the asset
+      // Create OBS source for the asset with retry logic
       bool sourceCreated = CreateOBSSource(baseAsset, effectiveProperties.Effective, spawnAsset.Id);
       if (!sourceCreated)
       {
-        CPH.LogError($"ExecuteSpawnAsset: Failed to create OBS source for asset '{spawnAsset.AssetId}'");
-        return false;
+        CPH.LogWarn($"ExecuteSpawnAsset[{executionId}]: Failed to create OBS source for asset '{spawnAsset.AssetId}' - continuing without OBS source");
+
+        // Log the asset execution for debugging purposes
+        LogAssetExecutionWithoutOBS(spawn, spawnAsset, baseAsset, contextData);
+        return true; // Don't fail the entire spawn for OBS source creation issues
       }
 
       // Apply asset properties to OBS source
       bool propertiesApplied = ApplyAssetPropertiesToOBS(baseAsset, effectiveProperties.Effective, spawnAsset.Id);
       if (!propertiesApplied)
       {
-        CPH.LogWarn($"ExecuteSpawnAsset: Failed to apply some properties to OBS source for asset '{spawnAsset.AssetId}'");
+        CPH.LogWarn($"ExecuteSpawnAsset[{executionId}]: Failed to apply some properties to OBS source for asset '{spawnAsset.AssetId}' - continuing with default properties");
       }
 
-      // Show the OBS source
+      // Show the OBS source with retry logic
       bool sourceShown = ShowOBSSource(spawnAsset.Id);
       if (!sourceShown)
       {
-        CPH.LogError($"ExecuteSpawnAsset: Failed to show OBS source for asset '{spawnAsset.AssetId}'");
-        return false;
+        CPH.LogWarn($"ExecuteSpawnAsset[{executionId}]: Failed to show OBS source for asset '{spawnAsset.AssetId}' - source created but not visible");
+        // Don't fail here - the source was created, just not shown
       }
 
       // Handle asset-specific timing
       double assetDuration = GetAssetDuration(spawn, spawnAsset);
       if (assetDuration > 0)
       {
-        CPH.LogInfo($"ExecuteSpawnAsset: Asset '{spawnAsset.AssetId}' will display for {assetDuration}ms");
+        CPH.LogInfo($"ExecuteSpawnAsset[{executionId}]: Asset '{spawnAsset.AssetId}' will display for {assetDuration}ms");
         // TODO: Implement asset-specific timing and cleanup
       }
 
-      CPH.LogInfo($"ExecuteSpawnAsset: Successfully executed asset '{spawnAsset.AssetId}'");
+      stopwatch.Stop();
+      var executionTime = stopwatch.ElapsedMilliseconds;
+
+      CPH.LogInfo($"ExecuteSpawnAsset[{executionId}]: Successfully executed asset '{spawnAsset.AssetId}' in {executionTime}ms");
       return true;
     }
     catch (Exception ex)
     {
-      CPH.LogError($"ExecuteSpawnAsset: Error executing asset '{spawnAsset.AssetId}': {ex.Message}");
-      return false;
+      stopwatch.Stop();
+      var executionTime = stopwatch.ElapsedMilliseconds;
+
+      var context = new Dictionary<string, object>
+      {
+        ["spawnName"] = spawn?.Name,
+        ["spawnId"] = spawn?.Id,
+        ["assetId"] = spawnAsset?.AssetId,
+        ["triggerType"] = triggerType,
+        ["executionTime"] = executionTime
+      };
+
+      string errorMessage = CreateStructuredErrorMessage("ExecuteSpawnAsset", ex, context);
+      CPH.LogError($"ExecuteSpawnAsset[{executionId}]: {errorMessage}");
+
+      // Don't fail the entire spawn for individual asset errors
+      CPH.LogWarn($"ExecuteSpawnAsset[{executionId}]: Continuing spawn execution despite asset error");
+      return true;
     }
   }
 
@@ -1616,91 +2106,115 @@ public class CPHInline
   /// <returns>True if source was created successfully</returns>
   private bool CreateOBSSource(MediaAsset asset, Dictionary<string, object> properties, string sourceName)
   {
-    try
+    // Validate input parameters
+    var parameters = new Dictionary<string, object>
     {
-      CPH.LogInfo($"CreateOBSSource: Creating OBS source '{sourceName}' for asset '{asset.Name}' ({asset.Type})");
+      ["asset"] = asset,
+      ["sourceName"] = sourceName
+    };
 
-      // Validate OBS connection first
-      if (!ValidateOBSConnection())
+    if (!ValidateInputParameters("CreateOBSSource", parameters))
+    {
+      return false;
+    }
+
+    // Use retry logic for the OBS operation
+    return ExecuteOBSOperationWithRetry($"CreateOBSSource-{sourceName}", () =>
+    {
+      try
       {
-        CPH.LogError("CreateOBSSource: OBS connection validation failed");
-        return false;
-      }
+        CPH.LogInfo($"CreateOBSSource: Creating OBS source '{sourceName}' for asset '{asset.Name}' ({asset.Type})");
 
-      // Check if source already exists
-      if (OBSSourceExists(sourceName))
-      {
-        CPH.LogWarn($"CreateOBSSource: Source '{sourceName}' already exists, skipping creation");
-        return true;
-      }
-
-      // Determine source type based on asset type
-      string obsSourceType = GetOBSSourceType(asset.Type);
-      if (string.IsNullOrEmpty(obsSourceType))
-      {
-        CPH.LogError($"CreateOBSSource: Unsupported asset type '{asset.Type}' for asset '{asset.Name}'");
-        return false;
-      }
-
-      // Get current scene
-      string currentScene = GetCurrentOBSScene();
-      if (string.IsNullOrEmpty(currentScene))
-      {
-        CPH.LogError("CreateOBSSource: Could not determine current OBS scene");
-        return false;
-      }
-
-      // Build source settings
-      Dictionary<string, object> sourceSettings = BuildOBSSourceSettings(asset, properties);
-
-      // Create OBS request for source creation
-      Dictionary<string, object> createSourceRequest = new Dictionary<string, object>
-      {
-        ["requestType"] = "CreateSource",
-        ["requestId"] = Guid.NewGuid().ToString(),
-        ["requestData"] = new Dictionary<string, object>
+        // Validate OBS connection first
+        if (!ValidateOBSConnection())
         {
-          ["sourceName"] = sourceName,
-          ["sourceKind"] = obsSourceType,
-          ["sceneName"] = currentScene,
-          ["sourceSettings"] = sourceSettings
-        }
-      };
-
-      // Send the request to OBS
-      string response = CPH.ObsSendRaw("CreateSource", JsonConvert.SerializeObject(createSourceRequest));
-      if (string.IsNullOrEmpty(response))
-      {
-        CPH.LogError($"CreateOBSSource: No response from OBS for source creation '{sourceName}'");
-        return false;
-      }
-
-      // Parse response to check for success
-      Dictionary<string, object> responseData = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
-      if (responseData.ContainsKey("requestStatus") && responseData["requestStatus"] is Dictionary<string, object> status)
-      {
-        bool result = status.ContainsKey("result") && status["result"] is bool success && success;
-        if (result)
-        {
-          CPH.LogInfo($"CreateOBSSource: Successfully created OBS source '{sourceName}'");
-          return true;
-        }
-        else
-        {
-          string error = status.ContainsKey("comment") ? status["comment"].ToString() : "Unknown error";
-          CPH.LogError($"CreateOBSSource: Failed to create OBS source '{sourceName}': {error}");
+          CPH.LogError("CreateOBSSource: OBS connection validation failed");
           return false;
         }
-      }
 
-      CPH.LogError($"CreateOBSSource: Invalid response format from OBS for source creation '{sourceName}'");
-      return false;
-    }
-    catch (Exception ex)
-    {
-      CPH.LogError($"CreateOBSSource: Error creating OBS source '{sourceName}': {ex.Message}");
-      return false;
-    }
+        // Check if source already exists
+        if (OBSSourceExists(sourceName))
+        {
+          CPH.LogWarn($"CreateOBSSource: Source '{sourceName}' already exists, skipping creation");
+          return true;
+        }
+
+        // Determine source type based on asset type
+        string obsSourceType = GetOBSSourceType(asset.Type);
+        if (string.IsNullOrEmpty(obsSourceType))
+        {
+          CPH.LogError($"CreateOBSSource: Unsupported asset type '{asset.Type}' for asset '{asset.Name}'");
+          return false;
+        }
+
+        // Get current scene
+        string currentScene = GetCurrentOBSScene();
+        if (string.IsNullOrEmpty(currentScene))
+        {
+          CPH.LogError("CreateOBSSource: Could not determine current OBS scene");
+          return false;
+        }
+
+        // Build source settings
+        Dictionary<string, object> sourceSettings = BuildOBSSourceSettings(asset, properties);
+
+        // Create OBS request for source creation
+        Dictionary<string, object> createSourceRequest = new Dictionary<string, object>
+        {
+          ["requestType"] = "CreateSource",
+          ["requestId"] = Guid.NewGuid().ToString(),
+          ["requestData"] = new Dictionary<string, object>
+          {
+            ["sourceName"] = sourceName,
+            ["sourceKind"] = obsSourceType,
+            ["sceneName"] = currentScene,
+            ["sourceSettings"] = sourceSettings
+          }
+        };
+
+        // Send the request to OBS
+        string response = CPH.ObsSendRaw("CreateSource", JsonConvert.SerializeObject(createSourceRequest));
+        if (string.IsNullOrEmpty(response))
+        {
+          CPH.LogError($"CreateOBSSource: No response from OBS for source creation '{sourceName}'");
+          return false;
+        }
+
+        // Parse response to check for success
+        Dictionary<string, object> responseData = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
+        if (responseData.ContainsKey("requestStatus") && responseData["requestStatus"] is Dictionary<string, object> status)
+        {
+          bool result = status.ContainsKey("result") && status["result"] is bool success && success;
+          if (result)
+          {
+            CPH.LogInfo($"CreateOBSSource: Successfully created OBS source '{sourceName}'");
+            return true;
+          }
+          else
+          {
+            string error = status.ContainsKey("comment") ? status["comment"].ToString() : "Unknown error";
+            CPH.LogError($"CreateOBSSource: Failed to create OBS source '{sourceName}': {error}");
+            return false;
+          }
+        }
+
+        CPH.LogError($"CreateOBSSource: Invalid response format from OBS for source creation '{sourceName}'");
+        return false;
+      }
+      catch (Exception ex)
+      {
+        var context = new Dictionary<string, object>
+        {
+          ["sourceName"] = sourceName,
+          ["assetName"] = asset?.Name,
+          ["assetType"] = asset?.Type
+        };
+
+        string errorMessage = CreateStructuredErrorMessage("CreateOBSSource", ex, context);
+        CPH.LogError($"CreateOBSSource: {errorMessage}");
+        return false;
+      }
+    });
   }
 
   /// <summary>
@@ -1890,29 +2404,50 @@ public class CPHInline
   /// <returns>True if source was shown successfully</returns>
   private bool ShowOBSSource(string sourceName)
   {
-    try
+    // Validate input parameters
+    var parameters = new Dictionary<string, object>
     {
-      CPH.LogInfo($"ShowOBSSource: Showing OBS source '{sourceName}'");
+      ["sourceName"] = sourceName
+    };
 
-      // Use built-in Streamer.bot method to show the source
-      bool success = CPH.ObsShowSource(sourceName);
-
-      if (success)
-      {
-        CPH.LogInfo($"ShowOBSSource: Successfully showed OBS source '{sourceName}'");
-        return true;
-      }
-      else
-      {
-        CPH.LogError($"ShowOBSSource: Failed to show OBS source '{sourceName}'");
-        return false;
-      }
-    }
-    catch (Exception ex)
+    if (!ValidateInputParameters("ShowOBSSource", parameters))
     {
-      CPH.LogError($"ShowOBSSource: Error showing OBS source '{sourceName}': {ex.Message}");
       return false;
     }
+
+    // Use retry logic for the OBS operation
+    return ExecuteOBSOperationWithRetry($"ShowOBSSource-{sourceName}", () =>
+    {
+      try
+      {
+        CPH.LogInfo($"ShowOBSSource: Showing OBS source '{sourceName}'");
+
+        // Use built-in Streamer.bot method to show the source
+        bool success = CPH.ObsShowSource(sourceName);
+
+        if (success)
+        {
+          CPH.LogInfo($"ShowOBSSource: Successfully showed OBS source '{sourceName}'");
+          return true;
+        }
+        else
+        {
+          CPH.LogError($"ShowOBSSource: Failed to show OBS source '{sourceName}'");
+          return false;
+        }
+      }
+      catch (Exception ex)
+      {
+        var context = new Dictionary<string, object>
+        {
+          ["sourceName"] = sourceName
+        };
+
+        string errorMessage = CreateStructuredErrorMessage("ShowOBSSource", ex, context);
+        CPH.LogError($"ShowOBSSource: {errorMessage}");
+        return false;
+      }
+    });
   }
 
   /// <summary>
@@ -1922,29 +2457,50 @@ public class CPHInline
   /// <returns>True if source was hidden successfully</returns>
   private bool HideOBSSource(string sourceName)
   {
-    try
+    // Validate input parameters
+    var parameters = new Dictionary<string, object>
     {
-      CPH.LogInfo($"HideOBSSource: Hiding OBS source '{sourceName}'");
+      ["sourceName"] = sourceName
+    };
 
-      // Use built-in Streamer.bot method to hide the source
-      bool success = CPH.ObsHideSource(sourceName);
-
-      if (success)
-      {
-        CPH.LogInfo($"HideOBSSource: Successfully hid OBS source '{sourceName}'");
-        return true;
-      }
-      else
-      {
-        CPH.LogError($"HideOBSSource: Failed to hide OBS source '{sourceName}'");
-        return false;
-      }
-    }
-    catch (Exception ex)
+    if (!ValidateInputParameters("HideOBSSource", parameters))
     {
-      CPH.LogError($"HideOBSSource: Error hiding OBS source '{sourceName}': {ex.Message}");
       return false;
     }
+
+    // Use retry logic for the OBS operation
+    return ExecuteOBSOperationWithRetry($"HideOBSSource-{sourceName}", () =>
+    {
+      try
+      {
+        CPH.LogInfo($"HideOBSSource: Hiding OBS source '{sourceName}'");
+
+        // Use built-in Streamer.bot method to hide the source
+        bool success = CPH.ObsHideSource(sourceName);
+
+        if (success)
+        {
+          CPH.LogInfo($"HideOBSSource: Successfully hid OBS source '{sourceName}'");
+          return true;
+        }
+        else
+        {
+          CPH.LogError($"HideOBSSource: Failed to hide OBS source '{sourceName}'");
+          return false;
+        }
+      }
+      catch (Exception ex)
+      {
+        var context = new Dictionary<string, object>
+        {
+          ["sourceName"] = sourceName
+        };
+
+        string errorMessage = CreateStructuredErrorMessage("HideOBSSource", ex, context);
+        CPH.LogError($"HideOBSSource: {errorMessage}");
+        return false;
+      }
+    });
   }
 
   /// <summary>
@@ -1954,63 +2510,84 @@ public class CPHInline
   /// <returns>True if source was deleted successfully</returns>
   private bool DeleteOBSSource(string sourceName)
   {
-    try
+    // Validate input parameters
+    var parameters = new Dictionary<string, object>
     {
-      CPH.LogInfo($"DeleteOBSSource: Deleting OBS source '{sourceName}'");
+      ["sourceName"] = sourceName
+    };
 
-      string currentScene = GetCurrentOBSScene();
-      if (string.IsNullOrEmpty(currentScene))
-      {
-        CPH.LogError("DeleteOBSSource: Could not determine current OBS scene");
-        return false;
-      }
+    if (!ValidateInputParameters("DeleteOBSSource", parameters))
+    {
+      return false;
+    }
 
-      // Create OBS request to delete the source
-      Dictionary<string, object> deleteSourceRequest = new Dictionary<string, object>
+    // Use retry logic for the OBS operation
+    return ExecuteOBSOperationWithRetry($"DeleteOBSSource-{sourceName}", () =>
+    {
+      try
       {
-        ["requestType"] = "RemoveSceneItem",
-        ["requestId"] = Guid.NewGuid().ToString(),
-        ["requestData"] = new Dictionary<string, object>
+        CPH.LogInfo($"DeleteOBSSource: Deleting OBS source '{sourceName}'");
+
+        string currentScene = GetCurrentOBSScene();
+        if (string.IsNullOrEmpty(currentScene))
         {
-          ["sceneName"] = currentScene,
-          ["item"] = sourceName
-        }
-      };
-
-      // Send the request to OBS
-      string response = CPH.ObsSendRaw("RemoveSceneItem", JsonConvert.SerializeObject(deleteSourceRequest));
-      if (string.IsNullOrEmpty(response))
-      {
-        CPH.LogError($"DeleteOBSSource: No response from OBS for deleting source '{sourceName}'");
-        return false;
-      }
-
-      // Parse response to check for success
-      Dictionary<string, object> responseData = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
-      if (responseData.ContainsKey("requestStatus") && responseData["requestStatus"] is Dictionary<string, object> status)
-      {
-        bool result = status.ContainsKey("result") && status["result"] is bool success && success;
-        if (result)
-        {
-          CPH.LogInfo($"DeleteOBSSource: Successfully deleted OBS source '{sourceName}'");
-          return true;
-        }
-        else
-        {
-          string error = status.ContainsKey("comment") ? status["comment"].ToString() : "Unknown error";
-          CPH.LogError($"DeleteOBSSource: Failed to delete OBS source '{sourceName}': {error}");
+          CPH.LogError("DeleteOBSSource: Could not determine current OBS scene");
           return false;
         }
-      }
 
-      CPH.LogError($"DeleteOBSSource: Invalid response format from OBS for deleting source '{sourceName}'");
-      return false;
-    }
-    catch (Exception ex)
-    {
-      CPH.LogError($"DeleteOBSSource: Error deleting OBS source '{sourceName}': {ex.Message}");
-      return false;
-    }
+        // Create OBS request to delete the source
+        Dictionary<string, object> deleteSourceRequest = new Dictionary<string, object>
+        {
+          ["requestType"] = "RemoveSceneItem",
+          ["requestId"] = Guid.NewGuid().ToString(),
+          ["requestData"] = new Dictionary<string, object>
+          {
+            ["sceneName"] = currentScene,
+            ["item"] = sourceName
+          }
+        };
+
+        // Send the request to OBS
+        string response = CPH.ObsSendRaw("RemoveSceneItem", JsonConvert.SerializeObject(deleteSourceRequest));
+        if (string.IsNullOrEmpty(response))
+        {
+          CPH.LogError($"DeleteOBSSource: No response from OBS for deleting source '{sourceName}'");
+          return false;
+        }
+
+        // Parse response to check for success
+        Dictionary<string, object> responseData = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
+        if (responseData.ContainsKey("requestStatus") && responseData["requestStatus"] is Dictionary<string, object> status)
+        {
+          bool result = status.ContainsKey("result") && status["result"] is bool success && success;
+          if (result)
+          {
+            CPH.LogInfo($"DeleteOBSSource: Successfully deleted OBS source '{sourceName}'");
+            return true;
+          }
+          else
+          {
+            string error = status.ContainsKey("comment") ? status["comment"].ToString() : "Unknown error";
+            CPH.LogError($"DeleteOBSSource: Failed to delete OBS source '{sourceName}': {error}");
+            return false;
+          }
+        }
+
+        CPH.LogError($"DeleteOBSSource: Invalid response format from OBS for deleting source '{sourceName}'");
+        return false;
+      }
+      catch (Exception ex)
+      {
+        var context = new Dictionary<string, object>
+        {
+          ["sourceName"] = sourceName
+        };
+
+        string errorMessage = CreateStructuredErrorMessage("DeleteOBSSource", ex, context);
+        CPH.LogError($"DeleteOBSSource: {errorMessage}");
+        return false;
+      }
+    });
   }
 
   /// <summary>
@@ -3773,8 +4350,6 @@ public class CPHInline
           executionRecord.ErrorMessage = errorMessage;
         }
 
-        // Update performance metrics
-        UpdatePerformanceMetrics(executionRecord);
 
         CPH.LogInfo($"StateManagement: Completed execution {executionId} with status '{status}'");
       }
@@ -3795,41 +4370,6 @@ public class CPHInline
       while (_executionHistory.Count > _maxExecutionHistory)
       {
         _executionHistory.RemoveAt(0);
-      }
-    }
-  }
-
-  /// <summary>
-  /// Update performance metrics
-  /// </summary>
-  /// <param name="record">The execution record</param>
-  private void UpdatePerformanceMetrics(ExecutionRecord record)
-  {
-    if (record?.Duration == null)
-      return;
-
-    lock (_stateLock)
-    {
-      _performanceMetrics.TotalExecutions++;
-
-      if (record.Status == "Success")
-        _performanceMetrics.SuccessfulExecutions++;
-      else
-        _performanceMetrics.FailedExecutions++;
-
-      TimeSpan duration = record.Duration.Value;
-      _performanceMetrics.TotalExecutionTime = _performanceMetrics.TotalExecutionTime.Add(duration);
-
-      if (duration > _performanceMetrics.MaxExecutionTime)
-        _performanceMetrics.MaxExecutionTime = duration;
-
-      if (duration < _performanceMetrics.MinExecutionTime)
-        _performanceMetrics.MinExecutionTime = duration;
-
-      if (_performanceMetrics.TotalExecutions > 0)
-      {
-        _performanceMetrics.AverageExecutionTime = TimeSpan.FromTicks(
-          _performanceMetrics.TotalExecutionTime.Ticks / _performanceMetrics.TotalExecutions);
       }
     }
   }
@@ -3915,15 +4455,6 @@ public class CPHInline
         ["activeSpawns"] = _activeSpawns.Count,
         ["executionHistoryCount"] = _executionHistory.Count,
         ["randomizationHistoryCount"] = _randomizationHistory.Count,
-        ["performanceMetrics"] = new Dictionary<string, object>
-        {
-          ["totalExecutions"] = _performanceMetrics.TotalExecutions,
-          ["successfulExecutions"] = _performanceMetrics.SuccessfulExecutions,
-          ["failedExecutions"] = _performanceMetrics.FailedExecutions,
-          ["averageExecutionTime"] = _performanceMetrics.AverageExecutionTime.ToString(),
-          ["maxExecutionTime"] = _performanceMetrics.MaxExecutionTime.ToString(),
-          ["minExecutionTime"] = _performanceMetrics.MinExecutionTime.ToString()
-        },
         ["configCacheValid"] = IsConfigCacheValid(),
         ["configCacheAge"] = _configCacheTimestamp == DateTime.MinValue ?
           "Never" : DateTime.UtcNow.Subtract(_configCacheTimestamp).ToString()
@@ -3931,25 +4462,6 @@ public class CPHInline
     }
   }
 
-  /// <summary>
-  /// Reset performance metrics
-  /// </summary>
-  private void ResetPerformanceMetrics()
-  {
-    lock (_stateLock)
-    {
-      _performanceMetrics.TotalExecutions = 0;
-      _performanceMetrics.SuccessfulExecutions = 0;
-      _performanceMetrics.FailedExecutions = 0;
-      _performanceMetrics.AverageExecutionTime = TimeSpan.Zero;
-      _performanceMetrics.MaxExecutionTime = TimeSpan.Zero;
-      _performanceMetrics.MinExecutionTime = TimeSpan.MaxValue;
-      _performanceMetrics.TotalExecutionTime = TimeSpan.Zero;
-      _performanceMetrics.LastResetTime = DateTime.UtcNow;
-
-      CPH.LogInfo("StateManagement: Performance metrics reset");
-    }
-  }
 
   #endregion
 
@@ -4045,35 +4557,6 @@ public class CPHInline
     public int MaxPatternLength { get; set; } = 10;
   }
 
-  /// <summary>
-  /// Performance metrics tracking
-  /// </summary>
-  public class PerformanceMetrics
-  {
-    [JsonProperty("totalExecutions")]
-    public int TotalExecutions { get; set; }
-
-    [JsonProperty("successfulExecutions")]
-    public int SuccessfulExecutions { get; set; }
-
-    [JsonProperty("failedExecutions")]
-    public int FailedExecutions { get; set; }
-
-    [JsonProperty("averageExecutionTime")]
-    public TimeSpan AverageExecutionTime { get; set; }
-
-    [JsonProperty("maxExecutionTime")]
-    public TimeSpan MaxExecutionTime { get; set; }
-
-    [JsonProperty("minExecutionTime")]
-    public TimeSpan MinExecutionTime { get; set; } = TimeSpan.MaxValue;
-
-    [JsonProperty("totalExecutionTime")]
-    public TimeSpan TotalExecutionTime { get; set; }
-
-    [JsonProperty("lastResetTime")]
-    public DateTime LastResetTime { get; set; } = DateTime.UtcNow;
-  }
 
   /// <summary>
   /// Represents a spawn execution request in the queue
@@ -4097,6 +4580,1069 @@ public class CPHInline
 
     [JsonProperty("requestTime")]
     public DateTime RequestTime { get; set; } = DateTime.UtcNow;
+  }
+
+  #endregion
+
+  #region Utility Methods and Helpers
+
+  /// <summary>
+  /// Resolves asset path to determine if it's a local file or URL
+  /// </summary>
+  /// <param name="assetPath">The asset path to resolve</param>
+  /// <returns>Asset path resolution result</returns>
+  private AssetPathResolution ResolveAssetPath(string assetPath)
+  {
+    if (string.IsNullOrWhiteSpace(assetPath))
+    {
+      return new AssetPathResolution
+      {
+        IsValid = false,
+        IsLocalFile = false,
+        IsUrl = false,
+        ResolvedPath = string.Empty,
+        ErrorMessage = "Asset path is null or empty"
+      };
+    }
+
+    // Check if it's a URL
+    if (Uri.TryCreate(assetPath, UriKind.Absolute, out Uri uri) &&
+        (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+    {
+      return new AssetPathResolution
+      {
+        IsValid = true,
+        IsLocalFile = false,
+        IsUrl = true,
+        ResolvedPath = assetPath,
+        ErrorMessage = string.Empty
+      };
+    }
+
+    // Check if it's a local file
+    string fullPath = Path.GetFullPath(assetPath);
+    bool fileExists = File.Exists(fullPath);
+
+    return new AssetPathResolution
+    {
+      IsValid = fileExists,
+      IsLocalFile = true,
+      IsUrl = false,
+      ResolvedPath = fullPath,
+      ErrorMessage = fileExists ? string.Empty : $"Local file not found: {fullPath}"
+    };
+  }
+
+  /// <summary>
+  /// Builds a standardized OBS request for source creation
+  /// </summary>
+  /// <param name="sourceName">Name of the source to create</param>
+  /// <param name="sourceType">Type of OBS source</param>
+  /// <param name="settings">Source-specific settings</param>
+  /// <param name="sceneName">Target scene name (optional)</param>
+  /// <returns>OBS request object</returns>
+  private object BuildOBSRequest(string sourceName, string sourceType, Dictionary<string, object> settings, string sceneName = null)
+  {
+    var request = new
+    {
+      requestType = "CreateSource",
+      sourceName = sourceName,
+      sourceKind = sourceType,
+      sourceSettings = settings ?? new Dictionary<string, object>()
+    };
+
+    if (!string.IsNullOrWhiteSpace(sceneName))
+    {
+      return new
+      {
+        requestType = "CreateSource",
+        sourceName = sourceName,
+        sourceKind = sourceType,
+        sourceSettings = settings ?? new Dictionary<string, object>(),
+        sceneName = sceneName
+      };
+    }
+
+    return request;
+  }
+
+  /// <summary>
+  /// Builds an OBS request for setting source properties
+  /// </summary>
+  /// <param name="sourceName">Name of the source</param>
+  /// <param name="properties">Properties to set</param>
+  /// <param name="sceneName">Target scene name (optional)</param>
+  /// <returns>OBS request object</returns>
+  private object BuildOBSSetSourcePropertiesRequest(string sourceName, Dictionary<string, object> properties, string sceneName = null)
+  {
+    var request = new
+    {
+      requestType = "SetSourceSettings",
+      sourceName = sourceName,
+      sourceSettings = properties
+    };
+
+    if (!string.IsNullOrWhiteSpace(sceneName))
+    {
+      return new
+      {
+        requestType = "SetSourceSettings",
+        sourceName = sourceName,
+        sourceSettings = properties,
+        sceneName = sceneName
+      };
+    }
+
+    return request;
+  }
+
+  /// <summary>
+  /// Converts MediaSpawner time to UTC for consistent processing
+  /// </summary>
+  /// <param name="localTime">Local time to convert</param>
+  /// <param name="timezoneId">Timezone identifier (e.g., "America/New_York")</param>
+  /// <returns>UTC DateTime</returns>
+  private DateTime ConvertToUtc(DateTime localTime, string timezoneId = null)
+  {
+    try
+    {
+      if (string.IsNullOrWhiteSpace(timezoneId))
+      {
+        // Use system timezone if none specified
+        return localTime.ToUniversalTime();
+      }
+
+      // For now, use system timezone conversion
+      // In a full implementation, you'd use a timezone library like NodaTime
+      return localTime.ToUniversalTime();
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"ConvertToUtc: Error converting time to UTC: {ex.Message}");
+      return localTime.ToUniversalTime(); // Fallback to system conversion
+    }
+  }
+
+  /// <summary>
+  /// Converts MediaSpawner properties to OBS source settings
+  /// </summary>
+  /// <param name="properties">MediaSpawner asset properties</param>
+  /// <returns>OBS-compatible settings dictionary</returns>
+  private Dictionary<string, object> ConvertToOBSSettings(AssetSettings properties)
+  {
+    var obsSettings = new Dictionary<string, object>();
+
+    if (properties == null)
+      return obsSettings;
+
+    // Convert dimensions
+    if (properties.Width.HasValue)
+    {
+      obsSettings["width"] = properties.Width.Value;
+    }
+
+    if (properties.Height.HasValue)
+    {
+      obsSettings["height"] = properties.Height.Value;
+    }
+
+    // Convert position
+    if (properties.X.HasValue)
+    {
+      obsSettings["x"] = properties.X.Value;
+    }
+
+    if (properties.Y.HasValue)
+    {
+      obsSettings["y"] = properties.Y.Value;
+    }
+
+    // Convert scale
+    if (properties.Scale.HasValue)
+    {
+      obsSettings["scale"] = properties.Scale.Value;
+    }
+
+    // Convert volume
+    if (properties.Volume.HasValue)
+    {
+      obsSettings["volume"] = properties.Volume.Value / 100.0; // Convert 0-100 to 0-1
+    }
+
+    // Convert boolean properties
+    if (properties.Muted.HasValue)
+    {
+      obsSettings["muted"] = properties.Muted.Value;
+    }
+
+    if (properties.Loop.HasValue)
+    {
+      obsSettings["looping"] = properties.Loop.Value;
+    }
+
+    if (properties.Autoplay.HasValue)
+    {
+      obsSettings["autoplay"] = properties.Autoplay.Value;
+    }
+
+    return obsSettings;
+  }
+
+  /// <summary>
+  /// Validates spawn data for execution
+  /// </summary>
+  /// <param name="spawn">Spawn to validate</param>
+  /// <returns>Validation result</returns>
+  private ValidationResult ValidateSpawn(Spawn spawn)
+  {
+    var result = new ValidationResult();
+
+    if (spawn == null)
+    {
+      result.AddError("Spawn is null");
+      return result;
+    }
+
+    if (string.IsNullOrWhiteSpace(spawn.Id))
+    {
+      result.AddError("Spawn ID is required");
+    }
+
+    if (string.IsNullOrWhiteSpace(spawn.Name))
+    {
+      result.AddError("Spawn name is required");
+    }
+
+    if (spawn.Assets == null || spawn.Assets.Count == 0)
+    {
+      result.AddError("Spawn must have at least one asset");
+    }
+
+    if (spawn.Trigger == null)
+    {
+      result.AddError("Spawn trigger configuration is required");
+    }
+
+    return result;
+  }
+
+  /// <summary>
+  /// Validates asset data for execution
+  /// </summary>
+  /// <param name="asset">Asset to validate</param>
+  /// <returns>Validation result</returns>
+  private ValidationResult ValidateAsset(MediaAsset asset)
+  {
+    var result = new ValidationResult();
+
+    if (asset == null)
+    {
+      result.AddError("Asset is null");
+      return result;
+    }
+
+    if (string.IsNullOrWhiteSpace(asset.Id))
+    {
+      result.AddError("Asset ID is required");
+    }
+
+    if (string.IsNullOrWhiteSpace(asset.Name))
+    {
+      result.AddError("Asset name is required");
+    }
+
+    if (string.IsNullOrWhiteSpace(asset.Path))
+    {
+      result.AddError("Asset file path is required");
+    }
+
+    return result;
+  }
+
+  /// <summary>
+  /// Selects random members from a randomization bucket
+  /// </summary>
+  /// <param name="bucket">Randomization bucket</param>
+  /// <returns>Selected member IDs</returns>
+  private List<string> SelectRandomMembers(RandomizationBucket bucket)
+  {
+    if (bucket == null || bucket.Members == null || bucket.Members.Count == 0)
+      return new List<string>();
+
+    var enabledMembers = bucket.Members.ToList();
+    if (enabledMembers.Count == 0)
+      return new List<string>();
+
+    var random = new Random();
+    var selectedMembers = new List<string>();
+
+    if (bucket.Selection == "one")
+    {
+      // Select one random member
+      var randomIndex = random.Next(enabledMembers.Count);
+      selectedMembers.Add(enabledMembers[randomIndex].SpawnAssetId);
+    }
+    else if (bucket.Selection == "n" && bucket.N.HasValue)
+    {
+      // Select N random members
+      int countToSelect = Math.Min(bucket.N.Value, enabledMembers.Count);
+      var shuffledMembers = enabledMembers.OrderBy(x => random.Next()).ToList();
+
+      for (int i = 0; i < countToSelect; i++)
+      {
+        selectedMembers.Add(shuffledMembers[i].SpawnAssetId);
+      }
+    }
+
+    return selectedMembers;
+  }
+
+  /// <summary>
+  /// Resolves effective properties for an asset using inheritance rules
+  /// </summary>
+  /// <param name="spawn">Parent spawn</param>
+  /// <param name="overrides">Asset-specific overrides</param>
+  /// <returns>Effective properties and source mapping</returns>
+  private EffectivePropertiesResult ResolveEffectiveProperties(Spawn spawn, PartialAssetSettings overrides = null)
+  {
+    var result = new EffectivePropertiesResult
+    {
+      Effective = new Dictionary<string, object>(),
+      SourceMap = new Dictionary<string, string>()
+    };
+
+    if (spawn?.DefaultProperties == null && overrides == null)
+      return result;
+
+    // Process each property with inheritance rules
+    ProcessProperty("width", spawn?.DefaultProperties?.Width, overrides?.Width, result);
+    ProcessProperty("height", spawn?.DefaultProperties?.Height, overrides?.Height, result);
+    ProcessProperty("x", spawn?.DefaultProperties?.X, overrides?.X, result);
+    ProcessProperty("y", spawn?.DefaultProperties?.Y, overrides?.Y, result);
+    ProcessProperty("scale", spawn?.DefaultProperties?.Scale, overrides?.Scale, result);
+    ProcessProperty("positionMode", spawn?.DefaultProperties?.PositionMode, overrides?.PositionMode, result);
+    ProcessProperty("volume", spawn?.DefaultProperties?.Volume, overrides?.Volume, result);
+    ProcessProperty("loop", spawn?.DefaultProperties?.Loop, overrides?.Loop, result);
+    ProcessProperty("autoplay", spawn?.DefaultProperties?.Autoplay, overrides?.Autoplay, result);
+    ProcessProperty("muted", spawn?.DefaultProperties?.Muted, overrides?.Muted, result);
+
+    return result;
+  }
+
+  /// <summary>
+  /// Processes a single property with inheritance rules
+  /// </summary>
+  private void ProcessProperty<T>(string propertyName, T spawnValue, T overrideValue, EffectivePropertiesResult result)
+  {
+    if (overrideValue != null)
+    {
+      SetPropertyValue(result.Effective, propertyName, overrideValue);
+      result.SourceMap[propertyName] = "override";
+    }
+    else if (spawnValue != null)
+    {
+      SetPropertyValue(result.Effective, propertyName, spawnValue);
+      result.SourceMap[propertyName] = "spawn-default";
+    }
+    else
+    {
+      result.SourceMap[propertyName] = "none";
+    }
+  }
+
+  /// <summary>
+  /// Sets property value using reflection
+  /// </summary>
+  private void SetPropertyValue(object target, string propertyName, object value)
+  {
+    var property = target.GetType().GetProperty(propertyName);
+    if (property != null && property.CanWrite)
+    {
+      property.SetValue(target, value);
+    }
+  }
+
+  /// <summary>
+  /// Logs execution details with structured formatting
+  /// </summary>
+  /// <param name="level">Log level</param>
+  /// <param name="message">Log message</param>
+  /// <param name="context">Additional context data</param>
+  private void LogExecution(LogLevel level, string message, Dictionary<string, object> context = null)
+  {
+    string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff");
+    string contextStr = context != null ? $" | Context: {JsonConvert.SerializeObject(context)}" : "";
+
+    string logMessage = $"[{timestamp}] {message}{contextStr}";
+
+    switch (level)
+    {
+      case LogLevel.Debug:
+        CPH.LogInfo($"[DEBUG] {logMessage}");
+        break;
+      case LogLevel.Info:
+        CPH.LogInfo(logMessage);
+        break;
+      case LogLevel.Warning:
+        CPH.LogWarn(logMessage);
+        break;
+      case LogLevel.Error:
+        CPH.LogError(logMessage);
+        break;
+    }
+  }
+
+  /// <summary>
+  /// Creates a debug context dictionary for logging
+  /// </summary>
+  /// <param name="spawnId">Spawn ID</param>
+  /// <param name="assetId">Asset ID (optional)</param>
+  /// <param name="triggerType">Trigger type</param>
+  /// <returns>Debug context dictionary</returns>
+  private Dictionary<string, object> CreateDebugContext(string spawnId, string assetId = null, string triggerType = null)
+  {
+    var context = new Dictionary<string, object>
+    {
+      ["spawnId"] = spawnId ?? "unknown",
+      ["timestamp"] = DateTime.UtcNow.ToString("O")
+    };
+
+    if (!string.IsNullOrWhiteSpace(assetId))
+      context["assetId"] = assetId;
+
+    if (!string.IsNullOrWhiteSpace(triggerType))
+      context["triggerType"] = triggerType;
+
+    return context;
+  }
+
+  #endregion
+
+  #region Utility Support Classes
+
+  /// <summary>
+  /// Result of asset path resolution
+  /// </summary>
+  public class AssetPathResolution
+  {
+    [JsonProperty("isValid")]
+    public bool IsValid { get; set; }
+
+    [JsonProperty("isLocalFile")]
+    public bool IsLocalFile { get; set; }
+
+    [JsonProperty("isUrl")]
+    public bool IsUrl { get; set; }
+
+    [JsonProperty("resolvedPath")]
+    public string ResolvedPath { get; set; } = string.Empty;
+
+    [JsonProperty("errorMessage")]
+    public string ErrorMessage { get; set; } = string.Empty;
+  }
+
+  /// <summary>
+  /// Log levels for structured logging
+  /// </summary>
+  public enum LogLevel
+  {
+    Debug,
+    Info,
+    Warning,
+    Error
+  }
+
+  /// <summary>
+  /// Partial type for AssetSettings to support optional properties
+  /// </summary>
+  public class PartialAssetSettings
+  {
+    public double? Width { get; set; }
+    public double? Height { get; set; }
+    public double? X { get; set; }
+    public double? Y { get; set; }
+    public double? Scale { get; set; }
+    public string PositionMode { get; set; }
+    public double? Volume { get; set; }
+    public bool? Loop { get; set; }
+    public bool? Autoplay { get; set; }
+    public bool? Muted { get; set; }
+  }
+
+  /// <summary>
+  /// Validates the execution environment before starting execution
+  /// </summary>
+  /// <returns>True if environment is valid, false otherwise</returns>
+  private bool ValidateExecutionEnvironment()
+  {
+    try
+    {
+      CPH.LogInfo("ValidateExecutionEnvironment: Validating execution environment");
+
+
+      // Check OBS connection
+      if (!CPH.ObsIsConnected())
+      {
+        CPH.LogWarn("ValidateExecutionEnvironment: OBS is not connected - some operations may fail");
+      }
+
+      // Check if we have access to required Streamer.bot methods
+      try
+      {
+        string testEventType = CPH.GetEventType();
+        string testSource = CPH.GetSource();
+        CPH.LogInfo($"ValidateExecutionEnvironment: Streamer.bot methods accessible - EventType: '{testEventType}', Source: '{testSource}'");
+      }
+      catch (Exception ex)
+      {
+        CPH.LogError($"ValidateExecutionEnvironment: Error accessing Streamer.bot methods: {ex.Message}");
+        return false;
+      }
+
+      CPH.LogInfo("ValidateExecutionEnvironment: Environment validation completed successfully");
+      return true;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"ValidateExecutionEnvironment: Unexpected error during validation: {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Loads MediaSpawner configuration with retry logic
+  /// </summary>
+  /// <returns>True if configuration loaded successfully, false otherwise</returns>
+  private bool LoadMediaSpawnerConfigWithRetry()
+  {
+    const int maxRetries = 3;
+    const int baseDelayMs = 1000;
+
+    for (int attempt = 1; attempt <= maxRetries; attempt++)
+    {
+      try
+      {
+        CPH.LogInfo($"LoadMediaSpawnerConfigWithRetry: Attempt {attempt}/{maxRetries}");
+
+        if (LoadMediaSpawnerConfig())
+        {
+          CPH.LogInfo($"LoadMediaSpawnerConfigWithRetry: Configuration loaded successfully on attempt {attempt}");
+          return true;
+        }
+
+        if (attempt < maxRetries)
+        {
+          int delayMs = baseDelayMs * attempt; // Exponential backoff
+          CPH.LogWarn($"LoadMediaSpawnerConfigWithRetry: Attempt {attempt} failed, retrying in {delayMs}ms");
+          System.Threading.Thread.Sleep(delayMs);
+        }
+      }
+      catch (Exception ex)
+      {
+        CPH.LogError($"LoadMediaSpawnerConfigWithRetry: Error on attempt {attempt}: {ex.Message}");
+
+        if (attempt < maxRetries)
+        {
+          int delayMs = baseDelayMs * attempt;
+          CPH.LogWarn($"LoadMediaSpawnerConfigWithRetry: Retrying in {delayMs}ms after exception");
+          System.Threading.Thread.Sleep(delayMs);
+        }
+      }
+    }
+
+    CPH.LogError($"LoadMediaSpawnerConfigWithRetry: Failed to load configuration after {maxRetries} attempts");
+    return false;
+  }
+
+  /// <summary>
+  /// Executes OBS operation with retry logic
+  /// </summary>
+  /// <param name="operationName">Name of the operation for logging</param>
+  /// <param name="operation">The OBS operation to execute</param>
+  /// <param name="maxRetries">Maximum number of retries (default: 3)</param>
+  /// <returns>True if operation succeeded, false otherwise</returns>
+  private bool ExecuteOBSOperationWithRetry(string operationName, Func<bool> operation, int maxRetries = 3)
+  {
+    const int baseDelayMs = 500;
+
+    for (int attempt = 1; attempt <= maxRetries; attempt++)
+    {
+      try
+      {
+        CPH.LogInfo($"ExecuteOBSOperationWithRetry: {operationName} - Attempt {attempt}/{maxRetries}");
+
+        bool result = operation();
+
+        if (result)
+        {
+          CPH.LogInfo($"ExecuteOBSOperationWithRetry: {operationName} succeeded on attempt {attempt}");
+          return true;
+        }
+
+        if (attempt < maxRetries)
+        {
+          int delayMs = baseDelayMs * attempt; // Exponential backoff
+          CPH.LogWarn($"ExecuteOBSOperationWithRetry: {operationName} failed on attempt {attempt}, retrying in {delayMs}ms");
+          System.Threading.Thread.Sleep(delayMs);
+        }
+      }
+      catch (Exception ex)
+      {
+        CPH.LogError($"ExecuteOBSOperationWithRetry: {operationName} error on attempt {attempt}: {ex.Message}");
+
+        if (attempt < maxRetries)
+        {
+          int delayMs = baseDelayMs * attempt;
+          CPH.LogWarn($"ExecuteOBSOperationWithRetry: {operationName} retrying in {delayMs}ms after exception");
+          System.Threading.Thread.Sleep(delayMs);
+        }
+      }
+    }
+
+    CPH.LogError($"ExecuteOBSOperationWithRetry: {operationName} failed after {maxRetries} attempts");
+    return false;
+  }
+
+  /// <summary>
+  /// Validates input parameters for public methods
+  /// </summary>
+  /// <param name="methodName">Name of the method for logging</param>
+  /// <param name="parameters">Dictionary of parameter names and values to validate</param>
+  /// <returns>True if all parameters are valid, false otherwise</returns>
+  private bool ValidateInputParameters(string methodName, Dictionary<string, object> parameters)
+  {
+    try
+    {
+      foreach (var kvp in parameters)
+      {
+        if (kvp.Value == null)
+        {
+          CPH.LogError($"ValidateInputParameters: {methodName} - Parameter '{kvp.Key}' is null");
+          return false;
+        }
+
+        if (kvp.Value is string str && string.IsNullOrWhiteSpace(str))
+        {
+          CPH.LogError($"ValidateInputParameters: {methodName} - Parameter '{kvp.Key}' is null or whitespace");
+          return false;
+        }
+      }
+
+      return true;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"ValidateInputParameters: {methodName} - Error validating parameters: {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Creates a structured error message with context
+  /// </summary>
+  /// <param name="operation">Operation that failed</param>
+  /// <param name="error">The error that occurred</param>
+  /// <param name="context">Additional context information</param>
+  /// <returns>Formatted error message</returns>
+  private string CreateStructuredErrorMessage(string operation, Exception error, Dictionary<string, object> context = null)
+  {
+    var errorInfo = new Dictionary<string, object>
+    {
+      ["operation"] = operation,
+      ["error"] = error.Message,
+      ["type"] = error.GetType().Name,
+      ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff")
+    };
+
+    if (context != null)
+    {
+      errorInfo["context"] = context;
+    }
+
+    if (error.InnerException != null)
+    {
+      errorInfo["innerError"] = new Dictionary<string, object>
+      {
+        ["message"] = error.InnerException.Message,
+        ["type"] = error.InnerException.GetType().Name
+      };
+    }
+
+    return JsonConvert.SerializeObject(errorInfo, Formatting.Indented);
+  }
+
+  /// <summary>
+  /// Tries to find a fallback asset when the primary asset is missing
+  /// </summary>
+  /// <param name="spawnAsset">The spawn asset that's missing</param>
+  /// <param name="fallbackAsset">The fallback asset if found</param>
+  /// <returns>True if a fallback asset was found</returns>
+  private bool TryFindFallbackAsset(SpawnAsset spawnAsset, out MediaAsset fallbackAsset)
+  {
+    fallbackAsset = null;
+
+    try
+    {
+      if (_cachedConfig?.Assets == null || _cachedConfig.Assets.Count == 0)
+      {
+        return false;
+      }
+
+      // Try to find an asset of the same type
+      var sameTypeAssets = _cachedConfig.Assets.Where(a =>
+        a.Type.Equals(spawnAsset.AssetId.Split('.')[0], StringComparison.OrdinalIgnoreCase)).ToList();
+
+      if (sameTypeAssets.Count > 0)
+      {
+        // Use the first available asset of the same type
+        fallbackAsset = sameTypeAssets[0];
+        CPH.LogInfo($"TryFindFallbackAsset: Found fallback asset '{fallbackAsset.Name}' of type '{fallbackAsset.Type}'");
+        return true;
+      }
+
+      // Try to find any asset as a last resort
+      if (_cachedConfig.Assets.Count > 0)
+      {
+        fallbackAsset = _cachedConfig.Assets[0];
+        CPH.LogInfo($"TryFindFallbackAsset: Using first available asset '{fallbackAsset.Name}' as fallback");
+        return true;
+      }
+
+      return false;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"TryFindFallbackAsset: Error finding fallback asset: {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Logs asset execution when OBS is not available
+  /// </summary>
+  /// <param name="spawn">The parent spawn</param>
+  /// <param name="spawnAsset">The spawn asset being executed</param>
+  /// <param name="baseAsset">The base asset</param>
+  /// <param name="contextData">Additional context data</param>
+  private void LogAssetExecutionWithoutOBS(Spawn spawn, SpawnAsset spawnAsset, MediaAsset baseAsset, Dictionary<string, object> contextData)
+  {
+    try
+    {
+      var executionLog = new Dictionary<string, object>
+      {
+        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff"),
+        ["spawnName"] = spawn?.Name,
+        ["spawnId"] = spawn?.Id,
+        ["assetId"] = spawnAsset?.AssetId,
+        ["assetName"] = baseAsset?.Name,
+        ["assetType"] = baseAsset?.Type,
+        ["assetPath"] = baseAsset?.Path,
+        ["contextData"] = contextData,
+        ["reason"] = "OBS not connected - execution logged for debugging"
+      };
+
+      string logMessage = JsonConvert.SerializeObject(executionLog, Formatting.Indented);
+      CPH.LogInfo($"LogAssetExecutionWithoutOBS: {logMessage}");
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"LogAssetExecutionWithoutOBS: Error logging asset execution: {ex.Message}");
+    }
+  }
+
+  /// <summary>
+  /// Attempts to recover from partial failures in spawn execution
+  /// </summary>
+  /// <param name="spawn">The spawn being executed</param>
+  /// <param name="failedAssets">List of assets that failed to execute</param>
+  /// <param name="triggerType">The trigger type that activated the spawn</param>
+  /// <param name="contextData">Additional context data</param>
+  /// <returns>True if recovery was successful or partial recovery was achieved</returns>
+  private bool AttemptSpawnRecovery(Spawn spawn, List<SpawnAsset> failedAssets, string triggerType, Dictionary<string, object> contextData)
+  {
+    try
+    {
+      CPH.LogInfo($"AttemptSpawnRecovery: Attempting recovery for spawn '{spawn.Name}' with {failedAssets.Count} failed assets");
+
+      if (failedAssets == null || failedAssets.Count == 0)
+      {
+        CPH.LogInfo("AttemptSpawnRecovery: No failed assets to recover from");
+        return true;
+      }
+
+      int recoveredAssets = 0;
+      int totalRecoveryAttempts = 0;
+
+      foreach (var failedAsset in failedAssets)
+      {
+        totalRecoveryAttempts++;
+
+        try
+        {
+          CPH.LogInfo($"AttemptSpawnRecovery: Attempting recovery for asset '{failedAsset.AssetId}' (attempt {totalRecoveryAttempts})");
+
+          // Try to find a fallback asset
+          if (TryFindFallbackAsset(failedAsset, out MediaAsset fallbackAsset))
+          {
+            CPH.LogInfo($"AttemptSpawnRecovery: Using fallback asset '{fallbackAsset.Name}' for failed asset '{failedAsset.AssetId}'");
+
+            // Try to execute with the fallback asset
+            bool recoveryResult = ExecuteSpawnAssetWithFallback(spawn, failedAsset, fallbackAsset, triggerType, contextData);
+
+            if (recoveryResult)
+            {
+              recoveredAssets++;
+              CPH.LogInfo($"AttemptSpawnRecovery: Successfully recovered asset '{failedAsset.AssetId}' using fallback");
+            }
+            else
+            {
+              CPH.LogWarn($"AttemptSpawnRecovery: Failed to recover asset '{failedAsset.AssetId}' even with fallback");
+            }
+          }
+          else
+          {
+            CPH.LogWarn($"AttemptSpawnRecovery: No fallback asset available for failed asset '{failedAsset.AssetId}'");
+          }
+        }
+        catch (Exception ex)
+        {
+          CPH.LogError($"AttemptSpawnRecovery: Error during recovery attempt for asset '{failedAsset.AssetId}': {ex.Message}");
+        }
+      }
+
+      double recoveryRate = totalRecoveryAttempts > 0 ? (double)recoveredAssets / totalRecoveryAttempts : 0.0;
+
+      var recoverySummary = new Dictionary<string, object>
+      {
+        ["spawnName"] = spawn?.Name,
+        ["spawnId"] = spawn?.Id,
+        ["totalFailedAssets"] = failedAssets.Count,
+        ["recoveryAttempts"] = totalRecoveryAttempts,
+        ["recoveredAssets"] = recoveredAssets,
+        ["recoveryRate"] = recoveryRate,
+        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff")
+      };
+
+      CPH.LogInfo($"AttemptSpawnRecovery: Recovery completed. Summary: {JsonConvert.SerializeObject(recoverySummary)}");
+
+      // Consider recovery successful if we recovered at least some assets or if there were no assets to recover
+      return recoveredAssets > 0 || totalRecoveryAttempts == 0;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"AttemptSpawnRecovery: Unexpected error during recovery: {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Executes a spawn asset with a fallback asset
+  /// </summary>
+  /// <param name="spawn">The parent spawn</param>
+  /// <param name="originalAsset">The original spawn asset that failed</param>
+  /// <param name="fallbackAsset">The fallback asset to use</param>
+  /// <param name="triggerType">The trigger type</param>
+  /// <param name="contextData">Additional context data</param>
+  /// <returns>True if execution with fallback was successful</returns>
+  private bool ExecuteSpawnAssetWithFallback(Spawn spawn, SpawnAsset originalAsset, MediaAsset fallbackAsset, string triggerType, Dictionary<string, object> contextData)
+  {
+    try
+    {
+      CPH.LogInfo($"ExecuteSpawnAssetWithFallback: Executing fallback asset '{fallbackAsset.Name}' for original asset '{originalAsset.AssetId}'");
+
+      // Create a temporary spawn asset with the fallback asset's properties
+      var fallbackSpawnAsset = new SpawnAsset
+      {
+        Id = originalAsset.Id, // Keep the same ID for OBS source naming
+        AssetId = fallbackAsset.Id,
+        Enabled = originalAsset.Enabled,
+        Order = originalAsset.Order,
+        Overrides = originalAsset.Overrides // Keep original overrides
+      };
+
+      // Execute the fallback asset
+      return ExecuteSpawnAsset(spawn, fallbackSpawnAsset, triggerType, contextData);
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"ExecuteSpawnAssetWithFallback: Error executing fallback asset: {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Cleans up partial execution state when recovery fails
+  /// </summary>
+  /// <param name="spawn">The spawn that had partial failures</param>
+  /// <param name="successfulAssets">Assets that were successfully executed</param>
+  /// <param name="failedAssets">Assets that failed to execute</param>
+  private void CleanupPartialExecution(Spawn spawn, List<SpawnAsset> successfulAssets, List<SpawnAsset> failedAssets)
+  {
+    try
+    {
+      CPH.LogInfo($"CleanupPartialExecution: Cleaning up partial execution for spawn '{spawn.Name}'");
+
+      // Clean up successfully created OBS sources
+      if (successfulAssets != null)
+      {
+        foreach (var asset in successfulAssets)
+        {
+          try
+          {
+            // Hide and delete the OBS source
+            HideOBSSource(asset.Id);
+            DeleteOBSSource(asset.Id);
+            CPH.LogInfo($"CleanupPartialExecution: Cleaned up OBS source for asset '{asset.AssetId}'");
+          }
+          catch (Exception ex)
+          {
+            CPH.LogWarn($"CleanupPartialExecution: Error cleaning up asset '{asset.AssetId}': {ex.Message}");
+          }
+        }
+      }
+
+      // Log failed assets for debugging
+      if (failedAssets != null && failedAssets.Count > 0)
+      {
+        var failedAssetIds = failedAssets.Select(a => a.AssetId).ToList();
+        CPH.LogWarn($"CleanupPartialExecution: Failed assets that were not cleaned up: {string.Join(", ", failedAssetIds)}");
+      }
+
+      CPH.LogInfo($"CleanupPartialExecution: Cleanup completed for spawn '{spawn.Name}'");
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"CleanupPartialExecution: Error during cleanup: {ex.Message}");
+    }
+  }
+
+  /// <summary>
+  /// Logs a structured information message with context
+  /// </summary>
+  /// <param name="operation">The operation being performed</param>
+  /// <param name="message">The message to log</param>
+  /// <param name="context">Additional context information</param>
+  private void LogStructuredInfo(string operation, string message, Dictionary<string, object> context = null)
+  {
+    try
+    {
+      var logData = new Dictionary<string, object>
+      {
+        ["level"] = "INFO",
+        ["operation"] = operation,
+        ["message"] = message,
+        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff")
+      };
+
+      if (context != null)
+      {
+        logData["context"] = context;
+      }
+
+      string logMessage = JsonConvert.SerializeObject(logData, Formatting.Indented);
+      CPH.LogInfo($"LogStructuredInfo: {logMessage}");
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"LogStructuredInfo: Error creating structured log: {ex.Message}");
+      // Fallback to simple logging
+      CPH.LogInfo($"{operation}: {message}");
+    }
+  }
+
+  /// <summary>
+  /// Logs a structured warning message with context
+  /// </summary>
+  /// <param name="operation">The operation being performed</param>
+  /// <param name="message">The message to log</param>
+  /// <param name="context">Additional context information</param>
+  private void LogStructuredWarning(string operation, string message, Dictionary<string, object> context = null)
+  {
+    try
+    {
+      var logData = new Dictionary<string, object>
+      {
+        ["level"] = "WARNING",
+        ["operation"] = operation,
+        ["message"] = message,
+        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff")
+      };
+
+      if (context != null)
+      {
+        logData["context"] = context;
+      }
+
+      string logMessage = JsonConvert.SerializeObject(logData, Formatting.Indented);
+      CPH.LogWarn($"LogStructuredWarning: {logMessage}");
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"LogStructuredWarning: Error creating structured log: {ex.Message}");
+      // Fallback to simple logging
+      CPH.LogWarn($"{operation}: {message}");
+    }
+  }
+
+  /// <summary>
+  /// Logs a structured error message with context
+  /// </summary>
+  /// <param name="operation">The operation being performed</param>
+  /// <param name="message">The message to log</param>
+  /// <param name="context">Additional context information</param>
+  private void LogStructuredError(string operation, string message, Dictionary<string, object> context = null)
+  {
+    try
+    {
+      var logData = new Dictionary<string, object>
+      {
+        ["level"] = "ERROR",
+        ["operation"] = operation,
+        ["message"] = message,
+        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff")
+      };
+
+      if (context != null)
+      {
+        logData["context"] = context;
+      }
+
+      string logMessage = JsonConvert.SerializeObject(logData, Formatting.Indented);
+      CPH.LogError($"LogStructuredError: {logMessage}");
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"LogStructuredError: Error creating structured log: {ex.Message}");
+      // Fallback to simple logging
+      CPH.LogError($"{operation}: {message}");
+    }
+  }
+
+
+  /// <summary>
+  /// Logs system state information for debugging
+  /// </summary>
+  /// <param name="operation">The operation being performed</param>
+  /// <param name="stateInfo">System state information</param>
+  private void LogSystemState(string operation, Dictionary<string, object> stateInfo)
+  {
+    try
+    {
+      var stateData = new Dictionary<string, object>
+      {
+        ["level"] = "SYSTEM_STATE",
+        ["operation"] = operation,
+        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff"),
+        ["state"] = stateInfo
+      };
+
+      string logMessage = JsonConvert.SerializeObject(stateData, Formatting.Indented);
+      CPH.LogInfo($"LogSystemState: {logMessage}");
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"LogSystemState: Error creating system state log: {ex.Message}");
+    }
   }
 
   #endregion
