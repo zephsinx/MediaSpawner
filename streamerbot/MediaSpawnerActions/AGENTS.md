@@ -57,7 +57,7 @@ public void Init() { /* initialization at compile time */ }
 public void Dispose() { /* cleanup at teardown */ }
 ```
 
-Use these to allocate or release resources you intend to reuse across calls (e.g., cached clients). Persisted state lives in private fields because the instance stays alive. [Guide][Execute C# Code]
+Use these to allocate or release resources you intend to reuse across calls (e.g., cached clients). Persisted state lives in private fields because the instance stays alive. [Guide]
 
 ## Execute C# Code — configuration and tooling
 
