@@ -97,7 +97,12 @@ function ThumbnailWithPreview({ asset }: { asset: MediaAsset }) {
   if (!asset.isUrl) {
     return (
       <div className="w-10 h-10 flex-shrink-0 overflow-hidden rounded">
-        <MediaPreview asset={asset} className="h-full" fit="contain" />
+        <MediaPreview
+          asset={asset}
+          className="h-full"
+          fit="contain"
+          size="small"
+        />
       </div>
     );
   }
@@ -109,7 +114,12 @@ function ThumbnailWithPreview({ asset }: { asset: MediaAsset }) {
           onMouseEnter={() => setOpen(true)}
           onMouseLeave={() => setOpen(false)}
         >
-          <MediaPreview asset={asset} className="h-full" fit="contain" />
+          <MediaPreview
+            asset={asset}
+            className="h-full"
+            fit="contain"
+            size="small"
+          />
         </div>
       </Popover.Trigger>
       <Popover.Portal>
@@ -118,7 +128,12 @@ function ThumbnailWithPreview({ asset }: { asset: MediaAsset }) {
           className="z-10 w-72 rounded-md border border-gray-200 bg-white shadow-md p-2"
         >
           <div className="w-full h-40 overflow-hidden rounded mb-2">
-            <MediaPreview asset={asset} className="h-full" fit="contain" />
+            <MediaPreview
+              asset={asset}
+              className="h-full"
+              fit="contain"
+              size="small"
+            />
           </div>
           <div className="text-xs text-gray-700 space-y-1">
             <div>

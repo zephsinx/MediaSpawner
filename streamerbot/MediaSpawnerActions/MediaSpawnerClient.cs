@@ -2158,30 +2158,41 @@ public class CPHInline
         // Build source settings
         Dictionary<string, object> sourceSettings = BuildOBSSourceSettings(asset, properties);
 
-        // Create OBS request for source creation
-        Dictionary<string, object> createSourceRequest = new Dictionary<string, object>
+        // Create OBS request data for source creation
+        Dictionary<string, object> createSourceData = new Dictionary<string, object>
         {
-          ["requestType"] = "CreateSource",
-          ["requestId"] = Guid.NewGuid().ToString(),
-          ["requestData"] = new Dictionary<string, object>
-          {
-            ["sourceName"] = sourceName,
-            ["sourceKind"] = obsSourceType,
-            ["sceneName"] = currentScene,
-            ["sourceSettings"] = sourceSettings
-          }
+          ["sourceName"] = sourceName,
+          ["sourceType"] = obsSourceType,
+          ["sceneName"] = currentScene,
+          ["sourceSettings"] = sourceSettings
         };
 
         // Send the request to OBS
-        string response = CPH.ObsSendRaw("CreateSource", JsonConvert.SerializeObject(createSourceRequest));
+        string response = CPH.ObsSendRaw("CreateSource", JsonConvert.SerializeObject(createSourceData));
         if (string.IsNullOrEmpty(response))
         {
           CPH.LogError($"CreateOBSSource: No response from OBS for source creation '{sourceName}'");
           return false;
         }
 
+        // Validate response before parsing
+        if (string.IsNullOrWhiteSpace(response))
+        {
+          CPH.LogError($"CreateOBSSource: Empty response from OBS for source creation '{sourceName}'");
+          return false;
+        }
+
         // Parse response to check for success
-        Dictionary<string, object> responseData = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
+        Dictionary<string, object> responseData;
+        try
+        {
+          responseData = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
+        }
+        catch (JsonException ex)
+        {
+          CPH.LogError($"CreateOBSSource: Invalid JSON response from OBS for source creation '{sourceName}': {ex.Message}");
+          return false;
+        }
         if (responseData.ContainsKey("requestStatus") && responseData["requestStatus"] is Dictionary<string, object> status)
         {
           bool result = status.ContainsKey("result") && status["result"] is bool success && success;
@@ -2192,8 +2203,20 @@ public class CPHInline
           }
           else
           {
-            string error = status.ContainsKey("comment") ? status["comment"].ToString() : "Unknown error";
-            CPH.LogError($"CreateOBSSource: Failed to create OBS source '{sourceName}': {error}");
+            // Extract error information from OBS response
+            string errorMessage = "Unknown error";
+            if (status.ContainsKey("comment") && !string.IsNullOrEmpty(status["comment"]?.ToString()))
+            {
+              errorMessage = status["comment"].ToString();
+            }
+
+            // Include error code if available
+            if (status.ContainsKey("code"))
+            {
+              errorMessage += $" (Code: {status["code"]})";
+            }
+
+            CPH.LogError($"CreateOBSSource: Failed to create OBS source '{sourceName}': {errorMessage}");
             return false;
           }
         }
@@ -2245,13 +2268,8 @@ public class CPHInline
       {
         Dictionary<string, object> volumeRequest = new Dictionary<string, object>
         {
-          ["requestType"] = "SetSourceVolume",
-          ["requestId"] = Guid.NewGuid().ToString(),
-          ["requestData"] = new Dictionary<string, object>
-          {
-            ["sourceName"] = sourceName,
-            ["volume"] = volume
-          }
+          ["sourceName"] = sourceName,
+          ["volume"] = volume
         };
         batchRequests.Add(volumeRequest);
       }
@@ -2261,14 +2279,9 @@ public class CPHInline
       {
         Dictionary<string, object> scaleRequest = new Dictionary<string, object>
         {
-          ["requestType"] = "SetSourceScale",
-          ["requestId"] = Guid.NewGuid().ToString(),
-          ["requestData"] = new Dictionary<string, object>
-          {
-            ["sourceName"] = sourceName,
-            ["scaleX"] = scale,
-            ["scaleY"] = scale
-          }
+          ["sourceName"] = sourceName,
+          ["scaleX"] = scale,
+          ["scaleY"] = scale
         };
         batchRequests.Add(scaleRequest);
       }
@@ -2281,14 +2294,9 @@ public class CPHInline
 
         Dictionary<string, object> positionRequest = new Dictionary<string, object>
         {
-          ["requestType"] = "SetSourcePosition",
-          ["requestId"] = Guid.NewGuid().ToString(),
-          ["requestData"] = new Dictionary<string, object>
-          {
-            ["sourceName"] = sourceName,
-            ["x"] = x,
-            ["y"] = y
-          }
+          ["sourceName"] = sourceName,
+          ["x"] = x,
+          ["y"] = y
         };
         batchRequests.Add(positionRequest);
       }
@@ -2303,14 +2311,9 @@ public class CPHInline
         {
           Dictionary<string, object> sizeRequest = new Dictionary<string, object>
           {
-            ["requestType"] = "SetSourceSize",
-            ["requestId"] = Guid.NewGuid().ToString(),
-            ["requestData"] = new Dictionary<string, object>
-            {
-              ["sourceName"] = sourceName,
-              ["width"] = width,
-              ["height"] = height
-            }
+            ["sourceName"] = sourceName,
+            ["width"] = width,
+            ["height"] = height
           };
           batchRequests.Add(sizeRequest);
         }
@@ -2324,15 +2327,10 @@ public class CPHInline
         {
           Dictionary<string, object> loopRequest = new Dictionary<string, object>
           {
-            ["requestType"] = "SetSourceSettings",
-            ["requestId"] = Guid.NewGuid().ToString(),
-            ["requestData"] = new Dictionary<string, object>
+            ["sourceName"] = sourceName,
+            ["sourceSettings"] = new Dictionary<string, object>
             {
-              ["sourceName"] = sourceName,
-              ["sourceSettings"] = new Dictionary<string, object>
-              {
-                ["looping"] = loop
-              }
+              ["looping"] = loop
             }
           };
           batchRequests.Add(loopRequest);
@@ -2343,13 +2341,8 @@ public class CPHInline
         {
           Dictionary<string, object> mutedRequest = new Dictionary<string, object>
           {
-            ["requestType"] = "SetSourceMuted",
-            ["requestId"] = Guid.NewGuid().ToString(),
-            ["requestData"] = new Dictionary<string, object>
-            {
-              ["sourceName"] = sourceName,
-              ["muted"] = muted
-            }
+            ["sourceName"] = sourceName,
+            ["muted"] = muted
           };
           batchRequests.Add(mutedRequest);
         }
@@ -2377,8 +2370,21 @@ public class CPHInline
             if (!success)
             {
               allSuccessful = false;
-              string error = status.ContainsKey("comment") ? status["comment"].ToString() : "Unknown error";
-              CPH.LogWarn($"ApplyAssetPropertiesToOBS: Property application failed for '{sourceName}': {error}");
+
+              // Extract error information from OBS response
+              string errorMessage = "Unknown error";
+              if (status.ContainsKey("comment") && !string.IsNullOrEmpty(status["comment"]?.ToString()))
+              {
+                errorMessage = status["comment"].ToString();
+              }
+
+              // Include error code if available
+              if (status.ContainsKey("code"))
+              {
+                errorMessage += $" (Code: {status["code"]})";
+              }
+
+              CPH.LogWarn($"ApplyAssetPropertiesToOBS: Property application failed for '{sourceName}': {errorMessage}");
             }
           }
         }
@@ -2535,28 +2541,39 @@ public class CPHInline
           return false;
         }
 
-        // Create OBS request to delete the source
-        Dictionary<string, object> deleteSourceRequest = new Dictionary<string, object>
+        // Create OBS request data to delete the source
+        Dictionary<string, object> deleteSourceData = new Dictionary<string, object>
         {
-          ["requestType"] = "RemoveSceneItem",
-          ["requestId"] = Guid.NewGuid().ToString(),
-          ["requestData"] = new Dictionary<string, object>
-          {
-            ["sceneName"] = currentScene,
-            ["item"] = sourceName
-          }
+          ["sceneName"] = currentScene,
+          ["itemName"] = sourceName
         };
 
         // Send the request to OBS
-        string response = CPH.ObsSendRaw("RemoveSceneItem", JsonConvert.SerializeObject(deleteSourceRequest));
+        string response = CPH.ObsSendRaw("RemoveSceneItem", JsonConvert.SerializeObject(deleteSourceData));
         if (string.IsNullOrEmpty(response))
         {
           CPH.LogError($"DeleteOBSSource: No response from OBS for deleting source '{sourceName}'");
           return false;
         }
 
+        // Validate response before parsing
+        if (string.IsNullOrWhiteSpace(response))
+        {
+          CPH.LogError($"DeleteOBSSource: Empty response from OBS for deleting source '{sourceName}'");
+          return false;
+        }
+
         // Parse response to check for success
-        Dictionary<string, object> responseData = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
+        Dictionary<string, object> responseData;
+        try
+        {
+          responseData = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
+        }
+        catch (JsonException ex)
+        {
+          CPH.LogError($"DeleteOBSSource: Invalid JSON response from OBS for deleting source '{sourceName}': {ex.Message}");
+          return false;
+        }
         if (responseData.ContainsKey("requestStatus") && responseData["requestStatus"] is Dictionary<string, object> status)
         {
           bool result = status.ContainsKey("result") && status["result"] is bool success && success;
@@ -2567,8 +2584,20 @@ public class CPHInline
           }
           else
           {
-            string error = status.ContainsKey("comment") ? status["comment"].ToString() : "Unknown error";
-            CPH.LogError($"DeleteOBSSource: Failed to delete OBS source '{sourceName}': {error}");
+            // Extract error information from OBS response
+            string errorMessage = "Unknown error";
+            if (status.ContainsKey("comment") && !string.IsNullOrEmpty(status["comment"]?.ToString()))
+            {
+              errorMessage = status["comment"].ToString();
+            }
+
+            // Include error code if available
+            if (status.ContainsKey("code"))
+            {
+              errorMessage += $" (Code: {status["code"]})";
+            }
+
+            CPH.LogError($"DeleteOBSSource: Failed to delete OBS source '{sourceName}': {errorMessage}");
             return false;
           }
         }
@@ -2726,8 +2755,24 @@ public class CPHInline
         return false;
       }
 
+      // Validate batch response before parsing
+      if (string.IsNullOrWhiteSpace(batchResponse))
+      {
+        CPH.LogError("ExecuteOBSBatchOperations: Empty response from OBS for batch operations");
+        return false;
+      }
+
       // Parse batch response to check for success
-      List<Dictionary<string, object>> responses = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(batchResponse);
+      List<Dictionary<string, object>> responses;
+      try
+      {
+        responses = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(batchResponse);
+      }
+      catch (JsonException ex)
+      {
+        CPH.LogError($"ExecuteOBSBatchOperations: Invalid JSON response from OBS for batch operations: {ex.Message}");
+        return false;
+      }
       bool allSuccessful = true;
 
       foreach (Dictionary<string, object> response in responses)
@@ -2770,27 +2815,38 @@ public class CPHInline
         return false;
       }
 
-      // Create OBS request to get scene items
-      Dictionary<string, object> getSceneItemsRequest = new Dictionary<string, object>
+      // Create OBS request data to get scene items
+      Dictionary<string, object> getSceneItemsData = new Dictionary<string, object>
       {
-        ["requestType"] = "GetSceneItemList",
-        ["requestId"] = Guid.NewGuid().ToString(),
-        ["requestData"] = new Dictionary<string, object>
-        {
-          ["sceneName"] = currentScene
-        }
+        ["sceneName"] = currentScene
       };
 
       // Send the request to OBS
-      string response = CPH.ObsSendRaw("GetSceneItemList", JsonConvert.SerializeObject(getSceneItemsRequest));
+      string response = CPH.ObsSendRaw("GetSceneItemList", JsonConvert.SerializeObject(getSceneItemsData));
       if (string.IsNullOrEmpty(response))
       {
         CPH.LogError($"OBSSourceExists: No response from OBS for checking source '{sourceName}'");
         return false;
       }
 
+      // Validate response before parsing
+      if (string.IsNullOrWhiteSpace(response))
+      {
+        CPH.LogError($"OBSSourceExists: Empty response from OBS for checking source '{sourceName}'");
+        return false;
+      }
+
       // Parse response to check for source existence
-      Dictionary<string, object> responseData = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
+      Dictionary<string, object> responseData;
+      try
+      {
+        responseData = JsonConvert.DeserializeObject<Dictionary<string, object>>(response);
+      }
+      catch (JsonException ex)
+      {
+        CPH.LogError($"OBSSourceExists: Invalid JSON response from OBS for checking source '{sourceName}': {ex.Message}");
+        return false;
+      }
       if (responseData.ContainsKey("requestStatus") && responseData["requestStatus"] is Dictionary<string, object> status)
       {
         bool success = status.ContainsKey("result") && status["result"] is bool result && result;
@@ -4647,7 +4703,7 @@ public class CPHInline
     {
       requestType = "CreateSource",
       sourceName = sourceName,
-      sourceKind = sourceType,
+      sourceType = sourceType,
       sourceSettings = settings ?? new Dictionary<string, object>()
     };
 
@@ -4657,7 +4713,7 @@ public class CPHInline
       {
         requestType = "CreateSource",
         sourceName = sourceName,
-        sourceKind = sourceType,
+        sourceType = sourceType,
         sourceSettings = settings ?? new Dictionary<string, object>(),
         sceneName = sceneName
       };
@@ -5155,13 +5211,14 @@ public class CPHInline
   }
 
   /// <summary>
-  /// Executes OBS operation with retry logic
+  /// Executes OBS operation with retry logic and timeout handling
   /// </summary>
   /// <param name="operationName">Name of the operation for logging</param>
   /// <param name="operation">The OBS operation to execute</param>
   /// <param name="maxRetries">Maximum number of retries (default: 3)</param>
+  /// <param name="timeoutMs">Timeout in milliseconds for each operation attempt (default: 10000)</param>
   /// <returns>True if operation succeeded, false otherwise</returns>
-  private bool ExecuteOBSOperationWithRetry(string operationName, Func<bool> operation, int maxRetries = 3)
+  private bool ExecuteOBSOperationWithRetry(string operationName, Func<bool> operation, int maxRetries = 3, int timeoutMs = 10000)
   {
     const int baseDelayMs = 500;
 
@@ -5169,9 +5226,10 @@ public class CPHInline
     {
       try
       {
-        CPH.LogInfo($"ExecuteOBSOperationWithRetry: {operationName} - Attempt {attempt}/{maxRetries}");
+        CPH.LogInfo($"ExecuteOBSOperationWithRetry: {operationName} - Attempt {attempt}/{maxRetries} (timeout: {timeoutMs}ms)");
 
-        bool result = operation();
+        // Execute operation with timeout
+        bool result = ExecuteWithTimeout(operation, timeoutMs, operationName);
 
         if (result)
         {
@@ -5201,6 +5259,28 @@ public class CPHInline
 
     CPH.LogError($"ExecuteOBSOperationWithRetry: {operationName} failed after {maxRetries} attempts");
     return false;
+  }
+
+  /// <summary>
+  /// Executes an operation with a timeout
+  /// </summary>
+  /// <param name="operation">The operation to execute</param>
+  /// <param name="timeoutMs">Timeout in milliseconds</param>
+  /// <param name="operationName">Name of the operation for logging</param>
+  /// <returns>True if operation completed successfully within timeout, false otherwise</returns>
+  private bool ExecuteWithTimeout(Func<bool> operation, int timeoutMs, string operationName)
+  {
+    var task = System.Threading.Tasks.Task.Run(() => operation());
+
+    if (task.Wait(timeoutMs))
+    {
+      return task.Result;
+    }
+    else
+    {
+      CPH.LogError($"ExecuteWithTimeout: {operationName} timed out after {timeoutMs}ms");
+      return false;
+    }
   }
 
   /// <summary>
