@@ -2268,13 +2268,8 @@ public class CPHInline
       {
         Dictionary<string, object> volumeRequest = new Dictionary<string, object>
         {
-          ["requestType"] = "SetSourceVolume",
-          ["requestId"] = Guid.NewGuid().ToString(),
-          ["requestData"] = new Dictionary<string, object>
-          {
-            ["sourceName"] = sourceName,
-            ["volume"] = volume
-          }
+          ["sourceName"] = sourceName,
+          ["volume"] = volume
         };
         batchRequests.Add(volumeRequest);
       }
@@ -2284,14 +2279,9 @@ public class CPHInline
       {
         Dictionary<string, object> scaleRequest = new Dictionary<string, object>
         {
-          ["requestType"] = "SetSourceScale",
-          ["requestId"] = Guid.NewGuid().ToString(),
-          ["requestData"] = new Dictionary<string, object>
-          {
-            ["sourceName"] = sourceName,
-            ["scaleX"] = scale,
-            ["scaleY"] = scale
-          }
+          ["sourceName"] = sourceName,
+          ["scaleX"] = scale,
+          ["scaleY"] = scale
         };
         batchRequests.Add(scaleRequest);
       }
@@ -2304,14 +2294,9 @@ public class CPHInline
 
         Dictionary<string, object> positionRequest = new Dictionary<string, object>
         {
-          ["requestType"] = "SetSourcePosition",
-          ["requestId"] = Guid.NewGuid().ToString(),
-          ["requestData"] = new Dictionary<string, object>
-          {
-            ["sourceName"] = sourceName,
-            ["x"] = x,
-            ["y"] = y
-          }
+          ["sourceName"] = sourceName,
+          ["x"] = x,
+          ["y"] = y
         };
         batchRequests.Add(positionRequest);
       }
@@ -2326,14 +2311,9 @@ public class CPHInline
         {
           Dictionary<string, object> sizeRequest = new Dictionary<string, object>
           {
-            ["requestType"] = "SetSourceSize",
-            ["requestId"] = Guid.NewGuid().ToString(),
-            ["requestData"] = new Dictionary<string, object>
-            {
-              ["sourceName"] = sourceName,
-              ["width"] = width,
-              ["height"] = height
-            }
+            ["sourceName"] = sourceName,
+            ["width"] = width,
+            ["height"] = height
           };
           batchRequests.Add(sizeRequest);
         }
@@ -2347,15 +2327,10 @@ public class CPHInline
         {
           Dictionary<string, object> loopRequest = new Dictionary<string, object>
           {
-            ["requestType"] = "SetSourceSettings",
-            ["requestId"] = Guid.NewGuid().ToString(),
-            ["requestData"] = new Dictionary<string, object>
+            ["sourceName"] = sourceName,
+            ["sourceSettings"] = new Dictionary<string, object>
             {
-              ["sourceName"] = sourceName,
-              ["sourceSettings"] = new Dictionary<string, object>
-              {
-                ["looping"] = loop
-              }
+              ["looping"] = loop
             }
           };
           batchRequests.Add(loopRequest);
@@ -2366,13 +2341,8 @@ public class CPHInline
         {
           Dictionary<string, object> mutedRequest = new Dictionary<string, object>
           {
-            ["requestType"] = "SetSourceMuted",
-            ["requestId"] = Guid.NewGuid().ToString(),
-            ["requestData"] = new Dictionary<string, object>
-            {
-              ["sourceName"] = sourceName,
-              ["muted"] = muted
-            }
+            ["sourceName"] = sourceName,
+            ["muted"] = muted
           };
           batchRequests.Add(mutedRequest);
         }
