@@ -1,53 +1,57 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 public class CPHInline
 {
   private const string MediaSpawnerConfigGuid = "59d16b77-5aa7-4336-9b18-eeb6af51a823";
-  private readonly string MediaSpawnerConfigVarName = $"MediaSpawnerConfig-{MediaSpawnerConfigGuid}";
-  private readonly string MediaSpawnerShaVarName = $"MediaSpawnerSha-{MediaSpawnerConfigGuid}";
+  private readonly string mediaSpawnerConfigVarName = $"MediaSpawnerConfig-{MediaSpawnerConfigGuid}";
+  private readonly string mediaSpawnerShaVarName = $"MediaSpawnerSha-{MediaSpawnerConfigGuid}";
 
   #region State Management Fields
 
   /// <summary>
   /// Cached configuration for performance optimization
   /// </summary>
-  private MediaSpawnerConfig _cachedConfig;
+  private MediaSpawnerConfig cachedConfig;
 
   /// <summary>
   /// Cached configuration SHA for change detection
   /// </summary>
-  private string _cachedConfigSha;
+  private string cachedConfigSha;
 
   /// <summary>
   /// Configuration cache timestamp for invalidation
   /// </summary>
-  private DateTime _configCacheTimestamp = DateTime.MinValue;
+  private DateTime configCacheTimestamp = DateTime.MinValue;
 
   /// <summary>
   /// Configuration cache TTL (Time To Live) in minutes
   /// </summary>
-  private readonly int _configCacheTtlMinutes = 5;
+  private readonly int ConfigCacheTtlMinutes = 5;
 
   /// <summary>
   /// Currently active spawn executions
   /// </summary>
-  private readonly Dictionary<string, ActiveSpawnExecution> _activeSpawns = new Dictionary<string, ActiveSpawnExecution>();
+  private readonly Dictionary<string, ActiveSpawnExecution> activeSpawns = new Dictionary<string, ActiveSpawnExecution>();
 
   /// <summary>
   /// Execution history for debugging and analytics
   /// </summary>
-  private readonly List<ExecutionRecord> _executionHistory = new List<ExecutionRecord>();
+  private readonly List<ExecutionRecord> executionHistory = new List<ExecutionRecord>();
 
   /// <summary>
   /// Maximum number of execution records to keep in memory
   /// </summary>
-  private readonly int _maxExecutionHistory = 100;
+  private const int MaxExecutionHistory = 100;
 
   /// <summary>
   /// Randomization bucket selection history for consistent patterns
@@ -58,23 +62,149 @@ public class CPHInline
   /// <summary>
   /// Spawn execution queue for managing concurrent executions
   /// </summary>
-  private readonly Queue<SpawnExecutionRequest> _executionQueue = new Queue<SpawnExecutionRequest>();
+  private readonly Queue<SpawnExecutionRequest> executionQueue = new Queue<SpawnExecutionRequest>();
 
   /// <summary>
   /// Lock object for thread-safe state management
   /// </summary>
-  private readonly object _stateLock = new object();
+  private readonly object stateLock = new object();
+
+  /// <summary>
+  /// Active timers managed by this action
+  /// </summary>
+  private readonly Dictionary<string, IDisposable> activeTimers = new Dictionary<string, IDisposable>();
+
+  /// <summary>
+  /// Lock object for thread-safe timer management
+  /// </summary>
+  private readonly object timerLock = new object();
+
+  /// <summary>
+  /// Flag to track if timers have been initialized
+  /// </summary>
+  private bool timersInitialized;
+
+  /// <summary>
+  /// Flag to track if timers are paused
+  /// </summary>
+  private bool timersPaused;
+
+  /// <summary>
+  /// Flag to track if system is shutting down
+  /// </summary>
+  private bool isShuttingDown;
+
+  /// <summary>
+  /// Dictionary to track individual timer states (paused/active)
+  /// </summary>
+  private readonly Dictionary<string, bool> timerStates = new Dictionary<string, bool>();
+
+  /// <summary>
+  /// Timer performance statistics
+  /// </summary>
+  private readonly Dictionary<string, object> timerStats = new Dictionary<string, object>();
 
   #endregion
 
   /// <summary>
+  /// Initialize timer management system
+  /// Called by Streamer.bot when the action is loaded (optional lifecycle hook)
+  /// </summary>
+  public void Init()
+  {
+    try
+    {
+      CPH.LogInfo("Init: Starting timer management initialization");
+
+      // Load configuration
+      if (!LoadMediaSpawnerConfigWithRetry())
+      {
+        CPH.LogError("Init: Failed to load MediaSpawner configuration");
+        return;
+      }
+
+      // Initialize timers
+      InitializeTimers();
+
+      CPH.LogInfo("Init: Timer management initialization completed");
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"Init: Error during initialization: {ex.Message}");
+    }
+  }
+
+  /// <summary>
+  /// Clean up timer management system
+  /// Called by Streamer.bot when the action is unloaded (optional lifecycle hook)
+  /// </summary>
+  public void Dispose()
+  {
+    try
+    {
+      CPH.LogInfo("Dispose: Starting graceful shutdown and timer cleanup");
+
+      // Set shutdown flag to prevent new timer creation
+      this.isShuttingDown = true;
+
+      lock (this.timerLock)
+      {
+        // Stop and dispose all active timers
+        int disposedCount = 0;
+        foreach (IDisposable timer in this.activeTimers.Values)
+        {
+          try
+          {
+            // Handle different timer types
+            if (timer is System.Timers.Timer systemTimer)
+            {
+              systemTimer.Stop();
+              systemTimer.Dispose();
+              disposedCount++;
+            }
+            else if (timer is OneTimeTimerWrapper oneTimeWrapper)
+            {
+              oneTimeWrapper.Dispose();
+              disposedCount++;
+            }
+            else
+            {
+              // Fallback for any other timer types
+              timer?.Dispose();
+              disposedCount++;
+            }
+          }
+          catch (Exception ex)
+          {
+            CPH.LogWarn($"Dispose: Error disposing timer: {ex.Message}");
+          }
+        }
+
+        this.activeTimers.Clear();
+        this.timerStates.Clear();
+        this.timersInitialized = false;
+        this.timersPaused = false;
+
+        CPH.LogInfo($"Dispose: Gracefully disposed {disposedCount} timers");
+      }
+
+      CPH.LogInfo("Dispose: Graceful shutdown and timer cleanup completed");
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"Dispose: Error during graceful shutdown: {ex.Message}");
+    }
+  }
+
+  /// <summary>
   /// Main entry point for MediaSpawner spawn execution
-  /// Handles trigger detection, routing, and spawn execution coordination
+  /// Handles command, Twitch, and manual trigger detection, routing, and spawn execution coordination
+  /// Time-based triggers are now managed internally via timers initialized in Init()
   /// </summary>
   /// <returns>True if execution succeeded, false otherwise</returns>
   public bool Execute()
   {
-    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+    Stopwatch stopwatch = Stopwatch.StartNew();
     string executionId = Guid.NewGuid().ToString("N").Substring(0, 8);
 
     try
@@ -94,6 +224,16 @@ public class CPHInline
         CPH.LogError($"Execute[{executionId}]: Failed to load MediaSpawner configuration after retries");
         return false;
       }
+
+      // Check if timers need initialization (fallback for when Init() isn't called)
+      if (!this.timersInitialized)
+      {
+        CPH.LogInfo($"Execute[{executionId}]: Initializing timers (fallback initialization)");
+        InitializeTimers();
+      }
+
+      // Check for configuration changes and recreate timers if needed
+      RecreateTimersOnConfigChange();
 
       // Detect trigger type and source with validation
       string eventType = CPH.GetEventType();
@@ -126,11 +266,6 @@ public class CPHInline
             executionResult = HandleTwitchTrigger(source);
             break;
 
-          case "time":
-            handlerName = "HandleTimeTrigger";
-            executionResult = HandleTimeTrigger(source);
-            break;
-
           case "manual":
           case "c# method":
             handlerName = "HandleManualTrigger";
@@ -151,7 +286,7 @@ public class CPHInline
 
       // Log execution result with performance metrics
       stopwatch.Stop();
-      var executionTime = stopwatch.ElapsedMilliseconds;
+      long executionTime = stopwatch.ElapsedMilliseconds;
 
       if (executionResult)
       {
@@ -167,10 +302,21 @@ public class CPHInline
     catch (Exception ex)
     {
       stopwatch.Stop();
-      var executionTime = stopwatch.ElapsedMilliseconds;
+      long executionTime = stopwatch.ElapsedMilliseconds;
 
       CPH.LogError($"Execute[{executionId}]: Unexpected error during execution after {executionTime}ms: {ex.Message}");
       CPH.LogError($"Execute[{executionId}]: Stack trace: {ex.StackTrace}");
+
+      // Safety cleanup - ensure timers are in a consistent state
+      try
+      {
+        CPH.LogInfo($"Execute[{executionId}]: Performing safety cleanup after error");
+        CleanupAllTimers();
+      }
+      catch (Exception cleanupEx)
+      {
+        CPH.LogError($"Execute[{executionId}]: Error during safety cleanup: {cleanupEx.Message}");
+      }
 
       return false;
     }
@@ -198,25 +344,25 @@ public class CPHInline
       CPH.TryGetArg("includeRandomization", out bool includeRandomization);
 
       // Prepare analytics data
-      var analyticsData = new Dictionary<string, object>
+      Dictionary<string, object> analyticsData = new Dictionary<string, object>
       {
         ["exportTimestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
         ["exportVersion"] = "1.0",
         ["systemState"] = new Dictionary<string, object>
         {
-          ["activeSpawnsCount"] = _activeSpawns.Count,
-          ["executionHistoryCount"] = _executionHistory.Count,
+          ["activeSpawnsCount"] = this.activeSpawns.Count,
+          ["executionHistoryCount"] = this.executionHistory.Count,
           ["randomizationHistoryCount"] = _randomizationHistory.Count,
           ["configCacheValid"] = IsConfigCacheValid(),
-          ["configCacheAge"] = _configCacheTimestamp == DateTime.MinValue ?
-            "Never" : DateTime.UtcNow.Subtract(_configCacheTimestamp).ToString()
-        }
+          ["configCacheAge"] = this.configCacheTimestamp == DateTime.MinValue ?
+            "Never" : DateTime.UtcNow.Subtract(this.configCacheTimestamp).ToString(),
+        },
       };
 
       // Add execution history if requested
       if (includeHistory)
       {
-        var historyData = _executionHistory.Select(record => new Dictionary<string, object>
+        List<Dictionary<string, object>> historyData = this.executionHistory.Select(record => new Dictionary<string, object>
         {
           ["executionId"] = record.ExecutionId,
           ["spawnId"] = record.SpawnId,
@@ -227,7 +373,7 @@ public class CPHInline
           ["duration"] = record.Duration?.ToString(),
           ["status"] = record.Status,
           ["errorMessage"] = record.ErrorMessage,
-          ["context"] = record.Context
+          ["context"] = record.Context,
         }).ToList();
 
         analyticsData["executionHistory"] = historyData;
@@ -236,7 +382,7 @@ public class CPHInline
       // Add active spawns if requested
       if (includeActiveSpawns)
       {
-        var activeSpawnsData = _activeSpawns.Values.Select(execution => new Dictionary<string, object>
+        List<Dictionary<string, object>> activeSpawnsData = this.activeSpawns.Values.Select(execution => new Dictionary<string, object>
         {
           ["executionId"] = execution.ExecutionId,
           ["spawnId"] = execution.SpawnId,
@@ -245,7 +391,7 @@ public class CPHInline
           ["startTime"] = execution.StartTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
           ["expectedEndTime"] = execution.ExpectedEndTime?.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
           ["status"] = execution.Status,
-          ["context"] = execution.Context
+          ["context"] = execution.Context,
         }).ToList();
 
         analyticsData["activeSpawns"] = activeSpawnsData;
@@ -254,13 +400,13 @@ public class CPHInline
       // Add randomization history if requested
       if (includeRandomization)
       {
-        var randomizationData = _randomizationHistory.Values.Select(history => new Dictionary<string, object>
+        List<Dictionary<string, object>> randomizationData = _randomizationHistory.Values.Select(history => new Dictionary<string, object>
         {
           ["bucketId"] = history.BucketId,
           ["selectionCount"] = history.SelectionCount,
           ["lastSelectionTime"] = history.LastSelectionTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
           ["lastSelectedMembers"] = history.LastSelectedMembers,
-          ["selectionPattern"] = history.SelectionPattern
+          ["selectionPattern"] = history.SelectionPattern,
         }).ToList();
 
         analyticsData["randomizationHistory"] = randomizationData;
@@ -271,7 +417,7 @@ public class CPHInline
       File.WriteAllText(filePath, jsonData);
 
       CPH.LogInfo($"ExportAnalytics: Successfully exported analytics to {filePath}");
-      CPH.LogInfo($"ExportAnalytics: Exported {_executionHistory.Count} execution records, {_activeSpawns.Count} active spawns, {_randomizationHistory.Count} randomization histories");
+      CPH.LogInfo($"ExportAnalytics: Exported {this.executionHistory.Count} execution records, {this.activeSpawns.Count} active spawns, {_randomizationHistory.Count} randomization histories");
 
       // Set result in global variable for other actions
       CPH.SetGlobalVar("MediaSpawner_ExportPath", filePath, persisted: false);
@@ -363,7 +509,7 @@ public class CPHInline
         ["source"] = source,
         ["isInternal"] = isInternal,
         ["isBotAccount"] = isBotAccount,
-        ["executionTime"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+        ["executionTime"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
       });
 
 
@@ -462,83 +608,6 @@ public class CPHInline
   }
 
   /// <summary>
-  /// Handle time-based triggers
-  /// </summary>
-  /// <param name="source">The time trigger source</param>
-  /// <returns>True if time trigger was handled successfully</returns>
-  private bool HandleTimeTrigger(string source)
-  {
-    try
-    {
-      CPH.LogInfo($"HandleTimeTrigger: Processing time trigger from source: {source}");
-
-      // Determine specific time trigger type
-      string timeTriggerType = DetermineTimeTriggerType(source);
-
-      if (string.IsNullOrWhiteSpace(timeTriggerType))
-      {
-        CPH.LogError($"HandleTimeTrigger: Unable to determine time trigger type from source: {source}");
-        return false;
-      }
-
-      CPH.LogInfo($"HandleTimeTrigger: Detected time trigger type: {timeTriggerType}");
-
-      // Find matching spawns with time triggers
-      List<Spawn> matchingSpawns = FindSpawnsByTriggerType($"time.{timeTriggerType}");
-
-      if (matchingSpawns.Count == 0)
-      {
-        CPH.LogInfo($"HandleTimeTrigger: No spawns found with time.{timeTriggerType} triggers");
-        return true; // Not an error, just no matching spawns
-      }
-
-      // Get current time context with timezone support
-      Dictionary<string, object> timeData = GetTimeTriggerData(timeTriggerType);
-
-      // Filter spawns based on time trigger configuration
-      List<Spawn> validSpawns = FilterSpawnsByTimeConfig(matchingSpawns, timeTriggerType, timeData);
-
-      if (validSpawns.Count == 0)
-      {
-        CPH.LogInfo("HandleTimeTrigger: No spawns match the time trigger configuration");
-        return true; // Not an error, just no matching spawns
-      }
-
-      // Validate each spawn before execution
-      List<Spawn> executableSpawns = new List<Spawn>();
-      foreach (Spawn spawn in validSpawns)
-      {
-        ValidationResult spawnValidation = ValidateSpawnForExecution(spawn, $"time.{timeTriggerType}");
-        if (spawnValidation.IsValid && HasEnabledAssets(spawn))
-        {
-          executableSpawns.Add(spawn);
-        }
-        else
-        {
-          CPH.LogWarn($"HandleTimeTrigger: Skipping spawn '{spawn.Name}' - validation failed");
-        }
-      }
-
-      if (executableSpawns.Count == 0)
-      {
-        CPH.LogInfo("HandleTimeTrigger: No spawns are ready for execution after validation");
-        return true; // Not an error, just no ready spawns
-      }
-
-      // Execute matching spawns
-      bool executionResult = ExecuteSpawns(executableSpawns, $"time.{timeTriggerType}", timeData);
-
-
-      return executionResult;
-    }
-    catch (Exception ex)
-    {
-      CPH.LogError($"HandleTimeTrigger: Error processing time trigger: {ex.Message}");
-      return false;
-    }
-  }
-
-  /// <summary>
   /// Handle manual triggers (Execute C# Method calls)
   /// </summary>
   /// <returns>True if manual trigger was handled successfully</returns>
@@ -604,7 +673,7 @@ public class CPHInline
       {
         ["spawnId"] = spawnId,
         ["triggerType"] = "manual",
-        ["executionTime"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+        ["executionTime"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
       });
 
 
@@ -617,6 +686,2077 @@ public class CPHInline
     }
   }
 
+  #region Timer Management Helper Methods
+
+  /// <summary>
+  /// Initialize all timers based on current MediaSpawnerConfig
+  /// </summary>
+  private void InitializeTimers()
+  {
+    try
+    {
+      lock (this.timerLock)
+      {
+        // Clear any existing timers first
+        CleanupAllTimers();
+
+        if (this.cachedConfig?.Profiles == null)
+        {
+          CPH.LogInfo("InitializeTimers: No configuration loaded, skipping timer initialization");
+          return;
+        }
+
+        int timerCount = 0;
+
+        // Find all time-triggered spawns and create timers for them
+        foreach (SpawnProfile profile in this.cachedConfig.Profiles)
+        {
+          if (profile.Spawns != null)
+          {
+            foreach (Spawn spawn in profile.Spawns)
+            {
+              if (spawn.Enabled && spawn.Trigger?.Type?.StartsWith("time.") == true)
+              {
+                if (CreateTimerForSpawn(spawn))
+                {
+                  timerCount++;
+                }
+              }
+            }
+          }
+        }
+
+        this.timersInitialized = true;
+        CPH.LogInfo($"InitializeTimers: Successfully initialized {timerCount} timers");
+
+        // Log timer status for monitoring
+        Dictionary<string, object> status = GetTimerStatus();
+        CPH.LogInfo($"InitializeTimers: Timer status - Active: {status["activeTimerCount"]}, Initialized: {status["timersInitialized"]}");
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"InitializeTimers: Error during timer initialization: {ex.Message}");
+    }
+  }
+
+  /// <summary>
+  /// Basic validation for spawn before timer creation
+  /// </summary>
+  /// <param name="spawn">The spawn to validate</param>
+  /// <returns>True if spawn is valid for timer creation, false otherwise</returns>
+  private bool ValidateSpawnForTimerCreation(Spawn spawn)
+  {
+    try
+    {
+      if (spawn == null)
+      {
+        CPH.LogWarn("ValidateSpawnForTimerCreation: Spawn is null");
+        return false;
+      }
+
+      if (string.IsNullOrWhiteSpace(spawn.Id))
+      {
+        CPH.LogWarn("ValidateSpawnForTimerCreation: Spawn ID is null or empty");
+        return false;
+      }
+
+      if (string.IsNullOrWhiteSpace(spawn.Name))
+      {
+        CPH.LogWarn($"ValidateSpawnForTimerCreation: Spawn name is null or empty for ID '{spawn.Id}'");
+        return false;
+      }
+
+      if (spawn.Trigger == null)
+      {
+        CPH.LogWarn($"ValidateSpawnForTimerCreation: Spawn '{spawn.Name}' has no trigger");
+        return false;
+      }
+
+      if (spawn.Trigger.Config == null)
+      {
+        CPH.LogWarn($"ValidateSpawnForTimerCreation: Spawn '{spawn.Name}' has no trigger configuration");
+        return false;
+      }
+
+      if (string.IsNullOrWhiteSpace(spawn.Trigger.Type))
+      {
+        CPH.LogWarn($"ValidateSpawnForTimerCreation: Spawn '{spawn.Name}' has no trigger type");
+        return false;
+      }
+
+      // Check if spawn is enabled
+      if (!spawn.Enabled)
+      {
+        CPH.LogInfo($"ValidateSpawnForTimerCreation: Spawn '{spawn.Name}' is disabled, skipping timer creation");
+        return false;
+      }
+
+      return true;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"ValidateSpawnForTimerCreation: Error validating spawn: {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Create a timer for a specific spawn based on its trigger configuration
+  /// </summary>
+  /// <param name="spawn">The spawn to create a timer for</param>
+  /// <returns>True if timer was created successfully, false otherwise</returns>
+  private bool CreateTimerForSpawn(Spawn spawn)
+  {
+    try
+    {
+      // Check if system is shutting down
+      if (this.isShuttingDown)
+      {
+        CPH.LogInfo($"CreateTimerForSpawn: System is shutting down, skipping timer creation for spawn '{spawn.Name}'");
+        return false;
+      }
+
+      if (spawn.Trigger?.Config == null)
+      {
+        CPH.LogWarn($"CreateTimerForSpawn: Spawn '{spawn.Name}' has no trigger configuration");
+        return false;
+      }
+
+      string triggerType = spawn.Trigger.Type.Replace("time.", "");
+      Dictionary<string, object> config = spawn.Trigger.Config;
+
+      CPH.LogInfo($"CreateTimerForSpawn: Creating {triggerType} timer for spawn '{spawn.Name}'");
+
+      // Basic validation before timer creation
+      if (!ValidateSpawnForTimerCreation(spawn))
+      {
+        CPH.LogWarn($"CreateTimerForSpawn: Spawn '{spawn.Name}' failed validation, skipping timer creation");
+        return false;
+      }
+
+      bool timerCreated = false;
+      Exception lastException = null;
+
+      // Create timer based on trigger type with error recovery
+      try
+      {
+        switch (triggerType)
+        {
+          case "atDateTime":
+            timerCreated = CreateOneTimeTimer(spawn, config);
+            break;
+          case "dailyAt":
+            timerCreated = CreateDailyTimer(spawn, config);
+            break;
+          case "weeklyAt":
+            timerCreated = CreateWeeklyTimer(spawn, config);
+            break;
+          case "monthlyOn":
+            timerCreated = CreateMonthlyTimer(spawn, config);
+            break;
+          case "everyNMinutes":
+            timerCreated = CreateIntervalTimer(spawn, config);
+            break;
+          case "minuteOfHour":
+            timerCreated = CreateMinuteOfHourTimer(spawn, config);
+            break;
+          default:
+            CPH.LogWarn($"CreateTimerForSpawn: Unknown trigger type '{triggerType}' for spawn '{spawn.Name}'");
+            return false;
+        }
+      }
+      catch (Exception timerEx)
+      {
+        lastException = timerEx;
+        CPH.LogError($"CreateTimerForSpawn: Error creating {triggerType} timer for spawn '{spawn.Name}': {timerEx.Message}");
+      }
+
+      if (!timerCreated)
+      {
+        CPH.LogWarn($"CreateTimerForSpawn: Failed to create {triggerType} timer for spawn '{spawn.Name}'");
+
+        // Basic error recovery - log the failure but don't crash
+        if (lastException != null)
+        {
+          CPH.LogError($"CreateTimerForSpawn: Last exception details: {lastException.Message}");
+        }
+
+        return false;
+      }
+
+      CPH.LogInfo($"CreateTimerForSpawn: Successfully created {triggerType} timer for spawn '{spawn.Name}'");
+
+      // Update statistics
+      UpdateTimerStats("created", spawn.Id);
+
+      return true;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"CreateTimerForSpawn: Unhandled error creating timer for spawn '{spawn.Name}': {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Create a one-time timer that fires at a specific DateTime
+  /// Uses System.Threading.Timer for one-time execution as specified in task requirements
+  /// </summary>
+  /// <param name="spawn">The spawn to create a timer for</param>
+  /// <param name="config">The trigger configuration</param>
+  /// <returns>True if timer was created successfully, false otherwise</returns>
+  private bool CreateOneTimeTimer(Spawn spawn, Dictionary<string, object> config)
+  {
+    try
+    {
+      if (!config.ContainsKey("isoDateTime") || !(config["isoDateTime"] is string isoDateTime))
+      {
+        CPH.LogWarn($"CreateOneTimeTimer: Missing or invalid 'isoDateTime' in config for spawn '{spawn.Name}'");
+        return false;
+      }
+
+      // Parse DateTime with timezone consideration
+      DateTime targetTime;
+      if (!DateTime.TryParse(isoDateTime, out targetTime))
+      {
+        // Try parsing as UTC if local parsing fails
+        if (DateTime.TryParse(isoDateTime, null, System.Globalization.DateTimeStyles.AssumeUniversal, out targetTime))
+        {
+          targetTime = targetTime.ToLocalTime();
+          CPH.LogInfo($"CreateOneTimeTimer: Parsed '{isoDateTime}' as UTC and converted to local time: {targetTime}");
+        }
+        else
+        {
+          CPH.LogWarn($"CreateOneTimeTimer: Invalid DateTime format '{isoDateTime}' for spawn '{spawn.Name}'");
+          return false;
+        }
+      }
+
+      DateTime now = DateTime.Now;
+      if (targetTime <= now)
+      {
+        CPH.LogWarn($"CreateOneTimeTimer: Target time {targetTime} is in the past for spawn '{spawn.Name}', skipping");
+        return false;
+      }
+
+      // Calculate delay with millisecond precision
+      TimeSpan delay = targetTime - now;
+      int delayMs = (int)Math.Min(delay.TotalMilliseconds, int.MaxValue);
+
+      if (delayMs <= 0)
+      {
+        CPH.LogWarn($"CreateOneTimeTimer: Calculated delay is {delayMs}ms for spawn '{spawn.Name}', skipping");
+        return false;
+      }
+
+      // Create System.Threading.Timer for one-time execution
+      Timer timer = new Timer(
+        state => OnOneTimeTimerElapsed(spawn, "atDateTime"),
+        null,
+        delayMs,
+        Timeout.Infinite // One-time timer
+      );
+
+      lock (this.timerLock)
+      {
+        // Store the timer in a way that allows proper disposal
+        this.activeTimers[spawn.Id] = new OneTimeTimerWrapper(timer);
+        this.timerStates[spawn.Id] = false; // false = active
+      }
+
+      CPH.LogInfo($"CreateOneTimeTimer: Created one-time timer for spawn '{spawn.Name}' to fire at {targetTime} (in {delay.TotalMinutes:F1} minutes)");
+      return true;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"CreateOneTimeTimer: Error creating timer for spawn '{spawn.Name}': {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Wrapper class for System.Threading.Timer to allow proper disposal
+  /// </summary>
+  private class OneTimeTimerWrapper : IDisposable
+  {
+    private readonly Timer _timer;
+    private bool _disposed;
+
+    public OneTimeTimerWrapper(Timer timer)
+    {
+      _timer = timer;
+    }
+
+    public void Dispose()
+    {
+      if (!_disposed)
+      {
+        _timer?.Dispose();
+        _disposed = true;
+      }
+    }
+  }
+
+  /// <summary>
+  /// Handle one-time timer elapsed events - executes spawns when one-time timers fire
+  /// </summary>
+  /// <param name="spawn">The spawn to execute</param>
+  /// <param name="triggerType">The type of timer trigger</param>
+  private void OnOneTimeTimerElapsed(Spawn spawn, string triggerType)
+  {
+    try
+    {
+      // Basic safety checks
+      if (spawn == null)
+      {
+        CPH.LogWarn("OnOneTimeTimerElapsed: Spawn is null, skipping execution");
+        return;
+      }
+
+      if (string.IsNullOrWhiteSpace(spawn.Id))
+      {
+        CPH.LogWarn("OnOneTimeTimerElapsed: Spawn ID is null or empty, skipping execution");
+        return;
+      }
+
+      // Thread safety - access shared state with lock
+      lock (this.stateLock)
+      {
+        // Validate spawn is still enabled and configuration hasn't changed
+        if (!IsSpawnStillValid(spawn))
+        {
+          CPH.LogInfo($"OnOneTimeTimerElapsed: Spawn {spawn.Name} is no longer valid, skipping");
+          return;
+        }
+
+        // One-time timers should always execute when they fire
+        CPH.LogInfo($"OnOneTimeTimerElapsed: Executing one-time spawn '{spawn.Name}' from {triggerType} timer");
+        ExecuteSpawnFromTimer(spawn, triggerType);
+
+        // Remove the timer from active timers since it's one-time
+        lock (this.timerLock)
+        {
+          if (this.activeTimers.ContainsKey(spawn.Id))
+          {
+            try
+            {
+              this.activeTimers[spawn.Id].Dispose();
+              this.activeTimers.Remove(spawn.Id);
+              CPH.LogInfo($"OnOneTimeTimerElapsed: Removed completed one-time timer for spawn '{spawn.Name}'");
+            }
+            catch (Exception disposeEx)
+            {
+              CPH.LogError($"OnOneTimeTimerElapsed: Error disposing timer for spawn '{spawn.Name}': {disposeEx.Message}");
+              // Still remove from dictionary even if disposal failed
+              this.activeTimers.Remove(spawn.Id);
+            }
+          }
+        }
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"OnOneTimeTimerElapsed: Error executing one-time timer for spawn {spawn?.Name ?? "unknown"}: {ex.Message}");
+    }
+  }
+
+  /// <summary>
+  /// Create a daily recurring timer that fires at a specific time each day
+  /// </summary>
+  /// <param name="spawn">The spawn to create a timer for</param>
+  /// <param name="config">The trigger configuration</param>
+  /// <returns>True if timer was created successfully, false otherwise</returns>
+  private bool CreateDailyTimer(Spawn spawn, Dictionary<string, object> config)
+  {
+    try
+    {
+      if (!config.ContainsKey("time") || !(config["time"] is string timeStr))
+      {
+        CPH.LogWarn($"CreateDailyTimer: Missing or invalid 'time' in config for spawn '{spawn.Name}'");
+        return false;
+      }
+
+      if (!TimeSpan.TryParse(timeStr, out TimeSpan targetTime))
+      {
+        CPH.LogWarn($"CreateDailyTimer: Invalid time format '{timeStr}' for spawn '{spawn.Name}'");
+        return false;
+      }
+
+      // Calculate delay until next occurrence
+      DateTime now = DateTime.Now;
+      DateTime nextOccurrence = now.Date.Add(targetTime);
+      if (nextOccurrence <= now)
+      {
+        nextOccurrence = nextOccurrence.AddDays(1);
+      }
+
+      double delayMs = (nextOccurrence - now).TotalMilliseconds;
+      System.Timers.Timer timer = new System.Timers.Timer(delayMs);
+      timer.AutoReset = true;
+
+      // Set up recurring behavior - after first fire, reset to 24-hour interval
+      timer.Elapsed += (sender, e) => OnRecurringTimerElapsed(spawn, "dailyAt", () =>
+      {
+        // Reset timer to 24-hour interval after first fire
+        timer.Interval = TimeSpan.FromDays(1).TotalMilliseconds;
+        CPH.LogInfo($"CreateDailyTimer: Reset timer interval to 24 hours for spawn '{spawn.Name}'");
+      });
+
+      lock (this.timerLock)
+      {
+        this.activeTimers[spawn.Id] = timer;
+        this.timerStates[spawn.Id] = false; // false = active
+      }
+
+      timer.Start();
+      CPH.LogInfo($"CreateDailyTimer: Created daily timer for spawn '{spawn.Name}' to fire at {targetTime} daily (first fire in {TimeSpan.FromMilliseconds(delayMs).TotalMinutes:F1} minutes)");
+      return true;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"CreateDailyTimer: Error creating timer for spawn '{spawn.Name}': {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Handle daylight saving time transitions for recurring timers
+  /// </summary>
+  /// <param name="spawn">The spawn to check</param>
+  /// <param name="triggerType">The type of timer trigger</param>
+  /// <param name="timer">The timer to potentially reset</param>
+  private void HandleDaylightSavingTimeTransition(Spawn spawn, string triggerType, System.Timers.Timer timer)
+  {
+    try
+    {
+      // Check if we're in a DST transition period (first Sunday of November or second Sunday of March)
+      DateTime now = DateTime.Now;
+      bool isDstTransition = IsDaylightSavingTimeTransition(now);
+
+      if (isDstTransition)
+      {
+        CPH.LogInfo($"HandleDaylightSavingTimeTransition: DST transition detected for spawn '{spawn.Name}', recalculating timer");
+
+        // Recalculate the next occurrence to account for DST changes
+        Dictionary<string, object> config = spawn.Trigger?.Config;
+        if (config != null)
+        {
+          switch (triggerType)
+          {
+            case "dailyAt":
+              if (config.ContainsKey("time") && config["time"] is string timeStr &&
+                  TimeSpan.TryParse(timeStr, out TimeSpan targetTime))
+              {
+                DateTime nextOccurrence = now.Date.Add(targetTime);
+                if (nextOccurrence <= now)
+                {
+                  nextOccurrence = nextOccurrence.AddDays(1);
+                }
+                timer.Interval = (nextOccurrence - now).TotalMilliseconds;
+              }
+              break;
+
+            case "weeklyAt":
+              if (config.ContainsKey("time") && config["time"] is string weeklyTimeStr &&
+                  TimeSpan.TryParse(weeklyTimeStr, out TimeSpan weeklyTargetTime) &&
+                  config.ContainsKey("daysOfWeek") && config["daysOfWeek"] is List<object> daysList)
+              {
+                List<DayOfWeek> daysOfWeek = new List<DayOfWeek>();
+                foreach (object day in daysList)
+                {
+                  if (day is string dayStr && Enum.TryParse<DayOfWeek>(dayStr, true, out DayOfWeek dayOfWeek))
+                  {
+                    daysOfWeek.Add(dayOfWeek);
+                  }
+                }
+                DateTime nextOccurrence = GetNextWeeklyOccurrence(now, daysOfWeek, weeklyTargetTime);
+                timer.Interval = (nextOccurrence - now).TotalMilliseconds;
+              }
+              break;
+
+            case "monthlyOn":
+              if (config.ContainsKey("time") && config["time"] is string monthlyTimeStr &&
+                  TimeSpan.TryParse(monthlyTimeStr, out TimeSpan monthlyTargetTime) &&
+                  config.ContainsKey("daysOfMonth") && config["daysOfMonth"] is List<object> monthlyDaysList)
+              {
+                List<int> daysOfMonth = new List<int>();
+                foreach (object day in monthlyDaysList)
+                {
+                  if (day is int dayInt && dayInt >= 1 && dayInt <= 31)
+                  {
+                    daysOfMonth.Add(dayInt);
+                  }
+                }
+                DateTime nextOccurrence = GetNextMonthlyOccurrence(now, daysOfMonth, monthlyTargetTime);
+                timer.Interval = (nextOccurrence - now).TotalMilliseconds;
+              }
+              break;
+          }
+        }
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"HandleDaylightSavingTimeTransition: Error handling DST transition for spawn '{spawn.Name}': {ex.Message}");
+    }
+  }
+
+  /// <summary>
+  /// Check if the current date is during a daylight saving time transition
+  /// </summary>
+  /// <param name="date">The date to check</param>
+  /// <returns>True if the date is during a DST transition</returns>
+  private bool IsDaylightSavingTimeTransition(DateTime date)
+  {
+    try
+    {
+      // Check if we're in the week of DST transitions
+      // Spring forward: Second Sunday of March
+      // Fall back: First Sunday of November
+
+      // Check for spring forward (second Sunday of March)
+      if (date.Month == 3)
+      {
+        DateTime firstSunday = new DateTime(date.Year, 3, 1);
+        while (firstSunday.DayOfWeek != DayOfWeek.Sunday)
+        {
+          firstSunday = firstSunday.AddDays(1);
+        }
+        DateTime secondSunday = firstSunday.AddDays(7);
+        return date.Date >= secondSunday.AddDays(-1) && date.Date <= secondSunday.AddDays(1);
+      }
+
+      // Check for fall back (first Sunday of November)
+      if (date.Month == 11)
+      {
+        DateTime firstSunday = new DateTime(date.Year, 11, 1);
+        while (firstSunday.DayOfWeek != DayOfWeek.Sunday)
+        {
+          firstSunday = firstSunday.AddDays(1);
+        }
+        return date.Date >= firstSunday.AddDays(-1) && date.Date <= firstSunday.AddDays(1);
+      }
+
+      return false;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"IsDaylightSavingTimeTransition: Error checking DST transition: {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Handle recurring timer elapsed events - executes spawns when recurring timers fire
+  /// </summary>
+  /// <param name="spawn">The spawn to execute</param>
+  /// <param name="triggerType">The type of timer trigger</param>
+  /// <param name="intervalResetAction">Action to reset timer interval after first fire</param>
+  private void OnRecurringTimerElapsed(Spawn spawn, string triggerType, Action intervalResetAction)
+  {
+    try
+    {
+      // Basic safety checks
+      if (spawn == null)
+      {
+        CPH.LogWarn("OnRecurringTimerElapsed: Spawn is null, skipping execution");
+        return;
+      }
+
+      if (string.IsNullOrWhiteSpace(spawn.Id))
+      {
+        CPH.LogWarn("OnRecurringTimerElapsed: Spawn ID is null or empty, skipping execution");
+        return;
+      }
+
+      // Thread safety - access shared state with lock
+      lock (this.stateLock)
+      {
+        // Validate spawn is still enabled and configuration hasn't changed
+        if (!IsSpawnStillValid(spawn))
+        {
+          CPH.LogInfo($"OnRecurringTimerElapsed: Spawn {spawn.Name} is no longer valid, skipping");
+          return;
+        }
+
+        // Apply time-based filtering
+        if (!ShouldExecuteAtCurrentTime(spawn, triggerType))
+        {
+          CPH.LogInfo($"OnRecurringTimerElapsed: Time-based filtering prevented execution for spawn '{spawn.Name}' at {DateTime.Now:HH:mm:ss}");
+          return; // Not the right time for this trigger
+        }
+
+        // Execute the spawn
+        CPH.LogInfo($"OnRecurringTimerElapsed: Executing recurring spawn '{spawn.Name}' from {triggerType} timer");
+        ExecuteSpawnFromTimer(spawn, triggerType);
+
+        // Reset timer interval for recurring behavior
+        try
+        {
+          intervalResetAction?.Invoke();
+        }
+        catch (Exception resetEx)
+        {
+          CPH.LogError($"OnRecurringTimerElapsed: Error resetting timer interval for spawn '{spawn.Name}': {resetEx.Message}");
+        }
+
+        // Handle DST transitions for recurring timers
+        try
+        {
+          if (this.activeTimers.ContainsKey(spawn.Id) && this.activeTimers[spawn.Id] is System.Timers.Timer timer)
+          {
+            HandleDaylightSavingTimeTransition(spawn, triggerType, timer);
+          }
+        }
+        catch (Exception dstEx)
+        {
+          CPH.LogError($"OnRecurringTimerElapsed: Error handling DST transition for spawn '{spawn.Name}': {dstEx.Message}");
+        }
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"OnRecurringTimerElapsed: Error executing recurring timer for spawn {spawn?.Name ?? "unknown"}: {ex.Message}");
+    }
+  }
+
+  /// <summary>
+  /// Create a weekly recurring timer that fires at a specific time on specific days
+  /// </summary>
+  /// <param name="spawn">The spawn to create a timer for</param>
+  /// <param name="config">The trigger configuration</param>
+  /// <returns>True if timer was created successfully, false otherwise</returns>
+  private bool CreateWeeklyTimer(Spawn spawn, Dictionary<string, object> config)
+  {
+    try
+    {
+      if (!config.ContainsKey("time") || !(config["time"] is string timeStr) ||
+          !config.ContainsKey("daysOfWeek") || !(config["daysOfWeek"] is List<object> daysList))
+      {
+        CPH.LogWarn($"CreateWeeklyTimer: Missing or invalid 'time' or 'daysOfWeek' in config for spawn '{spawn.Name}'");
+        return false;
+      }
+
+      if (!TimeSpan.TryParse(timeStr, out TimeSpan targetTime))
+      {
+        CPH.LogWarn($"CreateWeeklyTimer: Invalid time format '{timeStr}' for spawn '{spawn.Name}'");
+        return false;
+      }
+
+      List<DayOfWeek> daysOfWeek = new List<DayOfWeek>();
+      foreach (object day in daysList)
+      {
+        if (day is string dayStr && Enum.TryParse<DayOfWeek>(dayStr, true, out DayOfWeek dayOfWeek))
+        {
+          daysOfWeek.Add(dayOfWeek);
+        }
+      }
+
+      if (daysOfWeek.Count == 0)
+      {
+        CPH.LogWarn($"CreateWeeklyTimer: No valid days of week specified for spawn '{spawn.Name}'");
+        return false;
+      }
+
+      // Calculate delay until next occurrence
+      DateTime now = DateTime.Now;
+      DateTime nextOccurrence = GetNextWeeklyOccurrence(now, daysOfWeek, targetTime);
+
+      double delayMs = (nextOccurrence - now).TotalMilliseconds;
+      System.Timers.Timer timer = new System.Timers.Timer(delayMs);
+      timer.AutoReset = true;
+
+      // Set up recurring behavior - after first fire, reset to 7-day interval
+      timer.Elapsed += (sender, e) => OnRecurringTimerElapsed(spawn, "weeklyAt", () =>
+      {
+        // Reset timer to 7-day interval after first fire
+        timer.Interval = TimeSpan.FromDays(7).TotalMilliseconds;
+        CPH.LogInfo($"CreateWeeklyTimer: Reset timer interval to 7 days for spawn '{spawn.Name}'");
+      });
+
+      lock (this.timerLock)
+      {
+        this.activeTimers[spawn.Id] = timer;
+        this.timerStates[spawn.Id] = false; // false = active
+      }
+
+      timer.Start();
+      CPH.LogInfo($"CreateWeeklyTimer: Created weekly timer for spawn '{spawn.Name}' to fire on {string.Join(", ", daysOfWeek)} at {targetTime} (first fire in {TimeSpan.FromMilliseconds(delayMs).TotalHours:F1} hours)");
+      return true;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"CreateWeeklyTimer: Error creating timer for spawn '{spawn.Name}': {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Create a monthly recurring timer that fires on specific days of the month
+  /// </summary>
+  /// <param name="spawn">The spawn to create a timer for</param>
+  /// <param name="config">The trigger configuration</param>
+  /// <returns>True if timer was created successfully, false otherwise</returns>
+  private bool CreateMonthlyTimer(Spawn spawn, Dictionary<string, object> config)
+  {
+    try
+    {
+      if (!config.ContainsKey("time") || !(config["time"] is string timeStr) ||
+          !config.ContainsKey("daysOfMonth") || !(config["daysOfMonth"] is List<object> daysList))
+      {
+        CPH.LogWarn($"CreateMonthlyTimer: Missing or invalid 'time' or 'daysOfMonth' in config for spawn '{spawn.Name}'");
+        return false;
+      }
+
+      if (!TimeSpan.TryParse(timeStr, out TimeSpan targetTime))
+      {
+        CPH.LogWarn($"CreateMonthlyTimer: Invalid time format '{timeStr}' for spawn '{spawn.Name}'");
+        return false;
+      }
+
+      List<int> daysOfMonth = new List<int>();
+      foreach (object day in daysList)
+      {
+        if (day is int dayInt && dayInt >= 1 && dayInt <= 31)
+        {
+          daysOfMonth.Add(dayInt);
+        }
+      }
+
+      if (daysOfMonth.Count == 0)
+      {
+        CPH.LogWarn($"CreateMonthlyTimer: No valid days of month specified for spawn '{spawn.Name}'");
+        return false;
+      }
+
+      // Calculate delay until next occurrence
+      DateTime now = DateTime.Now;
+      DateTime nextOccurrence = GetNextMonthlyOccurrence(now, daysOfMonth, targetTime);
+
+      double delayMs = (nextOccurrence - now).TotalMilliseconds;
+      System.Timers.Timer timer = new System.Timers.Timer(delayMs);
+      timer.AutoReset = true;
+
+      // Set up recurring behavior - after first fire, reset to monthly interval
+      timer.Elapsed += (sender, e) => OnRecurringTimerElapsed(spawn, "monthlyOn", () =>
+      {
+        // Reset timer to monthly interval after first fire (approximately 30 days)
+        timer.Interval = TimeSpan.FromDays(30).TotalMilliseconds;
+        CPH.LogInfo($"CreateMonthlyTimer: Reset timer interval to 30 days for spawn '{spawn.Name}'");
+      });
+
+      lock (this.timerLock)
+      {
+        this.activeTimers[spawn.Id] = timer;
+        this.timerStates[spawn.Id] = false; // false = active
+      }
+
+      timer.Start();
+      CPH.LogInfo($"CreateMonthlyTimer: Created monthly timer for spawn '{spawn.Name}' to fire on days {string.Join(", ", daysOfMonth)} at {targetTime} (first fire in {TimeSpan.FromMilliseconds(delayMs).TotalDays:F1} days)");
+      return true;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"CreateMonthlyTimer: Error creating timer for spawn '{spawn.Name}': {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Create an interval timer that fires every N minutes
+  /// </summary>
+  /// <param name="spawn">The spawn to create a timer for</param>
+  /// <param name="config">The trigger configuration</param>
+  /// <returns>True if timer was created successfully, false otherwise</returns>
+  private bool CreateIntervalTimer(Spawn spawn, Dictionary<string, object> config)
+  {
+    try
+    {
+      // Validate configuration first
+      if (!ValidateIntervalTimerConfig(spawn, "everyNMinutes", config))
+      {
+        return false;
+      }
+
+      int intervalMinutes = (int)config["intervalMinutes"];
+
+      if (intervalMinutes > 1440) // More than 24 hours
+      {
+        CPH.LogWarn($"CreateIntervalTimer: Interval {intervalMinutes} minutes is very large for spawn '{spawn.Name}' - consider using daily timer instead");
+      }
+
+      if (intervalMinutes < 1) // Less than 1 minute
+      {
+        CPH.LogWarn($"CreateIntervalTimer: Interval {intervalMinutes} minutes is very small for spawn '{spawn.Name}' - minimum recommended is 1 minute");
+      }
+
+      double intervalMs = intervalMinutes * 60 * 1000; // Convert to milliseconds
+
+      // Ensure interval is within reasonable bounds
+      if (intervalMs > int.MaxValue)
+      {
+        CPH.LogWarn($"CreateIntervalTimer: Interval {intervalMs}ms exceeds maximum for spawn '{spawn.Name}', capping to {int.MaxValue}ms");
+        intervalMs = int.MaxValue;
+      }
+
+      System.Timers.Timer timer = new System.Timers.Timer(intervalMs);
+      timer.AutoReset = true;
+
+      // Use dedicated interval timer callback
+      timer.Elapsed += (sender, e) => OnIntervalTimerElapsed(spawn, "everyNMinutes");
+
+      lock (this.timerLock)
+      {
+        this.activeTimers[spawn.Id] = timer;
+        this.timerStates[spawn.Id] = false; // false = active
+      }
+
+      timer.Start();
+      CPH.LogInfo($"CreateIntervalTimer: Created interval timer for spawn '{spawn.Name}' to fire every {intervalMinutes} minutes ({intervalMs}ms interval)");
+      return true;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"CreateIntervalTimer: Error creating timer for spawn '{spawn.Name}': {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Create a timer that fires at specific minutes of each hour
+  /// </summary>
+  /// <param name="spawn">The spawn to create a timer for</param>
+  /// <param name="config">The trigger configuration</param>
+  /// <returns>True if timer was created successfully, false otherwise</returns>
+  private bool CreateMinuteOfHourTimer(Spawn spawn, Dictionary<string, object> config)
+  {
+    try
+    {
+      // Validate configuration first
+      if (!ValidateIntervalTimerConfig(spawn, "minuteOfHour", config))
+      {
+        return false;
+      }
+
+      List<object> minutesList = (List<object>)config["minutes"];
+      List<int> minutes = new List<int>();
+      foreach (object minute in minutesList)
+      {
+        if (minute is int minuteInt && minuteInt >= 0 && minuteInt <= 59)
+        {
+          minutes.Add(minuteInt);
+        }
+        else
+        {
+          CPH.LogWarn($"CreateMinuteOfHourTimer: Invalid minute value '{minute}' for spawn '{spawn.Name}' - must be 0-59");
+        }
+      }
+
+      // Remove duplicates and sort for better logging
+      minutes = minutes.Distinct().OrderBy(m => m).ToList();
+
+      // Calculate delay until next occurrence
+      DateTime now = DateTime.Now;
+      DateTime nextOccurrence = GetNextMinuteOfHourOccurrence(now, minutes);
+
+      double delayMs = (nextOccurrence - now).TotalMilliseconds;
+
+      // Ensure delay is reasonable
+      if (delayMs < 0)
+      {
+        CPH.LogWarn($"CreateMinuteOfHourTimer: Calculated delay is negative for spawn '{spawn.Name}', using 1 minute delay");
+        delayMs = 60000; // 1 minute
+      }
+
+      System.Timers.Timer timer = new System.Timers.Timer(delayMs);
+      timer.AutoReset = true;
+
+      // Use dedicated interval timer callback with minute filtering
+      timer.Elapsed += (sender, e) => OnIntervalTimerElapsed(spawn, "minuteOfHour");
+
+      lock (this.timerLock)
+      {
+        this.activeTimers[spawn.Id] = timer;
+        this.timerStates[spawn.Id] = false; // false = active
+      }
+
+      timer.Start();
+      CPH.LogInfo($"CreateMinuteOfHourTimer: Created minute-of-hour timer for spawn '{spawn.Name}' to fire at minutes {string.Join(", ", minutes)} (first fire in {TimeSpan.FromMilliseconds(delayMs).TotalMinutes:F1} minutes)");
+      return true;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"CreateMinuteOfHourTimer: Error creating timer for spawn '{spawn.Name}': {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Validate interval timer configuration
+  /// </summary>
+  /// <param name="spawn">The spawn to validate</param>
+  /// <param name="triggerType">The type of timer trigger</param>
+  /// <param name="config">The trigger configuration</param>
+  /// <returns>True if configuration is valid, false otherwise</returns>
+  private bool ValidateIntervalTimerConfig(Spawn spawn, string triggerType, Dictionary<string, object> config)
+  {
+    try
+    {
+      switch (triggerType)
+      {
+        case "everyNMinutes":
+          if (!config.ContainsKey("intervalMinutes") || !(config["intervalMinutes"] is int intervalMinutes))
+          {
+            CPH.LogWarn($"ValidateIntervalTimerConfig: Missing 'intervalMinutes' for spawn '{spawn.Name}'");
+            return false;
+          }
+
+          if (intervalMinutes <= 0)
+          {
+            CPH.LogWarn($"ValidateIntervalTimerConfig: Invalid interval {intervalMinutes} for spawn '{spawn.Name}' - must be > 0");
+            return false;
+          }
+
+          if (intervalMinutes > 10080) // More than a week
+          {
+            CPH.LogWarn($"ValidateIntervalTimerConfig: Very large interval {intervalMinutes} minutes for spawn '{spawn.Name}' - consider using daily/weekly timer");
+          }
+
+          return true;
+
+        case "minuteOfHour":
+          if (!config.ContainsKey("minutes") || !(config["minutes"] is List<object> minutesList))
+          {
+            CPH.LogWarn($"ValidateIntervalTimerConfig: Missing 'minutes' for spawn '{spawn.Name}'");
+            return false;
+          }
+
+          if (minutesList.Count == 0)
+          {
+            CPH.LogWarn($"ValidateIntervalTimerConfig: Empty minutes list for spawn '{spawn.Name}'");
+            return false;
+          }
+
+          int validMinutes = 0;
+          foreach (object minute in minutesList)
+          {
+            if (minute is int minuteInt && minuteInt >= 0 && minuteInt <= 59)
+            {
+              validMinutes++;
+            }
+          }
+
+          if (validMinutes == 0)
+          {
+            CPH.LogWarn($"ValidateIntervalTimerConfig: No valid minutes (0-59) for spawn '{spawn.Name}'");
+            return false;
+          }
+
+          return true;
+
+        default:
+          CPH.LogWarn($"ValidateIntervalTimerConfig: Unknown trigger type '{triggerType}' for spawn '{spawn.Name}'");
+          return false;
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"ValidateIntervalTimerConfig: Error validating config for spawn '{spawn.Name}': {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Handle interval timer elapsed events - executes spawns when interval timers fire
+  /// </summary>
+  /// <param name="spawn">The spawn to execute</param>
+  /// <param name="triggerType">The type of timer trigger</param>
+  private void OnIntervalTimerElapsed(Spawn spawn, string triggerType)
+  {
+    try
+    {
+      // Basic safety checks
+      if (spawn == null)
+      {
+        CPH.LogWarn("OnIntervalTimerElapsed: Spawn is null, skipping execution");
+        return;
+      }
+
+      if (string.IsNullOrWhiteSpace(spawn.Id))
+      {
+        CPH.LogWarn("OnIntervalTimerElapsed: Spawn ID is null or empty, skipping execution");
+        return;
+      }
+
+      // Thread safety - access shared state with lock
+      lock (this.stateLock)
+      {
+        // Validate spawn is still enabled and configuration hasn't changed
+        if (!IsSpawnStillValid(spawn))
+        {
+          CPH.LogInfo($"OnIntervalTimerElapsed: Spawn {spawn.Name} is no longer valid, skipping");
+          return;
+        }
+
+        // Apply time-based filtering for interval timers
+        if (!ShouldExecuteAtCurrentTime(spawn, triggerType))
+        {
+          CPH.LogInfo($"OnIntervalTimerElapsed: Time-based filtering prevented execution for spawn '{spawn.Name}' at {DateTime.Now:HH:mm:ss}");
+          return; // Not the right time for this trigger
+        }
+
+        // Execute the spawn
+        CPH.LogInfo($"OnIntervalTimerElapsed: Executing interval spawn '{spawn.Name}' from {triggerType} timer");
+        ExecuteSpawnFromTimer(spawn, triggerType);
+
+        // For minuteOfHour timers, reset to 1-minute interval for continuous checking
+        if (triggerType == "minuteOfHour")
+        {
+          try
+          {
+            if (this.activeTimers.ContainsKey(spawn.Id) && this.activeTimers[spawn.Id] is System.Timers.Timer timer)
+            {
+              timer.Interval = 60000; // 1 minute interval for continuous minute checking
+              CPH.LogInfo($"OnIntervalTimerElapsed: Reset minute-of-hour timer to 1-minute interval for spawn '{spawn.Name}'");
+            }
+          }
+          catch (Exception intervalEx)
+          {
+            CPH.LogError($"OnIntervalTimerElapsed: Error resetting timer interval for spawn '{spawn.Name}': {intervalEx.Message}");
+          }
+        }
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"OnIntervalTimerElapsed: Error executing interval timer for spawn {spawn?.Name ?? "unknown"}: {ex.Message}");
+    }
+  }
+
+  /// <summary>
+  /// Calculate the next weekly occurrence based on days of week and time
+  /// </summary>
+  /// <param name="now">Current time</param>
+  /// <param name="daysOfWeek">List of days of the week</param>
+  /// <param name="targetTime">Target time of day</param>
+  /// <returns>Next occurrence DateTime</returns>
+  private DateTime GetNextWeeklyOccurrence(DateTime now, List<DayOfWeek> daysOfWeek, TimeSpan targetTime)
+  {
+    // Start from today and look for the next occurrence
+    for (int i = 0; i < 7; i++)
+    {
+      DateTime checkDate = now.Date.AddDays(i);
+      if (daysOfWeek.Contains(checkDate.DayOfWeek))
+      {
+        DateTime occurrence = checkDate.Add(targetTime);
+        if (occurrence > now)
+        {
+          return occurrence;
+        }
+      }
+    }
+
+    // If no occurrence found in the next 7 days, look at the following week
+    for (int i = 7; i < 14; i++)
+    {
+      DateTime checkDate = now.Date.AddDays(i);
+      if (daysOfWeek.Contains(checkDate.DayOfWeek))
+      {
+        return checkDate.Add(targetTime);
+      }
+    }
+
+    // Fallback (should never reach here)
+    return now.AddDays(1);
+  }
+
+  /// <summary>
+  /// Calculate the next monthly occurrence based on days of month and time
+  /// </summary>
+  /// <param name="now">Current time</param>
+  /// <param name="daysOfMonth">List of days of the month</param>
+  /// <param name="targetTime">Target time of day</param>
+  /// <returns>Next occurrence DateTime</returns>
+  private DateTime GetNextMonthlyOccurrence(DateTime now, List<int> daysOfMonth, TimeSpan targetTime)
+  {
+    // Start from current month and look for the next occurrence
+    for (int monthOffset = 0; monthOffset < 12; monthOffset++)
+    {
+      DateTime checkMonth = now.Date.AddMonths(monthOffset);
+      int daysInMonth = DateTime.DaysInMonth(checkMonth.Year, checkMonth.Month);
+
+      foreach (int day in daysOfMonth.OrderBy(d => d))
+      {
+        if (day <= daysInMonth)
+        {
+          DateTime occurrence = new DateTime(checkMonth.Year, checkMonth.Month, day).Add(targetTime);
+          if (occurrence > now)
+          {
+            return occurrence;
+          }
+        }
+      }
+    }
+
+    // Fallback (should never reach here)
+    return now.AddMonths(1);
+  }
+
+  /// <summary>
+  /// Calculate the next minute-of-hour occurrence
+  /// </summary>
+  /// <param name="now">Current time</param>
+  /// <param name="minutes">List of minutes (0-59)</param>
+  /// <returns>Next occurrence DateTime</returns>
+  private DateTime GetNextMinuteOfHourOccurrence(DateTime now, List<int> minutes)
+  {
+    // Check current hour first
+    foreach (int minute in minutes.OrderBy(m => m))
+    {
+      DateTime occurrence = now.Date.AddHours(now.Hour).AddMinutes(minute);
+      if (occurrence > now)
+      {
+        return occurrence;
+      }
+    }
+
+    // If no occurrence in current hour, look at next hour
+    DateTime nextHour = now.Date.AddHours(now.Hour + 1);
+    int nextMinute = minutes.OrderBy(m => m).First();
+    return nextHour.AddMinutes(nextMinute);
+  }
+
+  /// <summary>
+  /// Handle timer elapsed events - executes spawns when timers fire
+  /// </summary>
+  /// <param name="spawn">The spawn to execute</param>
+  /// <param name="triggerType">The type of timer trigger</param>
+  private void OnTimerElapsed(Spawn spawn, string triggerType)
+  {
+    try
+    {
+      // Thread safety - access shared state with lock
+      lock (this.stateLock)
+      {
+        // Validate spawn is still enabled and configuration hasn't changed
+        if (!IsSpawnStillValid(spawn))
+        {
+          CPH.LogInfo($"OnTimerElapsed: Spawn {spawn.Name} is no longer valid, skipping");
+          return;
+        }
+
+        // Apply time-based filtering
+        if (!ShouldExecuteAtCurrentTime(spawn, triggerType))
+        {
+          return; // Not the right time for this trigger
+        }
+
+        // Execute the spawn
+        CPH.LogInfo($"OnTimerElapsed: Executing spawn '{spawn.Name}' from {triggerType} timer");
+        ExecuteSpawnFromTimer(spawn, triggerType);
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"OnTimerElapsed: Error executing timer for spawn {spawn.Name}: {ex.Message}");
+    }
+  }
+
+  /// <summary>
+  /// Execute a spawn from a timer callback
+  /// </summary>
+  /// <param name="spawn">The spawn to execute</param>
+  /// <param name="triggerType">The type of timer trigger</param>
+  private void ExecuteSpawnFromTimer(Spawn spawn, string triggerType)
+  {
+    try
+    {
+      // Create execution context for timer-triggered spawn
+      Dictionary<string, object> contextData = new Dictionary<string, object>
+      {
+        ["triggerType"] = $"time.{triggerType}",
+        ["executionSource"] = "timer",
+        ["timerFiredAt"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+      };
+
+      // Execute the spawn using existing execution logic
+      bool success = ExecuteSpawn(spawn, $"time.{triggerType}", contextData);
+
+      if (success)
+      {
+        CPH.LogInfo($"ExecuteSpawnFromTimer: Successfully executed spawn '{spawn.Name}' from {triggerType} timer");
+      }
+      else
+      {
+        CPH.LogWarn($"ExecuteSpawnFromTimer: Failed to execute spawn '{spawn.Name}' from {triggerType} timer");
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"ExecuteSpawnFromTimer: Error executing spawn '{spawn.Name}': {ex.Message}");
+    }
+  }
+
+  /// <summary>
+  /// Check if a spawn is still valid (enabled and configuration hasn't changed)
+  /// </summary>
+  /// <param name="spawn">The spawn to validate</param>
+  /// <returns>True if spawn is still valid, false otherwise</returns>
+  private bool IsSpawnStillValid(Spawn spawn)
+  {
+    try
+    {
+      // Check if configuration has changed
+      if (HasConfigurationChanged())
+      {
+        CPH.LogInfo("IsSpawnStillValid: Configuration changed, spawn may no longer be valid");
+        return false;
+      }
+
+      // Find the spawn in current configuration
+      if (this.cachedConfig?.Profiles == null)
+        return false;
+
+      foreach (SpawnProfile profile in this.cachedConfig.Profiles)
+      {
+        if (profile.Spawns != null)
+        {
+          foreach (Spawn currentSpawn in profile.Spawns)
+          {
+            if (currentSpawn.Id == spawn.Id)
+            {
+              return currentSpawn.Enabled && currentSpawn.Trigger?.Type?.StartsWith("time.") == true;
+            }
+          }
+        }
+      }
+
+      return false; // Spawn not found in current configuration
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"IsSpawnStillValid: Error validating spawn '{spawn.Name}': {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Check if a spawn should execute at the current time based on its trigger configuration
+  /// </summary>
+  /// <param name="spawn">The spawn to check</param>
+  /// <param name="triggerType">The type of timer trigger</param>
+  /// <returns>True if spawn should execute now, false otherwise</returns>
+  private bool ShouldExecuteAtCurrentTime(Spawn spawn, string triggerType)
+  {
+    try
+    {
+      Dictionary<string, object> config = spawn.Trigger?.Config;
+      if (config == null)
+        return true; // No specific time filtering
+
+      DateTime now = DateTime.Now;
+
+      switch (triggerType)
+      {
+        case "atDateTime":
+          // One-time timers should always execute when they fire
+          return true;
+
+        case "dailyAt":
+          // Check if current time matches the configured time
+          if (config.ContainsKey("time") && config["time"] is string timeStr &&
+              TimeSpan.TryParse(timeStr, out TimeSpan targetTime))
+          {
+            TimeSpan currentTime = now.TimeOfDay;
+            return Math.Abs((currentTime - targetTime).TotalMinutes) < 1; // Within 1 minute tolerance
+          }
+          return true;
+
+        case "weeklyAt":
+          // Check if current day and time match
+          if (config.ContainsKey("time") && config["time"] is string weeklyTimeStr &&
+              TimeSpan.TryParse(weeklyTimeStr, out TimeSpan weeklyTargetTime) &&
+              config.ContainsKey("daysOfWeek") && config["daysOfWeek"] is List<object> weeklyDaysList)
+          {
+            List<DayOfWeek> daysOfWeek = new List<DayOfWeek>();
+            foreach (object day in weeklyDaysList)
+            {
+              if (day is string dayStr && Enum.TryParse<DayOfWeek>(dayStr, true, out DayOfWeek dayOfWeek))
+              {
+                daysOfWeek.Add(dayOfWeek);
+              }
+            }
+
+            TimeSpan currentTime = now.TimeOfDay;
+            return daysOfWeek.Contains(now.DayOfWeek) &&
+                   Math.Abs((currentTime - weeklyTargetTime).TotalMinutes) < 1;
+          }
+          return true;
+
+        case "monthlyOn":
+          // Check if current day and time match
+          if (config.ContainsKey("time") && config["time"] is string monthlyTimeStr &&
+              TimeSpan.TryParse(monthlyTimeStr, out TimeSpan monthlyTargetTime) &&
+              config.ContainsKey("daysOfMonth") && config["daysOfMonth"] is List<object> monthlyDaysList)
+          {
+            List<int> daysOfMonth = new List<int>();
+            foreach (object day in monthlyDaysList)
+            {
+              if (day is int dayInt && dayInt >= 1 && dayInt <= 31)
+              {
+                daysOfMonth.Add(dayInt);
+              }
+            }
+
+            TimeSpan currentTime = now.TimeOfDay;
+            return daysOfMonth.Contains(now.Day) &&
+                   Math.Abs((currentTime - monthlyTargetTime).TotalMinutes) < 1;
+          }
+          return true;
+
+        case "everyNMinutes":
+          // Interval timers should always execute when they fire
+          return true;
+
+        case "minuteOfHour":
+          // Check if current minute matches configured minutes
+          if (config.ContainsKey("minutes") && config["minutes"] is List<object> minutesList)
+          {
+            List<int> minutes = new List<int>();
+            foreach (object minute in minutesList)
+            {
+              if (minute is int minuteInt && minuteInt >= 0 && minuteInt <= 59)
+              {
+                minutes.Add(minuteInt);
+              }
+            }
+            return minutes.Contains(now.Minute);
+          }
+          return true;
+
+        default:
+          return true; // Unknown trigger type, allow execution
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"ShouldExecuteAtCurrentTime: Error checking time for spawn '{spawn.Name}': {ex.Message}");
+      return true; // On error, allow execution
+    }
+  }
+
+  /// <summary>
+  /// Clean up all active timers
+  /// </summary>
+  private void CleanupAllTimers()
+  {
+    try
+    {
+      lock (this.timerLock)
+      {
+        foreach (IDisposable timer in this.activeTimers.Values)
+        {
+          try
+          {
+            // Handle different timer types
+            if (timer is System.Timers.Timer systemTimer)
+            {
+              systemTimer.Stop();
+              systemTimer.Dispose();
+            }
+            else if (timer is OneTimeTimerWrapper oneTimeWrapper)
+            {
+              oneTimeWrapper.Dispose();
+            }
+            else
+            {
+              // Fallback for any other timer types
+              timer?.Dispose();
+            }
+          }
+          catch (Exception ex)
+          {
+            CPH.LogWarn($"CleanupAllTimers: Error disposing timer: {ex.Message}");
+          }
+        }
+
+        this.activeTimers.Clear();
+        this.timerStates.Clear();
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"CleanupAllTimers: Error during cleanup: {ex.Message}");
+    }
+  }
+
+  /// <summary>
+  /// Remove a specific timer for a spawn (when spawn is deleted or disabled)
+  /// </summary>
+  /// <param name="spawnId">The ID of the spawn whose timer should be removed</param>
+  /// <returns>True if timer was found and removed, false otherwise</returns>
+  private bool RemoveTimerForSpawn(string spawnId)
+  {
+    try
+    {
+      if (string.IsNullOrWhiteSpace(spawnId))
+      {
+        CPH.LogWarn("RemoveTimerForSpawn: Spawn ID is null or empty");
+        return false;
+      }
+
+      lock (this.timerLock)
+      {
+        if (!this.activeTimers.ContainsKey(spawnId))
+        {
+          CPH.LogInfo($"RemoveTimerForSpawn: No active timer found for spawn ID '{spawnId}'");
+          return false;
+        }
+
+        try
+        {
+          IDisposable timer = this.activeTimers[spawnId];
+
+          // Handle different timer types
+          if (timer is System.Timers.Timer systemTimer)
+          {
+            systemTimer.Stop();
+            systemTimer.Dispose();
+            CPH.LogInfo($"RemoveTimerForSpawn: Stopped and disposed System.Timers.Timer for spawn '{spawnId}'");
+          }
+          else if (timer is OneTimeTimerWrapper oneTimeWrapper)
+          {
+            oneTimeWrapper.Dispose();
+            CPH.LogInfo($"RemoveTimerForSpawn: Disposed OneTimeTimerWrapper for spawn '{spawnId}'");
+          }
+          else
+          {
+            timer?.Dispose();
+            CPH.LogInfo($"RemoveTimerForSpawn: Disposed timer for spawn '{spawnId}'");
+          }
+
+          this.activeTimers.Remove(spawnId);
+          this.timerStates.Remove(spawnId);
+          CPH.LogInfo($"RemoveTimerForSpawn: Successfully removed timer for spawn '{spawnId}'");
+          return true;
+        }
+        catch (Exception timerEx)
+        {
+          CPH.LogError($"RemoveTimerForSpawn: Error disposing timer for spawn '{spawnId}': {timerEx.Message}");
+          // Still remove from dictionary even if disposal failed
+          this.activeTimers.Remove(spawnId);
+          return false;
+        }
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"RemoveTimerForSpawn: Error removing timer for spawn '{spawnId}': {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Get comprehensive timer status information for monitoring
+  /// </summary>
+  /// <returns>Dictionary containing timer status information</returns>
+  private Dictionary<string, object> GetTimerStatus()
+  {
+    try
+    {
+      lock (this.timerLock)
+      {
+        Dictionary<string, object> status = new Dictionary<string, object>
+        {
+          ["activeTimerCount"] = this.activeTimers.Count,
+          ["timersInitialized"] = this.timersInitialized,
+          ["timersPaused"] = this.timersPaused,
+          ["isShuttingDown"] = this.isShuttingDown,
+          ["activeTimerIds"] = this.activeTimers.Keys.ToList(),
+          ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+        };
+
+        // Add timer type breakdown
+        Dictionary<string, int> timerTypes = new Dictionary<string, int>();
+        int pausedCount = 0;
+        int activeCount = 0;
+
+        foreach (KeyValuePair<string, IDisposable> kvp in this.activeTimers)
+        {
+          string timerType;
+          if (kvp.Value is System.Timers.Timer)
+          {
+            timerType = "System.Timers.Timer";
+          }
+          else if (kvp.Value is OneTimeTimerWrapper)
+          {
+            timerType = "OneTimeTimerWrapper";
+          }
+          else
+          {
+            timerType = "Unknown";
+          }
+
+          if (timerTypes.ContainsKey(timerType))
+          {
+            timerTypes[timerType]++;
+          }
+          else
+          {
+            timerTypes[timerType] = 1;
+          }
+
+          // Count paused vs active timers
+          if (this.timerStates.ContainsKey(kvp.Key) && this.timerStates[kvp.Key])
+          {
+            pausedCount++;
+          }
+          else
+          {
+            activeCount++;
+          }
+        }
+
+        status["timerTypeBreakdown"] = timerTypes;
+        status["pausedTimerCount"] = pausedCount;
+        status["activeTimerCount"] = activeCount;
+        status["timerStates"] = new Dictionary<string, bool>(this.timerStates);
+
+        // Add performance statistics if available
+        if (this.timerStats.Count > 0)
+        {
+          status["performanceStats"] = new Dictionary<string, object>(this.timerStats);
+        }
+
+        return status;
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"GetTimerStatus: Error getting timer status: {ex.Message}");
+      return new Dictionary<string, object>
+      {
+        ["error"] = ex.Message,
+        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+      };
+    }
+  }
+
+  /// <summary>
+  /// Pause all active timers
+  /// </summary>
+  /// <returns>True if operation succeeded, false otherwise</returns>
+  private bool PauseAllTimers()
+  {
+    try
+    {
+      lock (this.timerLock)
+      {
+        if (this.timersPaused)
+        {
+          CPH.LogInfo("PauseAllTimers: Timers are already paused");
+          return true;
+        }
+
+        int pausedCount = 0;
+        foreach (KeyValuePair<string, IDisposable> kvp in this.activeTimers.ToList())
+        {
+          try
+          {
+            if (kvp.Value is System.Timers.Timer systemTimer)
+            {
+              systemTimer.Stop();
+              this.timerStates[kvp.Key] = true; // true = paused
+              pausedCount++;
+            }
+            else if (kvp.Value is OneTimeTimerWrapper oneTimeWrapper)
+            {
+              // One-time timers can't be paused, just mark as paused in state
+              this.timerStates[kvp.Key] = true;
+              pausedCount++;
+            }
+          }
+          catch (Exception ex)
+          {
+            CPH.LogError($"PauseAllTimers: Error pausing timer for spawn '{kvp.Key}': {ex.Message}");
+          }
+        }
+
+        this.timersPaused = true;
+        CPH.LogInfo($"PauseAllTimers: Successfully paused {pausedCount} timers");
+
+        // Update statistics
+        UpdateTimerStats("paused_all", null, pausedCount);
+
+        return true;
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"PauseAllTimers: Error pausing timers: {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Resume all paused timers
+  /// </summary>
+  /// <returns>True if operation succeeded, false otherwise</returns>
+  private bool ResumeAllTimers()
+  {
+    try
+    {
+      lock (this.timerLock)
+      {
+        if (!this.timersPaused)
+        {
+          CPH.LogInfo("ResumeAllTimers: Timers are not paused");
+          return true;
+        }
+
+        int resumedCount = 0;
+        foreach (KeyValuePair<string, IDisposable> kvp in this.activeTimers.ToList())
+        {
+          try
+          {
+            if (kvp.Value is System.Timers.Timer systemTimer)
+            {
+              systemTimer.Start();
+              this.timerStates[kvp.Key] = false; // false = active
+              resumedCount++;
+            }
+            else if (kvp.Value is OneTimeTimerWrapper oneTimeWrapper)
+            {
+              // One-time timers can't be resumed, just mark as active in state
+              this.timerStates[kvp.Key] = false;
+              resumedCount++;
+            }
+          }
+          catch (Exception ex)
+          {
+            CPH.LogError($"ResumeAllTimers: Error resuming timer for spawn '{kvp.Key}': {ex.Message}");
+          }
+        }
+
+        this.timersPaused = false;
+        CPH.LogInfo($"ResumeAllTimers: Successfully resumed {resumedCount} timers");
+
+        // Update statistics
+        UpdateTimerStats("resumed_all", null, resumedCount);
+
+        return true;
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"ResumeAllTimers: Error resuming timers: {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Pause a specific timer by spawn ID
+  /// </summary>
+  /// <param name="spawnId">The spawn ID whose timer should be paused</param>
+  /// <returns>True if timer was paused successfully, false otherwise</returns>
+  private bool PauseTimerForSpawn(string spawnId)
+  {
+    try
+    {
+      if (string.IsNullOrWhiteSpace(spawnId))
+      {
+        CPH.LogWarn("PauseTimerForSpawn: Spawn ID is null or empty");
+        return false;
+      }
+
+      lock (this.timerLock)
+      {
+        if (!this.activeTimers.ContainsKey(spawnId))
+        {
+          CPH.LogWarn($"PauseTimerForSpawn: No active timer found for spawn ID '{spawnId}'");
+          return false;
+        }
+
+        try
+        {
+          IDisposable timer = this.activeTimers[spawnId];
+          if (timer is System.Timers.Timer systemTimer)
+          {
+            systemTimer.Stop();
+            this.timerStates[spawnId] = true; // true = paused
+            CPH.LogInfo($"PauseTimerForSpawn: Paused timer for spawn '{spawnId}'");
+          }
+          else if (timer is OneTimeTimerWrapper oneTimeWrapper)
+          {
+            // One-time timers can't be paused, just mark as paused in state
+            this.timerStates[spawnId] = true;
+            CPH.LogInfo($"PauseTimerForSpawn: Marked one-time timer as paused for spawn '{spawnId}'");
+          }
+          else
+          {
+            this.timerStates[spawnId] = true;
+            CPH.LogInfo($"PauseTimerForSpawn: Marked timer as paused for spawn '{spawnId}'");
+          }
+
+          return true;
+        }
+        catch (Exception timerEx)
+        {
+          CPH.LogError($"PauseTimerForSpawn: Error pausing timer for spawn '{spawnId}': {timerEx.Message}");
+          return false;
+        }
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"PauseTimerForSpawn: Error pausing timer for spawn '{spawnId}': {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Resume a specific timer by spawn ID
+  /// </summary>
+  /// <param name="spawnId">The spawn ID whose timer should be resumed</param>
+  /// <returns>True if timer was resumed successfully, false otherwise</returns>
+  private bool ResumeTimerForSpawn(string spawnId)
+  {
+    try
+    {
+      if (string.IsNullOrWhiteSpace(spawnId))
+      {
+        CPH.LogWarn("ResumeTimerForSpawn: Spawn ID is null or empty");
+        return false;
+      }
+
+      lock (this.timerLock)
+      {
+        if (!this.activeTimers.ContainsKey(spawnId))
+        {
+          CPH.LogWarn($"ResumeTimerForSpawn: No active timer found for spawn ID '{spawnId}'");
+          return false;
+        }
+
+        try
+        {
+          IDisposable timer = this.activeTimers[spawnId];
+          if (timer is System.Timers.Timer systemTimer)
+          {
+            systemTimer.Start();
+            this.timerStates[spawnId] = false; // false = active
+            CPH.LogInfo($"ResumeTimerForSpawn: Resumed timer for spawn '{spawnId}'");
+          }
+          else if (timer is OneTimeTimerWrapper oneTimeWrapper)
+          {
+            // One-time timers can't be resumed, just mark as active in state
+            this.timerStates[spawnId] = false;
+            CPH.LogInfo($"ResumeTimerForSpawn: Marked one-time timer as active for spawn '{spawnId}'");
+          }
+          else
+          {
+            this.timerStates[spawnId] = false;
+            CPH.LogInfo($"ResumeTimerForSpawn: Marked timer as active for spawn '{spawnId}'");
+          }
+
+          return true;
+        }
+        catch (Exception timerEx)
+        {
+          CPH.LogError($"ResumeTimerForSpawn: Error resuming timer for spawn '{spawnId}': {timerEx.Message}");
+          return false;
+        }
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"ResumeTimerForSpawn: Error resuming timer for spawn '{spawnId}': {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Attempt to recover failed timer operations
+  /// </summary>
+  /// <param name="spawnId">The spawn ID to attempt recovery for</param>
+  /// <returns>True if recovery was successful, false otherwise</returns>
+  private bool AttemptTimerRecovery(string spawnId)
+  {
+    try
+    {
+      if (string.IsNullOrWhiteSpace(spawnId))
+      {
+        CPH.LogWarn("AttemptTimerRecovery: Spawn ID is null or empty");
+        return false;
+      }
+
+      if (this.isShuttingDown)
+      {
+        CPH.LogInfo($"AttemptTimerRecovery: System is shutting down, skipping recovery for spawn '{spawnId}'");
+        return false;
+      }
+
+      CPH.LogInfo($"AttemptTimerRecovery: Attempting recovery for spawn '{spawnId}'");
+
+      // Find the spawn in the configuration
+      Spawn targetSpawn = null;
+      foreach (SpawnProfile profile in this.cachedConfig?.Profiles ?? new List<SpawnProfile>())
+      {
+        if (profile.Spawns != null)
+        {
+          targetSpawn = profile.Spawns.FirstOrDefault(s => s.Id == spawnId);
+          if (targetSpawn != null) break;
+        }
+      }
+
+      if (targetSpawn == null)
+      {
+        CPH.LogWarn($"AttemptTimerRecovery: Spawn '{spawnId}' not found in configuration, removing from active timers");
+        lock (this.timerLock)
+        {
+          this.activeTimers.Remove(spawnId);
+          this.timerStates.Remove(spawnId);
+        }
+        return false;
+      }
+
+      // Attempt to recreate the timer
+      bool recoverySuccessful = CreateTimerForSpawn(targetSpawn);
+
+      if (recoverySuccessful)
+      {
+        CPH.LogInfo($"AttemptTimerRecovery: Successfully recovered timer for spawn '{spawnId}'");
+      }
+      else
+      {
+        CPH.LogWarn($"AttemptTimerRecovery: Failed to recover timer for spawn '{spawnId}'");
+      }
+
+      return recoverySuccessful;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"AttemptTimerRecovery: Error during recovery for spawn '{spawnId}': {ex.Message}");
+      return false;
+    }
+  }
+
+  /// <summary>
+  /// Perform health check on all active timers
+  /// </summary>
+  /// <returns>Dictionary containing health check results</returns>
+  private Dictionary<string, object> PerformTimerHealthCheck()
+  {
+    try
+    {
+      Dictionary<string, object> healthResults = new Dictionary<string, object>
+      {
+        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+        ["totalTimers"] = this.activeTimers.Count,
+        ["healthyTimers"] = 0,
+        ["unhealthyTimers"] = 0,
+        ["recoveryAttempts"] = 0,
+      };
+
+      List<string> unhealthyTimers = new List<string>();
+      List<string> healthyTimers = new List<string>();
+
+      lock (this.timerLock)
+      {
+        foreach (KeyValuePair<string, IDisposable> kvp in this.activeTimers.ToList())
+        {
+          try
+          {
+            // Basic health check - verify timer is still valid
+            if (kvp.Value is System.Timers.Timer systemTimer)
+            {
+              // Check if timer is still enabled (basic health check)
+              if (systemTimer.Enabled)
+              {
+                healthyTimers.Add(kvp.Key);
+              }
+              else
+              {
+                unhealthyTimers.Add(kvp.Key);
+              }
+            }
+            else if (kvp.Value is OneTimeTimerWrapper oneTimeWrapper)
+            {
+              // One-time timers are considered healthy if they exist
+              healthyTimers.Add(kvp.Key);
+            }
+            else
+            {
+              // Unknown timer type - consider unhealthy
+              unhealthyTimers.Add(kvp.Key);
+            }
+          }
+          catch (Exception ex)
+          {
+            CPH.LogError($"PerformTimerHealthCheck: Error checking timer '{kvp.Key}': {ex.Message}");
+            unhealthyTimers.Add(kvp.Key);
+          }
+        }
+      }
+
+      healthResults["healthyTimers"] = healthyTimers.Count;
+      healthResults["unhealthyTimers"] = unhealthyTimers.Count;
+      healthResults["healthyTimerIds"] = healthyTimers;
+      healthResults["unhealthyTimerIds"] = unhealthyTimers;
+
+      // Attempt recovery for unhealthy timers
+      foreach (string unhealthyTimerId in unhealthyTimers)
+      {
+        try
+        {
+          bool recoverySuccessful = AttemptTimerRecovery(unhealthyTimerId);
+          if (recoverySuccessful)
+          {
+            healthResults["recoveryAttempts"] = (int)healthResults["recoveryAttempts"] + 1;
+          }
+        }
+        catch (Exception ex)
+        {
+          CPH.LogError($"PerformTimerHealthCheck: Error during recovery for timer '{unhealthyTimerId}': {ex.Message}");
+        }
+      }
+
+      CPH.LogInfo($"PerformTimerHealthCheck: Health check completed - {healthyTimers.Count} healthy, {unhealthyTimers.Count} unhealthy timers");
+      return healthResults;
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"PerformTimerHealthCheck: Error during health check: {ex.Message}");
+      return new Dictionary<string, object>
+      {
+        ["error"] = ex.Message,
+        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+      };
+    }
+  }
+
+  /// <summary>
+  /// Update timer performance statistics
+  /// </summary>
+  /// <param name="operation">The operation performed (created, paused, resumed, disposed, etc.)</param>
+  /// <param name="spawnId">The spawn ID (optional)</param>
+  /// <param name="executionTimeMs">Execution time in milliseconds (optional)</param>
+  private void UpdateTimerStats(string operation, string spawnId = null, long executionTimeMs = 0)
+  {
+    try
+    {
+      lock (this.timerLock)
+      {
+        string timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+
+        // Update operation counts
+        string operationKey = $"operation_{operation}";
+        if (this.timerStats.ContainsKey(operationKey))
+        {
+          this.timerStats[operationKey] = (int)this.timerStats[operationKey] + 1;
+        }
+        else
+        {
+          this.timerStats[operationKey] = 1;
+        }
+
+        // Update last operation timestamp
+        this.timerStats[$"last_{operation}"] = timestamp;
+
+        // Update execution time statistics if provided
+        if (executionTimeMs > 0)
+        {
+          string timeKey = $"avgTime_{operation}";
+          string countKey = $"timeCount_{operation}";
+
+          if (this.timerStats.ContainsKey(timeKey) && this.timerStats.ContainsKey(countKey))
+          {
+            int currentCount = (int)this.timerStats[countKey];
+            double currentAvg = (double)this.timerStats[timeKey];
+            double newAvg = ((currentAvg * currentCount) + executionTimeMs) / (currentCount + 1);
+
+            this.timerStats[timeKey] = newAvg;
+            this.timerStats[countKey] = currentCount + 1;
+          }
+          else
+          {
+            this.timerStats[timeKey] = (double)executionTimeMs;
+            this.timerStats[countKey] = 1;
+          }
+        }
+
+        // Update spawn-specific statistics if spawnId provided
+        if (!string.IsNullOrWhiteSpace(spawnId))
+        {
+          string spawnKey = $"spawn_{spawnId}_{operation}";
+          if (this.timerStats.ContainsKey(spawnKey))
+          {
+            this.timerStats[spawnKey] = (int)this.timerStats[spawnKey] + 1;
+          }
+          else
+          {
+            this.timerStats[spawnKey] = 1;
+          }
+        }
+
+        // Update overall statistics
+        this.timerStats["lastUpdate"] = timestamp;
+        this.timerStats["totalOperations"] = this.timerStats.Keys.Count(k => k.StartsWith("operation_"));
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"UpdateTimerStats: Error updating timer statistics: {ex.Message}");
+    }
+  }
+
+  /// <summary>
+  /// Check if configuration has changed and recreate timers if needed
+  /// </summary>
+  private void RecreateTimersOnConfigChange()
+  {
+    try
+    {
+      if (!HasConfigurationChanged())
+        return;
+
+      CPH.LogInfo("RecreateTimersOnConfigChange: Configuration changed, recreating timers");
+
+      // Clean up existing timers
+      CleanupAllTimers();
+
+      // Reload configuration
+      if (LoadMediaSpawnerConfigWithRetry())
+      {
+        // Recreate timers with new configuration
+        InitializeTimers();
+      }
+    }
+    catch (Exception ex)
+    {
+      CPH.LogError($"RecreateTimersOnConfigChange: Error during timer recreation: {ex.Message}");
+    }
+  }
+
+  /// <summary>
+  /// Check if the configuration has changed since last load
+  /// </summary>
+  /// <returns>True if configuration has changed, false otherwise</returns>
+  private bool HasConfigurationChanged()
+  {
+    try
+    {
+      string currentSha = CPH.GetGlobalVar<string>(this.mediaSpawnerShaVarName);
+      return this.cachedConfigSha != currentSha;
+    }
+    catch
+    {
+      return true; // Assume changed if we can't check
+    }
+  }
+
+  #endregion
+
   #region Helper Methods for Execute()
 
   /// <summary>
@@ -628,10 +2768,10 @@ public class CPHInline
   {
     List<Spawn> matchingSpawns = new List<Spawn>();
 
-    if (_cachedConfig?.Profiles == null)
+    if (this.cachedConfig?.Profiles == null)
       return matchingSpawns;
 
-    foreach (SpawnProfile profile in _cachedConfig.Profiles)
+    foreach (SpawnProfile profile in this.cachedConfig.Profiles)
     {
       if (profile.Spawns != null)
       {
@@ -655,10 +2795,10 @@ public class CPHInline
   /// <returns>The spawn if found, null otherwise</returns>
   private Spawn FindSpawnById(string spawnId)
   {
-    if (_cachedConfig?.Profiles == null || string.IsNullOrWhiteSpace(spawnId))
+    if (this.cachedConfig?.Profiles == null || string.IsNullOrWhiteSpace(spawnId))
       return null;
 
-    foreach (SpawnProfile profile in _cachedConfig.Profiles)
+    foreach (SpawnProfile profile in this.cachedConfig.Profiles)
     {
       if (profile.Spawns != null)
       {
@@ -690,7 +2830,7 @@ public class CPHInline
       if (spawn.Trigger?.Type != "streamerbot.command")
         continue;
 
-      var config = spawn.Trigger.Config;
+      Dictionary<string, object> config = spawn.Trigger.Config;
       if (config == null)
         continue;
 
@@ -850,7 +2990,7 @@ public class CPHInline
       if (spawn.Trigger?.Type != $"twitch.{eventType}")
         continue;
 
-      var config = spawn.Trigger.Config;
+      Dictionary<string, object> config = spawn.Trigger.Config;
       if (config == null)
         continue;
 
@@ -918,141 +3058,6 @@ public class CPHInline
   }
 
   /// <summary>
-  /// Determine the specific time trigger type from the source
-  /// </summary>
-  /// <param name="source">The time trigger source</param>
-  /// <returns>The specific time trigger type</returns>
-  private string DetermineTimeTriggerType(string source)
-  {
-    if (string.IsNullOrWhiteSpace(source))
-      return null;
-
-    // Map Streamer.bot time event sources to our trigger types
-    switch (source.ToLowerInvariant())
-    {
-      case "datetime":
-      case "atdatetime":
-        return "atDateTime";
-      case "daily":
-      case "dailyat":
-        return "dailyAt";
-      case "weekly":
-      case "weeklyat":
-        return "weeklyAt";
-      case "monthly":
-      case "monthlyon":
-        return "monthlyOn";
-      case "interval":
-      case "everynminutes":
-        return "everyNMinutes";
-      case "minuteofhour":
-        return "minuteOfHour";
-      default:
-        return null;
-    }
-  }
-
-  /// <summary>
-  /// Get time trigger data for the current context
-  /// </summary>
-  /// <param name="triggerType">The time trigger type</param>
-  /// <returns>Dictionary containing time data</returns>
-  private Dictionary<string, object> GetTimeTriggerData(string triggerType)
-  {
-    DateTime now = DateTime.Now;
-
-    Dictionary<string, object> timeData = new Dictionary<string, object>
-    {
-      ["triggerType"] = triggerType,
-      ["currentTime"] = now,
-      ["currentTimeIso"] = now.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-      ["currentHour"] = now.Hour,
-      ["currentMinute"] = now.Minute,
-      ["currentDayOfWeek"] = (int)now.DayOfWeek,
-      ["currentDayOfMonth"] = now.Day
-    };
-
-    return timeData;
-  }
-
-  /// <summary>
-  /// Filter spawns based on time trigger configuration
-  /// </summary>
-  /// <param name="spawns">List of spawns to filter</param>
-  /// <param name="triggerType">The time trigger type</param>
-  /// <param name="timeData">The current time data</param>
-  /// <returns>List of spawns that match the time trigger configuration</returns>
-  private List<Spawn> FilterSpawnsByTimeConfig(List<Spawn> spawns, string triggerType, Dictionary<string, object> timeData)
-  {
-    List<Spawn> validSpawns = new List<Spawn>();
-
-    foreach (Spawn spawn in spawns)
-    {
-      if (spawn.Trigger?.Type != $"time.{triggerType}")
-        continue;
-
-      var config = spawn.Trigger.Config;
-      if (config == null)
-        continue;
-
-      bool matches = true;
-
-      // Apply time-specific filtering
-      switch (triggerType)
-      {
-        case "atDateTime":
-          if (config.ContainsKey("isoDateTime") && config["isoDateTime"] is string isoDateTime)
-          {
-            if (DateTime.TryParse(isoDateTime, out DateTime targetTime))
-            {
-              DateTime now = (DateTime)timeData["currentTime"];
-              // For exact datetime triggers, we need to check if we're within a reasonable window
-              // This is a simplified check - in practice, you'd want more sophisticated timing logic
-              if (Math.Abs((now - targetTime).TotalMinutes) > 1)
-                matches = false;
-            }
-          }
-          break;
-
-        case "dailyAt":
-          if (config.ContainsKey("time") && config["time"] is string timeStr)
-          {
-            if (TimeSpan.TryParse(timeStr, out TimeSpan targetTime))
-            {
-              DateTime now = (DateTime)timeData["currentTime"];
-              TimeSpan currentTime = now.TimeOfDay;
-              // Check if we're within 1 minute of the target time
-              if (Math.Abs((currentTime - targetTime).TotalMinutes) > 1)
-                matches = false;
-            }
-          }
-          break;
-
-        case "minuteOfHour":
-          if (config.ContainsKey("minute") && config["minute"] is int targetMinute)
-          {
-            int currentMinute = (int)timeData["currentMinute"];
-            if (currentMinute != targetMinute)
-              matches = false;
-          }
-          break;
-
-        // Additional time trigger types would be implemented here
-        // For now, we'll allow other time triggers to pass through
-        default:
-          break;
-      }
-
-      if (matches)
-      {
-        validSpawns.Add(spawn);
-      }
-    }
-
-    return validSpawns;
-  }
-
-  /// <summary>
   /// Execute a list of spawns with the given trigger context and state management
   /// </summary>
   /// <param name="spawns">List of spawns to execute</param>
@@ -1061,7 +3066,7 @@ public class CPHInline
   /// <returns>True if all spawns executed successfully</returns>
   private bool ExecuteSpawns(List<Spawn> spawns, string triggerType, Dictionary<string, object> contextData)
   {
-    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+    Stopwatch stopwatch = Stopwatch.StartNew();
     string executionId = Guid.NewGuid().ToString("N").Substring(0, 8);
 
     try
@@ -1075,10 +3080,10 @@ public class CPHInline
       }
 
       // Validate input parameters
-      var parameters = new Dictionary<string, object>
+      Dictionary<string, object> parameters = new Dictionary<string, object>
       {
         ["spawns"] = spawns,
-        ["triggerType"] = triggerType
+        ["triggerType"] = triggerType,
       };
 
       if (!ValidateInputParameters("ExecuteSpawns", parameters))
@@ -1092,14 +3097,14 @@ public class CPHInline
       int failedSpawns = 0;
 
       // Clean up any completed spawns before starting new ones
-      var cleanupStopwatch = System.Diagnostics.Stopwatch.StartNew();
+      Stopwatch cleanupStopwatch = Stopwatch.StartNew();
       CleanupCompletedSpawns();
       cleanupStopwatch.Stop();
       CPH.LogInfo($"ExecuteSpawns[{executionId}]: Cleanup completed in {cleanupStopwatch.ElapsedMilliseconds}ms");
 
       foreach (Spawn spawn in spawns)
       {
-        var spawnStopwatch = System.Diagnostics.Stopwatch.StartNew();
+        Stopwatch spawnStopwatch = Stopwatch.StartNew();
 
         try
         {
@@ -1117,7 +3122,7 @@ public class CPHInline
           CPH.SetGlobalVar("MediaSpawner_ExecutionId", spawnExecutionId, persisted: false);
 
           // Set context data
-          foreach (var kvp in contextData)
+          foreach (KeyValuePair<string, object> kvp in contextData)
           {
             CPH.SetGlobalVar($"MediaSpawner_Context_{kvp.Key}", kvp.Value?.ToString() ?? "", persisted: false);
           }
@@ -1129,7 +3134,7 @@ public class CPHInline
           CompleteSpawnExecution(spawnExecutionId, spawnResult ? "Success" : "Failed");
 
           spawnStopwatch.Stop();
-          var spawnExecutionTime = spawnStopwatch.ElapsedMilliseconds;
+          long spawnExecutionTime = spawnStopwatch.ElapsedMilliseconds;
 
           if (spawnResult)
           {
@@ -1146,14 +3151,14 @@ public class CPHInline
         catch (Exception ex)
         {
           spawnStopwatch.Stop();
-          var spawnExecutionTime = spawnStopwatch.ElapsedMilliseconds;
+          long spawnExecutionTime = spawnStopwatch.ElapsedMilliseconds;
 
-          var context = new Dictionary<string, object>
+          Dictionary<string, object> context = new Dictionary<string, object>
           {
             ["spawnName"] = spawn?.Name,
             ["spawnId"] = spawn?.Id,
             ["triggerType"] = triggerType,
-            ["executionTime"] = spawnExecutionTime
+            ["executionTime"] = spawnExecutionTime,
           };
 
           string errorMessage = CreateStructuredErrorMessage("ExecuteSpawns", ex, context);
@@ -1172,10 +3177,10 @@ public class CPHInline
       }
 
       stopwatch.Stop();
-      var totalExecutionTime = stopwatch.ElapsedMilliseconds;
+      long totalExecutionTime = stopwatch.ElapsedMilliseconds;
 
       // Log comprehensive execution summary
-      var executionSummary = new Dictionary<string, object>
+      Dictionary<string, object> executionSummary = new Dictionary<string, object>
       {
         ["executionId"] = executionId,
         ["totalSpawns"] = spawns.Count,
@@ -1185,13 +3190,13 @@ public class CPHInline
         ["totalExecutionTime"] = totalExecutionTime,
         ["averageSpawnTime"] = spawns.Count > 0 ? totalExecutionTime / spawns.Count : 0,
         ["triggerType"] = triggerType,
-        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff")
+        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff"),
       };
 
       CPH.LogInfo($"ExecuteSpawns[{executionId}]: Execution completed in {totalExecutionTime}ms. Summary: {JsonConvert.SerializeObject(executionSummary)}");
 
       // Log state summary
-      var stateSummary = GetStateSummary();
+      Dictionary<string, object> stateSummary = GetStateSummary();
       CPH.LogInfo($"ExecuteSpawns[{executionId}]: State summary: {JsonConvert.SerializeObject(stateSummary)}");
 
       return allSuccessful;
@@ -1199,13 +3204,13 @@ public class CPHInline
     catch (Exception ex)
     {
       stopwatch.Stop();
-      var totalExecutionTime = stopwatch.ElapsedMilliseconds;
+      long totalExecutionTime = stopwatch.ElapsedMilliseconds;
 
-      var context = new Dictionary<string, object>
+      Dictionary<string, object> context = new Dictionary<string, object>
       {
         ["spawnCount"] = spawns?.Count ?? 0,
         ["triggerType"] = triggerType,
-        ["executionTime"] = totalExecutionTime
+        ["executionTime"] = totalExecutionTime,
       };
 
       string errorMessage = CreateStructuredErrorMessage("ExecuteSpawns", ex, context);
@@ -1228,7 +3233,7 @@ public class CPHInline
   /// <returns>True if spawn executed successfully</returns>
   private bool ExecuteSpawn(Spawn spawn, string triggerType, Dictionary<string, object> contextData)
   {
-    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+    Stopwatch stopwatch = Stopwatch.StartNew();
     string executionId = Guid.NewGuid().ToString("N").Substring(0, 8);
 
     try
@@ -1236,10 +3241,10 @@ public class CPHInline
       CPH.LogInfo($"ExecuteSpawn[{executionId}]: Starting execution of spawn '{spawn.Name}' (ID: {spawn.Id})");
 
       // Validate input parameters
-      var parameters = new Dictionary<string, object>
+      Dictionary<string, object> parameters = new Dictionary<string, object>
       {
         ["spawn"] = spawn,
-        ["triggerType"] = triggerType
+        ["triggerType"] = triggerType,
       };
 
       if (!ValidateInputParameters("ExecuteSpawn", parameters))
@@ -1255,7 +3260,7 @@ public class CPHInline
       }
 
       // Get enabled assets from the spawn
-      var assetSelectionStopwatch = System.Diagnostics.Stopwatch.StartNew();
+      Stopwatch assetSelectionStopwatch = Stopwatch.StartNew();
       List<SpawnAsset> enabledAssets = GetEnabledSpawnAssets(spawn);
       assetSelectionStopwatch.Stop();
 
@@ -1268,7 +3273,7 @@ public class CPHInline
       CPH.LogInfo($"ExecuteSpawn[{executionId}]: Found {enabledAssets.Count} enabled assets in {assetSelectionStopwatch.ElapsedMilliseconds}ms");
 
       // Process randomization buckets to select assets
-      var randomizationStopwatch = System.Diagnostics.Stopwatch.StartNew();
+      Stopwatch randomizationStopwatch = Stopwatch.StartNew();
       List<SpawnAsset> selectedAssets = ProcessRandomizationBuckets(spawn, enabledAssets);
       randomizationStopwatch.Stop();
 
@@ -1284,20 +3289,20 @@ public class CPHInline
       bool allAssetsSuccessful = true;
       int successfulAssets = 0;
       int failedAssets = 0;
-      var assetExecutionStopwatch = System.Diagnostics.Stopwatch.StartNew();
-      var successfulAssetList = new List<SpawnAsset>();
-      var failedAssetList = new List<SpawnAsset>();
+      Stopwatch assetExecutionStopwatch = Stopwatch.StartNew();
+      List<SpawnAsset> successfulAssetList = new List<SpawnAsset>();
+      List<SpawnAsset> failedAssetList = new List<SpawnAsset>();
 
       foreach (SpawnAsset spawnAsset in selectedAssets)
       {
-        var individualAssetStopwatch = System.Diagnostics.Stopwatch.StartNew();
+        Stopwatch individualAssetStopwatch = Stopwatch.StartNew();
 
         try
         {
           bool assetResult = ExecuteSpawnAsset(spawn, spawnAsset, triggerType, contextData);
 
           individualAssetStopwatch.Stop();
-          var assetExecutionTime = individualAssetStopwatch.ElapsedMilliseconds;
+          long assetExecutionTime = individualAssetStopwatch.ElapsedMilliseconds;
 
           if (assetResult)
           {
@@ -1316,15 +3321,15 @@ public class CPHInline
         catch (Exception ex)
         {
           individualAssetStopwatch.Stop();
-          var assetExecutionTime = individualAssetStopwatch.ElapsedMilliseconds;
+          long assetExecutionTime = individualAssetStopwatch.ElapsedMilliseconds;
 
-          var context = new Dictionary<string, object>
+          Dictionary<string, object> context = new Dictionary<string, object>
           {
             ["spawnName"] = spawn?.Name,
             ["spawnId"] = spawn?.Id,
             ["assetId"] = spawnAsset?.AssetId,
             ["triggerType"] = triggerType,
-            ["executionTime"] = assetExecutionTime
+            ["executionTime"] = assetExecutionTime,
           };
 
           string errorMessage = CreateStructuredErrorMessage("ExecuteSpawn", ex, context);
@@ -1341,7 +3346,7 @@ public class CPHInline
       {
         CPH.LogInfo($"ExecuteSpawn[{executionId}]: Attempting recovery for {failedAssetList.Count} failed assets");
 
-        var recoveryStopwatch = System.Diagnostics.Stopwatch.StartNew();
+        Stopwatch recoveryStopwatch = Stopwatch.StartNew();
         bool recoverySuccessful = AttemptSpawnRecovery(spawn, failedAssetList, triggerType, contextData);
         recoveryStopwatch.Stop();
 
@@ -1366,7 +3371,7 @@ public class CPHInline
       }
 
       assetExecutionStopwatch.Stop();
-      var totalAssetExecutionTime = assetExecutionStopwatch.ElapsedMilliseconds;
+      long totalAssetExecutionTime = assetExecutionStopwatch.ElapsedMilliseconds;
 
       // Handle spawn-level timing and cleanup
       if (spawn.Duration > 0)
@@ -1377,10 +3382,10 @@ public class CPHInline
       }
 
       stopwatch.Stop();
-      var totalExecutionTime = stopwatch.ElapsedMilliseconds;
+      long totalExecutionTime = stopwatch.ElapsedMilliseconds;
 
       // Log comprehensive execution summary
-      var executionSummary = new Dictionary<string, object>
+      Dictionary<string, object> executionSummary = new Dictionary<string, object>
       {
         ["executionId"] = executionId,
         ["spawnName"] = spawn.Name,
@@ -1395,7 +3400,7 @@ public class CPHInline
         ["assetExecutionTime"] = totalAssetExecutionTime,
         ["averageAssetTime"] = selectedAssets.Count > 0 ? totalAssetExecutionTime / selectedAssets.Count : 0,
         ["triggerType"] = triggerType,
-        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff")
+        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff"),
       };
 
       CPH.LogInfo($"ExecuteSpawn[{executionId}]: Execution completed in {totalExecutionTime}ms. Summary: {JsonConvert.SerializeObject(executionSummary)}");
@@ -1405,14 +3410,14 @@ public class CPHInline
     catch (Exception ex)
     {
       stopwatch.Stop();
-      var totalExecutionTime = stopwatch.ElapsedMilliseconds;
+      long totalExecutionTime = stopwatch.ElapsedMilliseconds;
 
-      var context = new Dictionary<string, object>
+      Dictionary<string, object> context = new Dictionary<string, object>
       {
         ["spawnName"] = spawn?.Name,
         ["spawnId"] = spawn?.Id,
         ["triggerType"] = triggerType,
-        ["executionTime"] = totalExecutionTime
+        ["executionTime"] = totalExecutionTime,
       };
 
       string errorMessage = CreateStructuredErrorMessage("ExecuteSpawn", ex, context);
@@ -1429,7 +3434,7 @@ public class CPHInline
   /// <returns>List of enabled spawn assets sorted by order</returns>
   private List<SpawnAsset> GetEnabledSpawnAssets(Spawn spawn)
   {
-    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+    Stopwatch stopwatch = Stopwatch.StartNew();
     string executionId = Guid.NewGuid().ToString("N").Substring(0, 8);
 
     try
@@ -1445,7 +3450,7 @@ public class CPHInline
       {
         ["executionId"] = executionId,
         ["spawnId"] = spawn.Id,
-        ["totalAssetsCount"] = spawn.Assets?.Count ?? 0
+        ["totalAssetsCount"] = spawn.Assets?.Count ?? 0,
       });
 
       if (spawn.Assets == null)
@@ -1454,12 +3459,12 @@ public class CPHInline
         return new List<SpawnAsset>();
       }
 
-      var enabledAssets = new List<SpawnAsset>();
+      List<SpawnAsset> enabledAssets = new List<SpawnAsset>();
       int enabledCount = 0;
       int disabledCount = 0;
       int nullAssetCount = 0;
 
-      foreach (var asset in spawn.Assets)
+      foreach (SpawnAsset asset in spawn.Assets)
       {
         if (asset == null)
         {
@@ -1483,9 +3488,9 @@ public class CPHInline
       enabledAssets = enabledAssets.OrderBy(asset => asset.Order).ToList();
 
       stopwatch.Stop();
-      var executionTime = stopwatch.ElapsedMilliseconds;
+      long executionTime = stopwatch.ElapsedMilliseconds;
 
-      var summary = new Dictionary<string, object>
+      Dictionary<string, object> summary = new Dictionary<string, object>
       {
         ["executionId"] = executionId,
         ["spawnName"] = spawn.Name,
@@ -1494,7 +3499,7 @@ public class CPHInline
         ["enabledAssetsCount"] = enabledCount,
         ["disabledAssetsCount"] = disabledCount,
         ["nullAssetsCount"] = nullAssetCount,
-        ["executionTimeMs"] = executionTime
+        ["executionTimeMs"] = executionTime,
       };
 
       LogStructuredInfo("GetEnabledSpawnAssets", "Enabled asset retrieval completed", summary);
@@ -1504,14 +3509,14 @@ public class CPHInline
     catch (Exception ex)
     {
       stopwatch.Stop();
-      var executionTime = stopwatch.ElapsedMilliseconds;
+      long executionTime = stopwatch.ElapsedMilliseconds;
 
-      var context = new Dictionary<string, object>
+      Dictionary<string, object> context = new Dictionary<string, object>
       {
         ["executionId"] = executionId,
         ["spawnName"] = spawn?.Name,
         ["spawnId"] = spawn?.Id,
-        ["executionTimeMs"] = executionTime
+        ["executionTimeMs"] = executionTime,
       };
 
       LogStructuredError("GetEnabledSpawnAssets", $"Unexpected error getting enabled assets: {ex.Message}", context);
@@ -1529,7 +3534,7 @@ public class CPHInline
   /// <returns>List of selected assets for execution</returns>
   private List<SpawnAsset> ProcessRandomizationBuckets(Spawn spawn, List<SpawnAsset> enabledAssets)
   {
-    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+    Stopwatch stopwatch = Stopwatch.StartNew();
     string executionId = Guid.NewGuid().ToString("N").Substring(0, 8);
 
     try
@@ -1552,7 +3557,7 @@ public class CPHInline
         ["executionId"] = executionId,
         ["spawnId"] = spawn.Id,
         ["enabledAssetsCount"] = enabledAssets.Count,
-        ["bucketsCount"] = spawn.RandomizationBuckets?.Count ?? 0
+        ["bucketsCount"] = spawn.RandomizationBuckets?.Count ?? 0,
       });
 
       if (spawn.RandomizationBuckets == null || spawn.RandomizationBuckets.Count == 0)
@@ -1581,7 +3586,7 @@ public class CPHInline
             ["executionId"] = executionId,
             ["bucketName"] = bucket.Name,
             ["bucketSelection"] = bucket.Selection,
-            ["bucketN"] = bucket.N
+            ["bucketN"] = bucket.N,
           });
 
           List<SpawnAsset> bucketAssets = GetBucketAssets(spawn, bucket, enabledAssets);
@@ -1609,18 +3614,18 @@ public class CPHInline
             ["executionId"] = executionId,
             ["bucketName"] = bucket.Name,
             ["selectedCount"] = selectedFromBucket.Count,
-            ["totalSelected"] = selectedAssets.Count
+            ["totalSelected"] = selectedAssets.Count,
           });
         }
         catch (Exception ex)
         {
           failedBuckets++;
-          var context = new Dictionary<string, object>
+          Dictionary<string, object> context = new Dictionary<string, object>
           {
             ["executionId"] = executionId,
             ["bucketName"] = bucket?.Name ?? "unknown",
             ["bucketId"] = bucket?.Id ?? "unknown",
-            ["error"] = ex.Message
+            ["error"] = ex.Message,
           };
 
           LogStructuredError("ProcessRandomizationBuckets", $"Error processing bucket '{bucket?.Name ?? "unknown"}': {ex.Message}", context);
@@ -1639,9 +3644,9 @@ public class CPHInline
       }
 
       stopwatch.Stop();
-      var executionTime = stopwatch.ElapsedMilliseconds;
+      long executionTime = stopwatch.ElapsedMilliseconds;
 
-      var summary = new Dictionary<string, object>
+      Dictionary<string, object> summary = new Dictionary<string, object>
       {
         ["executionId"] = executionId,
         ["spawnName"] = spawn.Name,
@@ -1652,7 +3657,7 @@ public class CPHInline
         ["enabledAssetsCount"] = enabledAssets.Count,
         ["selectedAssetsCount"] = selectedAssets.Count,
         ["remainingAssetsCount"] = remainingAssets,
-        ["executionTimeMs"] = executionTime
+        ["executionTimeMs"] = executionTime,
       };
 
       LogStructuredInfo("ProcessRandomizationBuckets", "Randomization bucket processing completed", summary);
@@ -1662,15 +3667,15 @@ public class CPHInline
     catch (Exception ex)
     {
       stopwatch.Stop();
-      var executionTime = stopwatch.ElapsedMilliseconds;
+      long executionTime = stopwatch.ElapsedMilliseconds;
 
-      var context = new Dictionary<string, object>
+      Dictionary<string, object> context = new Dictionary<string, object>
       {
         ["executionId"] = executionId,
         ["spawnName"] = spawn?.Name,
         ["spawnId"] = spawn?.Id,
         ["enabledAssetsCount"] = enabledAssets?.Count ?? 0,
-        ["executionTimeMs"] = executionTime
+        ["executionTimeMs"] = executionTime,
       };
 
       LogStructuredError("ProcessRandomizationBuckets", $"Unexpected error during randomization processing: {ex.Message}", context);
@@ -1847,7 +3852,7 @@ public class CPHInline
   /// <returns>True if asset executed successfully</returns>
   private bool ExecuteSpawnAsset(Spawn spawn, SpawnAsset spawnAsset, string triggerType, Dictionary<string, object> contextData)
   {
-    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+    Stopwatch stopwatch = Stopwatch.StartNew();
     string executionId = Guid.NewGuid().ToString("N").Substring(0, 8);
 
     try
@@ -1855,10 +3860,10 @@ public class CPHInline
       CPH.LogInfo($"ExecuteSpawnAsset[{executionId}]: Executing asset '{spawnAsset.AssetId}' in spawn '{spawn.Name}'");
 
       // Validate input parameters
-      var parameters = new Dictionary<string, object>
+      Dictionary<string, object> parameters = new Dictionary<string, object>
       {
         ["spawn"] = spawn,
-        ["spawnAsset"] = spawnAsset
+        ["spawnAsset"] = spawnAsset,
       };
 
       if (!ValidateInputParameters("ExecuteSpawnAsset", parameters))
@@ -1867,7 +3872,7 @@ public class CPHInline
       }
 
       // Find the base asset with graceful degradation
-      MediaAsset baseAsset = _cachedConfig?.FindAssetById(spawnAsset.AssetId);
+      MediaAsset baseAsset = this.cachedConfig?.FindAssetById(spawnAsset.AssetId);
       if (baseAsset == null)
       {
         CPH.LogWarn($"ExecuteSpawnAsset[{executionId}]: Base asset '{spawnAsset.AssetId}' not found in configuration - skipping asset");
@@ -1933,7 +3938,7 @@ public class CPHInline
       }
 
       stopwatch.Stop();
-      var executionTime = stopwatch.ElapsedMilliseconds;
+      long executionTime = stopwatch.ElapsedMilliseconds;
 
       CPH.LogInfo($"ExecuteSpawnAsset[{executionId}]: Successfully executed asset '{spawnAsset.AssetId}' in {executionTime}ms");
       return true;
@@ -1941,15 +3946,15 @@ public class CPHInline
     catch (Exception ex)
     {
       stopwatch.Stop();
-      var executionTime = stopwatch.ElapsedMilliseconds;
+      long executionTime = stopwatch.ElapsedMilliseconds;
 
-      var context = new Dictionary<string, object>
+      Dictionary<string, object> context = new Dictionary<string, object>
       {
         ["spawnName"] = spawn?.Name,
         ["spawnId"] = spawn?.Id,
         ["assetId"] = spawnAsset?.AssetId,
         ["triggerType"] = triggerType,
-        ["executionTime"] = executionTime
+        ["executionTime"] = executionTime,
       };
 
       string errorMessage = CreateStructuredErrorMessage("ExecuteSpawnAsset", ex, context);
@@ -1998,7 +4003,7 @@ public class CPHInline
     return new EffectivePropertiesResult
     {
       Effective = effective,
-      SourceMap = sourceMap
+      SourceMap = sourceMap,
     };
   }
 
@@ -2107,10 +4112,10 @@ public class CPHInline
   private bool CreateOBSSource(MediaAsset asset, Dictionary<string, object> properties, string sourceName)
   {
     // Validate input parameters
-    var parameters = new Dictionary<string, object>
+    Dictionary<string, object> parameters = new Dictionary<string, object>
     {
       ["asset"] = asset,
-      ["sourceName"] = sourceName
+      ["sourceName"] = sourceName,
     };
 
     if (!ValidateInputParameters("CreateOBSSource", parameters))
@@ -2164,7 +4169,7 @@ public class CPHInline
           ["sourceName"] = sourceName,
           ["sourceType"] = obsSourceType,
           ["sceneName"] = currentScene,
-          ["sourceSettings"] = sourceSettings
+          ["sourceSettings"] = sourceSettings,
         };
 
         // Send the request to OBS
@@ -2226,11 +4231,11 @@ public class CPHInline
       }
       catch (Exception ex)
       {
-        var context = new Dictionary<string, object>
+        Dictionary<string, object> context = new Dictionary<string, object>
         {
           ["sourceName"] = sourceName,
           ["assetName"] = asset?.Name,
-          ["assetType"] = asset?.Type
+          ["assetType"] = asset?.Type,
         };
 
         string errorMessage = CreateStructuredErrorMessage("CreateOBSSource", ex, context);
@@ -2269,7 +4274,7 @@ public class CPHInline
         Dictionary<string, object> volumeRequest = new Dictionary<string, object>
         {
           ["sourceName"] = sourceName,
-          ["volume"] = volume
+          ["volume"] = volume,
         };
         batchRequests.Add(volumeRequest);
       }
@@ -2281,7 +4286,7 @@ public class CPHInline
         {
           ["sourceName"] = sourceName,
           ["scaleX"] = scale,
-          ["scaleY"] = scale
+          ["scaleY"] = scale,
         };
         batchRequests.Add(scaleRequest);
       }
@@ -2296,7 +4301,7 @@ public class CPHInline
         {
           ["sourceName"] = sourceName,
           ["x"] = x,
-          ["y"] = y
+          ["y"] = y,
         };
         batchRequests.Add(positionRequest);
       }
@@ -2313,7 +4318,7 @@ public class CPHInline
           {
             ["sourceName"] = sourceName,
             ["width"] = width,
-            ["height"] = height
+            ["height"] = height,
           };
           batchRequests.Add(sizeRequest);
         }
@@ -2330,8 +4335,8 @@ public class CPHInline
             ["sourceName"] = sourceName,
             ["sourceSettings"] = new Dictionary<string, object>
             {
-              ["looping"] = loop
-            }
+              ["looping"] = loop,
+            },
           };
           batchRequests.Add(loopRequest);
         }
@@ -2342,7 +4347,7 @@ public class CPHInline
           Dictionary<string, object> mutedRequest = new Dictionary<string, object>
           {
             ["sourceName"] = sourceName,
-            ["muted"] = muted
+            ["muted"] = muted,
           };
           batchRequests.Add(mutedRequest);
         }
@@ -2411,9 +4416,9 @@ public class CPHInline
   private bool ShowOBSSource(string sourceName)
   {
     // Validate input parameters
-    var parameters = new Dictionary<string, object>
+    Dictionary<string, object> parameters = new Dictionary<string, object>
     {
-      ["sourceName"] = sourceName
+      ["sourceName"] = sourceName,
     };
 
     if (!ValidateInputParameters("ShowOBSSource", parameters))
@@ -2444,9 +4449,9 @@ public class CPHInline
       }
       catch (Exception ex)
       {
-        var context = new Dictionary<string, object>
+        Dictionary<string, object> context = new Dictionary<string, object>
         {
-          ["sourceName"] = sourceName
+          ["sourceName"] = sourceName,
         };
 
         string errorMessage = CreateStructuredErrorMessage("ShowOBSSource", ex, context);
@@ -2464,9 +4469,9 @@ public class CPHInline
   private bool HideOBSSource(string sourceName)
   {
     // Validate input parameters
-    var parameters = new Dictionary<string, object>
+    Dictionary<string, object> parameters = new Dictionary<string, object>
     {
-      ["sourceName"] = sourceName
+      ["sourceName"] = sourceName,
     };
 
     if (!ValidateInputParameters("HideOBSSource", parameters))
@@ -2497,9 +4502,9 @@ public class CPHInline
       }
       catch (Exception ex)
       {
-        var context = new Dictionary<string, object>
+        Dictionary<string, object> context = new Dictionary<string, object>
         {
-          ["sourceName"] = sourceName
+          ["sourceName"] = sourceName,
         };
 
         string errorMessage = CreateStructuredErrorMessage("HideOBSSource", ex, context);
@@ -2517,9 +4522,9 @@ public class CPHInline
   private bool DeleteOBSSource(string sourceName)
   {
     // Validate input parameters
-    var parameters = new Dictionary<string, object>
+    Dictionary<string, object> parameters = new Dictionary<string, object>
     {
-      ["sourceName"] = sourceName
+      ["sourceName"] = sourceName,
     };
 
     if (!ValidateInputParameters("DeleteOBSSource", parameters))
@@ -2545,7 +4550,7 @@ public class CPHInline
         Dictionary<string, object> deleteSourceData = new Dictionary<string, object>
         {
           ["sceneName"] = currentScene,
-          ["itemName"] = sourceName
+          ["itemName"] = sourceName,
         };
 
         // Send the request to OBS
@@ -2607,9 +4612,9 @@ public class CPHInline
       }
       catch (Exception ex)
       {
-        var context = new Dictionary<string, object>
+        Dictionary<string, object> context = new Dictionary<string, object>
         {
-          ["sourceName"] = sourceName
+          ["sourceName"] = sourceName,
         };
 
         string errorMessage = CreateStructuredErrorMessage("DeleteOBSSource", ex, context);
@@ -2818,7 +4823,7 @@ public class CPHInline
       // Create OBS request data to get scene items
       Dictionary<string, object> getSceneItemsData = new Dictionary<string, object>
       {
-        ["sceneName"] = currentScene
+        ["sceneName"] = currentScene,
       };
 
       // Send the request to OBS
@@ -2904,9 +4909,9 @@ public class CPHInline
 
     try
     {
-      CPH.SetGlobalVar(MediaSpawnerConfigVarName, mediaSpawnerConfigValue, persisted: true);
+      CPH.SetGlobalVar(this.mediaSpawnerConfigVarName, mediaSpawnerConfigValue, persisted: true);
 
-      CPH.SetGlobalVar(MediaSpawnerShaVarName, ComputeSha256(mediaSpawnerConfigValue), persisted: true);
+      CPH.SetGlobalVar(this.mediaSpawnerShaVarName, ComputeSha256(mediaSpawnerConfigValue), persisted: true);
       CPH.LogInfo($"SetMediaSpawnerConfig: Successfully set MediaSpawner config (persist: true)");
       return true;
     }
@@ -2934,18 +4939,18 @@ public class CPHInline
   /// <returns>True if configuration loaded successfully, false otherwise</returns>
   public bool LoadMediaSpawnerConfig()
   {
-    lock (_stateLock)
+    lock (this.stateLock)
     {
       try
       {
         // Check if cached config is still valid
-        if (_cachedConfig != null && IsConfigCacheValid())
+        if (this.cachedConfig != null && IsConfigCacheValid())
         {
           CPH.LogInfo("LoadMediaSpawnerConfig: Using cached configuration");
           return true;
         }
 
-        string configJson = CPH.GetGlobalVar<string>(MediaSpawnerConfigVarName);
+        string configJson = CPH.GetGlobalVar<string>(this.mediaSpawnerConfigVarName);
         if (string.IsNullOrWhiteSpace(configJson))
         {
           CPH.LogError("LoadMediaSpawnerConfig: No MediaSpawner configuration found in global variables");
@@ -2954,7 +4959,7 @@ public class CPHInline
 
         // Check if we need to reload (config might have changed)
         string currentSha = ComputeSha256(configJson);
-        if (_cachedConfig != null && _cachedConfigSha == currentSha && IsConfigCacheValid())
+        if (this.cachedConfig != null && this.cachedConfigSha == currentSha && IsConfigCacheValid())
         {
           CPH.LogInfo("LoadMediaSpawnerConfig: Using cached configuration (SHA match)");
           return true;
@@ -2968,9 +4973,9 @@ public class CPHInline
         }
 
         // Cache the configuration with timestamp
-        _cachedConfig = config;
-        _cachedConfigSha = currentSha;
-        _configCacheTimestamp = DateTime.UtcNow;
+        this.cachedConfig = config;
+        this.cachedConfigSha = currentSha;
+        this.configCacheTimestamp = DateTime.UtcNow;
 
         CPH.LogInfo($"LoadMediaSpawnerConfig: Successfully loaded configuration with {config.Profiles.Count} profiles and {config.Assets.Count} assets");
         return true;
@@ -2997,13 +5002,13 @@ public class CPHInline
         return false;
       }
 
-      if (_cachedConfig == null)
+      if (this.cachedConfig == null)
       {
         CPH.LogError("GetSpawnProfile: No configuration loaded. Call LoadMediaSpawnerConfig first.");
         return false;
       }
 
-      SpawnProfile profile = _cachedConfig.FindProfileById(profileId);
+      SpawnProfile profile = this.cachedConfig.FindProfileById(profileId);
       if (profile == null)
       {
         CPH.LogError($"GetSpawnProfile: Profile with ID '{profileId}' not found");
@@ -3039,13 +5044,13 @@ public class CPHInline
         return false;
       }
 
-      if (_cachedConfig == null)
+      if (this.cachedConfig == null)
       {
         CPH.LogError("GetAsset: No configuration loaded. Call LoadMediaSpawnerConfig first.");
         return false;
       }
 
-      MediaAsset asset = _cachedConfig.FindAssetById(assetId);
+      MediaAsset asset = this.cachedConfig.FindAssetById(assetId);
       if (asset == null)
       {
         CPH.LogError($"GetAsset: Asset with ID '{assetId}' not found");
@@ -3077,13 +5082,13 @@ public class CPHInline
   {
     try
     {
-      if (_cachedConfig == null)
+      if (this.cachedConfig == null)
       {
         CPH.LogError("GetEnabledSpawns: No configuration loaded. Call LoadMediaSpawnerConfig first.");
         return false;
       }
 
-      List<Spawn> enabledSpawns = _cachedConfig.GetEnabledSpawns();
+      List<Spawn> enabledSpawns = this.cachedConfig.GetEnabledSpawns();
       if (enabledSpawns.Count == 0)
       {
         CPH.LogWarn("GetEnabledSpawns: No enabled spawns found in configuration");
@@ -3114,13 +5119,13 @@ public class CPHInline
   {
     try
     {
-      if (_cachedConfig == null)
+      if (this.cachedConfig == null)
       {
         CPH.LogError("ValidateConfig: No configuration loaded. Call LoadMediaSpawnerConfig first.");
         return false;
       }
 
-      ValidationResult validationResult = _cachedConfig.Validate();
+      ValidationResult validationResult = this.cachedConfig.Validate();
 
       if (validationResult.IsValid)
       {
@@ -3159,13 +5164,13 @@ public class CPHInline
         return false;
       }
 
-      if (_cachedConfig == null)
+      if (this.cachedConfig == null)
       {
         CPH.LogError("GetAssetsByType: No configuration loaded. Call LoadMediaSpawnerConfig first.");
         return false;
       }
 
-      List<MediaAsset> assets = _cachedConfig.GetAssetsByType(assetType);
+      List<MediaAsset> assets = this.cachedConfig.GetAssetsByType(assetType);
 
       // Set assets data in global variables
       CPH.SetGlobalVar("MediaSpawner_FilteredAssets", JsonConvert.SerializeObject(assets), persisted: false);
@@ -3202,13 +5207,13 @@ public class CPHInline
         return false;
       }
 
-      if (_cachedConfig == null)
+      if (this.cachedConfig == null)
       {
         CPH.LogError("GetSpawnById: No configuration loaded. Call LoadMediaSpawnerConfig first.");
         return false;
       }
 
-      SpawnProfile profile = _cachedConfig.FindProfileById(profileId);
+      SpawnProfile profile = this.cachedConfig.FindProfileById(profileId);
       if (profile == null)
       {
         CPH.LogError($"GetSpawnById: Profile with ID '{profileId}' not found");
@@ -3246,8 +5251,8 @@ public class CPHInline
   {
     try
     {
-      _cachedConfig = null;
-      _cachedConfigSha = null;
+      this.cachedConfig = null;
+      this.cachedConfigSha = null;
       CPH.LogInfo("ClearConfigCache: Configuration cache cleared");
       return true;
     }
@@ -4173,7 +6178,7 @@ public class CPHInline
     if (spawn?.Trigger?.Config == null)
       return true; // No specific conditions to validate
 
-    var config = spawn.Trigger.Config;
+    Dictionary<string, object> config = spawn.Trigger.Config;
 
     switch (eventType)
     {
@@ -4317,10 +6322,10 @@ public class CPHInline
   /// <returns>True if cache is valid, false otherwise</returns>
   private bool IsConfigCacheValid()
   {
-    if (_cachedConfig == null || _configCacheTimestamp == DateTime.MinValue)
+    if (this.cachedConfig == null || this.configCacheTimestamp == DateTime.MinValue)
       return false;
 
-    return DateTime.UtcNow.Subtract(_configCacheTimestamp).TotalMinutes < _configCacheTtlMinutes;
+    return DateTime.UtcNow.Subtract(this.configCacheTimestamp).TotalMinutes < this.ConfigCacheTtlMinutes;
   }
 
   /// <summary>
@@ -4328,11 +6333,11 @@ public class CPHInline
   /// </summary>
   private void InvalidateConfigCache()
   {
-    lock (_stateLock)
+    lock (this.stateLock)
     {
-      _cachedConfig = null;
-      _cachedConfigSha = null;
-      _configCacheTimestamp = DateTime.MinValue;
+      this.cachedConfig = null;
+      this.cachedConfigSha = null;
+      this.configCacheTimestamp = DateTime.MinValue;
       CPH.LogInfo("StateManagement: Configuration cache invalidated");
     }
   }
@@ -4346,10 +6351,10 @@ public class CPHInline
   /// <returns>Execution ID for tracking</returns>
   private string StartSpawnExecution(Spawn spawn, string triggerType, Dictionary<string, object> context)
   {
-    lock (_stateLock)
+    lock (this.stateLock)
     {
       string executionId = Guid.NewGuid().ToString();
-      var activeExecution = new ActiveSpawnExecution
+      ActiveSpawnExecution activeExecution = new ActiveSpawnExecution
       {
         SpawnId = spawn.Id,
         SpawnName = spawn.Name,
@@ -4358,13 +6363,13 @@ public class CPHInline
         ExpectedEndTime = DateTime.UtcNow.AddMilliseconds(spawn.Duration),
         Status = "Running",
         ExecutionId = executionId,
-        Context = new Dictionary<string, object>(context)
+        Context = new Dictionary<string, object>(context),
       };
 
-      _activeSpawns[executionId] = activeExecution;
+      this.activeSpawns[executionId] = activeExecution;
 
       // Add to execution history
-      var executionRecord = new ExecutionRecord
+      ExecutionRecord executionRecord = new ExecutionRecord
       {
         ExecutionId = executionId,
         SpawnId = spawn.Id,
@@ -4372,7 +6377,7 @@ public class CPHInline
         TriggerType = triggerType,
         StartTime = DateTime.UtcNow,
         Status = "Running",
-        Context = new Dictionary<string, object>(context)
+        Context = new Dictionary<string, object>(context),
       };
 
       AddExecutionRecord(executionRecord);
@@ -4390,15 +6395,15 @@ public class CPHInline
   /// <param name="errorMessage">Error message if failed</param>
   private void CompleteSpawnExecution(string executionId, string status, string errorMessage = "")
   {
-    lock (_stateLock)
+    lock (this.stateLock)
     {
-      if (_activeSpawns.TryGetValue(executionId, out ActiveSpawnExecution activeExecution))
+      if (this.activeSpawns.TryGetValue(executionId, out ActiveSpawnExecution activeExecution))
       {
         activeExecution.Status = status;
-        _activeSpawns.Remove(executionId);
+        this.activeSpawns.Remove(executionId);
 
         // Update execution history
-        var executionRecord = _executionHistory.FirstOrDefault(r => r.ExecutionId == executionId);
+        ExecutionRecord executionRecord = this.executionHistory.FirstOrDefault(r => r.ExecutionId == executionId);
         if (executionRecord != null)
         {
           executionRecord.EndTime = DateTime.UtcNow;
@@ -4418,14 +6423,14 @@ public class CPHInline
   /// <param name="record">The execution record</param>
   private void AddExecutionRecord(ExecutionRecord record)
   {
-    lock (_stateLock)
+    lock (this.stateLock)
     {
-      _executionHistory.Add(record);
+      this.executionHistory.Add(record);
 
       // Maintain history size limit
-      while (_executionHistory.Count > _maxExecutionHistory)
+      while (this.executionHistory.Count > MaxExecutionHistory)
       {
-        _executionHistory.RemoveAt(0);
+        this.executionHistory.RemoveAt(0);
       }
     }
   }
@@ -4437,14 +6442,14 @@ public class CPHInline
   /// <param name="selectedMembers">The selected members</param>
   private void TrackRandomizationSelection(string bucketId, List<string> selectedMembers)
   {
-    lock (_stateLock)
+    lock (this.stateLock)
     {
       if (!_randomizationHistory.TryGetValue(bucketId, out RandomizationHistory history))
       {
         history = new RandomizationHistory
         {
           BucketId = bucketId,
-          MaxPatternLength = 10
+          MaxPatternLength = 10,
         };
         _randomizationHistory[bucketId] = history;
       }
@@ -4471,7 +6476,7 @@ public class CPHInline
   /// <returns>Randomization history or null if not found</returns>
   private RandomizationHistory GetRandomizationHistory(string bucketId)
   {
-    lock (_stateLock)
+    lock (this.stateLock)
     {
       return _randomizationHistory.TryGetValue(bucketId, out RandomizationHistory history) ? history : null;
     }
@@ -4482,17 +6487,17 @@ public class CPHInline
   /// </summary>
   private void CleanupCompletedSpawns()
   {
-    lock (_stateLock)
+    lock (this.stateLock)
     {
-      var completedSpawns = _activeSpawns.Values
+      List<ActiveSpawnExecution> completedSpawns = this.activeSpawns.Values
         .Where(execution => execution.Status != "Running" ||
                            (execution.ExpectedEndTime.HasValue &&
                             DateTime.UtcNow > execution.ExpectedEndTime.Value))
         .ToList();
 
-      foreach (var execution in completedSpawns)
+      foreach (ActiveSpawnExecution execution in completedSpawns)
       {
-        _activeSpawns.Remove(execution.ExecutionId);
+        this.activeSpawns.Remove(execution.ExecutionId);
         CPH.LogInfo($"StateManagement: Cleaned up completed execution {execution.ExecutionId}");
       }
     }
@@ -4504,16 +6509,16 @@ public class CPHInline
   /// <returns>State summary information</returns>
   private Dictionary<string, object> GetStateSummary()
   {
-    lock (_stateLock)
+    lock (this.stateLock)
     {
       return new Dictionary<string, object>
       {
-        ["activeSpawns"] = _activeSpawns.Count,
-        ["executionHistoryCount"] = _executionHistory.Count,
+        ["activeSpawns"] = this.activeSpawns.Count,
+        ["executionHistoryCount"] = this.executionHistory.Count,
         ["randomizationHistoryCount"] = _randomizationHistory.Count,
         ["configCacheValid"] = IsConfigCacheValid(),
-        ["configCacheAge"] = _configCacheTimestamp == DateTime.MinValue ?
-          "Never" : DateTime.UtcNow.Subtract(_configCacheTimestamp).ToString()
+        ["configCacheAge"] = this.configCacheTimestamp == DateTime.MinValue ?
+          "Never" : DateTime.UtcNow.Subtract(this.configCacheTimestamp).ToString(),
       };
     }
   }
@@ -4580,7 +6585,7 @@ public class CPHInline
     public TimeSpan? Duration => EndTime?.Subtract(StartTime);
 
     [JsonProperty("status")]
-    public string Status { get; set; } = string.Empty; // Success, Failed, Cancelled
+    public string Status { get; set; } = string.Empty; // Success, Failed, Canceled
 
     [JsonProperty("errorMessage")]
     public string ErrorMessage { get; set; } = string.Empty;
@@ -4632,7 +6637,7 @@ public class CPHInline
     public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
 
     [JsonProperty("priority")]
-    public int Priority { get; set; } = 0; // Higher number = higher priority
+    public int Priority { get; set; } // Higher number = higher priority
 
     [JsonProperty("requestTime")]
     public DateTime RequestTime { get; set; } = DateTime.UtcNow;
@@ -4657,7 +6662,7 @@ public class CPHInline
         IsLocalFile = false,
         IsUrl = false,
         ResolvedPath = string.Empty,
-        ErrorMessage = "Asset path is null or empty"
+        ErrorMessage = "Asset path is null or empty",
       };
     }
 
@@ -4671,7 +6676,7 @@ public class CPHInline
         IsLocalFile = false,
         IsUrl = true,
         ResolvedPath = assetPath,
-        ErrorMessage = string.Empty
+        ErrorMessage = string.Empty,
       };
     }
 
@@ -4685,7 +6690,7 @@ public class CPHInline
       IsLocalFile = true,
       IsUrl = false,
       ResolvedPath = fullPath,
-      ErrorMessage = fileExists ? string.Empty : $"Local file not found: {fullPath}"
+      ErrorMessage = fileExists ? string.Empty : $"Local file not found: {fullPath}",
     };
   }
 
@@ -4704,7 +6709,7 @@ public class CPHInline
       requestType = "CreateSource",
       sourceName = sourceName,
       sourceType = sourceType,
-      sourceSettings = settings ?? new Dictionary<string, object>()
+      sourceSettings = settings ?? new Dictionary<string, object>(),
     };
 
     if (!string.IsNullOrWhiteSpace(sceneName))
@@ -4715,7 +6720,7 @@ public class CPHInline
         sourceName = sourceName,
         sourceType = sourceType,
         sourceSettings = settings ?? new Dictionary<string, object>(),
-        sceneName = sceneName
+        sceneName = sceneName,
       };
     }
 
@@ -4735,7 +6740,7 @@ public class CPHInline
     {
       requestType = "SetSourceSettings",
       sourceName = sourceName,
-      sourceSettings = properties
+      sourceSettings = properties,
     };
 
     if (!string.IsNullOrWhiteSpace(sceneName))
@@ -4745,7 +6750,7 @@ public class CPHInline
         requestType = "SetSourceSettings",
         sourceName = sourceName,
         sourceSettings = properties,
-        sceneName = sceneName
+        sceneName = sceneName,
       };
     }
 
@@ -4786,7 +6791,7 @@ public class CPHInline
   /// <returns>OBS-compatible settings dictionary</returns>
   private Dictionary<string, object> ConvertToOBSSettings(AssetSettings properties)
   {
-    var obsSettings = new Dictionary<string, object>();
+    Dictionary<string, object> obsSettings = new Dictionary<string, object>();
 
     if (properties == null)
       return obsSettings;
@@ -4851,7 +6856,7 @@ public class CPHInline
   /// <returns>Validation result</returns>
   private ValidationResult ValidateSpawn(Spawn spawn)
   {
-    var result = new ValidationResult();
+    ValidationResult result = new ValidationResult();
 
     if (spawn == null)
     {
@@ -4889,7 +6894,7 @@ public class CPHInline
   /// <returns>Validation result</returns>
   private ValidationResult ValidateAsset(MediaAsset asset)
   {
-    var result = new ValidationResult();
+    ValidationResult result = new ValidationResult();
 
     if (asset == null)
     {
@@ -4925,24 +6930,24 @@ public class CPHInline
     if (bucket == null || bucket.Members == null || bucket.Members.Count == 0)
       return new List<string>();
 
-    var enabledMembers = bucket.Members.ToList();
+    List<RandomizationBucketMember> enabledMembers = bucket.Members.ToList();
     if (enabledMembers.Count == 0)
       return new List<string>();
 
-    var random = new Random();
-    var selectedMembers = new List<string>();
+    Random random = new Random();
+    List<string> selectedMembers = new List<string>();
 
     if (bucket.Selection == "one")
     {
       // Select one random member
-      var randomIndex = random.Next(enabledMembers.Count);
+      int randomIndex = random.Next(enabledMembers.Count);
       selectedMembers.Add(enabledMembers[randomIndex].SpawnAssetId);
     }
     else if (bucket.Selection == "n" && bucket.N.HasValue)
     {
       // Select N random members
       int countToSelect = Math.Min(bucket.N.Value, enabledMembers.Count);
-      var shuffledMembers = enabledMembers.OrderBy(x => random.Next()).ToList();
+      List<RandomizationBucketMember> shuffledMembers = enabledMembers.OrderBy(x => random.Next()).ToList();
 
       for (int i = 0; i < countToSelect; i++)
       {
@@ -4961,10 +6966,10 @@ public class CPHInline
   /// <returns>Effective properties and source mapping</returns>
   private EffectivePropertiesResult ResolveEffectiveProperties(Spawn spawn, PartialAssetSettings overrides = null)
   {
-    var result = new EffectivePropertiesResult
+    EffectivePropertiesResult result = new EffectivePropertiesResult
     {
       Effective = new Dictionary<string, object>(),
-      SourceMap = new Dictionary<string, string>()
+      SourceMap = new Dictionary<string, string>(),
     };
 
     if (spawn?.DefaultProperties == null && overrides == null)
@@ -5011,7 +7016,7 @@ public class CPHInline
   /// </summary>
   private void SetPropertyValue(object target, string propertyName, object value)
   {
-    var property = target.GetType().GetProperty(propertyName);
+    PropertyInfo property = target.GetType().GetProperty(propertyName);
     if (property != null && property.CanWrite)
     {
       property.SetValue(target, value);
@@ -5057,10 +7062,10 @@ public class CPHInline
   /// <returns>Debug context dictionary</returns>
   private Dictionary<string, object> CreateDebugContext(string spawnId, string assetId = null, string triggerType = null)
   {
-    var context = new Dictionary<string, object>
+    Dictionary<string, object> context = new Dictionary<string, object>
     {
       ["spawnId"] = spawnId ?? "unknown",
-      ["timestamp"] = DateTime.UtcNow.ToString("O")
+      ["timestamp"] = DateTime.UtcNow.ToString("O"),
     };
 
     if (!string.IsNullOrWhiteSpace(assetId))
@@ -5105,7 +7110,7 @@ public class CPHInline
     Debug,
     Info,
     Warning,
-    Error
+    Error,
   }
 
   /// <summary>
@@ -5190,7 +7195,7 @@ public class CPHInline
         {
           int delayMs = baseDelayMs * attempt; // Exponential backoff
           CPH.LogWarn($"LoadMediaSpawnerConfigWithRetry: Attempt {attempt} failed, retrying in {delayMs}ms");
-          System.Threading.Thread.Sleep(delayMs);
+          Thread.Sleep(delayMs);
         }
       }
       catch (Exception ex)
@@ -5201,7 +7206,7 @@ public class CPHInline
         {
           int delayMs = baseDelayMs * attempt;
           CPH.LogWarn($"LoadMediaSpawnerConfigWithRetry: Retrying in {delayMs}ms after exception");
-          System.Threading.Thread.Sleep(delayMs);
+          Thread.Sleep(delayMs);
         }
       }
     }
@@ -5241,7 +7246,7 @@ public class CPHInline
         {
           int delayMs = baseDelayMs * attempt; // Exponential backoff
           CPH.LogWarn($"ExecuteOBSOperationWithRetry: {operationName} failed on attempt {attempt}, retrying in {delayMs}ms");
-          System.Threading.Thread.Sleep(delayMs);
+          Thread.Sleep(delayMs);
         }
       }
       catch (Exception ex)
@@ -5252,7 +7257,7 @@ public class CPHInline
         {
           int delayMs = baseDelayMs * attempt;
           CPH.LogWarn($"ExecuteOBSOperationWithRetry: {operationName} retrying in {delayMs}ms after exception");
-          System.Threading.Thread.Sleep(delayMs);
+          Thread.Sleep(delayMs);
         }
       }
     }
@@ -5270,7 +7275,7 @@ public class CPHInline
   /// <returns>True if operation completed successfully within timeout, false otherwise</returns>
   private bool ExecuteWithTimeout(Func<bool> operation, int timeoutMs, string operationName)
   {
-    var task = System.Threading.Tasks.Task.Run(() => operation());
+    Task<bool> task = Task.Run(operation);
 
     if (task.Wait(timeoutMs))
     {
@@ -5293,7 +7298,7 @@ public class CPHInline
   {
     try
     {
-      foreach (var kvp in parameters)
+      foreach (KeyValuePair<string, object> kvp in parameters)
       {
         if (kvp.Value == null)
         {
@@ -5326,12 +7331,12 @@ public class CPHInline
   /// <returns>Formatted error message</returns>
   private string CreateStructuredErrorMessage(string operation, Exception error, Dictionary<string, object> context = null)
   {
-    var errorInfo = new Dictionary<string, object>
+    Dictionary<string, object> errorInfo = new Dictionary<string, object>
     {
       ["operation"] = operation,
       ["error"] = error.Message,
       ["type"] = error.GetType().Name,
-      ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff")
+      ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff"),
     };
 
     if (context != null)
@@ -5344,7 +7349,7 @@ public class CPHInline
       errorInfo["innerError"] = new Dictionary<string, object>
       {
         ["message"] = error.InnerException.Message,
-        ["type"] = error.InnerException.GetType().Name
+        ["type"] = error.InnerException.GetType().Name,
       };
     }
 
@@ -5363,13 +7368,13 @@ public class CPHInline
 
     try
     {
-      if (_cachedConfig?.Assets == null || _cachedConfig.Assets.Count == 0)
+      if (this.cachedConfig?.Assets == null || this.cachedConfig.Assets.Count == 0)
       {
         return false;
       }
 
       // Try to find an asset of the same type
-      var sameTypeAssets = _cachedConfig.Assets.Where(a =>
+      List<MediaAsset> sameTypeAssets = this.cachedConfig.Assets.Where(a =>
         a.Type.Equals(spawnAsset.AssetId.Split('.')[0], StringComparison.OrdinalIgnoreCase)).ToList();
 
       if (sameTypeAssets.Count > 0)
@@ -5381,9 +7386,9 @@ public class CPHInline
       }
 
       // Try to find any asset as a last resort
-      if (_cachedConfig.Assets.Count > 0)
+      if (this.cachedConfig.Assets.Count > 0)
       {
-        fallbackAsset = _cachedConfig.Assets[0];
+        fallbackAsset = this.cachedConfig.Assets[0];
         CPH.LogInfo($"TryFindFallbackAsset: Using first available asset '{fallbackAsset.Name}' as fallback");
         return true;
       }
@@ -5408,7 +7413,7 @@ public class CPHInline
   {
     try
     {
-      var executionLog = new Dictionary<string, object>
+      Dictionary<string, object> executionLog = new Dictionary<string, object>
       {
         ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff"),
         ["spawnName"] = spawn?.Name,
@@ -5418,7 +7423,7 @@ public class CPHInline
         ["assetType"] = baseAsset?.Type,
         ["assetPath"] = baseAsset?.Path,
         ["contextData"] = contextData,
-        ["reason"] = "OBS not connected - execution logged for debugging"
+        ["reason"] = "OBS not connected - execution logged for debugging",
       };
 
       string logMessage = JsonConvert.SerializeObject(executionLog, Formatting.Indented);
@@ -5453,7 +7458,7 @@ public class CPHInline
       int recoveredAssets = 0;
       int totalRecoveryAttempts = 0;
 
-      foreach (var failedAsset in failedAssets)
+      foreach (SpawnAsset failedAsset in failedAssets)
       {
         totalRecoveryAttempts++;
 
@@ -5492,7 +7497,7 @@ public class CPHInline
 
       double recoveryRate = totalRecoveryAttempts > 0 ? (double)recoveredAssets / totalRecoveryAttempts : 0.0;
 
-      var recoverySummary = new Dictionary<string, object>
+      Dictionary<string, object> recoverySummary = new Dictionary<string, object>
       {
         ["spawnName"] = spawn?.Name,
         ["spawnId"] = spawn?.Id,
@@ -5500,7 +7505,7 @@ public class CPHInline
         ["recoveryAttempts"] = totalRecoveryAttempts,
         ["recoveredAssets"] = recoveredAssets,
         ["recoveryRate"] = recoveryRate,
-        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff")
+        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff"),
       };
 
       CPH.LogInfo($"AttemptSpawnRecovery: Recovery completed. Summary: {JsonConvert.SerializeObject(recoverySummary)}");
@@ -5531,13 +7536,13 @@ public class CPHInline
       CPH.LogInfo($"ExecuteSpawnAssetWithFallback: Executing fallback asset '{fallbackAsset.Name}' for original asset '{originalAsset.AssetId}'");
 
       // Create a temporary spawn asset with the fallback asset's properties
-      var fallbackSpawnAsset = new SpawnAsset
+      SpawnAsset fallbackSpawnAsset = new SpawnAsset
       {
         Id = originalAsset.Id, // Keep the same ID for OBS source naming
         AssetId = fallbackAsset.Id,
         Enabled = originalAsset.Enabled,
         Order = originalAsset.Order,
-        Overrides = originalAsset.Overrides // Keep original overrides
+        Overrides = originalAsset.Overrides, // Keep original overrides
       };
 
       // Execute the fallback asset
@@ -5565,7 +7570,7 @@ public class CPHInline
       // Clean up successfully created OBS sources
       if (successfulAssets != null)
       {
-        foreach (var asset in successfulAssets)
+        foreach (SpawnAsset asset in successfulAssets)
         {
           try
           {
@@ -5584,7 +7589,7 @@ public class CPHInline
       // Log failed assets for debugging
       if (failedAssets != null && failedAssets.Count > 0)
       {
-        var failedAssetIds = failedAssets.Select(a => a.AssetId).ToList();
+        List<string> failedAssetIds = failedAssets.Select(a => a.AssetId).ToList();
         CPH.LogWarn($"CleanupPartialExecution: Failed assets that were not cleaned up: {string.Join(", ", failedAssetIds)}");
       }
 
@@ -5606,12 +7611,12 @@ public class CPHInline
   {
     try
     {
-      var logData = new Dictionary<string, object>
+      Dictionary<string, object> logData = new Dictionary<string, object>
       {
         ["level"] = "INFO",
         ["operation"] = operation,
         ["message"] = message,
-        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff")
+        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff"),
       };
 
       if (context != null)
@@ -5640,12 +7645,12 @@ public class CPHInline
   {
     try
     {
-      var logData = new Dictionary<string, object>
+      Dictionary<string, object> logData = new Dictionary<string, object>
       {
         ["level"] = "WARNING",
         ["operation"] = operation,
         ["message"] = message,
-        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff")
+        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff"),
       };
 
       if (context != null)
@@ -5674,12 +7679,12 @@ public class CPHInline
   {
     try
     {
-      var logData = new Dictionary<string, object>
+      Dictionary<string, object> logData = new Dictionary<string, object>
       {
         ["level"] = "ERROR",
         ["operation"] = operation,
         ["message"] = message,
-        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff")
+        ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff"),
       };
 
       if (context != null)
@@ -5708,12 +7713,12 @@ public class CPHInline
   {
     try
     {
-      var stateData = new Dictionary<string, object>
+      Dictionary<string, object> stateData = new Dictionary<string, object>
       {
         ["level"] = "SYSTEM_STATE",
         ["operation"] = operation,
         ["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff"),
-        ["state"] = stateInfo
+        ["state"] = stateInfo,
       };
 
       string logMessage = JsonConvert.SerializeObject(stateData, Formatting.Indented);
