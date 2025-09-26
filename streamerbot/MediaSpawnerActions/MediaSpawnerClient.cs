@@ -56,7 +56,7 @@ public class CPHInline
   /// <summary>
   /// Randomization bucket selection history for consistent patterns
   /// </summary>
-  private readonly Dictionary<string, RandomizationHistory> _randomizationHistory = new Dictionary<string, RandomizationHistory>();
+  private readonly Dictionary<string, RandomizationHistory> randomizationHistory = new Dictionary<string, RandomizationHistory>();
 
 
   /// <summary>
@@ -65,19 +65,14 @@ public class CPHInline
   private readonly Queue<SpawnExecutionRequest> executionQueue = new Queue<SpawnExecutionRequest>();
 
   /// <summary>
-  /// Lock object for thread-safe state management
-  /// </summary>
-  private readonly object stateLock = new object();
-
-  /// <summary>
   /// Active timers managed by this action
   /// </summary>
   private readonly Dictionary<string, IDisposable> activeTimers = new Dictionary<string, IDisposable>();
 
   /// <summary>
-  /// Lock object for thread-safe timer management
+  /// Single lock object for thread-safe access to all shared state
   /// </summary>
-  private readonly object timerLock = new object();
+  private readonly object lockObject = new object();
 
   /// <summary>
   /// Flag to track if timers have been initialized
@@ -147,7 +142,7 @@ public class CPHInline
       // Set shutdown flag to prevent new timer creation
       this.isShuttingDown = true;
 
-      lock (this.timerLock)
+      lock (this.lockObject)
       {
         // Stop and dispose all active timers
         int disposedCount = 0;
@@ -249,7 +244,7 @@ public class CPHInline
       CPH.LogInfo($"Execute[{executionId}]: Trigger detected - EventType: '{eventType}', Source: '{source ?? "null"}'");
 
       // Route to appropriate handler based on trigger type
-      bool executionResult = false;
+      bool executionResult;
       string handlerName = "";
 
       try
@@ -352,7 +347,7 @@ public class CPHInline
         {
           ["activeSpawnsCount"] = this.activeSpawns.Count,
           ["executionHistoryCount"] = this.executionHistory.Count,
-          ["randomizationHistoryCount"] = _randomizationHistory.Count,
+          ["randomizationHistoryCount"] = this.randomizationHistory.Count,
           ["configCacheValid"] = IsConfigCacheValid(),
           ["configCacheAge"] = this.configCacheTimestamp == DateTime.MinValue ?
             "Never" : DateTime.UtcNow.Subtract(this.configCacheTimestamp).ToString(),
@@ -400,7 +395,7 @@ public class CPHInline
       // Add randomization history if requested
       if (includeRandomization)
       {
-        List<Dictionary<string, object>> randomizationData = _randomizationHistory.Values.Select(history => new Dictionary<string, object>
+        List<Dictionary<string, object>> randomizationData = this.randomizationHistory.Values.Select(history => new Dictionary<string, object>
         {
           ["bucketId"] = history.BucketId,
           ["selectionCount"] = history.SelectionCount,
@@ -417,7 +412,7 @@ public class CPHInline
       File.WriteAllText(filePath, jsonData);
 
       CPH.LogInfo($"ExportAnalytics: Successfully exported analytics to {filePath}");
-      CPH.LogInfo($"ExportAnalytics: Exported {this.executionHistory.Count} execution records, {this.activeSpawns.Count} active spawns, {_randomizationHistory.Count} randomization histories");
+      CPH.LogInfo($"ExportAnalytics: Exported {this.executionHistory.Count} execution records, {this.activeSpawns.Count} active spawns, {this.randomizationHistory.Count} randomization histories");
 
       // Set result in global variable for other actions
       CPH.SetGlobalVar("MediaSpawner_ExportPath", filePath, persisted: false);
@@ -695,7 +690,7 @@ public class CPHInline
   {
     try
     {
-      lock (this.timerLock)
+      lock (this.lockObject)
       {
         // Clear any existing timers first
         CleanupAllTimers();
@@ -958,7 +953,7 @@ public class CPHInline
         Timeout.Infinite // One-time timer
       );
 
-      lock (this.timerLock)
+      lock (this.lockObject)
       {
         // Store the timer in a way that allows proper disposal
         this.activeTimers[spawn.Id] = new OneTimeTimerWrapper(timer);
@@ -1021,7 +1016,7 @@ public class CPHInline
       }
 
       // Thread safety - access shared state with lock
-      lock (this.stateLock)
+      lock (this.lockObject)
       {
         // Validate spawn is still enabled and configuration hasn't changed
         if (!IsSpawnStillValid(spawn))
@@ -1035,22 +1030,19 @@ public class CPHInline
         ExecuteSpawnFromTimer(spawn, triggerType);
 
         // Remove the timer from active timers since it's one-time
-        lock (this.timerLock)
+        if (this.activeTimers.ContainsKey(spawn.Id))
         {
-          if (this.activeTimers.ContainsKey(spawn.Id))
+          try
           {
-            try
-            {
-              this.activeTimers[spawn.Id].Dispose();
-              this.activeTimers.Remove(spawn.Id);
-              CPH.LogInfo($"OnOneTimeTimerElapsed: Removed completed one-time timer for spawn '{spawn.Name}'");
-            }
-            catch (Exception disposeEx)
-            {
-              CPH.LogError($"OnOneTimeTimerElapsed: Error disposing timer for spawn '{spawn.Name}': {disposeEx.Message}");
-              // Still remove from dictionary even if disposal failed
-              this.activeTimers.Remove(spawn.Id);
-            }
+            this.activeTimers[spawn.Id].Dispose();
+            this.activeTimers.Remove(spawn.Id);
+            CPH.LogInfo($"OnOneTimeTimerElapsed: Removed completed one-time timer for spawn '{spawn.Name}'");
+          }
+          catch (Exception disposeEx)
+          {
+            CPH.LogError($"OnOneTimeTimerElapsed: Error disposing timer for spawn '{spawn.Name}': {disposeEx.Message}");
+            // Still remove from dictionary even if disposal failed
+            this.activeTimers.Remove(spawn.Id);
           }
         }
       }
@@ -1103,7 +1095,7 @@ public class CPHInline
         CPH.LogInfo($"CreateDailyTimer: Reset timer interval to 24 hours for spawn '{spawn.Name}'");
       });
 
-      lock (this.timerLock)
+      lock (this.lockObject)
       {
         this.activeTimers[spawn.Id] = timer;
         this.timerStates[spawn.Id] = false; // false = active
@@ -1165,7 +1157,7 @@ public class CPHInline
                 List<DayOfWeek> daysOfWeek = new List<DayOfWeek>();
                 foreach (object day in daysList)
                 {
-                  if (day is string dayStr && Enum.TryParse<DayOfWeek>(dayStr, true, out DayOfWeek dayOfWeek))
+                  if (day is string dayStr && Enum.TryParse(dayStr, true, out DayOfWeek dayOfWeek))
                   {
                     daysOfWeek.Add(dayOfWeek);
                   }
@@ -1271,7 +1263,7 @@ public class CPHInline
       }
 
       // Thread safety - access shared state with lock
-      lock (this.stateLock)
+      lock (this.lockObject)
       {
         // Validate spawn is still enabled and configuration hasn't changed
         if (!IsSpawnStillValid(spawn))
@@ -1347,7 +1339,7 @@ public class CPHInline
       List<DayOfWeek> daysOfWeek = new List<DayOfWeek>();
       foreach (object day in daysList)
       {
-        if (day is string dayStr && Enum.TryParse<DayOfWeek>(dayStr, true, out DayOfWeek dayOfWeek))
+        if (day is string dayStr && Enum.TryParse(dayStr, true, out DayOfWeek dayOfWeek))
         {
           daysOfWeek.Add(dayOfWeek);
         }
@@ -1375,7 +1367,7 @@ public class CPHInline
         CPH.LogInfo($"CreateWeeklyTimer: Reset timer interval to 7 days for spawn '{spawn.Name}'");
       });
 
-      lock (this.timerLock)
+      lock (this.lockObject)
       {
         this.activeTimers[spawn.Id] = timer;
         this.timerStates[spawn.Id] = false; // false = active
@@ -1446,7 +1438,7 @@ public class CPHInline
         CPH.LogInfo($"CreateMonthlyTimer: Reset timer interval to 30 days for spawn '{spawn.Name}'");
       });
 
-      lock (this.timerLock)
+      lock (this.lockObject)
       {
         this.activeTimers[spawn.Id] = timer;
         this.timerStates[spawn.Id] = false; // false = active
@@ -1506,7 +1498,7 @@ public class CPHInline
       // Use dedicated interval timer callback
       timer.Elapsed += (sender, e) => OnIntervalTimerElapsed(spawn, "everyNMinutes");
 
-      lock (this.timerLock)
+      lock (this.lockObject)
       {
         this.activeTimers[spawn.Id] = timer;
         this.timerStates[spawn.Id] = false; // false = active
@@ -1575,7 +1567,7 @@ public class CPHInline
       // Use dedicated interval timer callback with minute filtering
       timer.Elapsed += (sender, e) => OnIntervalTimerElapsed(spawn, "minuteOfHour");
 
-      lock (this.timerLock)
+      lock (this.lockObject)
       {
         this.activeTimers[spawn.Id] = timer;
         this.timerStates[spawn.Id] = false; // false = active
@@ -1690,7 +1682,7 @@ public class CPHInline
       }
 
       // Thread safety - access shared state with lock
-      lock (this.stateLock)
+      lock (this.lockObject)
       {
         // Validate spawn is still enabled and configuration hasn't changed
         if (!IsSpawnStillValid(spawn))
@@ -1747,13 +1739,12 @@ public class CPHInline
     for (int i = 0; i < 7; i++)
     {
       DateTime checkDate = now.Date.AddDays(i);
-      if (daysOfWeek.Contains(checkDate.DayOfWeek))
+      if (!daysOfWeek.Contains(checkDate.DayOfWeek))
+        continue;
+      DateTime occurrence = checkDate.Add(targetTime);
+      if (occurrence > now)
       {
-        DateTime occurrence = checkDate.Add(targetTime);
-        if (occurrence > now)
-        {
-          return occurrence;
-        }
+        return occurrence;
       }
     }
 
@@ -1837,7 +1828,7 @@ public class CPHInline
     try
     {
       // Thread safety - access shared state with lock
-      lock (this.stateLock)
+      lock (this.lockObject)
       {
         // Validate spawn is still enabled and configuration hasn't changed
         if (!IsSpawnStillValid(spawn))
@@ -1982,7 +1973,7 @@ public class CPHInline
             List<DayOfWeek> daysOfWeek = new List<DayOfWeek>();
             foreach (object day in weeklyDaysList)
             {
-              if (day is string dayStr && Enum.TryParse<DayOfWeek>(dayStr, true, out DayOfWeek dayOfWeek))
+              if (day is string dayStr && Enum.TryParse(dayStr, true, out DayOfWeek dayOfWeek))
               {
                 daysOfWeek.Add(dayOfWeek);
               }
@@ -2053,7 +2044,7 @@ public class CPHInline
   {
     try
     {
-      lock (this.timerLock)
+      lock (this.lockObject)
       {
         foreach (IDisposable timer in this.activeTimers.Values)
         {
@@ -2106,7 +2097,7 @@ public class CPHInline
         return false;
       }
 
-      lock (this.timerLock)
+      lock (this.lockObject)
       {
         if (!this.activeTimers.ContainsKey(spawnId))
         {
@@ -2165,7 +2156,7 @@ public class CPHInline
   {
     try
     {
-      lock (this.timerLock)
+      lock (this.lockObject)
       {
         Dictionary<string, object> status = new Dictionary<string, object>
         {
@@ -2251,7 +2242,7 @@ public class CPHInline
   {
     try
     {
-      lock (this.timerLock)
+      lock (this.lockObject)
       {
         if (this.timersPaused)
         {
@@ -2307,7 +2298,7 @@ public class CPHInline
   {
     try
     {
-      lock (this.timerLock)
+      lock (this.lockObject)
       {
         if (!this.timersPaused)
         {
@@ -2370,9 +2361,9 @@ public class CPHInline
         return false;
       }
 
-      lock (this.timerLock)
+      lock (this.lockObject)
       {
-        if (!this.activeTimers.ContainsKey(spawnId))
+        if (!this.activeTimers.TryGetValue(spawnId, out IDisposable timer))
         {
           CPH.LogWarn($"PauseTimerForSpawn: No active timer found for spawn ID '{spawnId}'");
           return false;
@@ -2380,7 +2371,6 @@ public class CPHInline
 
         try
         {
-          IDisposable timer = this.activeTimers[spawnId];
           if (timer is System.Timers.Timer systemTimer)
           {
             systemTimer.Stop();
@@ -2430,9 +2420,9 @@ public class CPHInline
         return false;
       }
 
-      lock (this.timerLock)
+      lock (this.lockObject)
       {
-        if (!this.activeTimers.ContainsKey(spawnId))
+        if (!this.activeTimers.TryGetValue(spawnId, out IDisposable timer))
         {
           CPH.LogWarn($"ResumeTimerForSpawn: No active timer found for spawn ID '{spawnId}'");
           return false;
@@ -2440,23 +2430,22 @@ public class CPHInline
 
         try
         {
-          IDisposable timer = this.activeTimers[spawnId];
-          if (timer is System.Timers.Timer systemTimer)
+          switch (timer)
           {
-            systemTimer.Start();
-            this.timerStates[spawnId] = false; // false = active
-            CPH.LogInfo($"ResumeTimerForSpawn: Resumed timer for spawn '{spawnId}'");
-          }
-          else if (timer is OneTimeTimerWrapper oneTimeWrapper)
-          {
-            // One-time timers can't be resumed, just mark as active in state
-            this.timerStates[spawnId] = false;
-            CPH.LogInfo($"ResumeTimerForSpawn: Marked one-time timer as active for spawn '{spawnId}'");
-          }
-          else
-          {
-            this.timerStates[spawnId] = false;
-            CPH.LogInfo($"ResumeTimerForSpawn: Marked timer as active for spawn '{spawnId}'");
+            case System.Timers.Timer systemTimer:
+              systemTimer.Start();
+              this.timerStates[spawnId] = false; // false = active
+              CPH.LogInfo($"ResumeTimerForSpawn: Resumed timer for spawn '{spawnId}'");
+              break;
+            case OneTimeTimerWrapper _:
+              // One-time timers can't be resumed, just mark as active in state
+              this.timerStates[spawnId] = false;
+              CPH.LogInfo($"ResumeTimerForSpawn: Marked one-time timer as active for spawn '{spawnId}'");
+              break;
+            default:
+              this.timerStates[spawnId] = false;
+              CPH.LogInfo($"ResumeTimerForSpawn: Marked timer as active for spawn '{spawnId}'");
+              break;
           }
 
           return true;
@@ -2500,19 +2489,16 @@ public class CPHInline
 
       // Find the spawn in the configuration
       Spawn targetSpawn = null;
-      foreach (SpawnProfile profile in this.cachedConfig?.Profiles ?? new List<SpawnProfile>())
+      foreach (SpawnProfile profile in (this.cachedConfig?.Profiles ?? new List<SpawnProfile>()).Where(profile => profile.Spawns != null))
       {
-        if (profile.Spawns != null)
-        {
-          targetSpawn = profile.Spawns.FirstOrDefault(s => s.Id == spawnId);
-          if (targetSpawn != null) break;
-        }
+        targetSpawn = profile.Spawns.FirstOrDefault(s => s.Id == spawnId);
+        if (targetSpawn != null) break;
       }
 
       if (targetSpawn == null)
       {
         CPH.LogWarn($"AttemptTimerRecovery: Spawn '{spawnId}' not found in configuration, removing from active timers");
-        lock (this.timerLock)
+        lock (this.lockObject)
         {
           this.activeTimers.Remove(spawnId);
           this.timerStates.Remove(spawnId);
@@ -2561,34 +2547,30 @@ public class CPHInline
       List<string> unhealthyTimers = new List<string>();
       List<string> healthyTimers = new List<string>();
 
-      lock (this.timerLock)
+      lock (this.lockObject)
       {
         foreach (KeyValuePair<string, IDisposable> kvp in this.activeTimers.ToList())
         {
           try
           {
-            // Basic health check - verify timer is still valid
-            if (kvp.Value is System.Timers.Timer systemTimer)
+            switch (kvp.Value)
             {
+              // Basic health check - verify timer is still valid
               // Check if timer is still enabled (basic health check)
-              if (systemTimer.Enabled)
-              {
+              case System.Timers.Timer systemTimer when systemTimer.Enabled:
                 healthyTimers.Add(kvp.Key);
-              }
-              else
-              {
+                break;
+              case System.Timers.Timer _:
                 unhealthyTimers.Add(kvp.Key);
-              }
-            }
-            else if (kvp.Value is OneTimeTimerWrapper oneTimeWrapper)
-            {
-              // One-time timers are considered healthy if they exist
-              healthyTimers.Add(kvp.Key);
-            }
-            else
-            {
-              // Unknown timer type - consider unhealthy
-              unhealthyTimers.Add(kvp.Key);
+                break;
+              case OneTimeTimerWrapper _:
+                // One-time timers are considered healthy if they exist
+                healthyTimers.Add(kvp.Key);
+                break;
+              default:
+                // Unknown timer type - consider unhealthy
+                unhealthyTimers.Add(kvp.Key);
+                break;
             }
           }
           catch (Exception ex)
@@ -2645,7 +2627,7 @@ public class CPHInline
   {
     try
     {
-      lock (this.timerLock)
+      lock (this.lockObject)
       {
         string timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
 
@@ -2773,16 +2755,10 @@ public class CPHInline
 
     foreach (SpawnProfile profile in this.cachedConfig.Profiles)
     {
-      if (profile.Spawns != null)
-      {
-        foreach (Spawn spawn in profile.Spawns)
-        {
-          if (spawn.Enabled && spawn.Trigger?.Type == triggerType)
-          {
-            matchingSpawns.Add(spawn);
-          }
-        }
-      }
+      if (profile.Spawns == null)
+        continue;
+
+      matchingSpawns.AddRange(profile.Spawns.Where(spawn => spawn.Enabled && spawn.Trigger?.Type == triggerType));
     }
 
     return matchingSpawns;
@@ -2798,17 +2774,7 @@ public class CPHInline
     if (this.cachedConfig?.Profiles == null || string.IsNullOrWhiteSpace(spawnId))
       return null;
 
-    foreach (SpawnProfile profile in this.cachedConfig.Profiles)
-    {
-      if (profile.Spawns != null)
-      {
-        Spawn spawn = profile.Spawns.FirstOrDefault(s => s.Id == spawnId);
-        if (spawn != null)
-          return spawn;
-      }
-    }
-
-    return null;
+    return this.cachedConfig.Profiles.Select(profile => profile.Spawns?.FirstOrDefault(s => s.Id == spawnId)).FirstOrDefault(spawn => spawn != null);
   }
 
   /// <summary>
@@ -2840,17 +2806,17 @@ public class CPHInline
       {
         foreach (object alias in aliases)
         {
-          if (alias is string aliasStr && !string.IsNullOrWhiteSpace(aliasStr))
-          {
-            bool caseSensitive = config.ContainsKey("caseSensitive") &&
+          if (!(alias is string aliasStr) || string.IsNullOrWhiteSpace(aliasStr))
+            continue;
+
+          bool caseSensitive = config.ContainsKey("caseSensitive") &&
                                config["caseSensitive"] is bool cs && cs;
 
-            if (caseSensitive ? command == aliasStr : command.Equals(aliasStr, StringComparison.OrdinalIgnoreCase))
-            {
-              commandMatches = true;
-              break;
-            }
-          }
+          if (caseSensitive ? command != aliasStr : !command.Equals(aliasStr, StringComparison.OrdinalIgnoreCase))
+            continue;
+
+          commandMatches = true;
+          break;
         }
       }
 
@@ -2862,22 +2828,21 @@ public class CPHInline
         commandMatches = command.Equals(commandId, StringComparison.OrdinalIgnoreCase);
       }
 
-      if (commandMatches)
+      if (!commandMatches)
+        continue;
+      // Check internal command filter
+      if (config.ContainsKey("ignoreInternal") && config["ignoreInternal"] is bool ignoreInternal && ignoreInternal && isInternal)
       {
-        // Check internal command filter
-        if (config.ContainsKey("ignoreInternal") && config["ignoreInternal"] is bool ignoreInternal && ignoreInternal && isInternal)
-        {
-          continue; // Skip internal commands if configured to ignore them
-        }
-
-        // Check bot account filter
-        if (config.ContainsKey("ignoreBotAccount") && config["ignoreBotAccount"] is bool ignoreBotAccount && ignoreBotAccount && isBotAccount)
-        {
-          continue; // Skip bot account commands if configured to ignore them
-        }
-
-        validSpawns.Add(spawn);
+        continue; // Skip internal commands if configured to ignore them
       }
+
+      // Check bot account filter
+      if (config.ContainsKey("ignoreBotAccount") && config["ignoreBotAccount"] is bool ignoreBotAccount && ignoreBotAccount && isBotAccount)
+      {
+        continue; // Skip bot account commands if configured to ignore them
+      }
+
+      validSpawns.Add(spawn);
     }
 
     return validSpawns;
@@ -2888,7 +2853,7 @@ public class CPHInline
   /// </summary>
   /// <param name="source">The Twitch event source</param>
   /// <returns>The specific Twitch event type</returns>
-  private string DetermineTwitchEventType(string source)
+  private static string DetermineTwitchEventType(string source)
   {
     if (string.IsNullOrWhiteSpace(source))
       return null;
@@ -3325,8 +3290,8 @@ public class CPHInline
 
           Dictionary<string, object> context = new Dictionary<string, object>
           {
-            ["spawnName"] = spawn?.Name,
-            ["spawnId"] = spawn?.Id,
+            ["spawnName"] = spawn.Name,
+            ["spawnId"] = spawn.Id,
             ["assetId"] = spawnAsset?.AssetId,
             ["triggerType"] = triggerType,
             ["executionTime"] = assetExecutionTime,
@@ -4012,14 +3977,14 @@ public class CPHInline
   /// </summary>
   private void ResolveProperty(string propertyName, Dictionary<string, object> overrides, Dictionary<string, object> spawnDefaults, Dictionary<string, object> effective, Dictionary<string, string> sourceMap)
   {
-    if (overrides.ContainsKey(propertyName))
+    if (overrides.TryGetValue(propertyName, out object @override))
     {
-      effective[propertyName] = overrides[propertyName];
+      effective[propertyName] = @override;
       sourceMap[propertyName] = "override";
     }
-    else if (spawnDefaults.ContainsKey(propertyName))
+    else if (spawnDefaults.TryGetValue(propertyName, out object @default))
     {
-      effective[propertyName] = spawnDefaults[propertyName];
+      effective[propertyName] = @default;
       sourceMap[propertyName] = "spawn-default";
     }
     else
@@ -4033,8 +3998,8 @@ public class CPHInline
   /// </summary>
   private void ResolveStructuredProperty(string propertyName, Dictionary<string, object> overrides, Dictionary<string, object> spawnDefaults, Dictionary<string, object> effective, Dictionary<string, string> sourceMap)
   {
-    object overrideVal = overrides.ContainsKey(propertyName) ? overrides[propertyName] : null;
-    object spawnVal = spawnDefaults.ContainsKey(propertyName) ? spawnDefaults[propertyName] : null;
+    object overrideVal = overrides.TryGetValue(propertyName, out object @override) ? @override : null;
+    object spawnVal = spawnDefaults.TryGetValue(propertyName, out object @default) ? @default : null;
 
     object chosen = overrideVal ?? spawnVal;
     if (chosen != null)
@@ -4216,9 +4181,9 @@ public class CPHInline
             }
 
             // Include error code if available
-            if (status.ContainsKey("code"))
+            if (status.TryGetValue("code", out object statu))
             {
-              errorMessage += $" (Code: {status["code"]})";
+              errorMessage += $" (Code: {statu})";
             }
 
             CPH.LogError($"CreateOBSSource: Failed to create OBS source '{sourceName}': {errorMessage}");
@@ -4384,9 +4349,9 @@ public class CPHInline
               }
 
               // Include error code if available
-              if (status.ContainsKey("code"))
+              if (status.TryGetValue("code", out object statu))
               {
-                errorMessage += $" (Code: {status["code"]})";
+                errorMessage += $" (Code: {statu})";
               }
 
               CPH.LogWarn($"ApplyAssetPropertiesToOBS: Property application failed for '{sourceName}': {errorMessage}");
@@ -4597,9 +4562,9 @@ public class CPHInline
             }
 
             // Include error code if available
-            if (status.ContainsKey("code"))
+            if (status.TryGetValue("code", out object statu))
             {
-              errorMessage += $" (Code: {status["code"]})";
+              errorMessage += $" (Code: {statu})";
             }
 
             CPH.LogError($"DeleteOBSSource: Failed to delete OBS source '{sourceName}': {errorMessage}");
@@ -4788,7 +4753,7 @@ public class CPHInline
           if (!success)
           {
             allSuccessful = false;
-            string error = status.ContainsKey("comment") ? status["comment"].ToString() : "Unknown error";
+            string error = status.TryGetValue("comment", out object statu) ? statu.ToString() : "Unknown error";
             CPH.LogWarn($"ExecuteOBSBatchOperations: Operation failed: {error}");
           }
         }
@@ -4939,7 +4904,7 @@ public class CPHInline
   /// <returns>True if configuration loaded successfully, false otherwise</returns>
   public bool LoadMediaSpawnerConfig()
   {
-    lock (this.stateLock)
+    lock (this.lockObject)
     {
       try
       {
@@ -6146,7 +6111,6 @@ public class CPHInline
     if (spawn.Assets == null || spawn.Assets.Count == 0)
     {
       result.AddError("Spawn has no assets");
-      return result;
     }
 
     return result;
@@ -6333,7 +6297,7 @@ public class CPHInline
   /// </summary>
   private void InvalidateConfigCache()
   {
-    lock (this.stateLock)
+    lock (this.lockObject)
     {
       this.cachedConfig = null;
       this.cachedConfigSha = null;
@@ -6351,7 +6315,7 @@ public class CPHInline
   /// <returns>Execution ID for tracking</returns>
   private string StartSpawnExecution(Spawn spawn, string triggerType, Dictionary<string, object> context)
   {
-    lock (this.stateLock)
+    lock (this.lockObject)
     {
       string executionId = Guid.NewGuid().ToString();
       ActiveSpawnExecution activeExecution = new ActiveSpawnExecution
@@ -6395,7 +6359,7 @@ public class CPHInline
   /// <param name="errorMessage">Error message if failed</param>
   private void CompleteSpawnExecution(string executionId, string status, string errorMessage = "")
   {
-    lock (this.stateLock)
+    lock (this.lockObject)
     {
       if (this.activeSpawns.TryGetValue(executionId, out ActiveSpawnExecution activeExecution))
       {
@@ -6423,7 +6387,7 @@ public class CPHInline
   /// <param name="record">The execution record</param>
   private void AddExecutionRecord(ExecutionRecord record)
   {
-    lock (this.stateLock)
+    lock (this.lockObject)
     {
       this.executionHistory.Add(record);
 
@@ -6442,16 +6406,16 @@ public class CPHInline
   /// <param name="selectedMembers">The selected members</param>
   private void TrackRandomizationSelection(string bucketId, List<string> selectedMembers)
   {
-    lock (this.stateLock)
+    lock (this.lockObject)
     {
-      if (!_randomizationHistory.TryGetValue(bucketId, out RandomizationHistory history))
+      if (!this.randomizationHistory.TryGetValue(bucketId, out RandomizationHistory history))
       {
         history = new RandomizationHistory
         {
           BucketId = bucketId,
           MaxPatternLength = 10,
         };
-        _randomizationHistory[bucketId] = history;
+        this.randomizationHistory[bucketId] = history;
       }
 
       history.LastSelectedMembers = new List<string>(selectedMembers);
@@ -6476,9 +6440,9 @@ public class CPHInline
   /// <returns>Randomization history or null if not found</returns>
   private RandomizationHistory GetRandomizationHistory(string bucketId)
   {
-    lock (this.stateLock)
+    lock (this.lockObject)
     {
-      return _randomizationHistory.TryGetValue(bucketId, out RandomizationHistory history) ? history : null;
+      return this.randomizationHistory.TryGetValue(bucketId, out RandomizationHistory history) ? history : null;
     }
   }
 
@@ -6487,7 +6451,7 @@ public class CPHInline
   /// </summary>
   private void CleanupCompletedSpawns()
   {
-    lock (this.stateLock)
+    lock (this.lockObject)
     {
       List<ActiveSpawnExecution> completedSpawns = this.activeSpawns.Values
         .Where(execution => execution.Status != "Running" ||
@@ -6509,13 +6473,13 @@ public class CPHInline
   /// <returns>State summary information</returns>
   private Dictionary<string, object> GetStateSummary()
   {
-    lock (this.stateLock)
+    lock (this.lockObject)
     {
       return new Dictionary<string, object>
       {
         ["activeSpawns"] = this.activeSpawns.Count,
         ["executionHistoryCount"] = this.executionHistory.Count,
-        ["randomizationHistoryCount"] = _randomizationHistory.Count,
+        ["randomizationHistoryCount"] = this.randomizationHistory.Count,
         ["configCacheValid"] = IsConfigCacheValid(),
         ["configCacheAge"] = this.configCacheTimestamp == DateTime.MinValue ?
           "Never" : DateTime.UtcNow.Subtract(this.configCacheTimestamp).ToString(),
@@ -6707,8 +6671,8 @@ public class CPHInline
     var request = new
     {
       requestType = "CreateSource",
-      sourceName = sourceName,
-      sourceType = sourceType,
+      sourceName,
+      sourceType,
       sourceSettings = settings ?? new Dictionary<string, object>(),
     };
 
@@ -6717,10 +6681,10 @@ public class CPHInline
       return new
       {
         requestType = "CreateSource",
-        sourceName = sourceName,
-        sourceType = sourceType,
+        sourceName,
+        sourceType,
         sourceSettings = settings ?? new Dictionary<string, object>(),
-        sceneName = sceneName,
+        sceneName,
       };
     }
 
@@ -6739,7 +6703,7 @@ public class CPHInline
     var request = new
     {
       requestType = "SetSourceSettings",
-      sourceName = sourceName,
+      sourceName,
       sourceSettings = properties,
     };
 
@@ -6748,9 +6712,9 @@ public class CPHInline
       return new
       {
         requestType = "SetSourceSettings",
-        sourceName = sourceName,
+        sourceName,
         sourceSettings = properties,
-        sceneName = sceneName,
+        sceneName,
       };
     }
 
@@ -7447,7 +7411,7 @@ public class CPHInline
   {
     try
     {
-      CPH.LogInfo($"AttemptSpawnRecovery: Attempting recovery for spawn '{spawn.Name}' with {failedAssets.Count} failed assets");
+      CPH.LogInfo($"AttemptSpawnRecovery: Attempting recovery for spawn '{spawn.Name}' with {failedAssets?.Count} failed assets");
 
       if (failedAssets == null || failedAssets.Count == 0)
       {
