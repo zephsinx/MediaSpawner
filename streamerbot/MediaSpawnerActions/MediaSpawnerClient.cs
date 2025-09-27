@@ -36,7 +36,7 @@ public class CPHInline
   /// <summary>
   /// Configuration cache TTL (Time To Live) in minutes
   /// </summary>
-  private readonly int ConfigCacheTtlMinutes = 5;
+  private const int ConfigCacheTtlMinutes = 60;
 
   /// <summary>
   /// Currently active spawn executions
@@ -213,10 +213,10 @@ public class CPHInline
         return false;
       }
 
-      // Load configuration with retry logic
-      if (!LoadMediaSpawnerConfigWithRetry())
+      // Load configuration (lightweight - uses cache when possible)
+      if (!LoadMediaSpawnerConfig())
       {
-        CPH.LogError($"Execute[{executionId}]: Failed to load MediaSpawner configuration after retries");
+        CPH.LogError($"Execute[{executionId}]: Failed to load MediaSpawner configuration");
         return false;
       }
 
@@ -226,9 +226,6 @@ public class CPHInline
         CPH.LogInfo($"Execute[{executionId}]: Initializing timers (fallback initialization)");
         InitializeTimers();
       }
-
-      // Check for configuration changes and recreate timers if needed
-      RecreateTimersOnConfigChange();
 
       // Detect trigger type and source with validation
       string eventType = CPH.GetEventType();
@@ -2692,31 +2689,41 @@ public class CPHInline
     }
   }
 
+
   /// <summary>
-  /// Check if configuration has changed and recreate timers if needed
+  /// Handle configuration update by invalidating cache and recreating timers
+  /// This method should be called whenever the configuration is updated
   /// </summary>
-  private void RecreateTimersOnConfigChange()
+  /// <returns>True if configuration update was handled successfully, false otherwise</returns>
+  private bool HandleConfigurationUpdate()
   {
     try
     {
-      if (!HasConfigurationChanged())
-        return;
+      CPH.LogInfo("HandleConfigurationUpdate: Starting configuration update process");
 
-      CPH.LogInfo("RecreateTimersOnConfigChange: Configuration changed, recreating timers");
+      // Invalidate the configuration cache to force fresh load
+      InvalidateConfigCache();
+
+      // Reload configuration with retry logic
+      if (!LoadMediaSpawnerConfigWithRetry())
+      {
+        CPH.LogError("HandleConfigurationUpdate: Failed to reload configuration");
+        return false;
+      }
 
       // Clean up existing timers
       CleanupAllTimers();
 
-      // Reload configuration
-      if (LoadMediaSpawnerConfigWithRetry())
-      {
-        // Recreate timers with new configuration
-        InitializeTimers();
-      }
+      // Recreate timers with new configuration
+      InitializeTimers();
+
+      CPH.LogInfo("HandleConfigurationUpdate: Configuration update completed successfully");
+      return true;
     }
     catch (Exception ex)
     {
-      CPH.LogError($"RecreateTimersOnConfigChange: Error during timer recreation: {ex.Message}");
+      CPH.LogError($"HandleConfigurationUpdate: Error during configuration update: {ex.Message}");
+      return false;
     }
   }
 
@@ -4874,10 +4881,18 @@ public class CPHInline
 
     try
     {
+      // Set the global variables
       CPH.SetGlobalVar(this.mediaSpawnerConfigVarName, mediaSpawnerConfigValue, persisted: true);
-
       CPH.SetGlobalVar(this.mediaSpawnerShaVarName, ComputeSha256(mediaSpawnerConfigValue), persisted: true);
-      CPH.LogInfo($"SetMediaSpawnerConfig: Successfully set MediaSpawner config (persist: true)");
+
+      // Handle the configuration update (invalidate cache, reload, recreate timers)
+      if (!HandleConfigurationUpdate())
+      {
+        CPH.LogError("SetMediaSpawnerConfig: Failed to handle configuration update");
+        return false;
+      }
+
+      CPH.LogInfo($"SetMediaSpawnerConfig: Successfully set MediaSpawner config and updated system (persist: true)");
       return true;
     }
     catch (Exception ex)
@@ -6289,7 +6304,7 @@ public class CPHInline
     if (this.cachedConfig == null || this.configCacheTimestamp == DateTime.MinValue)
       return false;
 
-    return DateTime.UtcNow.Subtract(this.configCacheTimestamp).TotalMinutes < this.ConfigCacheTtlMinutes;
+    return DateTime.UtcNow.Subtract(this.configCacheTimestamp).TotalMinutes < ConfigCacheTtlMinutes;
   }
 
   /// <summary>
