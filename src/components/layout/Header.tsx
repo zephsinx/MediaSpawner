@@ -3,6 +3,10 @@ import { Link } from "react-router-dom";
 import { SpawnProfileService } from "../../services/spawnProfileService";
 import type { SpawnProfile } from "../../types/spawn";
 import { usePanelState, useStreamerbotStatus } from "../../hooks";
+import { SyncStatusIndicator, SyncActionsDropdown } from "../common";
+import { StreamerbotService } from "../../services/streamerbotService";
+import type { SyncStatusInfo } from "../../types/sync";
+import { toast } from "sonner";
 
 /**
  * Props for the header component
@@ -19,6 +23,9 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
   const [profiles, setProfiles] = useState<SpawnProfile[]>([]);
   const { activeProfileId, setActiveProfile } = usePanelState();
   const streamerbot = useStreamerbotStatus();
+  const [syncStatus, setSyncStatus] = useState<SyncStatusInfo>({
+    status: "unknown",
+  });
 
   // Load profiles on mount
   useEffect(() => {
@@ -31,6 +38,68 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
       setProfiles([]);
     }
   }, []);
+
+  // Subscribe to sync status changes and handle sync checks
+  useEffect(() => {
+    let previousStatus: SyncStatusInfo["status"] | null = null;
+
+    const unsubscribe = StreamerbotService.subscribeToSyncStatus((status) => {
+      const statusChanged =
+        previousStatus !== null && previousStatus !== status.status;
+      previousStatus = status.status;
+
+      setSyncStatus(status);
+
+      // Show toast for status changes (but not on initial load or synced status)
+      // Synced status toasts are handled by individual action handlers
+      // Out-of-sync status is indicated by the ! icon, no toast needed
+      if (
+        statusChanged &&
+        status.status !== "unknown" &&
+        status.status !== "synced" &&
+        status.status !== "out-of-sync" &&
+        status.lastChecked
+      ) {
+        if (status.status === "error") {
+          toast.error("Sync error", {
+            description: status.errorMessage || "Failed to check sync status",
+          });
+        } else if (status.status === "offline") {
+          toast.error("Streamer.bot offline", {
+            description: "Cannot sync configuration. Check your connection",
+          });
+        }
+      }
+    });
+
+    // Now that subscription is established, check sync status if connected
+    if (streamerbot.state === "connected") {
+      // Perform initial sync status check with enhanced error handling
+      StreamerbotService.checkConfigSyncStatus()
+        .then((result) => {
+          if (!result.success) {
+            console.warn("Sync status check failed:", result.error);
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to check initial sync status:", error);
+        });
+    } else if (
+      streamerbot.state === "disconnected" ||
+      streamerbot.state === "error"
+    ) {
+      // Reset sync status when disconnected
+      setSyncStatus({
+        status: "offline",
+        errorMessage:
+          streamerbot.state === "error"
+            ? streamerbot.errorMessage
+            : "Not connected to Streamer.bot",
+      });
+    }
+
+    return unsubscribe;
+  }, [streamerbot.state, streamerbot.errorMessage]);
 
   const handleProfileChange = (profileId: string) => {
     const result = SpawnProfileService.setActiveProfile(profileId);
@@ -123,6 +192,17 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
             >
               Delete Profile
             </button>
+            {/* Sync Status and Actions */}
+            <div className="flex items-center space-x-3">
+              <SyncStatusIndicator statusInfo={syncStatus} size="sm" />
+              <SyncActionsDropdown
+                syncStatus={syncStatus}
+                onSyncStatusChange={setSyncStatus}
+                className="hidden sm:flex"
+              />
+            </div>
+
+            {/* Streamer.bot Status */}
             <span
               className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700"
               aria-label={`Streamer.bot ${streamerbot.state} (${streamerbot.host}:${streamerbot.port})`}

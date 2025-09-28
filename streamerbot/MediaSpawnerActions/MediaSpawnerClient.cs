@@ -228,8 +228,8 @@ public class CPHInline
       }
 
       // Detect trigger type and source with validation
-      string eventType = CPH.GetEventType();
-      string source = CPH.GetSource();
+      string eventType = CPH.GetEventType().ToString();
+      string source = CPH.GetSource().ToString();
 
       // Validate trigger information
       if (string.IsNullOrWhiteSpace(eventType))
@@ -4405,17 +4405,24 @@ public class CPHInline
       {
         CPH.LogInfo($"ShowOBSSource: Showing OBS source '{sourceName}'");
 
-        // Use built-in Streamer.bot method to show the source
-        bool success = CPH.ObsShowSource(sourceName);
-
-        if (success)
+        // Get current scene for the OBS operation
+        string currentScene = GetCurrentOBSScene();
+        if (string.IsNullOrEmpty(currentScene))
         {
+          CPH.LogError("ShowOBSSource: Could not determine current OBS scene");
+          return false;
+        }
+
+        // Use built-in Streamer.bot method to show the source
+        try
+        {
+          CPH.ObsShowSource(currentScene, sourceName);
           CPH.LogInfo($"ShowOBSSource: Successfully showed OBS source '{sourceName}'");
           return true;
         }
-        else
+        catch (Exception ex)
         {
-          CPH.LogError($"ShowOBSSource: Failed to show OBS source '{sourceName}'");
+          CPH.LogError($"ShowOBSSource: Failed to show OBS source '{sourceName}': {ex.Message}");
           return false;
         }
       }
@@ -4458,17 +4465,24 @@ public class CPHInline
       {
         CPH.LogInfo($"HideOBSSource: Hiding OBS source '{sourceName}'");
 
-        // Use built-in Streamer.bot method to hide the source
-        bool success = CPH.ObsHideSource(sourceName);
-
-        if (success)
+        // Get current scene for the OBS operation
+        string currentScene = GetCurrentOBSScene();
+        if (string.IsNullOrEmpty(currentScene))
         {
+          CPH.LogError("HideOBSSource: Could not determine current OBS scene");
+          return false;
+        }
+
+        // Use built-in Streamer.bot method to hide the source
+        try
+        {
+          CPH.ObsHideSource(currentScene, sourceName);
           CPH.LogInfo($"HideOBSSource: Successfully hid OBS source '{sourceName}'");
           return true;
         }
-        else
+        catch (Exception ex)
         {
-          CPH.LogError($"HideOBSSource: Failed to hide OBS source '{sourceName}'");
+          CPH.LogError($"HideOBSSource: Failed to hide OBS source '{sourceName}': {ex.Message}");
           return false;
         }
       }
@@ -7129,8 +7143,8 @@ public class CPHInline
       // Check if we have access to required Streamer.bot methods
       try
       {
-        string testEventType = CPH.GetEventType();
-        string testSource = CPH.GetSource();
+        string testEventType = CPH.GetEventType().ToString();
+        string testSource = CPH.GetSource().ToString();
         CPH.LogInfo($"ValidateExecutionEnvironment: Streamer.bot methods accessible - EventType: '{testEventType}', Source: '{testSource}'");
       }
       catch (Exception ex)

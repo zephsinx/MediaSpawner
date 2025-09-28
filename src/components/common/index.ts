@@ -19,3 +19,11 @@ export {
   type HUIComboboxProps,
   type HUIComboboxOption,
 } from "./HUICombobox";
+export {
+  SyncStatusIndicator,
+  type SyncStatusIndicatorProps,
+} from "./SyncStatusIndicator";
+export {
+  SyncActionsDropdown,
+  type SyncActionsDropdownProps,
+} from "./SyncActionsDropdown";

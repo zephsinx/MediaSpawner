@@ -2,6 +2,37 @@ using System;
 using System.Collections.Generic;
 
 /// <summary>
+/// Event source enumeration for Streamer.bot
+/// </summary>
+public enum EventSource
+{
+    None,
+    Twitch,
+    YouTube,
+    Mixer,
+    Trovo,
+    Glimesh,
+    Kick,
+    Generic
+}
+
+/// <summary>
+/// Event type enumeration for Streamer.bot
+/// </summary>
+public enum EventType
+{
+    None,
+    Command,
+    Follow,
+    Subscribe,
+    Bits,
+    Host,
+    Raid,
+    ChannelPoint,
+    Generic
+}
+
+/// <summary>
 /// Stub implementation of the CPH object for development and IDE support.
 /// This class provides the same interface as Streamer.bot's runtime CPH object
 /// but with no-op implementations for development purposes.
@@ -62,19 +93,19 @@ public static class CPH
     /// <summary>
     /// Gets the current source/event source.
     /// </summary>
-    /// <returns>The source identifier</returns>
-    public static string GetSource()
+    /// <returns>The source identifier as EventSource enum</returns>
+    public static EventSource GetSource()
     {
-        return "";
+        return EventSource.None;
     }
 
     /// <summary>
     /// Gets the current event type.
     /// </summary>
-    /// <returns>The event type identifier</returns>
-    public static string GetEventType()
+    /// <returns>The event type identifier as EventType enum</returns>
+    public static EventType GetEventType()
     {
-        return "";
+        return EventType.None;
     }
 
     /// <summary>
@@ -158,25 +189,21 @@ public static class CPH
     /// <summary>
     /// Shows a source in OBS Studio.
     /// </summary>
+    /// <param name="sceneName">The name of the scene containing the source</param>
     /// <param name="sourceName">The name of the source to show</param>
-    /// <param name="connection">The OBS connection index (default: 0)</param>
-    /// <returns>True if the source was shown successfully</returns>
-    public static bool ObsShowSource(string sourceName, int connection = 0)
+    public static void ObsShowSource(string sceneName, string sourceName)
     {
-        // No-op for development - return success
-        return true;
+        // No-op for development
     }
 
     /// <summary>
     /// Hides a source in OBS Studio.
     /// </summary>
+    /// <param name="sceneName">The name of the scene containing the source</param>
     /// <param name="sourceName">The name of the source to hide</param>
-    /// <param name="connection">The OBS connection index (default: 0)</param>
-    /// <returns>True if the source was hidden successfully</returns>
-    public static bool ObsHideSource(string sourceName, int connection = 0)
+    public static void ObsHideSource(string sceneName, string sourceName)
     {
-        // No-op for development - return success
-        return true;
+        // No-op for development
     }
 
     /// <summary>
