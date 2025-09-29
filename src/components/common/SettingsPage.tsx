@@ -6,6 +6,9 @@ import { SettingsService } from "../../services/settingsService";
 import { usePanelState } from "../../hooks";
 import type { Settings } from "../../types/settings";
 import { toast } from "sonner";
+import { SyncStatusIndicator, SyncActionsDropdown } from "./";
+import { StreamerbotService } from "../../services/streamerbotService";
+import type { SyncStatusInfo } from "../../types/sync";
 
 const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -14,6 +17,9 @@ const SettingsPage: React.FC = () => {
   const [workingDirectory, setWorkingDirectory] = useState("");
   const [isWorkingDirValid, setIsWorkingDirValid] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<SyncStatusInfo>({
+    status: "unknown",
+  });
 
   // Load settings on component mount
   useEffect(() => {
@@ -26,6 +32,15 @@ const SettingsPage: React.FC = () => {
   useEffect(() => {
     setUnsavedChanges(workingDirectory !== settings.workingDirectory);
   }, [workingDirectory, settings.workingDirectory, setUnsavedChanges]);
+
+  // Subscribe to sync status changes
+  useEffect(() => {
+    const unsubscribe = StreamerbotService.subscribeToSyncStatus((status) => {
+      setSyncStatus(status);
+    });
+
+    return unsubscribe;
+  }, []);
 
   const handleWorkingDirectoryChange = (value: string, isValid: boolean) => {
     setWorkingDirectory(value);
@@ -102,12 +117,22 @@ const SettingsPage: React.FC = () => {
               Configure application settings and manage your preferences.
             </p>
           </div>
-          <button
-            onClick={() => navigate("/")}
-            className="px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded hover:bg-gray-50 transition-colors"
-          >
-            Back to Editor
-          </button>
+          <div className="flex items-center space-x-4">
+            {/* Sync Status and Actions */}
+            <div className="flex items-center space-x-3">
+              <SyncStatusIndicator statusInfo={syncStatus} size="sm" />
+              <SyncActionsDropdown
+                syncStatus={syncStatus}
+                onSyncStatusChange={setSyncStatus}
+              />
+            </div>
+            <button
+              onClick={() => navigate("/")}
+              className="px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded hover:bg-gray-50 transition-colors"
+            >
+              Back to Editor
+            </button>
+          </div>
         </div>
       </div>
 

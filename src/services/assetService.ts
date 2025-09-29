@@ -44,7 +44,9 @@ export class AssetService {
           return [];
         }
         const assets = JSON.parse(stored);
-        return Array.isArray(assets) ? assets : [];
+        const validAssets = Array.isArray(assets) ? assets : [];
+
+        return validAssets;
       } catch (error) {
         console.error("Failed to load assets from storage:", error);
         return [];

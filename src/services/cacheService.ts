@@ -216,6 +216,7 @@ export const CACHE_KEYS = {
   SPAWN_ASSET_SETTINGS_ALL: "spawn_asset_settings_all",
   SPAWN_ASSET_SETTINGS_SPAWN: "spawn_asset_settings_spawn",
   SPAWN_ASSET_SETTINGS_ASSET: "spawn_asset_settings_asset",
+  SYNC_STATUS: "sync_status",
 } as const;
 
 /**
@@ -240,4 +241,11 @@ export const getSpawnAssetSpawnCacheKey = (spawnId: string): string => {
  */
 export const getSpawnAssetAssetCacheKey = (assetId: string): string => {
   return `${CACHE_KEYS.SPAWN_ASSET_SETTINGS_ASSET}:${assetId}`;
+};
+
+/**
+ * Generate cache key for sync status
+ */
+export const getSyncStatusCacheKey = (): string => {
+  return CACHE_KEYS.SYNC_STATUS;
 };

@@ -170,8 +170,8 @@ export class ImportExportService {
         assets: exportedAssets,
       };
 
-      // Serialize to JSON with proper formatting
-      const jsonData = JSON.stringify(config, null, 2);
+      // Serialize to JSON with compact formatting
+      const jsonData = JSON.stringify(config);
 
       // Validate JSON serialization
       try {
@@ -326,7 +326,9 @@ export class ImportExportService {
   /**
    * Validate imported configuration data
    */
-  static validateImportedConfig(config: unknown): ImportExportServiceValidationResult {
+  static validateImportedConfig(
+    config: unknown
+  ): ImportExportServiceValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
 

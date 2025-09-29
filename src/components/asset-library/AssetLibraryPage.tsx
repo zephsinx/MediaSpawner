@@ -10,6 +10,9 @@ import type { MediaAsset } from "../../types/media";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Card } from "../ui/Card";
+import { SyncStatusIndicator, SyncActionsDropdown } from "../common";
+import { StreamerbotService } from "../../services/streamerbotService";
+import type { SyncStatusInfo } from "../../types/sync";
 
 const AssetLibraryPage: React.FC = () => {
   const navigate = useNavigate();
@@ -26,6 +29,9 @@ const AssetLibraryPage: React.FC = () => {
     name?: string;
     path?: string;
   }>({});
+  const [syncStatus, setSyncStatus] = useState<SyncStatusInfo>({
+    status: "unknown",
+  });
 
   // Load assets on component mount
   useEffect(() => {
@@ -41,6 +47,15 @@ const AssetLibraryPage: React.FC = () => {
         handler as EventListener
       );
     };
+  }, []);
+
+  // Subscribe to sync status changes
+  useEffect(() => {
+    const unsubscribe = StreamerbotService.subscribeToSyncStatus((status) => {
+      setSyncStatus(status);
+    });
+
+    return unsubscribe;
   }, []);
 
   const handleAssetDelete = (asset: MediaAsset) => {
@@ -146,6 +161,14 @@ const AssetLibraryPage: React.FC = () => {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
+            {/* Sync Status and Actions */}
+            <div className="flex items-center space-x-3 mb-3 sm:mb-0">
+              <SyncStatusIndicator statusInfo={syncStatus} size="sm" />
+              <SyncActionsDropdown
+                syncStatus={syncStatus}
+                onSyncStatusChange={setSyncStatus}
+              />
+            </div>
             <Button
               variant="outline"
               onClick={() => navigate("/")}

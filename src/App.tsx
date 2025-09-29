@@ -66,7 +66,7 @@ function App() {
           </Routes>
         </Suspense>
       </BrowserRouter>
-      <Toaster richColors position="top-right" />
+      <Toaster richColors position="bottom-center" closeButton={true} />
     </Tooltip.Provider>
   );
 }
