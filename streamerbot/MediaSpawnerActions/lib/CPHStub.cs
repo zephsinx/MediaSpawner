@@ -53,6 +53,15 @@ public static class CPH
     }
 
     /// <summary>
+    /// Logs a verbose message.
+    /// </summary>
+    /// <param name="message">The message to log</param>
+    public static void LogVerbose(string message)
+    {
+        // No-op for development
+    }
+
+    /// <summary>
     /// Logs an informational message.
     /// </summary>
     /// <param name="message">The message to log</param>
