@@ -36,8 +36,10 @@ export function resolveEffectiveProperties(args: {
         spawnVal,
         baseVal: undefined as unknown as MediaAssetProperties[K],
       });
-      if (chosen === overrideVal) sourceMap[key] = "override";
-      else if (chosen === spawnVal) sourceMap[key] = "spawn-default";
+      if (overrideVal !== undefined && chosen === overrideVal)
+        sourceMap[key] = "override";
+      else if (spawnVal !== undefined && chosen === spawnVal)
+        sourceMap[key] = "spawn-default";
       else sourceMap[key] = "none";
     } else {
       if (overrideVal !== undefined) {
@@ -57,6 +59,10 @@ export function resolveEffectiveProperties(args: {
   // Simple scalar fields
   consider("scale");
   consider("positionMode");
+  consider("rotation");
+  consider("alignment");
+  consider("boundsType");
+  consider("boundsAlignment");
   consider("volume");
   consider("loop");
   consider("autoplay");
@@ -67,6 +73,9 @@ export function resolveEffectiveProperties(args: {
     return overrideVal ?? spawnVal ?? undefined;
   });
   consider("position", ({ overrideVal, spawnVal }) => {
+    return overrideVal ?? spawnVal ?? undefined;
+  });
+  consider("crop", ({ overrideVal, spawnVal }) => {
     return overrideVal ?? spawnVal ?? undefined;
   });
 
@@ -93,6 +102,11 @@ export function buildOverridesDiff(
   assignIfDifferent("position");
   assignIfDifferent("scale");
   assignIfDifferent("positionMode");
+  assignIfDifferent("rotation");
+  assignIfDifferent("crop");
+  assignIfDifferent("alignment");
+  assignIfDifferent("boundsType");
+  assignIfDifferent("boundsAlignment");
   assignIfDifferent("volume");
   assignIfDifferent("loop");
   assignIfDifferent("autoplay");

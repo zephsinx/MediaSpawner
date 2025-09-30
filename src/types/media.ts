@@ -32,8 +32,8 @@ export interface MediaAssetProperties {
   /** Position coordinates for images and videos */
   position?: Position;
 
-  /** Scale factor for images and videos (1.0 = 100%) */
-  scale?: number;
+  /** Scale factor for images and videos (1.0 = 100%) - supports both uniform and non-uniform scaling */
+  scale?: number | ScaleObject;
 
   /** Positioning mode for images and videos */
   positionMode?: "absolute" | "relative" | "centered";
@@ -49,6 +49,21 @@ export interface MediaAssetProperties {
 
   /** Whether audio should start muted */
   muted?: boolean;
+
+  /** Rotation angle for images and videos (0-360 degrees) */
+  rotation?: number;
+
+  /** Crop settings for images and videos */
+  crop?: CropSettings;
+
+  /** Alignment option for scene items */
+  alignment?: AlignmentOption;
+
+  /** Bounds type for scene item scaling */
+  boundsType?: BoundsType;
+
+  /** Bounds alignment for scene item scaling */
+  boundsAlignment?: AlignmentOption;
 }
 
 /**
@@ -66,6 +81,58 @@ export interface Position {
   x: number;
   y: number;
 }
+
+/**
+ * Scale object interface for non-uniform scaling
+ */
+export interface ScaleObject {
+  /** X-axis scale factor */
+  x: number;
+  /** Y-axis scale factor */
+  y: number;
+  /** Whether X and Y scales are linked (UI hint) */
+  linked?: boolean;
+}
+
+/**
+ * Crop settings interface for image/video cropping
+ */
+export interface CropSettings {
+  /** Left crop amount in pixels */
+  left: number;
+  /** Top crop amount in pixels */
+  top: number;
+  /** Right crop amount in pixels */
+  right: number;
+  /** Bottom crop amount in pixels */
+  bottom: number;
+}
+
+/**
+ * OBS bounds type options for scene item scaling
+ */
+export type BoundsType =
+  | "OBS_BOUNDS_NONE"
+  | "OBS_BOUNDS_STRETCH"
+  | "OBS_BOUNDS_SCALE_INNER"
+  | "OBS_BOUNDS_SCALE_OUTER"
+  | "OBS_BOUNDS_SCALE_TO_WIDTH"
+  | "OBS_BOUNDS_SCALE_TO_HEIGHT"
+  | "OBS_BOUNDS_MAX_ONLY";
+
+/**
+ * OBS alignment options for scene items
+ */
+export type AlignmentOption =
+  | 0 // Top Left
+  | 1 // Top Center
+  | 2 // Top Right
+  | 4 // Center Left
+  | 5 // Center
+  | 6 // Center Right
+  | 8 // Bottom Left
+  | 9 // Bottom Center
+  | 10; // Bottom Right
 
 /**
  * Asset group interface representing a collection of media assets with shared configuration

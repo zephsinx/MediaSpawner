@@ -2488,7 +2488,11 @@ const SpawnEditorWorkspace: React.FC = () => {
                       type="number"
                       min={0}
                       step={0.1}
-                      value={draftDefaults.scale ?? ""}
+                      value={
+                        typeof draftDefaults.scale === "number"
+                          ? draftDefaults.scale
+                          : draftDefaults.scale?.x ?? ""
+                      }
                       onChange={(e) =>
                         setDraftDefaults((prev) => ({
                           ...prev,
