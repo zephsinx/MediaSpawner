@@ -1278,9 +1278,11 @@ describe("AssetSettingsForm", () => {
         });
 
         // Now look for the linked/unlinked toggle
-        const linkToggle = screen.getByRole("checkbox", { name: /linked/i });
+        const unlinkToggle = screen.getByRole("checkbox", {
+          name: /unlinked/i,
+        });
         await act(async () => {
-          fireEvent.click(linkToggle);
+          fireEvent.click(unlinkToggle);
         });
 
         // Wait for the X and Y inputs to appear

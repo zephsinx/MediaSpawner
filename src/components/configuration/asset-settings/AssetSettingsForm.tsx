@@ -702,24 +702,13 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                             type="checkbox"
                             checked={
                               typeof draftValues.scale === "object" &&
-                              draftValues.scale?.linked !== false
+                              draftValues.scale?.linked === false
                             }
                             onChange={(e) => {
-                              const isLinked = e.target.checked;
+                              const isUnlinked = e.target.checked;
                               const currentScale = draftValues.scale;
 
-                              if (isLinked) {
-                                // Convert to linked mode - use X value for both
-                                const scaleValue =
-                                  typeof currentScale === "number"
-                                    ? currentScale
-                                    : currentScale?.x ?? 1;
-                                setField("scale", {
-                                  x: scaleValue,
-                                  y: scaleValue,
-                                  linked: true,
-                                });
-                              } else {
+                              if (isUnlinked) {
                                 // Convert to unlinked mode
                                 const scaleValue =
                                   typeof currentScale === "number"
@@ -730,12 +719,23 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                                   y: scaleValue,
                                   linked: false,
                                 });
+                              } else {
+                                // Convert to linked mode - use X value for both
+                                const scaleValue =
+                                  typeof currentScale === "number"
+                                    ? currentScale
+                                    : currentScale?.x ?? 1;
+                                setField("scale", {
+                                  x: scaleValue,
+                                  y: scaleValue,
+                                  linked: true,
+                                });
                               }
                             }}
                             disabled={!overrideEnabled.scale}
                             className="rounded"
                           />
-                          Linked
+                          Unlinked
                         </label>
                       </div>
 
@@ -837,8 +837,8 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     </div>
                   </div>
                   <p id="scale-help" className="text-xs text-gray-500 mt-1">
-                    Enter a non-negative factor (1.0 = 100%). Toggle "Linked" to
-                    scale X and Y independently.
+                    Enter a non-negative factor (1.0 = 100%). Toggle "Unlinked"
+                    to scale X and Y independently.
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     {overrideEnabled.scale
