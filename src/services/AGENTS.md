@@ -6,7 +6,7 @@
 
 ## Contracts
 
-- `SpawnService`: CRUD for spawn data; accepts `defaultProperties` and per-asset overrides as diffs.
+- `SpawnService`: CRUD for spawn data; accepts per-asset overrides as diffs.
 - `AssetService`: global asset library; assets are descriptive only (no behavioral `properties`).
 - `CacheService`, `ConfigurationService`, `ImportExportService`, `SettingsService`, `SpawnProfileService` — exported via `src/services/index.ts`.
 

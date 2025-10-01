@@ -43,7 +43,6 @@ describe("AssetService getResolvedAssetSettings (inline overrides)", () => {
     enabled: true,
     trigger: { type: "manual" as const, config: {} },
     duration: 0,
-    defaultProperties: {},
     assets: [] as Array<{
       id: string;
       assetId: string;

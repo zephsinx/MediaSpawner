@@ -535,7 +535,6 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
               statuses: ["fulfilled", "pending"],
             },
           }),
-          defaultProperties: {},
         })
       );
     });

@@ -33,7 +33,7 @@ describe("SpawnEditorWorkspace (MS-44 Defaults)", () => {
     vi.clearAllMocks();
   });
 
-  it("saves only enabled default properties and dispatches event", async () => {
+  it("saves spawn configuration without default properties", async () => {
     const s = createSpawn({});
     vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([s]);
     vi.mocked(SpawnService.updateSpawn).mockResolvedValue({
@@ -45,18 +45,10 @@ describe("SpawnEditorWorkspace (MS-44 Defaults)", () => {
       render(<SpawnEditorWorkspace />);
     });
 
-    // Enable volume default, set to 40%
-    const volToggle = screen.getByLabelText(
-      "Enable default for volume"
-    ) as HTMLInputElement;
+    // Make a change to enable save button
+    const nameInput = screen.getByLabelText("Name");
     await act(async () => {
-      fireEvent.click(volToggle);
-    });
-    const volNumber = screen
-      .getAllByRole("spinbutton")
-      .find((el) => (el as HTMLInputElement).max === "100") as HTMLInputElement;
-    await act(async () => {
-      fireEvent.change(volNumber, { target: { value: "40" } });
+      fireEvent.change(nameInput, { target: { value: "Updated Spawn" } });
     });
 
     const saveBtn = screen.getByRole("button", { name: "Save spawn" });
@@ -69,7 +61,7 @@ describe("SpawnEditorWorkspace (MS-44 Defaults)", () => {
     expect(args).not.toHaveProperty("defaultProperties");
   });
 
-  it("cancel reverts defaults draft and toggles", async () => {
+  it("cancel reverts form changes", async () => {
     const s = createSpawn({});
     vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([s]);
     vi.mocked(SpawnService.updateSpawn).mockResolvedValue({
@@ -81,18 +73,11 @@ describe("SpawnEditorWorkspace (MS-44 Defaults)", () => {
       render(<SpawnEditorWorkspace />);
     });
 
-    const volToggle = screen.getByLabelText(
-      "Enable default for volume"
-    ) as HTMLInputElement;
-    expect(volToggle.checked).toBe(true);
-    const volNumber = screen
-      .getAllByRole("spinbutton")
-      .find((el) => (el as HTMLInputElement).max === "100") as HTMLInputElement;
-    expect(volNumber.value).toBe("50");
+    const nameInput = screen.getByLabelText("Name");
+    expect(nameInput).toHaveValue("Spawn One");
 
     await act(async () => {
-      fireEvent.click(volToggle); // disable
-      fireEvent.change(volNumber, { target: { value: "30" } });
+      fireEvent.change(nameInput, { target: { value: "Changed Name" } });
     });
 
     await act(async () => {
@@ -107,13 +92,6 @@ describe("SpawnEditorWorkspace (MS-44 Defaults)", () => {
       (buttons[1] as HTMLButtonElement).click();
     });
 
-    expect(
-      (screen.getByLabelText("Enable default for volume") as HTMLInputElement)
-        .checked
-    ).toBe(true);
-    const volNumber2 = screen
-      .getAllByRole("spinbutton")
-      .find((el) => (el as HTMLInputElement).max === "100") as HTMLInputElement;
-    expect(volNumber2.value).toBe("50");
+    expect(nameInput).toHaveValue("Spawn One");
   });
 });
