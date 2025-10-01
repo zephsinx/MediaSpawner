@@ -134,7 +134,8 @@ describe("assetValidation", () => {
     it("returns invalid for invalid alignment values", () => {
       const invalidAlignments = [3, 7, 11, -1, 15];
       invalidAlignments.forEach((alignment) => {
-        const result = validateAlignment(alignment as AlignmentOption);
+        // @ts-expect-error - Testing invalid input
+        const result = validateAlignment(alignment);
         expect(result.isValid).toBe(false);
         expect(result.error).toBe("Invalid alignment value");
       });
@@ -164,7 +165,8 @@ describe("assetValidation", () => {
     });
 
     it("returns invalid for invalid bounds type", () => {
-      const result = validateBoundsType("INVALID_BOUNDS_TYPE" as BoundsType);
+      // @ts-expect-error - Testing invalid input
+      const result = validateBoundsType("INVALID_BOUNDS_TYPE");
       expect(result.isValid).toBe(false);
       expect(result.error).toBe("Invalid bounds type");
     });
@@ -187,7 +189,8 @@ describe("assetValidation", () => {
     it("returns invalid for invalid alignment values", () => {
       const invalidAlignments = [3, 7, 11, -1, 15];
       invalidAlignments.forEach((alignment) => {
-        const result = validateBoundsAlignment(alignment as AlignmentOption);
+        // @ts-expect-error - Testing invalid input
+        const result = validateBoundsAlignment(alignment);
         expect(result.isValid).toBe(false);
         expect(result.error).toBe("Invalid bounds alignment value");
       });
@@ -259,16 +262,17 @@ describe("assetValidation", () => {
     });
 
     it("returns invalid for non-object, non-number values", () => {
-      const result = validateScaleValue("invalid" as any);
+      // @ts-expect-error - Testing invalid input
+      const result = validateScaleValue("invalid");
       expect(result.isValid).toBe(false);
       expect(result.error).toBe("Invalid scale value");
     });
 
     it("returns invalid for null values", () => {
-      const result = validateScaleValue(null as any);
+      // @ts-expect-error - Testing invalid input
+      const result = validateScaleValue(null);
       expect(result.isValid).toBe(false);
       expect(result.error).toBe("Invalid scale value");
     });
   });
 });
-
