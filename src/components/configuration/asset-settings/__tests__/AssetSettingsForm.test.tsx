@@ -39,6 +39,11 @@ vi.mock("../../../../utils/assetValidation", () => ({
   validateDimensionsValues: vi.fn(),
   validatePositionValues: vi.fn(),
   validateScaleValue: vi.fn(),
+  validateRotation: vi.fn(),
+  validateCropSettings: vi.fn(),
+  validateAlignment: vi.fn(),
+  validateBoundsType: vi.fn(),
+  validateBoundsAlignment: vi.fn(),
 }));
 
 // Imports after mocks
@@ -54,6 +59,11 @@ import {
   validateDimensionsValues,
   validatePositionValues,
   validateScaleValue,
+  validateRotation,
+  validateCropSettings,
+  validateAlignment,
+  validateBoundsType,
+  validateBoundsAlignment,
 } from "../../../../utils/assetValidation";
 
 function makeSpawn(
@@ -133,6 +143,11 @@ describe("AssetSettingsForm", () => {
     vi.mocked(validateDimensionsValues).mockReturnValue({ isValid: true });
     vi.mocked(validatePositionValues).mockReturnValue({ isValid: true });
     vi.mocked(validateScaleValue).mockReturnValue({ isValid: true });
+    vi.mocked(validateRotation).mockReturnValue({ isValid: true });
+    vi.mocked(validateCropSettings).mockReturnValue({ isValid: true });
+    vi.mocked(validateAlignment).mockReturnValue({ isValid: true });
+    vi.mocked(validateBoundsType).mockReturnValue({ isValid: true });
+    vi.mocked(validateBoundsAlignment).mockReturnValue({ isValid: true });
   });
 
   describe("Loading States", () => {
@@ -535,7 +550,7 @@ describe("AssetSettingsForm", () => {
         fireEvent.click(volumeToggle);
       });
 
-      const volumeSlider = await screen.findByRole("slider");
+      const volumeSlider = await screen.findByLabelText("Volume slider");
       await act(async () => {
         fireEvent.change(volumeSlider, { target: { value: "75" } });
       });
@@ -645,7 +660,7 @@ describe("AssetSettingsForm", () => {
         fireEvent.click(volumeToggle);
       });
 
-      const volumeSlider = await screen.findByRole("slider");
+      const volumeSlider = await screen.findByLabelText("Volume slider");
       await act(async () => {
         fireEvent.change(volumeSlider, { target: { value: "150" } });
       });
@@ -1014,6 +1029,427 @@ describe("AssetSettingsForm", () => {
       expect(mockSetCachedDraft).toHaveBeenCalledWith({
         overrideEnabled: {},
         draftValues: expect.any(Object),
+      });
+    });
+  });
+
+  describe("new transform controls", () => {
+    describe("rotation control", () => {
+      it("renders rotation control for video assets", async () => {
+        render(
+          <AssetSettingsForm
+            spawnId="spawn1"
+            spawnAssetId="asset1"
+            onBack={mockOnBack}
+            setCachedDraft={mockSetCachedDraft}
+          />
+        );
+
+        await waitFor(() => {
+          expect(screen.getByText("Rotation (°)")).toBeInTheDocument();
+        });
+
+        const rotationSlider = screen.getByLabelText("Rotation slider");
+        const rotationInput = screen.getByLabelText("Rotation slider");
+
+        expect(rotationSlider).toBeInTheDocument();
+        expect(rotationInput).toBeInTheDocument();
+        expect(rotationSlider).toHaveAttribute("min", "0");
+        expect(rotationSlider).toHaveAttribute("max", "360");
+        expect(rotationSlider).toHaveAttribute("step", "1");
+      });
+
+      it("updates rotation value when slider is changed", async () => {
+        render(
+          <AssetSettingsForm
+            spawnId="spawn1"
+            spawnAssetId="asset1"
+            onBack={mockOnBack}
+            setCachedDraft={mockSetCachedDraft}
+          />
+        );
+
+        const rotationToggle = await screen.findByLabelText(
+          "Override rotation"
+        );
+        await act(async () => {
+          fireEvent.click(rotationToggle);
+        });
+
+        const rotationSlider = screen.getByLabelText("Rotation slider");
+        await act(async () => {
+          fireEvent.change(rotationSlider, { target: { value: "90" } });
+        });
+
+        expect(rotationSlider).toHaveValue("90");
+      });
+
+      it("updates rotation value when numeric input is changed", async () => {
+        render(
+          <AssetSettingsForm
+            spawnId="spawn1"
+            spawnAssetId="asset1"
+            onBack={mockOnBack}
+            setCachedDraft={mockSetCachedDraft}
+          />
+        );
+
+        const rotationToggle = await screen.findByLabelText(
+          "Override rotation"
+        );
+        await act(async () => {
+          fireEvent.click(rotationToggle);
+        });
+
+        const rotationInput = screen.getByLabelText("Rotation slider");
+        await act(async () => {
+          fireEvent.change(rotationInput, { target: { value: "180" } });
+        });
+
+        expect(rotationInput).toHaveValue("180");
+      });
+
+      it("shows validation error for invalid rotation", async () => {
+        vi.mocked(validateRotation).mockReturnValue({
+          isValid: false,
+          error: "Enter 0–360°",
+        });
+
+        render(
+          <AssetSettingsForm
+            spawnId="spawn1"
+            spawnAssetId="asset1"
+            onBack={mockOnBack}
+            setCachedDraft={mockSetCachedDraft}
+          />
+        );
+
+        const rotationToggle = await screen.findByLabelText(
+          "Override rotation"
+        );
+        await act(async () => {
+          fireEvent.click(rotationToggle);
+        });
+
+        const rotationSlider = screen.getByLabelText("Rotation slider");
+        await act(async () => {
+          fireEvent.change(rotationSlider, { target: { value: "400" } });
+        });
+
+        expect(await screen.findByText("Enter 0–360°")).toBeInTheDocument();
+      });
+    });
+
+    describe("crop controls", () => {
+      it("renders crop controls for video assets", async () => {
+        render(
+          <AssetSettingsForm
+            spawnId="spawn1"
+            spawnAssetId="asset1"
+            onBack={mockOnBack}
+            setCachedDraft={mockSetCachedDraft}
+          />
+        );
+
+        await waitFor(() => {
+          expect(screen.getByText("Crop (px)")).toBeInTheDocument();
+        });
+
+        expect(screen.getByText("Left")).toBeInTheDocument();
+        expect(screen.getByText("Top")).toBeInTheDocument();
+        expect(screen.getByText("Right")).toBeInTheDocument();
+        expect(screen.getByText("Bottom")).toBeInTheDocument();
+      });
+
+      it("updates crop values when inputs are changed", async () => {
+        render(
+          <AssetSettingsForm
+            spawnId="spawn1"
+            spawnAssetId="asset1"
+            onBack={mockOnBack}
+            setCachedDraft={mockSetCachedDraft}
+          />
+        );
+
+        const cropToggle = await screen.findByLabelText("Override crop");
+        await act(async () => {
+          fireEvent.click(cropToggle);
+        });
+
+        const cropInputs = screen.getAllByDisplayValue("0");
+        const leftInput = cropInputs[0]; // First crop input is "Left"
+        await act(async () => {
+          fireEvent.change(leftInput, { target: { value: "10" } });
+        });
+
+        expect(leftInput).toHaveValue(10);
+      });
+
+      it("shows validation error for invalid crop values", async () => {
+        vi.mocked(validateCropSettings).mockReturnValue({
+          isValid: false,
+          error: "Crop left must be ≥ 0",
+        });
+
+        render(
+          <AssetSettingsForm
+            spawnId="spawn1"
+            spawnAssetId="asset1"
+            onBack={mockOnBack}
+            setCachedDraft={mockSetCachedDraft}
+          />
+        );
+
+        const cropToggle = await screen.findByLabelText("Override crop");
+        await act(async () => {
+          fireEvent.click(cropToggle);
+        });
+
+        const cropInputs = screen.getAllByDisplayValue("0");
+        const leftInput = cropInputs[0]; // First crop input is "Left"
+        await act(async () => {
+          fireEvent.change(leftInput, { target: { value: "-1" } });
+        });
+
+        expect(
+          await screen.findByText("Crop left must be ≥ 0")
+        ).toBeInTheDocument();
+      });
+    });
+
+    describe("non-uniform scale controls", () => {
+      it("renders scale controls with linked/unlinked toggle", async () => {
+        render(
+          <AssetSettingsForm
+            spawnId="spawn1"
+            spawnAssetId="asset1"
+            onBack={mockOnBack}
+            setCachedDraft={mockSetCachedDraft}
+          />
+        );
+
+        await waitFor(() => {
+          expect(screen.getByText("Scale")).toBeInTheDocument();
+        });
+
+        const scaleToggle = screen.getByLabelText("Override scale");
+        expect(scaleToggle).toBeInTheDocument();
+      });
+
+      it("shows single scale input when linked", async () => {
+        render(
+          <AssetSettingsForm
+            spawnId="spawn1"
+            spawnAssetId="asset1"
+            onBack={mockOnBack}
+            setCachedDraft={mockSetCachedDraft}
+          />
+        );
+
+        const scaleToggle = await screen.findByLabelText("Override scale");
+        await act(async () => {
+          fireEvent.click(scaleToggle);
+        });
+
+        // Should show single scale input when linked
+        const scaleInputs = screen.getAllByDisplayValue("1");
+        expect(scaleInputs).toHaveLength(1);
+      });
+
+      it("shows separate X and Y inputs when unlinked", async () => {
+        render(
+          <AssetSettingsForm
+            spawnId="spawn1"
+            spawnAssetId="asset1"
+            onBack={mockOnBack}
+            setCachedDraft={mockSetCachedDraft}
+          />
+        );
+
+        const scaleToggle = await screen.findByLabelText("Override scale");
+        await act(async () => {
+          fireEvent.click(scaleToggle);
+        });
+
+        // First, set a scale value to ensure the scale controls are rendered
+        const scaleInput = screen.getByDisplayValue("1");
+        await act(async () => {
+          fireEvent.change(scaleInput, { target: { value: "1.5" } });
+        });
+
+        // Now look for the linked/unlinked toggle
+        const unlinkToggle = screen.getByRole("checkbox", {
+          name: /unlinked/i,
+        });
+        await act(async () => {
+          fireEvent.click(unlinkToggle);
+        });
+
+        // Wait for the X and Y inputs to appear
+        await waitFor(() => {
+          expect(screen.getByText("X")).toBeInTheDocument();
+          expect(screen.getByText("Y")).toBeInTheDocument();
+        });
+      });
+    });
+
+    describe("bounds type selection", () => {
+      it("renders bounds type dropdown", async () => {
+        render(
+          <AssetSettingsForm
+            spawnId="spawn1"
+            spawnAssetId="asset1"
+            onBack={mockOnBack}
+            setCachedDraft={mockSetCachedDraft}
+          />
+        );
+
+        await waitFor(() => {
+          expect(screen.getByText("Bounds Type")).toBeInTheDocument();
+        });
+
+        const boundsTypeSelect = screen.getByLabelText("Override bounds type");
+        expect(boundsTypeSelect).toBeInTheDocument();
+      });
+
+      it("updates bounds type when selection changes", async () => {
+        render(
+          <AssetSettingsForm
+            spawnId="spawn1"
+            spawnAssetId="asset1"
+            onBack={mockOnBack}
+            setCachedDraft={mockSetCachedDraft}
+          />
+        );
+
+        const boundsTypeToggle = await screen.findByLabelText(
+          "Override bounds type"
+        );
+        await act(async () => {
+          fireEvent.click(boundsTypeToggle);
+        });
+
+        const boundsTypeSelect = screen.getByDisplayValue(
+          "Select bounds type..."
+        );
+        await act(async () => {
+          fireEvent.change(boundsTypeSelect, {
+            target: { value: "OBS_BOUNDS_STRETCH" },
+          });
+        });
+
+        expect(boundsTypeSelect).toHaveValue("OBS_BOUNDS_STRETCH");
+      });
+
+      it("shows validation error for invalid bounds type", async () => {
+        vi.mocked(validateBoundsType).mockReturnValue({
+          isValid: false,
+          error: "Invalid bounds type",
+        });
+
+        render(
+          <AssetSettingsForm
+            spawnId="spawn1"
+            spawnAssetId="asset1"
+            onBack={mockOnBack}
+            setCachedDraft={mockSetCachedDraft}
+          />
+        );
+
+        const boundsTypeToggle = await screen.findByLabelText(
+          "Override bounds type"
+        );
+        await act(async () => {
+          fireEvent.click(boundsTypeToggle);
+        });
+
+        const boundsTypeSelect = screen.getByLabelText("Override bounds type");
+        await act(async () => {
+          fireEvent.change(boundsTypeSelect, {
+            target: { value: "INVALID_TYPE" },
+          });
+        });
+
+        expect(
+          await screen.findByText("Invalid bounds type")
+        ).toBeInTheDocument();
+      });
+    });
+
+    describe("alignment selection", () => {
+      it("renders alignment dropdown", async () => {
+        render(
+          <AssetSettingsForm
+            spawnId="spawn1"
+            spawnAssetId="asset1"
+            onBack={mockOnBack}
+            setCachedDraft={mockSetCachedDraft}
+          />
+        );
+
+        await waitFor(() => {
+          expect(screen.getByText("Alignment")).toBeInTheDocument();
+        });
+
+        const alignmentSelect = screen.getByLabelText("Override alignment");
+        expect(alignmentSelect).toBeInTheDocument();
+      });
+
+      it("updates alignment when selection changes", async () => {
+        render(
+          <AssetSettingsForm
+            spawnId="spawn1"
+            spawnAssetId="asset1"
+            onBack={mockOnBack}
+            setCachedDraft={mockSetCachedDraft}
+          />
+        );
+
+        const alignmentToggle = await screen.findByLabelText(
+          "Override alignment"
+        );
+        await act(async () => {
+          fireEvent.click(alignmentToggle);
+        });
+
+        const alignmentSelect = screen.getByDisplayValue("Select alignment...");
+        await act(async () => {
+          fireEvent.change(alignmentSelect, { target: { value: "5" } });
+        });
+
+        expect(alignmentSelect).toHaveValue("5");
+      });
+
+      it("shows validation error for invalid alignment", async () => {
+        vi.mocked(validateAlignment).mockReturnValue({
+          isValid: false,
+          error: "Invalid alignment value",
+        });
+
+        render(
+          <AssetSettingsForm
+            spawnId="spawn1"
+            spawnAssetId="asset1"
+            onBack={mockOnBack}
+            setCachedDraft={mockSetCachedDraft}
+          />
+        );
+
+        const alignmentToggle = await screen.findByLabelText(
+          "Override alignment"
+        );
+        await act(async () => {
+          fireEvent.click(alignmentToggle);
+        });
+
+        const alignmentSelect = screen.getByLabelText("Override alignment");
+        await act(async () => {
+          fireEvent.change(alignmentSelect, { target: { value: "99" } });
+        });
+
+        expect(
+          await screen.findByText("Invalid alignment value")
+        ).toBeInTheDocument();
       });
     });
   });

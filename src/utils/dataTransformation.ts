@@ -202,11 +202,20 @@ export function transformRandomizationBucketToSchema(
 export function transformAssetSettingsToSchema(
   settings: Partial<MediaAssetProperties>
 ): ExportedAssetSettings {
+  // Handle scale conversion for backward compatibility
+  let scaleValue: number | undefined;
+  if (typeof settings.scale === "number") {
+    scaleValue = settings.scale;
+  } else if (settings.scale && typeof settings.scale === "object") {
+    // For ScaleObject, use the x value for backward compatibility
+    scaleValue = settings.scale.x;
+  }
+
   return {
     volume: settings.volume,
     width: settings.dimensions?.width,
     height: settings.dimensions?.height,
-    scale: settings.scale,
+    scale: scaleValue,
     positionMode: settings.positionMode,
     x: settings.position?.x,
     y: settings.position?.y,

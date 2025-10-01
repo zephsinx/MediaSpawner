@@ -5278,19 +5278,89 @@ public class CPHInline
 
             sceneItemTransform["positionX"] = x;
             sceneItemTransform["positionY"] = y;
-            sceneItemTransform["alignment"] = 0; // Default alignment
             hasTransformProperties = true;
         }
 
-        // Handle scale
-        if (properties.ContainsKey("scale") && properties["scale"] is double scale)
+        // Handle scale - support both uniform (double) and non-uniform (ScaleObject) scaling
+        if (properties.ContainsKey("scale"))
         {
-            sceneItemTransform["scaleX"] = scale;
-            sceneItemTransform["scaleY"] = scale;
+            if (properties["scale"] is double scale)
+            {
+                // Uniform scaling (backward compatibility)
+                sceneItemTransform["scaleX"] = scale;
+                sceneItemTransform["scaleY"] = scale;
+                hasTransformProperties = true;
+            }
+            else if (properties["scale"] is Dictionary<string, object> scaleObj)
+            {
+                // Non-uniform scaling
+                double scaleX = scaleObj.ContainsKey("x") && scaleObj["x"] is double xVal ? xVal : 1.0;
+                double scaleY = scaleObj.ContainsKey("y") && scaleObj["y"] is double yVal ? yVal : 1.0;
+
+                sceneItemTransform["scaleX"] = scaleX;
+                sceneItemTransform["scaleY"] = scaleY;
+                hasTransformProperties = true;
+            }
+        }
+
+        // Handle rotation
+        if (properties.ContainsKey("rotation") && properties["rotation"] is double rotation)
+        {
+            // Convert degrees to radians for OBS API
+            double rotationRadians = rotation * Math.PI / 180.0;
+            sceneItemTransform["rotation"] = rotationRadians;
             hasTransformProperties = true;
         }
 
-        // Handle dimensions (bounds)
+        // Handle crop controls
+        if (properties.ContainsKey("cropLeft") && properties["cropLeft"] is double cropLeft)
+        {
+            sceneItemTransform["cropLeft"] = cropLeft;
+            hasTransformProperties = true;
+        }
+        if (properties.ContainsKey("cropTop") && properties["cropTop"] is double cropTop)
+        {
+            sceneItemTransform["cropTop"] = cropTop;
+            hasTransformProperties = true;
+        }
+        if (properties.ContainsKey("cropRight") && properties["cropRight"] is double cropRight)
+        {
+            sceneItemTransform["cropRight"] = cropRight;
+            hasTransformProperties = true;
+        }
+        if (properties.ContainsKey("cropBottom") && properties["cropBottom"] is double cropBottom)
+        {
+            sceneItemTransform["cropBottom"] = cropBottom;
+            hasTransformProperties = true;
+        }
+
+        // Handle alignment
+        if (properties.ContainsKey("alignment") && properties["alignment"] is int alignment)
+        {
+            sceneItemTransform["alignment"] = alignment;
+            hasTransformProperties = true;
+        }
+        else if (hasTransformProperties && !sceneItemTransform.ContainsKey("alignment"))
+        {
+            // Set default alignment if not specified
+            sceneItemTransform["alignment"] = 0;
+        }
+
+        // Handle bounds type
+        if (properties.ContainsKey("boundsType") && properties["boundsType"] is string boundsType)
+        {
+            sceneItemTransform["boundsType"] = boundsType;
+            hasTransformProperties = true;
+        }
+
+        // Handle bounds alignment
+        if (properties.ContainsKey("boundsAlignment") && properties["boundsAlignment"] is int boundsAlignment)
+        {
+            sceneItemTransform["boundsAlignment"] = boundsAlignment;
+            hasTransformProperties = true;
+        }
+
+        // Handle dimensions (bounds) - enhanced to work with bounds type
         if (properties.ContainsKey("dimensions") && properties["dimensions"] is Dictionary<string, object> dimensions)
         {
             double width = dimensions.ContainsKey("width") && dimensions["width"] is double w ? w : 0;
@@ -5298,8 +5368,15 @@ public class CPHInline
 
             if (width > 0 && height > 0)
             {
-                sceneItemTransform["boundsType"] = OBSBoundsTypeStrings[OBSBoundsType.ScaleInner];
-                sceneItemTransform["boundsAlignment"] = 0;
+                // Use specified bounds type or default to ScaleInner
+                if (!sceneItemTransform.ContainsKey("boundsType"))
+                {
+                    sceneItemTransform["boundsType"] = OBSBoundsTypeStrings[OBSBoundsType.ScaleInner];
+                }
+                if (!sceneItemTransform.ContainsKey("boundsAlignment"))
+                {
+                    sceneItemTransform["boundsAlignment"] = 0;
+                }
                 sceneItemTransform["boundsWidth"] = width;
                 sceneItemTransform["boundsHeight"] = height;
                 hasTransformProperties = true;
@@ -6876,6 +6953,30 @@ public class CPHInline
 
         [JsonProperty("muted")]
         public bool? Muted { get; set; }
+
+        [JsonProperty("rotation")]
+        public double? Rotation { get; set; }
+
+        [JsonProperty("cropLeft")]
+        public double? CropLeft { get; set; }
+
+        [JsonProperty("cropTop")]
+        public double? CropTop { get; set; }
+
+        [JsonProperty("cropRight")]
+        public double? CropRight { get; set; }
+
+        [JsonProperty("cropBottom")]
+        public double? CropBottom { get; set; }
+
+        [JsonProperty("alignment")]
+        public int? Alignment { get; set; }
+
+        [JsonProperty("boundsType")]
+        public string BoundsType { get; set; }
+
+        [JsonProperty("boundsAlignment")]
+        public int? BoundsAlignment { get; set; }
     }
 
     /// <summary>
