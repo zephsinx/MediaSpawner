@@ -290,7 +290,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
       if (overrideEnabled.autoplay) desired.autoplay = draftValues.autoplay;
       if (overrideEnabled.muted) desired.muted = draftValues.muted;
 
-      const diff = buildOverridesDiff(spawn.defaultProperties, desired);
+      const diff = buildOverridesDiff(desired);
       const updatedAssets: SpawnAsset[] = spawn.assets.map((sa) =>
         sa.id === spawnAsset.id
           ? {
@@ -573,7 +573,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   <p className="text-xs text-gray-500 mt-1">
                     {overrideEnabled.dimensions
                       ? "Overridden"
-                      : effective.sourceMap.dimensions === "spawn-default"
+                      : effective.sourceMap.dimensions === "none"
                       ? "Inherited from Spawn"
                       : "Not set"}
                   </p>
@@ -644,7 +644,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   <p className="text-xs text-gray-500 mt-1">
                     {overrideEnabled.position
                       ? "Overridden"
-                      : effective.sourceMap.position === "spawn-default"
+                      : effective.sourceMap.position === "none"
                       ? "Inherited from Spawn"
                       : "Not set"}
                   </p>
@@ -843,7 +843,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   <p className="text-xs text-gray-500 mt-1">
                     {overrideEnabled.scale
                       ? "Overridden"
-                      : effective.sourceMap.scale === "spawn-default"
+                      : effective.sourceMap.scale === "none"
                       ? "Inherited from Spawn"
                       : "Not set"}
                   </p>
@@ -886,7 +886,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   <p className="text-xs text-gray-500 mt-1">
                     {overrideEnabled.positionMode
                       ? "Overridden"
-                      : effective.sourceMap.positionMode === "spawn-default"
+                      : effective.sourceMap.positionMode === "none"
                       ? "Inherited from Spawn"
                       : "Not set"}
                   </p>
@@ -945,7 +945,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   <p className="text-xs text-gray-500 mt-1">
                     {overrideEnabled.rotation
                       ? "Overridden"
-                      : effective.sourceMap.rotation === "spawn-default"
+                      : effective.sourceMap.rotation === "none"
                       ? "Inherited from Spawn"
                       : "Not set"}
                   </p>
@@ -1067,7 +1067,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   <p className="text-xs text-gray-500 mt-1">
                     {overrideEnabled.crop
                       ? "Overridden"
-                      : effective.sourceMap.crop === "spawn-default"
+                      : effective.sourceMap.crop === "none"
                       ? "Inherited from Spawn"
                       : "Not set"}
                   </p>
@@ -1132,7 +1132,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   <p className="text-xs text-gray-500 mt-1">
                     {overrideEnabled.boundsType
                       ? "Overridden"
-                      : effective.sourceMap.boundsType === "spawn-default"
+                      : effective.sourceMap.boundsType === "none"
                       ? "Inherited from Spawn"
                       : "Not set"}
                   </p>
@@ -1191,7 +1191,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   <p className="text-xs text-gray-500 mt-1">
                     {overrideEnabled.alignment
                       ? "Overridden"
-                      : effective.sourceMap.alignment === "spawn-default"
+                      : effective.sourceMap.alignment === "none"
                       ? "Inherited from Spawn"
                       : "Not set"}
                   </p>

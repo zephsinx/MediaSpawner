@@ -66,15 +66,8 @@ import {
   validateBoundsAlignment,
 } from "../../../../utils/assetValidation";
 
-function makeSpawn(
-  id: string,
-  assets: SpawnAsset[],
-  defaultProperties?: Partial<MediaAssetProperties>
-): Spawn {
+function makeSpawn(id: string, assets: SpawnAsset[]): Spawn {
   const spawn = createSpawn(id, undefined, assets, id);
-  if (defaultProperties) {
-    spawn.defaultProperties = defaultProperties;
-  }
   return spawn;
 }
 
@@ -178,21 +171,21 @@ describe("AssetSettingsForm", () => {
         name: "Test Video",
       });
       const spawnAsset = makeSpawnAsset("asset1", 0);
-      const spawn = makeSpawn("spawn1", [spawnAsset], makeProperties());
+      const spawn = makeSpawn("spawn1", [spawnAsset]);
 
       vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
       vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
       vi.mocked(resolveEffectiveProperties).mockReturnValue({
         effective: makeProperties(),
         sourceMap: {
-          dimensions: "spawn-default",
-          position: "spawn-default",
-          scale: "spawn-default",
-          positionMode: "spawn-default",
-          volume: "spawn-default",
-          loop: "spawn-default",
-          autoplay: "spawn-default",
-          muted: "spawn-default",
+          dimensions: "none",
+          position: "none",
+          scale: "none",
+          positionMode: "none",
+          volume: "none",
+          loop: "none",
+          autoplay: "none",
+          muted: "none",
         },
       });
     });
@@ -315,21 +308,21 @@ describe("AssetSettingsForm", () => {
         name: "Test Video",
       });
       const spawnAsset = makeSpawnAsset("asset1", 0);
-      const spawn = makeSpawn("spawn1", [spawnAsset], makeProperties());
+      const spawn = makeSpawn("spawn1", [spawnAsset]);
 
       vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
       vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
       vi.mocked(resolveEffectiveProperties).mockReturnValue({
         effective: makeProperties(),
         sourceMap: {
-          dimensions: "spawn-default",
-          position: "spawn-default",
-          scale: "spawn-default",
-          positionMode: "spawn-default",
-          volume: "spawn-default",
-          loop: "spawn-default",
-          autoplay: "spawn-default",
-          muted: "spawn-default",
+          dimensions: "none",
+          position: "none",
+          scale: "none",
+          positionMode: "none",
+          volume: "none",
+          loop: "none",
+          autoplay: "none",
+          muted: "none",
         },
       });
     });
@@ -439,21 +432,21 @@ describe("AssetSettingsForm", () => {
         name: "Test Video",
       });
       const spawnAsset = makeSpawnAsset("asset1", 0);
-      const spawn = makeSpawn("spawn1", [spawnAsset], makeProperties());
+      const spawn = makeSpawn("spawn1", [spawnAsset]);
 
       vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
       vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
       vi.mocked(resolveEffectiveProperties).mockReturnValue({
         effective: makeProperties(),
         sourceMap: {
-          dimensions: "spawn-default",
-          position: "spawn-default",
-          scale: "spawn-default",
-          positionMode: "spawn-default",
-          volume: "spawn-default",
-          loop: "spawn-default",
-          autoplay: "spawn-default",
-          muted: "spawn-default",
+          dimensions: "none",
+          position: "none",
+          scale: "none",
+          positionMode: "none",
+          volume: "none",
+          loop: "none",
+          autoplay: "none",
+          muted: "none",
         },
       });
     });
@@ -586,21 +579,21 @@ describe("AssetSettingsForm", () => {
         name: "Test Video",
       });
       const spawnAsset = makeSpawnAsset("asset1", 0);
-      const spawn = makeSpawn("spawn1", [spawnAsset], makeProperties());
+      const spawn = makeSpawn("spawn1", [spawnAsset]);
 
       vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
       vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
       vi.mocked(resolveEffectiveProperties).mockReturnValue({
         effective: makeProperties(),
         sourceMap: {
-          dimensions: "spawn-default",
-          position: "spawn-default",
-          scale: "spawn-default",
-          positionMode: "spawn-default",
-          volume: "spawn-default",
-          loop: "spawn-default",
-          autoplay: "spawn-default",
-          muted: "spawn-default",
+          dimensions: "none",
+          position: "none",
+          scale: "none",
+          positionMode: "none",
+          volume: "none",
+          loop: "none",
+          autoplay: "none",
+          muted: "none",
         },
       });
     });
@@ -714,21 +707,21 @@ describe("AssetSettingsForm", () => {
         name: "Test Video",
       });
       const spawnAsset = makeSpawnAsset("asset1", 0);
-      const spawn = makeSpawn("spawn1", [spawnAsset], makeProperties());
+      const spawn = makeSpawn("spawn1", [spawnAsset]);
 
       vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
       vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
       vi.mocked(resolveEffectiveProperties).mockReturnValue({
         effective: makeProperties(),
         sourceMap: {
-          dimensions: "spawn-default",
-          position: "spawn-default",
-          scale: "spawn-default",
-          positionMode: "spawn-default",
-          volume: "spawn-default",
-          loop: "spawn-default",
-          autoplay: "spawn-default",
-          muted: "spawn-default",
+          dimensions: "none",
+          position: "none",
+          scale: "none",
+          positionMode: "none",
+          volume: "none",
+          loop: "none",
+          autoplay: "none",
+          muted: "none",
         },
       });
       vi.mocked(buildOverridesDiff).mockReturnValue({
@@ -841,21 +834,21 @@ describe("AssetSettingsForm", () => {
         name: "Test Video",
       });
       const spawnAsset = makeSpawnAsset("asset1", 0);
-      const spawn = makeSpawn("spawn1", [spawnAsset], makeProperties());
+      const spawn = makeSpawn("spawn1", [spawnAsset]);
 
       vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
       vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
       vi.mocked(resolveEffectiveProperties).mockReturnValue({
         effective: makeProperties(),
         sourceMap: {
-          dimensions: "spawn-default",
-          position: "spawn-default",
-          scale: "spawn-default",
-          positionMode: "spawn-default",
-          volume: "spawn-default",
-          loop: "spawn-default",
-          autoplay: "spawn-default",
-          muted: "spawn-default",
+          dimensions: "none",
+          position: "none",
+          scale: "none",
+          positionMode: "none",
+          volume: "none",
+          loop: "none",
+          autoplay: "none",
+          muted: "none",
         },
       });
     });
@@ -938,21 +931,21 @@ describe("AssetSettingsForm", () => {
         name: "Test Video",
       });
       const spawnAsset = makeSpawnAsset("asset1", 0);
-      const spawn = makeSpawn("spawn1", [spawnAsset], makeProperties());
+      const spawn = makeSpawn("spawn1", [spawnAsset]);
 
       vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
       vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
       vi.mocked(resolveEffectiveProperties).mockReturnValue({
         effective: makeProperties(),
         sourceMap: {
-          dimensions: "spawn-default",
-          position: "spawn-default",
-          scale: "spawn-default",
-          positionMode: "spawn-default",
-          volume: "spawn-default",
-          loop: "spawn-default",
-          autoplay: "spawn-default",
-          muted: "spawn-default",
+          dimensions: "none",
+          position: "none",
+          scale: "none",
+          positionMode: "none",
+          volume: "none",
+          loop: "none",
+          autoplay: "none",
+          muted: "none",
         },
       });
 
@@ -995,21 +988,21 @@ describe("AssetSettingsForm", () => {
         name: "Test Video",
       });
       const spawnAsset = makeSpawnAsset("asset1", 0);
-      const spawn = makeSpawn("spawn1", [spawnAsset], makeProperties());
+      const spawn = makeSpawn("spawn1", [spawnAsset]);
 
       vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
       vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
       vi.mocked(resolveEffectiveProperties).mockReturnValue({
         effective: makeProperties(),
         sourceMap: {
-          dimensions: "spawn-default",
-          position: "spawn-default",
-          scale: "spawn-default",
-          positionMode: "spawn-default",
-          volume: "spawn-default",
-          loop: "spawn-default",
-          autoplay: "spawn-default",
-          muted: "spawn-default",
+          dimensions: "none",
+          position: "none",
+          scale: "none",
+          positionMode: "none",
+          volume: "none",
+          loop: "none",
+          autoplay: "none",
+          muted: "none",
         },
       });
 

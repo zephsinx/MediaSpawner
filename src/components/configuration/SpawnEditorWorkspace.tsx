@@ -102,19 +102,6 @@ const DEFAULT_FIELDS: FieldKey[] = [
   "volume",
 ];
 
-const buildEnabledDefaults = (
-  values: Partial<MediaAssetProperties>,
-  toggles: Partial<Record<FieldKey, boolean>>
-): Partial<MediaAssetProperties> => {
-  const next: Partial<MediaAssetProperties> = {};
-  if (toggles.dimensions) next.dimensions = values.dimensions;
-  if (toggles.position) next.position = values.position;
-  if (toggles.scale) next.scale = values.scale;
-  if (toggles.positionMode) next.positionMode = values.positionMode;
-  if (toggles.volume) next.volume = values.volume;
-  return next;
-};
-
 // Helper function to safely access command config
 const getCommandConfig = (trigger: Trigger | null) => {
   if (trigger?.type === "streamerbot.command") {
@@ -298,13 +285,10 @@ const SpawnEditorWorkspace: React.FC = () => {
       setDuration(selectedSpawn.duration);
       const toggles: Partial<Record<FieldKey, boolean>> = {};
       DEFAULT_FIELDS.forEach((k) => {
-        const dp = selectedSpawn.defaultProperties;
-        toggles[k] = dp
-          ? (dp as Partial<MediaAssetProperties>)[k] !== undefined
-          : false;
+        toggles[k] = false;
       });
       setDefaultsEnabled(toggles);
-      setDraftDefaults({ ...(selectedSpawn.defaultProperties || {}) });
+      setDraftDefaults({});
       setBucketsDraft([...(selectedSpawn.randomizationBuckets || [])]);
       // Clear messages only if changing to a different spawn
       if (prevSpawnIdRef.current !== selectedSpawn.id) {
@@ -323,14 +307,7 @@ const SpawnEditorWorkspace: React.FC = () => {
     const triggerChanged =
       JSON.stringify(trigger) !== JSON.stringify(selectedSpawn.trigger || null);
     const durationChanged = duration !== selectedSpawn.duration;
-    const currentEnabledDefaults = buildEnabledDefaults(
-      draftDefaults,
-      defaultsEnabled
-    );
-    const baselineDefaults = selectedSpawn.defaultProperties || {};
-    const defaultsChanged =
-      JSON.stringify(currentEnabledDefaults) !==
-      JSON.stringify(baselineDefaults);
+    const defaultsChanged = false;
     const bucketsChanged =
       JSON.stringify(bucketsDraft || []) !==
       JSON.stringify(selectedSpawn.randomizationBuckets || []);
@@ -342,16 +319,7 @@ const SpawnEditorWorkspace: React.FC = () => {
       triggerChanged ||
       bucketsChanged
     );
-  }, [
-    name,
-    description,
-    selectedSpawn,
-    duration,
-    draftDefaults,
-    defaultsEnabled,
-    trigger,
-    bucketsDraft,
-  ]);
+  }, [name, description, selectedSpawn, duration, trigger, bucketsDraft]);
 
   useEffect(() => {
     // Only update when dirty state changes to avoid unnecessary context re-renders
@@ -408,13 +376,10 @@ const SpawnEditorWorkspace: React.FC = () => {
     setDuration(selectedSpawn.duration);
     const toggles: Partial<Record<FieldKey, boolean>> = {};
     DEFAULT_FIELDS.forEach((k) => {
-      const dp = selectedSpawn.defaultProperties;
-      toggles[k] = dp
-        ? (dp as Partial<MediaAssetProperties>)[k] !== undefined
-        : false;
+      toggles[k] = false;
     });
     setDefaultsEnabled(toggles);
-    setDraftDefaults({ ...(selectedSpawn.defaultProperties || {}) });
+    setDraftDefaults({});
     setSaveError(null);
     setSaveSuccess(null);
   };
@@ -435,16 +400,11 @@ const SpawnEditorWorkspace: React.FC = () => {
     setSaveError(null);
     setSaveSuccess(null);
     try {
-      const defaultProperties = buildEnabledDefaults(
-        draftDefaults,
-        defaultsEnabled
-      );
       const result = await SpawnService.updateSpawn(selectedSpawn.id, {
         name: trimmedName,
         description: description.trim() || undefined,
         trigger: trigger || undefined,
         duration,
-        defaultProperties,
         randomizationBuckets: bucketsDraft,
       });
       if (!result.success || !result.spawn) {
@@ -620,13 +580,10 @@ const SpawnEditorWorkspace: React.FC = () => {
             setDuration(selectedSpawn.duration);
             const toggles: Partial<Record<FieldKey, boolean>> = {};
             DEFAULT_FIELDS.forEach((k) => {
-              const dp = selectedSpawn.defaultProperties;
-              toggles[k] = dp
-                ? (dp as Partial<MediaAssetProperties>)[k] !== undefined
-                : false;
+              toggles[k] = false;
             });
             setDefaultsEnabled(toggles);
-            setDraftDefaults({ ...(selectedSpawn.defaultProperties || {}) });
+            setDraftDefaults({});
             setSaveError(null);
             setSaveSuccess(null);
             setShowDiscardDialog(false);

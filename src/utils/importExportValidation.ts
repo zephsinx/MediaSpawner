@@ -214,15 +214,6 @@ export function validateExportData(
           }
         }
 
-        if (spawn.defaultProperties) {
-          const propertiesValidation = validateExportedAssetSettings(
-            spawn.defaultProperties
-          );
-          if (!propertiesValidation.isValid) {
-            spawnErrors.push(...propertiesValidation.errors);
-          }
-        }
-
         if (spawnErrors.length > 0) {
           result.spawnErrors[spawnKey] = spawnErrors;
         }

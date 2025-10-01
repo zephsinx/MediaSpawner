@@ -4501,27 +4501,22 @@ public class CPHInline
         Dictionary<string, object> effective = new Dictionary<string, object>();
         Dictionary<string, string> sourceMap = new Dictionary<string, string>();
 
-        // Get spawn default properties
-        Dictionary<string, object> spawnDefaults = spawn.DefaultProperties != null
-          ? ConvertAssetSettingsToDictionary(spawn.DefaultProperties)
-          : new Dictionary<string, object>();
-
         // Get asset overrides
         Dictionary<string, object> overrides = spawnAsset.Overrides?.Properties != null
           ? ConvertAssetSettingsToDictionary(spawnAsset.Overrides.Properties)
           : new Dictionary<string, object>();
 
-        // Resolve each property with precedence: override > spawn-default > none
-        ResolveProperty("volume", overrides, spawnDefaults, effective, sourceMap);
-        ResolveProperty("scale", overrides, spawnDefaults, effective, sourceMap);
-        ResolveProperty("positionMode", overrides, spawnDefaults, effective, sourceMap);
-        ResolveProperty("loop", overrides, spawnDefaults, effective, sourceMap);
-        ResolveProperty("autoplay", overrides, spawnDefaults, effective, sourceMap);
-        ResolveProperty("muted", overrides, spawnDefaults, effective, sourceMap);
+        // Resolve each property with precedence: override > none (no spawn defaults)
+        ResolveProperty("volume", overrides, effective, sourceMap);
+        ResolveProperty("scale", overrides, effective, sourceMap);
+        ResolveProperty("positionMode", overrides, effective, sourceMap);
+        ResolveProperty("loop", overrides, effective, sourceMap);
+        ResolveProperty("autoplay", overrides, effective, sourceMap);
+        ResolveProperty("muted", overrides, effective, sourceMap);
 
         // Handle structured properties (dimensions, position)
-        ResolveStructuredProperty("dimensions", overrides, spawnDefaults, effective, sourceMap);
-        ResolveStructuredProperty("position", overrides, spawnDefaults, effective, sourceMap);
+        ResolveStructuredProperty("dimensions", overrides, effective, sourceMap);
+        ResolveStructuredProperty("position", overrides, effective, sourceMap);
 
         return new EffectivePropertiesResult
         {
@@ -4533,17 +4528,12 @@ public class CPHInline
     /// <summary>
     /// Resolve a simple property with precedence rules
     /// </summary>
-    private void ResolveProperty(string propertyName, Dictionary<string, object> overrides, Dictionary<string, object> spawnDefaults, Dictionary<string, object> effective, Dictionary<string, string> sourceMap)
+    private void ResolveProperty(string propertyName, Dictionary<string, object> overrides, Dictionary<string, object> effective, Dictionary<string, string> sourceMap)
     {
         if (overrides.TryGetValue(propertyName, out object @override))
         {
             effective[propertyName] = @override;
             sourceMap[propertyName] = "override";
-        }
-        else if (spawnDefaults.TryGetValue(propertyName, out object @default))
-        {
-            effective[propertyName] = @default;
-            sourceMap[propertyName] = "spawn-default";
         }
         else
         {
@@ -4554,16 +4544,14 @@ public class CPHInline
     /// <summary>
     /// Resolve a structured property (dimensions, position) with deep merge
     /// </summary>
-    private void ResolveStructuredProperty(string propertyName, Dictionary<string, object> overrides, Dictionary<string, object> spawnDefaults, Dictionary<string, object> effective, Dictionary<string, string> sourceMap)
+    private void ResolveStructuredProperty(string propertyName, Dictionary<string, object> overrides, Dictionary<string, object> effective, Dictionary<string, string> sourceMap)
     {
         object overrideVal = overrides.TryGetValue(propertyName, out object @override) ? @override : null;
-        object spawnVal = spawnDefaults.TryGetValue(propertyName, out object @default) ? @default : null;
 
-        object chosen = overrideVal ?? spawnVal;
-        if (chosen != null)
+        if (overrideVal != null)
         {
-            effective[propertyName] = chosen;
-            sourceMap[propertyName] = overrideVal != null ? "override" : "spawn-default";
+            effective[propertyName] = overrideVal;
+            sourceMap[propertyName] = "override";
         }
         else
         {
@@ -6479,9 +6467,6 @@ public class CPHInline
 
         [JsonProperty("randomizationBuckets")]
         public List<RandomizationBucket> RandomizationBuckets { get; set; } = new List<RandomizationBucket>();
-
-        [JsonProperty("defaultProperties")]
-        public AssetSettings DefaultProperties { get; set; } = new AssetSettings();
 
         /// <summary>
         /// Validate the Spawn data integrity

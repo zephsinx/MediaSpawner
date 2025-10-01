@@ -34,9 +34,7 @@ describe("SpawnEditorWorkspace (MS-44 Defaults)", () => {
   });
 
   it("saves only enabled default properties and dispatches event", async () => {
-    const s = createSpawn({
-      defaultProperties: { dimensions: { width: 80, height: 80 } },
-    });
+    const s = createSpawn({});
     vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([s]);
     vi.mocked(SpawnService.updateSpawn).mockResolvedValue({
       success: true,
@@ -68,11 +66,11 @@ describe("SpawnEditorWorkspace (MS-44 Defaults)", () => {
     });
 
     const args = vi.mocked(SpawnService.updateSpawn).mock.calls[0][1];
-    expect(args.defaultProperties).toMatchObject({ volume: 0.4 });
+    expect(args).not.toHaveProperty("defaultProperties");
   });
 
   it("cancel reverts defaults draft and toggles", async () => {
-    const s = createSpawn({ defaultProperties: { volume: 0.5 } });
+    const s = createSpawn({});
     vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([s]);
     vi.mocked(SpawnService.updateSpawn).mockResolvedValue({
       success: true,

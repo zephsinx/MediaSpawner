@@ -37,7 +37,6 @@ export interface ExportedSpawn {
   duration: number;
   assets: ExportedSpawnAsset[];
   randomizationBuckets?: ExportedRandomizationBucket[];
-  defaultProperties?: ExportedAssetSettings;
 }
 
 export interface ExportedSpawnAsset {
@@ -123,9 +122,6 @@ export function transformSpawnToSchema(spawn: Spawn): ExportedSpawn {
     randomizationBuckets: spawn.randomizationBuckets?.map((bucket) =>
       transformRandomizationBucketToSchema(bucket)
     ),
-    defaultProperties: spawn.defaultProperties
-      ? transformAssetSettingsToSchema(spawn.defaultProperties)
-      : undefined,
   };
 }
 
@@ -245,6 +241,12 @@ export function transformProfileFromSchema(
  * Transform imported spawn back to internal format
  */
 export function transformSpawnFromSchema(spawn: ExportedSpawn): Spawn {
+  // Handle legacy data that may still contain defaultProperties by ignoring it
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { defaultProperties: _ } = spawn as ExportedSpawn & {
+    defaultProperties?: unknown;
+  };
+
   return {
     id: spawn.id,
     name: spawn.name,
@@ -256,9 +258,6 @@ export function transformSpawnFromSchema(spawn: ExportedSpawn): Spawn {
     randomizationBuckets: spawn.randomizationBuckets?.map((bucket) =>
       transformRandomizationBucketFromSchema(bucket)
     ),
-    defaultProperties: spawn.defaultProperties
-      ? transformAssetSettingsFromSchema(spawn.defaultProperties)
-      : undefined,
     lastModified: Date.now(),
     order: 0, // Will be set by the service when adding to profile
   };
