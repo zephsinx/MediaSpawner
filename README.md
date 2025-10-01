@@ -49,6 +49,12 @@ Configure subsets of a spawn's assets to be chosen at runtime by the consuming a
 3. Start the development server: `npm run dev`
 4. Open your browser to the local development URL
 
+### Streamer.bot setup
+
+- Import `MediaSpawnerClient.sb` into Streamer.bot (Actions > Import).
+- This creates the C# Actions and queue that MediaSpawner uses to manage Spawns and interact with OBS.
+- For context on imported code actions and OBS control, see: [C# Code Actions](https://docs.streamer.bot/guide/csharp) and [OBS Studio integration](https://docs.streamer.bot/guide/broadcasters/obs-studio).
+
 ### Basic Workflow
 
 1. **Create a Spawn Profile** - Start with a new profile or select an existing one
