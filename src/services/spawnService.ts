@@ -137,7 +137,6 @@ export class SpawnService {
         | "duration"
         | "assets"
         | "enabled"
-        | "defaultProperties"
         | "randomizationBuckets"
       >
     >

@@ -871,13 +871,7 @@ function AssetLibrarySection() {
       }
 
       const newOrder = spawn.assets.length;
-      const newSpawnAsset: SpawnAsset = createSpawnAsset(
-        asset.id,
-        newOrder,
-        spawn.defaultProperties
-          ? { properties: { ...spawn.defaultProperties } }
-          : undefined
-      );
+      const newSpawnAsset: SpawnAsset = createSpawnAsset(asset.id, newOrder);
       const result = await SpawnService.updateSpawn(selectedSpawnId, {
         assets: [...spawn.assets, newSpawnAsset],
       });

@@ -242,8 +242,8 @@ export interface RandomizationBucket {
  * Core spawn interface representing a collection of assets with shared behavior
  *
  * Spawns are the primary unit of work in the spawn-centric architecture.
- * Each spawn has default settings that its assets inherit, with the ability
- * for individual assets to override these defaults.
+ * Each spawn has a default duration that its assets inherit, with the ability
+ * for individual assets to override this default.
  */
 export interface Spawn {
   /** Unique identifier for the spawn */
@@ -269,9 +269,6 @@ export interface Spawn {
 
   /** Optional randomization buckets for selective member selection */
   randomizationBuckets?: RandomizationBucket[];
-
-  /** Optional spawn-wide default settings for assets */
-  defaultProperties?: Partial<MediaAssetProperties>;
 
   /** Timestamp of last modification (Unix timestamp in milliseconds) */
   lastModified: number;

@@ -24,7 +24,7 @@
 
 ## Services and events
 
-- Persist only diffs using `buildOverridesDiff(effective, spawn.defaultProperties, desired)`.
+- Persist only diffs using `buildOverridesDiff(desired)`.
 - On successful save, dispatch `mediaspawner:spawn-updated` with `{ spawnId, updatedSpawn? }`.
 
 ## Testing guidance

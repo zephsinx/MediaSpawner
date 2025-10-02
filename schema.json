@@ -94,9 +94,6 @@
                     "items": {
                         "$ref": "#/$defs/RandomizationBucket"
                     }
-                },
-                "defaultProperties": {
-                    "$ref": "#/$defs/AssetSettings"
                 }
             },
             "required": [

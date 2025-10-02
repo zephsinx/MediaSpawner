@@ -3,16 +3,14 @@ import type { Spawn } from "../types/spawn";
 
 export interface EffectivePropertiesResult {
   effective: MediaAssetProperties;
-  sourceMap: Partial<
-    Record<keyof MediaAssetProperties, "override" | "spawn-default" | "none">
-  >;
+  sourceMap: Partial<Record<keyof MediaAssetProperties, "override" | "none">>;
 }
 
 export function resolveEffectiveProperties(args: {
   spawn: Spawn;
   overrides?: Partial<MediaAssetProperties> | undefined;
 }): EffectivePropertiesResult {
-  const { spawn, overrides } = args;
+  const { overrides } = args;
   const result: Partial<MediaAssetProperties> = {};
   const sourceMap: EffectivePropertiesResult["sourceMap"] = {};
 
@@ -20,34 +18,22 @@ export function resolveEffectiveProperties(args: {
     key: K,
     mergeFn?: (values: {
       overrideVal: MediaAssetProperties[K] | undefined;
-      spawnVal: MediaAssetProperties[K] | undefined;
-      baseVal: MediaAssetProperties[K] | undefined;
     }) => MediaAssetProperties[K] | undefined
   ) => {
     const overrideVal: MediaAssetProperties[K] | undefined = overrides?.[key];
-    const spawnVal: MediaAssetProperties[K] | undefined =
-      spawn.defaultProperties?.[key];
 
     let chosen: MediaAssetProperties[K] | undefined;
     if (mergeFn) {
-      // merge without base asset fallback
       chosen = mergeFn({
         overrideVal,
-        spawnVal,
-        baseVal: undefined as unknown as MediaAssetProperties[K],
       });
       if (overrideVal !== undefined && chosen === overrideVal)
         sourceMap[key] = "override";
-      else if (spawnVal !== undefined && chosen === spawnVal)
-        sourceMap[key] = "spawn-default";
       else sourceMap[key] = "none";
     } else {
       if (overrideVal !== undefined) {
         sourceMap[key] = "override";
         chosen = overrideVal;
-      } else if (spawnVal !== undefined) {
-        sourceMap[key] = "spawn-default";
-        chosen = spawnVal;
       } else {
         sourceMap[key] = "none";
         chosen = undefined as unknown as MediaAssetProperties[K];
@@ -69,32 +55,28 @@ export function resolveEffectiveProperties(args: {
   consider("muted");
 
   // Structured fields with deep merge fallback (first defined wins)
-  consider("dimensions", ({ overrideVal, spawnVal }) => {
-    return overrideVal ?? spawnVal ?? undefined;
+  consider("dimensions", ({ overrideVal }) => {
+    return overrideVal ?? undefined;
   });
-  consider("position", ({ overrideVal, spawnVal }) => {
-    return overrideVal ?? spawnVal ?? undefined;
+  consider("position", ({ overrideVal }) => {
+    return overrideVal ?? undefined;
   });
-  consider("crop", ({ overrideVal, spawnVal }) => {
-    return overrideVal ?? spawnVal ?? undefined;
+  consider("crop", ({ overrideVal }) => {
+    return overrideVal ?? undefined;
   });
 
   return { effective: result as MediaAssetProperties, sourceMap };
 }
 
 export function buildOverridesDiff(
-  spawnDefaults: Partial<MediaAssetProperties> | undefined,
   desired: Partial<MediaAssetProperties>
 ): Partial<MediaAssetProperties> {
   const overrides: Partial<MediaAssetProperties> = {};
 
   const assignIfDifferent = <K extends keyof MediaAssetProperties>(key: K) => {
-    const baseVal = spawnDefaults?.[key];
     const desiredVal = desired[key];
     if (desiredVal !== undefined) {
-      if (JSON.stringify(desiredVal) !== JSON.stringify(baseVal)) {
-        (overrides as Partial<MediaAssetProperties>)[key] = desiredVal;
-      }
+      (overrides as Partial<MediaAssetProperties>)[key] = desiredVal;
     }
   };
 
