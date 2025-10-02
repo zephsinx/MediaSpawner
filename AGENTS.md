@@ -75,9 +75,10 @@ This file guides coding agents working on MediaSpawner. It complements README.md
 ## Core data model and inheritance
 
 - Hierarchy: `SpawnProfile → Spawn → SpawnAsset`.
-- Effective property value precedence: override > spawn default; otherwise undefined.
+- Effective property value precedence: override; otherwise undefined.
 - No base-asset fallback; do not store behavioral properties on `MediaAsset`.
 - Persist per-asset overrides as diffs only.
+- Spawn-level `duration` remains; assets may override via `SpawnAsset.overrides.duration`.
 
 ## Randomization buckets (spawn-level)
 
@@ -100,7 +101,7 @@ This file guides coding agents working on MediaSpawner. It complements README.md
 ## Services and events
 
 - Services:
-  - `SpawnService`: CRUD for spawn data; accepts `defaultProperties` and `randomizationBuckets`.
+  - `SpawnService`: CRUD for spawn data; accepts `randomizationBuckets`.
   - `AssetService`: global asset library; assets are descriptive only (no behavioral `properties`).
   - `CacheService`, `ConfigurationService`, `ImportExportService`, `SettingsService`, `SpawnProfileService` exported via `src/services/index.ts`.
 - Global events:
@@ -111,8 +112,8 @@ This file guides coding agents working on MediaSpawner. It complements README.md
 ## Shared UI patterns
 
 - Center panel forms share a Save/Cancel action row and track dirty state via `setUnsavedChanges`.
-- Per-field override toggles gate editability; read-only inherited values when off.
-- Global Reset restores current spawn defaults; Dimensions and Position use group toggles.
+- All fields are directly editable; no override toggles.
+- No global reset of default properties; groups have no override toggles.
 
 ## Validation and UX
 
@@ -121,8 +122,8 @@ This file guides coding agents working on MediaSpawner. It complements README.md
 
 ## Utilities invariants
 
-- `resolveEffectiveProperties({ spawn, overrides? }) -> { effective, sourceMap }` where `sourceMap` in `"override" | "spawn-default" | "none"`.
-- `buildOverridesDiff(effective, spawnDefaults, desired)` stores only keys different from spawn defaults.
+- `resolveEffectiveProperties({ spawn, overrides? }) -> { effective, sourceMap }` where `sourceMap` in `"override" | "none"`.
+- `buildOverridesDiff(desired)` stores only keys with non-undefined values.
 
 ## Environment and tooling notes
 

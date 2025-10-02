@@ -30,32 +30,15 @@ export interface AssetSettingsFormProps {
   onBack: () => void;
   getCachedDraft?: () =>
     | {
-        overrideEnabled: Partial<Record<keyof MediaAssetProperties, boolean>>;
         draftValues: Partial<MediaAssetProperties>;
       }
     | undefined;
   setCachedDraft?: (draft: {
-    overrideEnabled: Partial<Record<keyof MediaAssetProperties, boolean>>;
     draftValues: Partial<MediaAssetProperties>;
   }) => void;
 }
 
 type FieldKey = keyof MediaAssetProperties;
-
-const OVERRIDABLE_FIELDS: FieldKey[] = [
-  "dimensions",
-  "position",
-  "scale",
-  "positionMode",
-  "rotation",
-  "crop",
-  "boundsType",
-  "alignment",
-  "volume",
-  "loop",
-  "autoplay",
-  "muted",
-];
 
 const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
   spawnId,
@@ -72,12 +55,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Local draft state: override toggles and values
-  const [overrideEnabled, setOverrideEnabled] = useState<
-    Partial<Record<FieldKey, boolean>>
-  >({});
-  const [durationOverrideEnabled, setDurationOverrideEnabled] =
-    useState<boolean>(false);
+  // Local draft state: values only
   const [durationDraftMs, setDurationDraftMs] = useState<number>(0);
   const [draftValues, setDraftValues] = useState<Partial<MediaAssetProperties>>(
     {}
@@ -121,14 +99,6 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
     });
   }, [spawn, spawnAsset]);
 
-  const inheritedOnly = useMemo(() => {
-    if (!spawn) return null;
-    return resolveEffectiveProperties({
-      spawn,
-      overrides: undefined,
-    });
-  }, [spawn]);
-
   // Initialize draft when context target changes (avoid loops on referential changes)
   const initKeyRef = useRef<string | null>(null);
   useEffect(() => {
@@ -140,28 +110,17 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
     const cached = getCachedDraft?.();
     if (cached) {
       setDraftValues(cached.draftValues);
-      setOverrideEnabled(
-        cached.overrideEnabled as Partial<Record<FieldKey, boolean>>
-      );
     } else {
       setDraftValues(effective.effective);
-      const toggles: Partial<Record<FieldKey, boolean>> = {};
-      OVERRIDABLE_FIELDS.forEach((fieldKey) => {
-        const props = spawnAsset.overrides?.properties as
-          | Partial<MediaAssetProperties>
-          | undefined;
-        toggles[fieldKey] = props ? props[fieldKey] !== undefined : false;
-      });
-      setOverrideEnabled(toggles);
-      const hasDurationOverride =
-        typeof spawnAsset.overrides?.duration === "number";
-      setDurationOverrideEnabled(!!hasDurationOverride);
-      setDurationDraftMs(
-        hasDurationOverride
-          ? Math.max(0, Number(spawnAsset.overrides?.duration))
-          : Math.max(0, Number(spawn.duration))
-      );
     }
+
+    const hasDurationOverride =
+      typeof spawnAsset.overrides?.duration === "number";
+    setDurationDraftMs(
+      hasDurationOverride
+        ? Math.max(0, Number(spawnAsset.overrides?.duration))
+        : Math.max(0, Number(spawn.duration))
+    );
     setUnsavedChanges(false);
   }, [effective, spawn, spawnAsset, setUnsavedChanges, getCachedDraft]);
 
@@ -184,17 +143,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
         spawn: nextSpawn,
         overrides: nextSpawnAsset.overrides?.properties,
       });
-      setDraftValues((prev) => {
-        const updated: Partial<MediaAssetProperties> = { ...prev };
-        OVERRIDABLE_FIELDS.forEach((key) => {
-          if (!overrideEnabled[key]) {
-            (updated as Record<string, unknown>)[key] = nextEffective.effective[
-              key as keyof MediaAssetProperties
-            ] as unknown;
-          }
-        });
-        return updated;
-      });
+      setDraftValues(nextEffective.effective);
     };
     window.addEventListener(
       "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
@@ -206,69 +155,24 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
         onSpawnUpdated as EventListener
       );
     };
-  }, [spawnId, spawnAssetId, baseAsset, overrideEnabled, spawnAsset]);
+  }, [spawnId, spawnAssetId, baseAsset, spawnAsset]);
 
   const setField = (key: FieldKey, value: MediaAssetProperties[FieldKey]) => {
     setDraftValues((prev) => ({ ...prev, [key]: value }));
     setUnsavedChanges(true);
-    // Live-validate only when override is enabled for the field
-    if (overrideEnabled[key]) {
-      setValidationErrors((prev) => ({
-        ...prev,
-        [key]: getFieldError(key, { ...draftValues, [key]: value }),
-      }));
-    }
-  };
-
-  const setToggle = (key: FieldKey, enable: boolean) => {
-    setOverrideEnabled((prev) => ({ ...prev, [key]: enable }));
-    setUnsavedChanges(true);
-    if (!enable && inheritedOnly) {
-      setDraftValues((prev) => ({
-        ...prev,
-        [key]: inheritedOnly.effective[key],
-      }));
-      setValidationErrors((prev) => {
-        const next = { ...prev };
-        delete (next as Record<string, unknown>)[key];
-        return next;
-      });
-    } else if (enable) {
-      setValidationErrors((prev) => ({
-        ...prev,
-        [key]: getFieldError(key, draftValues),
-      }));
-    }
+    // Live-validate the field
+    setValidationErrors((prev) => ({
+      ...prev,
+      [key]: getFieldError(key, { ...draftValues, [key]: value }),
+    }));
   };
 
   const handleCancel = () => {
     if (!effective) return;
     setDraftValues(effective.effective);
-    const toggles: Partial<Record<FieldKey, boolean>> = {};
-    OVERRIDABLE_FIELDS.forEach((key) => {
-      const props = spawnAsset?.overrides?.properties as
-        | Partial<MediaAssetProperties>
-        | undefined;
-      toggles[key] = props ? props[key] !== undefined : false;
-    });
-    setOverrideEnabled(toggles);
     setUnsavedChanges(false);
     setSuccess(null);
     setError(null);
-  };
-
-  const handleResetAll = () => {
-    if (!inheritedOnly) return;
-    const nextToggles: Partial<Record<FieldKey, boolean>> = {};
-    OVERRIDABLE_FIELDS.forEach((k) => {
-      nextToggles[k] = false;
-    });
-    setOverrideEnabled(nextToggles);
-    setDraftValues(inheritedOnly.effective);
-    setDurationOverrideEnabled(false);
-    setDurationDraftMs(Math.max(0, Number(spawn?.duration || 0)));
-    setUnsavedChanges(true);
-    setValidationErrors({});
   };
 
   const handleSave = async () => {
@@ -277,18 +181,13 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
     setError(null);
     setSuccess(null);
     try {
-      // Construct desired override payload limited to toggled-on fields
+      // Save all non-undefined values as overrides
       const desired: Partial<MediaAssetProperties> = {};
-      if (overrideEnabled.dimensions)
-        desired.dimensions = draftValues.dimensions;
-      if (overrideEnabled.position) desired.position = draftValues.position;
-      if (overrideEnabled.scale) desired.scale = draftValues.scale;
-      if (overrideEnabled.positionMode)
-        desired.positionMode = draftValues.positionMode;
-      if (overrideEnabled.volume) desired.volume = draftValues.volume;
-      if (overrideEnabled.loop) desired.loop = draftValues.loop;
-      if (overrideEnabled.autoplay) desired.autoplay = draftValues.autoplay;
-      if (overrideEnabled.muted) desired.muted = draftValues.muted;
+      Object.entries(draftValues).forEach(([key, value]) => {
+        if (value !== undefined) {
+          (desired as Record<string, unknown>)[key] = value;
+        }
+      });
 
       const diff = buildOverridesDiff(desired);
       const updatedAssets: SpawnAsset[] = spawn.assets.map((sa) =>
@@ -298,9 +197,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
               overrides: {
                 ...sa.overrides,
                 properties: diff,
-                duration: durationOverrideEnabled
-                  ? Math.max(0, durationDraftMs)
-                  : undefined,
+                duration: Math.max(0, durationDraftMs),
               },
             }
           : sa
@@ -322,7 +219,6 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
       setUnsavedChanges(false);
       if (setCachedDraft) {
         setCachedDraft({
-          overrideEnabled,
           draftValues,
         });
       }
@@ -345,10 +241,10 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
   useEffect(() => {
     return () => {
       if (setCachedDraft) {
-        setCachedDraft({ overrideEnabled, draftValues });
+        setCachedDraft({ draftValues });
       }
     };
-  }, [overrideEnabled, draftValues, setCachedDraft]);
+  }, [draftValues, setCachedDraft]);
 
   const getFieldError = (
     key: FieldKey,
@@ -452,14 +348,6 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
             </button>
             <button
               type="button"
-              onClick={handleResetAll}
-              className="px-3 py-1.5 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
-              aria-label="Reset all fields to spawn defaults"
-            >
-              Reset
-            </button>
-            <button
-              type="button"
               onClick={handleSave}
               disabled={isSaving || hasValidationErrors}
               className={`px-3 py-1.5 rounded-md text-white ${
@@ -502,37 +390,17 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Duration (ms)
                 </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={durationOverrideEnabled}
-                    onChange={(e) => {
-                      setDurationOverrideEnabled(e.target.checked);
-                      setUnsavedChanges(true);
-                      if (!e.target.checked && spawn) {
-                        setDurationDraftMs(Math.max(1, Number(spawn.duration)));
-                      }
-                    }}
-                    aria-label="Override duration"
-                  />
-                  <input
-                    type="number"
-                    min={0}
-                    value={durationDraftMs}
-                    onChange={(e) => {
-                      const val = Math.max(0, Number(e.target.value) || 0);
-                      setDurationDraftMs(val);
-                      setUnsavedChanges(true);
-                    }}
-                    disabled={!durationOverrideEnabled}
-                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  {durationOverrideEnabled
-                    ? "Overridden"
-                    : "Inherited from Spawn"}
-                </p>
+                <input
+                  type="number"
+                  min={0}
+                  value={durationDraftMs}
+                  onChange={(e) => {
+                    const val = Math.max(0, Number(e.target.value) || 0);
+                    setDurationDraftMs(val);
+                    setUnsavedChanges(true);
+                  }}
+                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                />
               </div>
             </div>
           </section>
@@ -546,67 +414,45 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Width (px)
                   </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={!!overrideEnabled.dimensions}
-                      onChange={(e) =>
-                        setToggle("dimensions", e.target.checked)
-                      }
-                      aria-label="Override dimensions"
-                    />
-                    <input
-                      type="number"
-                      min={1}
-                      value={draftValues.dimensions?.width ?? ""}
-                      onChange={(e) =>
-                        setField("dimensions", {
-                          width: Math.max(1, Number(e.target.value) || 1),
-                          height: draftValues.dimensions?.height ?? 1,
-                        })
-                      }
-                      disabled={!overrideEnabled.dimensions}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                      aria-describedby="dimensions-help dimensions-error"
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {overrideEnabled.dimensions
-                      ? "Overridden"
-                      : effective.sourceMap.dimensions === "none"
-                      ? "Inherited from Spawn"
-                      : "Not set"}
-                  </p>
-                  {overrideEnabled.dimensions &&
-                    validationErrors.dimensions && (
-                      <p
-                        id="dimensions-error"
-                        className="text-xs text-red-600 mt-1"
-                      >
-                        {validationErrors.dimensions}
-                      </p>
-                    )}
+                  <input
+                    type="number"
+                    min={1}
+                    value={draftValues.dimensions?.width ?? ""}
+                    onChange={(e) =>
+                      setField("dimensions", {
+                        width: Math.max(1, Number(e.target.value) || 1),
+                        height: draftValues.dimensions?.height ?? 1,
+                      })
+                    }
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    aria-describedby="dimensions-help dimensions-error"
+                  />
+                  {validationErrors.dimensions && (
+                    <p
+                      id="dimensions-error"
+                      className="text-xs text-red-600 mt-1"
+                    >
+                      {validationErrors.dimensions}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Height (px)
                   </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min={1}
-                      value={draftValues.dimensions?.height ?? ""}
-                      onChange={(e) =>
-                        setField("dimensions", {
-                          width: draftValues.dimensions?.width ?? 1,
-                          height: Math.max(1, Number(e.target.value) || 1),
-                        })
-                      }
-                      disabled={!overrideEnabled.dimensions}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                      aria-describedby="dimensions-help"
-                    />
-                  </div>
+                  <input
+                    type="number"
+                    min={1}
+                    value={draftValues.dimensions?.height ?? ""}
+                    onChange={(e) =>
+                      setField("dimensions", {
+                        width: draftValues.dimensions?.width ?? 1,
+                        height: Math.max(1, Number(e.target.value) || 1),
+                      })
+                    }
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    aria-describedby="dimensions-help"
+                  />
                   <p
                     id="dimensions-help"
                     className="text-xs text-gray-500 mt-1"
@@ -619,36 +465,20 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     X Position (px)
                   </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={!!overrideEnabled.position}
-                      onChange={(e) => setToggle("position", e.target.checked)}
-                      aria-label="Override position"
-                    />
-                    <input
-                      type="number"
-                      min={0}
-                      value={draftValues.position?.x ?? ""}
-                      onChange={(e) =>
-                        setField("position", {
-                          x: Math.max(0, Number(e.target.value) || 0),
-                          y: draftValues.position?.y ?? 0,
-                        })
-                      }
-                      disabled={!overrideEnabled.position}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                      aria-describedby="position-help position-error"
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {overrideEnabled.position
-                      ? "Overridden"
-                      : effective.sourceMap.position === "none"
-                      ? "Inherited from Spawn"
-                      : "Not set"}
-                  </p>
-                  {overrideEnabled.position && validationErrors.position && (
+                  <input
+                    type="number"
+                    min={0}
+                    value={draftValues.position?.x ?? ""}
+                    onChange={(e) =>
+                      setField("position", {
+                        x: Math.max(0, Number(e.target.value) || 0),
+                        y: draftValues.position?.y ?? 0,
+                      })
+                    }
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    aria-describedby="position-help position-error"
+                  />
+                  {validationErrors.position && (
                     <p
                       id="position-error"
                       className="text-xs text-red-600 mt-1"
@@ -661,22 +491,19 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Y Position (px)
                   </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min={0}
-                      value={draftValues.position?.y ?? ""}
-                      onChange={(e) =>
-                        setField("position", {
-                          x: draftValues.position?.x ?? 0,
-                          y: Math.max(0, Number(e.target.value) || 0),
-                        })
-                      }
-                      disabled={!overrideEnabled.position}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                      aria-describedby="position-help"
-                    />
-                  </div>
+                  <input
+                    type="number"
+                    min={0}
+                    value={draftValues.position?.y ?? ""}
+                    onChange={(e) =>
+                      setField("position", {
+                        x: draftValues.position?.x ?? 0,
+                        y: Math.max(0, Number(e.target.value) || 0),
+                      })
+                    }
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    aria-describedby="position-help"
+                  />
                   <p id="position-help" className="text-xs text-gray-500 mt-1">
                     Use non-negative values. Relative/centered behavior depends
                     on mode.
@@ -687,523 +514,398 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Scale
                   </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={!!overrideEnabled.scale}
-                      onChange={(e) => setToggle("scale", e.target.checked)}
-                      aria-label="Override scale"
-                    />
-                    <div className="flex-1">
-                      {/* Linked/Unlinked Toggle */}
-                      <div className="flex items-center gap-2 mb-2">
-                        <label className="flex items-center gap-1 text-xs text-gray-600">
-                          <input
-                            type="checkbox"
-                            checked={
-                              typeof draftValues.scale === "object" &&
-                              draftValues.scale?.linked === false
-                            }
-                            onChange={(e) => {
-                              const isUnlinked = e.target.checked;
-                              const currentScale = draftValues.scale;
+                  <div className="flex-1">
+                    {/* Linked/Unlinked Toggle */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <label className="flex items-center gap-1 text-xs text-gray-600">
+                        <input
+                          type="checkbox"
+                          checked={
+                            typeof draftValues.scale === "object" &&
+                            draftValues.scale?.linked === false
+                          }
+                          onChange={(e) => {
+                            const isUnlinked = e.target.checked;
+                            const currentScale = draftValues.scale;
 
-                              if (isUnlinked) {
-                                // Convert to unlinked mode
-                                const scaleValue =
-                                  typeof currentScale === "number"
-                                    ? currentScale
-                                    : currentScale?.x ?? 1;
-                                setField("scale", {
-                                  x: scaleValue,
-                                  y: scaleValue,
-                                  linked: false,
-                                });
-                              } else {
-                                // Convert to linked mode - use X value for both
-                                const scaleValue =
-                                  typeof currentScale === "number"
-                                    ? currentScale
-                                    : currentScale?.x ?? 1;
-                                setField("scale", {
-                                  x: scaleValue,
-                                  y: scaleValue,
-                                  linked: true,
-                                });
-                              }
-                            }}
-                            disabled={!overrideEnabled.scale}
-                            className="rounded"
-                          />
-                          Unlinked
-                        </label>
-                      </div>
-
-                      {/* Scale Inputs */}
-                      <div className="flex items-center gap-2">
-                        {typeof draftValues.scale === "object" &&
-                        draftValues.scale?.linked === false ? (
-                          // Non-uniform mode: separate X/Y inputs
-                          <>
-                            <div className="flex-1">
-                              <label className="block text-xs text-gray-600 mb-1">
-                                X
-                              </label>
-                              <input
-                                type="number"
-                                min={0}
-                                step={0.1}
-                                value={draftValues.scale?.x ?? ""}
-                                onChange={(e) => {
-                                  const xValue = Math.max(
-                                    0,
-                                    parseFloat(e.target.value) || 0
-                                  );
-                                  const currentScale = draftValues.scale;
-                                  setField("scale", {
-                                    x: xValue,
-                                    y:
-                                      typeof currentScale === "object" &&
-                                      currentScale?.y !== undefined
-                                        ? currentScale.y
-                                        : 1,
-                                    linked: false,
-                                  });
-                                }}
-                                disabled={!overrideEnabled.scale}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                                aria-describedby="scale-help scale-error"
-                              />
-                            </div>
-                            <div className="flex-1">
-                              <label className="block text-xs text-gray-600 mb-1">
-                                Y
-                              </label>
-                              <input
-                                type="number"
-                                min={0}
-                                step={0.1}
-                                value={draftValues.scale?.y ?? ""}
-                                onChange={(e) => {
-                                  const yValue = Math.max(
-                                    0,
-                                    parseFloat(e.target.value) || 0
-                                  );
-                                  const currentScale = draftValues.scale;
-                                  setField("scale", {
-                                    x:
-                                      typeof currentScale === "object" &&
-                                      currentScale?.x !== undefined
-                                        ? currentScale.x
-                                        : 1,
-                                    y: yValue,
-                                    linked: false,
-                                  });
-                                }}
-                                disabled={!overrideEnabled.scale}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                                aria-describedby="scale-help scale-error"
-                              />
-                            </div>
-                          </>
-                        ) : (
-                          // Uniform mode: single input
-                          <input
-                            type="number"
-                            min={0}
-                            step={0.1}
-                            value={
-                              typeof draftValues.scale === "number"
-                                ? draftValues.scale
-                                : draftValues.scale?.x ?? ""
-                            }
-                            onChange={(e) => {
-                              const scaleValue = Math.max(
-                                0,
-                                parseFloat(e.target.value) || 0
-                              );
+                            if (isUnlinked) {
+                              // Convert to unlinked mode
+                              const scaleValue =
+                                typeof currentScale === "number"
+                                  ? currentScale
+                                  : currentScale?.x ?? 1;
+                              setField("scale", {
+                                x: scaleValue,
+                                y: scaleValue,
+                                linked: false,
+                              });
+                            } else {
+                              // Convert to linked mode - use X value for both
+                              const scaleValue =
+                                typeof currentScale === "number"
+                                  ? currentScale
+                                  : currentScale?.x ?? 1;
                               setField("scale", {
                                 x: scaleValue,
                                 y: scaleValue,
                                 linked: true,
                               });
-                            }}
-                            disabled={!overrideEnabled.scale}
-                            className="w-24 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                            aria-describedby="scale-help scale-error"
-                          />
-                        )}
-                      </div>
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        Unlinked
+                      </label>
                     </div>
-                  </div>
-                  <p id="scale-help" className="text-xs text-gray-500 mt-1">
-                    Enter a non-negative factor (1.0 = 100%). Toggle "Unlinked"
-                    to scale X and Y independently.
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {overrideEnabled.scale
-                      ? "Overridden"
-                      : effective.sourceMap.scale === "none"
-                      ? "Inherited from Spawn"
-                      : "Not set"}
-                  </p>
-                  {overrideEnabled.scale && validationErrors.scale && (
-                    <p id="scale-error" className="text-xs text-red-600 mt-1">
-                      {validationErrors.scale}
-                    </p>
-                  )}
-                </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Position Mode
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={!!overrideEnabled.positionMode}
-                      onChange={(e) =>
-                        setToggle("positionMode", e.target.checked)
-                      }
-                      aria-label="Override position mode"
-                    />
-                    <select
-                      value={draftValues.positionMode ?? "absolute"}
-                      onChange={(e) =>
-                        setField(
-                          "positionMode",
-                          e.target.value as MediaAssetProperties["positionMode"]
-                        )
-                      }
-                      disabled={!overrideEnabled.positionMode}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent bg-white"
-                    >
-                      <option value="absolute">Absolute (px)</option>
-                      <option value="relative">Relative (%)</option>
-                      <option value="centered">Centered</option>
-                    </select>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {overrideEnabled.positionMode
-                      ? "Overridden"
-                      : effective.sourceMap.positionMode === "none"
-                      ? "Inherited from Spawn"
-                      : "Not set"}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Rotation (°)
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={!!overrideEnabled.rotation}
-                      onChange={(e) => setToggle("rotation", e.target.checked)}
-                      aria-label="Override rotation"
-                    />
-                    <div className="flex-1">
-                      <input
-                        type="range"
-                        min={0}
-                        max={360}
-                        step={1}
-                        value={draftValues.rotation ?? 0}
-                        onChange={(e) =>
-                          setField("rotation", Number(e.target.value))
-                        }
-                        disabled={!overrideEnabled.rotation}
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                        aria-label="Rotation slider"
-                        aria-describedby="rotation-help rotation-error"
-                      />
-                      <input
-                        type="number"
-                        min={0}
-                        max={360}
-                        step={1}
-                        value={draftValues.rotation ?? ""}
-                        onChange={(e) =>
-                          setField(
-                            "rotation",
-                            Math.max(
+                    {/* Scale Inputs */}
+                    <div className="flex items-center gap-2">
+                      {typeof draftValues.scale === "object" &&
+                      draftValues.scale?.linked === false ? (
+                        // Non-uniform mode: separate X/Y inputs
+                        <>
+                          <div className="flex-1">
+                            <label className="block text-xs text-gray-600 mb-1">
+                              X
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              step={0.1}
+                              value={draftValues.scale?.x ?? ""}
+                              onChange={(e) => {
+                                const xValue = Math.max(
+                                  0,
+                                  parseFloat(e.target.value) || 0
+                                );
+                                const currentScale = draftValues.scale;
+                                setField("scale", {
+                                  x: xValue,
+                                  y:
+                                    typeof currentScale === "object" &&
+                                    currentScale?.y !== undefined
+                                      ? currentScale.y
+                                      : 1,
+                                  linked: false,
+                                });
+                              }}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                              aria-describedby="scale-help scale-error"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <label className="block text-xs text-gray-600 mb-1">
+                              Y
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              step={0.1}
+                              value={draftValues.scale?.y ?? ""}
+                              onChange={(e) => {
+                                const yValue = Math.max(
+                                  0,
+                                  parseFloat(e.target.value) || 0
+                                );
+                                const currentScale = draftValues.scale;
+                                setField("scale", {
+                                  x:
+                                    typeof currentScale === "object" &&
+                                    currentScale?.x !== undefined
+                                      ? currentScale.x
+                                      : 1,
+                                  y: yValue,
+                                  linked: false,
+                                });
+                              }}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                              aria-describedby="scale-help scale-error"
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        // Uniform mode: single input
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.1}
+                          value={
+                            typeof draftValues.scale === "number"
+                              ? draftValues.scale
+                              : draftValues.scale?.x ?? ""
+                          }
+                          onChange={(e) => {
+                            const scaleValue = Math.max(
                               0,
-                              Math.min(360, Number(e.target.value) || 0)
-                            )
-                          )
-                        }
-                        disabled={!overrideEnabled.rotation}
-                        className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent mt-2"
-                        aria-describedby="rotation-help rotation-error"
-                      />
+                              parseFloat(e.target.value) || 0
+                            );
+                            setField("scale", {
+                              x: scaleValue,
+                              y: scaleValue,
+                              linked: true,
+                            });
+                          }}
+                          className="w-24 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                          aria-describedby="scale-help scale-error"
+                        />
+                      )}
                     </div>
                   </div>
-                  <p id="rotation-help" className="text-xs text-gray-500 mt-1">
-                    Rotate the asset from 0° to 360°.
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {overrideEnabled.rotation
-                      ? "Overridden"
-                      : effective.sourceMap.rotation === "none"
-                      ? "Inherited from Spawn"
-                      : "Not set"}
-                  </p>
-                  {overrideEnabled.rotation && validationErrors.rotation && (
-                    <p
-                      id="rotation-error"
-                      className="text-xs text-red-600 mt-1"
-                    >
-                      {validationErrors.rotation}
-                    </p>
-                  )}
                 </div>
+                <p id="scale-help" className="text-xs text-gray-500 mt-1">
+                  Enter a non-negative factor (1.0 = 100%). Toggle "Unlinked" to
+                  scale X and Y independently.
+                </p>
+                {validationErrors.scale && (
+                  <p id="scale-error" className="text-xs text-red-600 mt-1">
+                    {validationErrors.scale}
+                  </p>
+                )}
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Crop (px)
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={!!overrideEnabled.crop}
-                      onChange={(e) => setToggle("crop", e.target.checked)}
-                      aria-label="Override crop"
-                    />
-                    <div className="flex-1 grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-xs text-gray-600 mb-1">
-                          Left
-                        </label>
-                        <input
-                          type="number"
-                          min={0}
-                          step={1}
-                          value={draftValues.crop?.left ?? ""}
-                          onChange={(e) =>
-                            setField("crop", {
-                              left: Math.max(0, Number(e.target.value) || 0),
-                              top: draftValues.crop?.top ?? 0,
-                              right: draftValues.crop?.right ?? 0,
-                              bottom: draftValues.crop?.bottom ?? 0,
-                            })
-                          }
-                          disabled={!overrideEnabled.crop}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                          aria-describedby="crop-help crop-error"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-600 mb-1">
-                          Top
-                        </label>
-                        <input
-                          type="number"
-                          min={0}
-                          step={1}
-                          value={draftValues.crop?.top ?? ""}
-                          onChange={(e) =>
-                            setField("crop", {
-                              left: draftValues.crop?.left ?? 0,
-                              top: Math.max(0, Number(e.target.value) || 0),
-                              right: draftValues.crop?.right ?? 0,
-                              bottom: draftValues.crop?.bottom ?? 0,
-                            })
-                          }
-                          disabled={!overrideEnabled.crop}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                          aria-describedby="crop-help crop-error"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-600 mb-1">
-                          Right
-                        </label>
-                        <input
-                          type="number"
-                          min={0}
-                          step={1}
-                          value={draftValues.crop?.right ?? ""}
-                          onChange={(e) =>
-                            setField("crop", {
-                              left: draftValues.crop?.left ?? 0,
-                              top: draftValues.crop?.top ?? 0,
-                              right: Math.max(0, Number(e.target.value) || 0),
-                              bottom: draftValues.crop?.bottom ?? 0,
-                            })
-                          }
-                          disabled={!overrideEnabled.crop}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                          aria-describedby="crop-help crop-error"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-600 mb-1">
-                          Bottom
-                        </label>
-                        <input
-                          type="number"
-                          min={0}
-                          step={1}
-                          value={draftValues.crop?.bottom ?? ""}
-                          onChange={(e) =>
-                            setField("crop", {
-                              left: draftValues.crop?.left ?? 0,
-                              top: draftValues.crop?.top ?? 0,
-                              right: draftValues.crop?.right ?? 0,
-                              bottom: Math.max(0, Number(e.target.value) || 0),
-                            })
-                          }
-                          disabled={!overrideEnabled.crop}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                          aria-describedby="crop-help crop-error"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <p id="crop-help" className="text-xs text-gray-500 mt-1">
-                    Crop the asset by removing pixels from the edges.
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {overrideEnabled.crop
-                      ? "Overridden"
-                      : effective.sourceMap.crop === "none"
-                      ? "Inherited from Spawn"
-                      : "Not set"}
-                  </p>
-                  {overrideEnabled.crop && validationErrors.crop && (
-                    <p id="crop-error" className="text-xs text-red-600 mt-1">
-                      {validationErrors.crop}
-                    </p>
-                  )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Position Mode
+                </label>
+                <select
+                  value={draftValues.positionMode ?? "absolute"}
+                  onChange={(e) =>
+                    setField(
+                      "positionMode",
+                      e.target.value as MediaAssetProperties["positionMode"]
+                    )
+                  }
+                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent bg-white"
+                >
+                  <option value="absolute">Absolute (px)</option>
+                  <option value="relative">Relative (%)</option>
+                  <option value="centered">Centered</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Rotation (°)
+                </label>
+                <div className="flex-1">
+                  <input
+                    type="range"
+                    min={0}
+                    max={360}
+                    step={1}
+                    value={draftValues.rotation ?? 0}
+                    onChange={(e) =>
+                      setField("rotation", Number(e.target.value))
+                    }
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                    aria-label="Rotation slider"
+                    aria-describedby="rotation-help rotation-error"
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    max={360}
+                    step={1}
+                    value={draftValues.rotation ?? ""}
+                    onChange={(e) =>
+                      setField(
+                        "rotation",
+                        Math.max(0, Math.min(360, Number(e.target.value) || 0))
+                      )
+                    }
+                    className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent mt-2"
+                    aria-describedby="rotation-help rotation-error"
+                  />
                 </div>
+                <p id="rotation-help" className="text-xs text-gray-500 mt-1">
+                  Rotate the asset from 0° to 360°.
+                </p>
+                {validationErrors.rotation && (
+                  <p id="rotation-error" className="text-xs text-red-600 mt-1">
+                    {validationErrors.rotation}
+                  </p>
+                )}
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Bounds Type
-                  </label>
-                  <div className="flex items-center gap-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Crop (px)
+                </label>
+                <div className="flex-1 grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Left
+                    </label>
                     <input
-                      type="checkbox"
-                      checked={!!overrideEnabled.boundsType}
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={draftValues.crop?.left ?? ""}
                       onChange={(e) =>
-                        setToggle("boundsType", e.target.checked)
+                        setField("crop", {
+                          left: Math.max(0, Number(e.target.value) || 0),
+                          top: draftValues.crop?.top ?? 0,
+                          right: draftValues.crop?.right ?? 0,
+                          bottom: draftValues.crop?.bottom ?? 0,
+                        })
                       }
-                      aria-label="Override bounds type"
-                    />
-                    <select
-                      value={draftValues.boundsType ?? ""}
-                      onChange={(e) =>
-                        setField(
-                          "boundsType",
-                          e.target.value
-                            ? (e.target.value as BoundsType)
-                            : undefined
-                        )
-                      }
-                      disabled={!overrideEnabled.boundsType}
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                      aria-describedby="bounds-type-help bounds-type-error"
-                    >
-                      <option value="">Select bounds type...</option>
-                      <option value="OBS_BOUNDS_NONE">None</option>
-                      <option value="OBS_BOUNDS_STRETCH">Stretch</option>
-                      <option value="OBS_BOUNDS_SCALE_INNER">
-                        Scale Inner
-                      </option>
-                      <option value="OBS_BOUNDS_SCALE_OUTER">
-                        Scale Outer
-                      </option>
-                      <option value="OBS_BOUNDS_SCALE_TO_WIDTH">
-                        Scale to Width
-                      </option>
-                      <option value="OBS_BOUNDS_SCALE_TO_HEIGHT">
-                        Scale to Height
-                      </option>
-                      <option value="OBS_BOUNDS_MAX_ONLY">Max Only</option>
-                    </select>
+                      aria-describedby="crop-help crop-error"
+                    />
                   </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Top
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={draftValues.crop?.top ?? ""}
+                      onChange={(e) =>
+                        setField("crop", {
+                          left: draftValues.crop?.left ?? 0,
+                          top: Math.max(0, Number(e.target.value) || 0),
+                          right: draftValues.crop?.right ?? 0,
+                          bottom: draftValues.crop?.bottom ?? 0,
+                        })
+                      }
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                      aria-describedby="crop-help crop-error"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Right
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={draftValues.crop?.right ?? ""}
+                      onChange={(e) =>
+                        setField("crop", {
+                          left: draftValues.crop?.left ?? 0,
+                          top: draftValues.crop?.top ?? 0,
+                          right: Math.max(0, Number(e.target.value) || 0),
+                          bottom: draftValues.crop?.bottom ?? 0,
+                        })
+                      }
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                      aria-describedby="crop-help crop-error"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Bottom
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={draftValues.crop?.bottom ?? ""}
+                      onChange={(e) =>
+                        setField("crop", {
+                          left: draftValues.crop?.left ?? 0,
+                          top: draftValues.crop?.top ?? 0,
+                          right: draftValues.crop?.right ?? 0,
+                          bottom: Math.max(0, Number(e.target.value) || 0),
+                        })
+                      }
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                      aria-describedby="crop-help crop-error"
+                    />
+                  </div>
+                </div>
+                <p id="crop-help" className="text-xs text-gray-500 mt-1">
+                  Crop the asset by removing pixels from the edges.
+                </p>
+                {validationErrors.crop && (
+                  <p id="crop-error" className="text-xs text-red-600 mt-1">
+                    {validationErrors.crop}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Bounds Type
+                </label>
+                <select
+                  value={draftValues.boundsType ?? ""}
+                  onChange={(e) =>
+                    setField(
+                      "boundsType",
+                      e.target.value
+                        ? (e.target.value as BoundsType)
+                        : undefined
+                    )
+                  }
+                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                  aria-describedby="bounds-type-help bounds-type-error"
+                >
+                  <option value="">Select bounds type...</option>
+                  <option value="OBS_BOUNDS_NONE">None</option>
+                  <option value="OBS_BOUNDS_STRETCH">Stretch</option>
+                  <option value="OBS_BOUNDS_SCALE_INNER">Scale Inner</option>
+                  <option value="OBS_BOUNDS_SCALE_OUTER">Scale Outer</option>
+                  <option value="OBS_BOUNDS_SCALE_TO_WIDTH">
+                    Scale to Width
+                  </option>
+                  <option value="OBS_BOUNDS_SCALE_TO_HEIGHT">
+                    Scale to Height
+                  </option>
+                  <option value="OBS_BOUNDS_MAX_ONLY">Max Only</option>
+                </select>
+                <p id="bounds-type-help" className="text-xs text-gray-500 mt-1">
+                  Select how the asset should be scaled within its bounds.
+                </p>
+                {validationErrors.boundsType && (
                   <p
-                    id="bounds-type-help"
-                    className="text-xs text-gray-500 mt-1"
+                    id="bounds-type-error"
+                    className="text-xs text-red-600 mt-1"
                   >
-                    Select how the asset should be scaled within its bounds.
+                    {validationErrors.boundsType}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {overrideEnabled.boundsType
-                      ? "Overridden"
-                      : effective.sourceMap.boundsType === "none"
-                      ? "Inherited from Spawn"
-                      : "Not set"}
-                  </p>
-                  {overrideEnabled.boundsType &&
-                    validationErrors.boundsType && (
-                      <p
-                        id="bounds-type-error"
-                        className="text-xs text-red-600 mt-1"
-                      >
-                        {validationErrors.boundsType}
-                      </p>
-                    )}
-                </div>
+                )}
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Alignment
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={!!overrideEnabled.alignment}
-                      onChange={(e) => setToggle("alignment", e.target.checked)}
-                      aria-label="Override alignment"
-                    />
-                    <select
-                      value={draftValues.alignment ?? ""}
-                      onChange={(e) =>
-                        setField(
-                          "alignment",
-                          e.target.value
-                            ? (Number(e.target.value) as AlignmentOption)
-                            : undefined
-                        )
-                      }
-                      disabled={!overrideEnabled.alignment}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                      aria-describedby="alignment-help alignment-error"
-                    >
-                      <option value="">Select alignment...</option>
-                      <option value="0">Top Left</option>
-                      <option value="1">Top Center</option>
-                      <option value="2">Top Right</option>
-                      <option value="4">Center Left</option>
-                      <option value="5">Center</option>
-                      <option value="6">Center Right</option>
-                      <option value="8">Bottom Left</option>
-                      <option value="9">Bottom Center</option>
-                      <option value="10">Bottom Right</option>
-                    </select>
-                  </div>
-                  <p id="alignment-help" className="text-xs text-gray-500 mt-1">
-                    Select the alignment position for the asset within its
-                    bounds.
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Alignment
+                </label>
+                <select
+                  value={draftValues.alignment ?? ""}
+                  onChange={(e) =>
+                    setField(
+                      "alignment",
+                      e.target.value
+                        ? (Number(e.target.value) as AlignmentOption)
+                        : undefined
+                    )
+                  }
+                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                  aria-describedby="alignment-help alignment-error"
+                >
+                  <option value="">Select alignment...</option>
+                  <option value="0">Top Left</option>
+                  <option value="1">Top Center</option>
+                  <option value="2">Top Right</option>
+                  <option value="4">Center Left</option>
+                  <option value="5">Center</option>
+                  <option value="6">Center Right</option>
+                  <option value="8">Bottom Left</option>
+                  <option value="9">Bottom Center</option>
+                  <option value="10">Bottom Right</option>
+                </select>
+                <p id="alignment-help" className="text-xs text-gray-500 mt-1">
+                  Select the alignment position for the asset within its bounds.
+                </p>
+                {validationErrors.alignment && (
+                  <p id="alignment-error" className="text-xs text-red-600 mt-1">
+                    {validationErrors.alignment}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {overrideEnabled.alignment
-                      ? "Overridden"
-                      : effective.sourceMap.alignment === "none"
-                      ? "Inherited from Spawn"
-                      : "Not set"}
-                  </p>
-                  {overrideEnabled.alignment && validationErrors.alignment && (
-                    <p
-                      id="alignment-error"
-                      className="text-xs text-red-600 mt-1"
-                    >
-                      {validationErrors.alignment}
-                    </p>
-                  )}
-                </div>
+                )}
               </div>
             </section>
           )}
@@ -1220,12 +922,6 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   </label>
                   <div className="flex items-center gap-2">
                     <input
-                      type="checkbox"
-                      checked={!!overrideEnabled.volume}
-                      onChange={(e) => setToggle("volume", e.target.checked)}
-                      aria-label="Override volume"
-                    />
-                    <input
                       type="range"
                       min={0}
                       max={100}
@@ -1233,7 +929,6 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       onChange={(e) =>
                         setField("volume", (Number(e.target.value) || 0) / 100)
                       }
-                      disabled={!overrideEnabled.volume}
                       className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                       aria-label="Volume slider"
                       aria-describedby="volume-help volume-error"
@@ -1246,13 +941,12 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       onChange={(e) =>
                         setField("volume", (Number(e.target.value) || 0) / 100)
                       }
-                      disabled={!overrideEnabled.volume}
                       className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                       aria-describedby="volume-help volume-error"
                     />
                   </div>
 
-                  {overrideEnabled.volume && validationErrors.volume && (
+                  {validationErrors.volume && (
                     <p id="volume-error" className="text-xs text-red-600 mt-1">
                       {validationErrors.volume}
                     </p>
@@ -1263,11 +957,8 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   <label className="inline-flex items-center gap-2 text-sm text-gray-700">
                     <input
                       type="checkbox"
-                      checked={!!overrideEnabled.loop && !!draftValues.loop}
-                      onChange={(e) => {
-                        if (!overrideEnabled.loop) setToggle("loop", true);
-                        setField("loop", e.target.checked);
-                      }}
+                      checked={!!draftValues.loop}
+                      onChange={(e) => setField("loop", e.target.checked)}
                     />
                     Loop
                   </label>
@@ -1275,14 +966,8 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   <label className="inline-flex items-center gap-2 text-sm text-gray-700">
                     <input
                       type="checkbox"
-                      checked={
-                        !!overrideEnabled.autoplay && !!draftValues.autoplay
-                      }
-                      onChange={(e) => {
-                        if (!overrideEnabled.autoplay)
-                          setToggle("autoplay", true);
-                        setField("autoplay", e.target.checked);
-                      }}
+                      checked={!!draftValues.autoplay}
+                      onChange={(e) => setField("autoplay", e.target.checked)}
                     />
                     Autoplay
                   </label>
@@ -1290,11 +975,8 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   <label className="inline-flex items-center gap-2 text-sm text-gray-700">
                     <input
                       type="checkbox"
-                      checked={!!overrideEnabled.muted && !!draftValues.muted}
-                      onChange={(e) => {
-                        if (!overrideEnabled.muted) setToggle("muted", true);
-                        setField("muted", e.target.checked);
-                      }}
+                      checked={!!draftValues.muted}
+                      onChange={(e) => setField("muted", e.target.checked)}
                     />
                     Muted
                   </label>
@@ -1302,16 +984,6 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
               </div>
             </section>
           )}
-
-          <section className="bg-white border border-gray-200 rounded-lg p-4">
-            <h3 className="text-base font-semibold text-gray-800 mb-2">
-              Summary
-            </h3>
-            <p className="text-xs text-gray-600">
-              Fields without override toggled use inherited values from spawn
-              defaults or the base asset.
-            </p>
-          </section>
         </div>
       </div>
     </div>

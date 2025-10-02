@@ -222,11 +222,6 @@ describe("AssetSettingsForm", () => {
         await screen.findByRole("button", { name: "Cancel edits" })
       ).toBeInTheDocument();
       expect(
-        await screen.findByRole("button", {
-          name: "Reset all fields to spawn defaults",
-        })
-      ).toBeInTheDocument();
-      expect(
         await screen.findByRole("button", { name: "Save asset settings" })
       ).toBeInTheDocument();
     });
@@ -300,130 +295,6 @@ describe("AssetSettingsForm", () => {
     });
   });
 
-  describe("Property Override Toggles", () => {
-    beforeEach(() => {
-      const asset = makeAsset({
-        id: "asset1",
-        type: "video",
-        name: "Test Video",
-      });
-      const spawnAsset = makeSpawnAsset("asset1", 0);
-      const spawn = makeSpawn("spawn1", [spawnAsset]);
-
-      vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
-      vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
-      vi.mocked(resolveEffectiveProperties).mockReturnValue({
-        effective: makeProperties(),
-        sourceMap: {
-          dimensions: "none",
-          position: "none",
-          scale: "none",
-          positionMode: "none",
-          volume: "none",
-          loop: "none",
-          autoplay: "none",
-          muted: "none",
-        },
-      });
-    });
-
-    it("enables property editing when override toggle is checked", async () => {
-      render(
-        <AssetSettingsForm
-          spawnId="spawn1"
-          spawnAssetId="asset1"
-          onBack={mockOnBack}
-        />
-      );
-
-      // Wait for the component to finish loading
-      await screen.findByText("Test Video · video");
-
-      // Find width input by role and aria-describedby marker
-      const numberInputs = screen.getAllByRole("spinbutton");
-      const widthInput = numberInputs.find((input) =>
-        input.getAttribute("aria-describedby")?.includes("dimensions-error")
-      );
-      if (!widthInput) throw new Error("Width input not found");
-      expect(widthInput).toBeDisabled();
-
-      const dimensionsToggle = await screen.findByLabelText(
-        "Override dimensions"
-      );
-      await act(async () => {
-        fireEvent.click(dimensionsToggle);
-      });
-      await waitFor(() => expect(dimensionsToggle).toBeChecked());
-
-      expect(widthInput).not.toBeDisabled();
-    });
-
-    it("shows inheritance source when override is disabled", async () => {
-      render(
-        <AssetSettingsForm
-          spawnId="spawn1"
-          spawnAssetId="asset1"
-          onBack={mockOnBack}
-        />
-      );
-
-      // Wait for the component to finish loading
-      await screen.findByText("Test Video · video");
-
-      // Check that at least one "Inherited from Spawn" text exists
-      const inheritanceTexts = screen.getAllByText("Inherited from Spawn");
-      expect(inheritanceTexts.length).toBeGreaterThan(0);
-    });
-
-    it("shows 'Overridden' when override is enabled", async () => {
-      render(
-        <AssetSettingsForm
-          spawnId="spawn1"
-          spawnAssetId="asset1"
-          onBack={mockOnBack}
-        />
-      );
-
-      // Ensure initialization effect has completed by waiting for draft values
-      // to populate and the input to be initially disabled
-      await screen.findByText("Test Video · video");
-      const numberInputs = screen.getAllByRole("spinbutton");
-      const widthInput = numberInputs.find((input) =>
-        input.getAttribute("aria-describedby")?.includes("dimensions-error")
-      );
-      if (!widthInput) throw new Error("Width input not found");
-      expect(widthInput).toBeDisabled();
-
-      const dimensionsToggle = await screen.findByLabelText(
-        "Override dimensions"
-      );
-      await act(async () => {
-        fireEvent.click(dimensionsToggle);
-      });
-
-      expect(await screen.findByText("Overridden")).toBeInTheDocument();
-    });
-
-    it("sets unsaved changes when override toggle is changed", async () => {
-      render(
-        <AssetSettingsForm
-          spawnId="spawn1"
-          spawnAssetId="asset1"
-          onBack={mockOnBack}
-        />
-      );
-
-      const dimensionsToggle = await screen.findByLabelText(
-        "Override dimensions"
-      );
-      await act(async () => {
-        fireEvent.click(dimensionsToggle);
-      });
-
-      expect(mockSetUnsavedChanges).toHaveBeenCalledWith(true);
-    });
-  });
-
   describe("Property Value Editing", () => {
     beforeEach(() => {
       const asset = makeAsset({
@@ -451,7 +322,7 @@ describe("AssetSettingsForm", () => {
       });
     });
 
-    it("updates width value when dimensions override is enabled", async () => {
+    it("updates width value with direct editing", async () => {
       render(
         <AssetSettingsForm
           spawnId="spawn1"
@@ -460,11 +331,9 @@ describe("AssetSettingsForm", () => {
         />
       );
 
-      const dimensionsToggle = await screen.findByLabelText(
-        "Override dimensions"
-      );
-      await act(async () => {
-        fireEvent.click(dimensionsToggle);
+      // Wait for the component to finish loading
+      await waitFor(() => {
+        expect(screen.getByText("Test Video · video")).toBeInTheDocument();
       });
 
       // Find width input by role and aria-describedby marker
@@ -473,6 +342,10 @@ describe("AssetSettingsForm", () => {
         input.getAttribute("aria-describedby")?.includes("dimensions-error")
       );
       if (!widthInput) throw new Error("Width input not found");
+
+      // Input should be enabled for direct editing
+      expect(widthInput).not.toBeDisabled();
+
       await act(async () => {
         fireEvent.change(widthInput, { target: { value: "200" } });
       });
@@ -481,7 +354,7 @@ describe("AssetSettingsForm", () => {
       expect(mockSetUnsavedChanges).toHaveBeenCalledWith(true);
     });
 
-    it("updates scale value when scale override is enabled", async () => {
+    it("updates scale value with direct editing", async () => {
       render(
         <AssetSettingsForm
           spawnId="spawn1"
@@ -490,12 +363,15 @@ describe("AssetSettingsForm", () => {
         />
       );
 
-      const scaleToggle = await screen.findByLabelText("Override scale");
-      await act(async () => {
-        fireEvent.click(scaleToggle);
+      // Wait for the component to finish loading
+      await waitFor(() => {
+        expect(screen.getByText("Test Video · video")).toBeInTheDocument();
       });
 
       const scaleInput = await screen.findByDisplayValue("1");
+      // Input should be enabled for direct editing
+      expect(scaleInput).not.toBeDisabled();
+
       await act(async () => {
         fireEvent.change(scaleInput, { target: { value: "2.5" } });
       });
@@ -503,7 +379,7 @@ describe("AssetSettingsForm", () => {
       expect(scaleInput).toHaveValue(2.5);
     });
 
-    it("updates position mode when positionMode override is enabled", async () => {
+    it("updates position mode with direct editing", async () => {
       render(
         <AssetSettingsForm
           spawnId="spawn1"
@@ -512,16 +388,17 @@ describe("AssetSettingsForm", () => {
         />
       );
 
-      const positionModeToggle = await screen.findByLabelText(
-        "Override position mode"
-      );
-      await act(async () => {
-        fireEvent.click(positionModeToggle);
+      // Wait for the component to finish loading
+      await waitFor(() => {
+        expect(screen.getByText("Test Video · video")).toBeInTheDocument();
       });
 
       const positionModeSelect = await screen.findByDisplayValue(
         "Absolute (px)"
       );
+      // Select should be enabled for direct editing
+      expect(positionModeSelect).not.toBeDisabled();
+
       await act(async () => {
         fireEvent.change(positionModeSelect, { target: { value: "centered" } });
       });
@@ -529,7 +406,7 @@ describe("AssetSettingsForm", () => {
       expect(positionModeSelect).toHaveValue("centered");
     });
 
-    it("updates volume when volume override is enabled", async () => {
+    it("updates volume with direct editing", async () => {
       render(
         <AssetSettingsForm
           spawnId="spawn1"
@@ -538,12 +415,15 @@ describe("AssetSettingsForm", () => {
         />
       );
 
-      const volumeToggle = await screen.findByLabelText("Override volume");
-      await act(async () => {
-        fireEvent.click(volumeToggle);
+      // Wait for the component to finish loading
+      await waitFor(() => {
+        expect(screen.getByText("Test Video · video")).toBeInTheDocument();
       });
 
       const volumeSlider = await screen.findByLabelText("Volume slider");
+      // Slider should be enabled for direct editing
+      expect(volumeSlider).not.toBeDisabled();
+
       await act(async () => {
         fireEvent.change(volumeSlider, { target: { value: "75" } });
       });
@@ -551,7 +431,7 @@ describe("AssetSettingsForm", () => {
       expect(volumeSlider).toHaveValue("75");
     });
 
-    it("updates boolean properties when their overrides are enabled", async () => {
+    it("updates boolean properties with direct editing", async () => {
       render(
         <AssetSettingsForm
           spawnId="spawn1"
@@ -560,9 +440,17 @@ describe("AssetSettingsForm", () => {
         />
       );
 
+      // Wait for the component to finish loading
+      await waitFor(() => {
+        expect(screen.getByText("Test Video · video")).toBeInTheDocument();
+      });
+
       const loopCheckbox = await screen.findByRole("checkbox", {
         name: "Loop",
       });
+      // Checkbox should be enabled for direct editing
+      expect(loopCheckbox).not.toBeDisabled();
+
       await act(async () => {
         fireEvent.click(loopCheckbox);
       });
@@ -612,11 +500,9 @@ describe("AssetSettingsForm", () => {
         />
       );
 
-      const dimensionsToggle = await screen.findByLabelText(
-        "Override dimensions"
-      );
-      await act(async () => {
-        fireEvent.click(dimensionsToggle);
+      // Wait for the component to finish loading
+      await waitFor(() => {
+        expect(screen.getByText("Test Video · video")).toBeInTheDocument();
       });
 
       // Find width input by role and aria-describedby marker
@@ -625,6 +511,10 @@ describe("AssetSettingsForm", () => {
         input.getAttribute("aria-describedby")?.includes("dimensions-error")
       );
       if (!widthInput) throw new Error("Width input not found");
+
+      // Input should be enabled for direct editing
+      expect(widthInput).not.toBeDisabled();
+
       await act(async () => {
         fireEvent.change(widthInput, { target: { value: "0" } });
       });
@@ -648,12 +538,15 @@ describe("AssetSettingsForm", () => {
         />
       );
 
-      const volumeToggle = await screen.findByLabelText("Override volume");
-      await act(async () => {
-        fireEvent.click(volumeToggle);
+      // Wait for the component to finish loading
+      await waitFor(() => {
+        expect(screen.getByText("Test Video · video")).toBeInTheDocument();
       });
 
       const volumeSlider = await screen.findByLabelText("Volume slider");
+      // Slider should be enabled for direct editing
+      expect(volumeSlider).not.toBeDisabled();
+
       await act(async () => {
         fireEvent.change(volumeSlider, { target: { value: "150" } });
       });
@@ -675,11 +568,9 @@ describe("AssetSettingsForm", () => {
         />
       );
 
-      const dimensionsToggle = await screen.findByLabelText(
-        "Override dimensions"
-      );
-      await act(async () => {
-        fireEvent.click(dimensionsToggle);
+      // Wait for the component to finish loading
+      await waitFor(() => {
+        expect(screen.getByText("Test Video · video")).toBeInTheDocument();
       });
 
       // Find width input by role and aria-describedby marker
@@ -688,6 +579,10 @@ describe("AssetSettingsForm", () => {
         input.getAttribute("aria-describedby")?.includes("dimensions-error")
       );
       if (!widthInput) throw new Error("Width input not found");
+
+      // Input should be enabled for direct editing
+      expect(widthInput).not.toBeDisabled();
+
       await act(async () => {
         fireEvent.change(widthInput, { target: { value: "0" } });
       });
@@ -729,7 +624,7 @@ describe("AssetSettingsForm", () => {
       });
     });
 
-    it("saves overridden properties and shows success message", async () => {
+    it("saves properties and shows success message", async () => {
       vi.mocked(SpawnService.updateSpawn).mockResolvedValue({
         success: true,
         spawn: makeSpawn("spawn1", [makeSpawnAsset("asset1", 0)]),
@@ -743,11 +638,9 @@ describe("AssetSettingsForm", () => {
         />
       );
 
-      const dimensionsToggle = await screen.findByLabelText(
-        "Override dimensions"
-      );
-      await act(async () => {
-        fireEvent.click(dimensionsToggle);
+      // Wait for the component to finish loading
+      await waitFor(() => {
+        expect(screen.getByText("Test Video · video")).toBeInTheDocument();
       });
 
       // Find width input by role and aria-describedby marker
@@ -756,6 +649,10 @@ describe("AssetSettingsForm", () => {
         input.getAttribute("aria-describedby")?.includes("dimensions-error")
       );
       if (!widthInput) throw new Error("Width input not found");
+
+      // Input should be enabled for direct editing
+      expect(widthInput).not.toBeDisabled();
+
       await act(async () => {
         fireEvent.change(widthInput, { target: { value: "200" } });
       });
@@ -862,19 +759,21 @@ describe("AssetSettingsForm", () => {
         />
       );
 
-      const dimensionsToggle = await screen.findByLabelText(
-        "Override dimensions"
-      );
-      await act(async () => {
-        fireEvent.click(dimensionsToggle);
+      // Wait for the component to finish loading
+      await waitFor(() => {
+        expect(screen.getByText("Test Video · video")).toBeInTheDocument();
       });
 
-      // Find width input specifically by its aria-describedby attribute
-      const widthInputs = screen.getAllByDisplayValue("100");
-      const widthInput = widthInputs.find((input) =>
+      // Find width input by role and aria-describedby attribute
+      const numberInputs = screen.getAllByRole("spinbutton");
+      const widthInput = numberInputs.find((input) =>
         input.getAttribute("aria-describedby")?.includes("dimensions-error")
       );
       if (!widthInput) throw new Error("Width input not found");
+
+      // Input should be enabled for direct editing
+      expect(widthInput).not.toBeDisabled();
+
       await act(async () => {
         fireEvent.change(widthInput, { target: { value: "200" } });
       });
@@ -886,40 +785,9 @@ describe("AssetSettingsForm", () => {
         fireEvent.click(cancelButton);
       });
 
-      expect(widthInput).toHaveValue(100);
-      expect(dimensionsToggle).not.toBeChecked();
+      // After cancel, the input should be reset to its original value
+      expect(widthInput).toHaveValue(100); // Default value from test data
       expect(mockSetUnsavedChanges).toHaveBeenCalledWith(false);
-    });
-
-    it("resets all overrides to disabled when reset all is clicked", async () => {
-      render(
-        <AssetSettingsForm
-          spawnId="spawn1"
-          spawnAssetId="asset1"
-          onBack={mockOnBack}
-        />
-      );
-
-      const dimensionsToggle = await screen.findByLabelText(
-        "Override dimensions"
-      );
-      const scaleToggle = await screen.findByLabelText("Override scale");
-
-      await act(async () => {
-        fireEvent.click(dimensionsToggle);
-        fireEvent.click(scaleToggle);
-      });
-
-      const resetButton = await screen.findByRole("button", {
-        name: "Reset all fields to spawn defaults",
-      });
-      await act(async () => {
-        fireEvent.click(resetButton);
-      });
-
-      expect(dimensionsToggle).not.toBeChecked();
-      expect(scaleToggle).not.toBeChecked();
-      expect(mockSetUnsavedChanges).toHaveBeenCalledWith(true);
     });
   });
 
@@ -950,7 +818,6 @@ describe("AssetSettingsForm", () => {
       });
 
       const cachedDraft = {
-        overrideEnabled: { dimensions: true, scale: true },
         draftValues: { dimensions: { width: 200, height: 150 }, scale: 2.0 },
       };
       mockGetCachedDraft.mockReturnValue(cachedDraft);
@@ -964,15 +831,8 @@ describe("AssetSettingsForm", () => {
           setCachedDraft={mockSetCachedDraft}
         />
       );
-      // Ensure base content loaded before asserting toggles
+      // Ensure base content loaded before asserting values
       await screen.findByText("Test Video · video");
-      const dimensionsToggle = await screen.findByLabelText(
-        "Override dimensions"
-      );
-      const scaleToggle = await screen.findByLabelText("Override scale");
-
-      await waitFor(() => expect(dimensionsToggle).toBeChecked());
-      await waitFor(() => expect(scaleToggle).toBeChecked());
 
       const widthInput = await screen.findByDisplayValue("200");
       const scaleInput = await screen.findByDisplayValue("2");
@@ -1020,7 +880,6 @@ describe("AssetSettingsForm", () => {
       });
 
       expect(mockSetCachedDraft).toHaveBeenCalledWith({
-        overrideEnabled: {},
         draftValues: expect.any(Object),
       });
     });
@@ -1062,14 +921,15 @@ describe("AssetSettingsForm", () => {
           />
         );
 
-        const rotationToggle = await screen.findByLabelText(
-          "Override rotation"
-        );
-        await act(async () => {
-          fireEvent.click(rotationToggle);
+        // Wait for the component to finish loading
+        await waitFor(() => {
+          expect(screen.getByText("Test Video · video")).toBeInTheDocument();
         });
 
         const rotationSlider = screen.getByLabelText("Rotation slider");
+        // Slider should be enabled for direct editing
+        expect(rotationSlider).not.toBeDisabled();
+
         await act(async () => {
           fireEvent.change(rotationSlider, { target: { value: "90" } });
         });
@@ -1087,14 +947,15 @@ describe("AssetSettingsForm", () => {
           />
         );
 
-        const rotationToggle = await screen.findByLabelText(
-          "Override rotation"
-        );
-        await act(async () => {
-          fireEvent.click(rotationToggle);
+        // Wait for the component to finish loading
+        await waitFor(() => {
+          expect(screen.getByText("Test Video · video")).toBeInTheDocument();
         });
 
         const rotationInput = screen.getByLabelText("Rotation slider");
+        // Input should be enabled for direct editing
+        expect(rotationInput).not.toBeDisabled();
+
         await act(async () => {
           fireEvent.change(rotationInput, { target: { value: "180" } });
         });
@@ -1117,14 +978,15 @@ describe("AssetSettingsForm", () => {
           />
         );
 
-        const rotationToggle = await screen.findByLabelText(
-          "Override rotation"
-        );
-        await act(async () => {
-          fireEvent.click(rotationToggle);
+        // Wait for the component to finish loading
+        await waitFor(() => {
+          expect(screen.getByText("Test Video · video")).toBeInTheDocument();
         });
 
         const rotationSlider = screen.getByLabelText("Rotation slider");
+        // Slider should be enabled for direct editing
+        expect(rotationSlider).not.toBeDisabled();
+
         await act(async () => {
           fireEvent.change(rotationSlider, { target: { value: "400" } });
         });
@@ -1164,54 +1026,26 @@ describe("AssetSettingsForm", () => {
           />
         );
 
-        const cropToggle = await screen.findByLabelText("Override crop");
-        await act(async () => {
-          fireEvent.click(cropToggle);
+        // Wait for the component to finish loading
+        await waitFor(() => {
+          expect(screen.getByText("Test Video · video")).toBeInTheDocument();
         });
 
         const cropInputs = screen.getAllByDisplayValue("0");
         const leftInput = cropInputs[0]; // First crop input is "Left"
+        // Input should be enabled for direct editing
+        expect(leftInput).not.toBeDisabled();
+
         await act(async () => {
           fireEvent.change(leftInput, { target: { value: "10" } });
         });
 
         expect(leftInput).toHaveValue(10);
       });
-
-      it("shows validation error for invalid crop values", async () => {
-        vi.mocked(validateCropSettings).mockReturnValue({
-          isValid: false,
-          error: "Crop left must be ≥ 0",
-        });
-
-        render(
-          <AssetSettingsForm
-            spawnId="spawn1"
-            spawnAssetId="asset1"
-            onBack={mockOnBack}
-            setCachedDraft={mockSetCachedDraft}
-          />
-        );
-
-        const cropToggle = await screen.findByLabelText("Override crop");
-        await act(async () => {
-          fireEvent.click(cropToggle);
-        });
-
-        const cropInputs = screen.getAllByDisplayValue("0");
-        const leftInput = cropInputs[0]; // First crop input is "Left"
-        await act(async () => {
-          fireEvent.change(leftInput, { target: { value: "-1" } });
-        });
-
-        expect(
-          await screen.findByText("Crop left must be ≥ 0")
-        ).toBeInTheDocument();
-      });
     });
 
     describe("non-uniform scale controls", () => {
-      it("renders scale controls with linked/unlinked toggle", async () => {
+      it("renders scale controls", async () => {
         render(
           <AssetSettingsForm
             spawnId="spawn1"
@@ -1220,33 +1054,22 @@ describe("AssetSettingsForm", () => {
             setCachedDraft={mockSetCachedDraft}
           />
         );
+
+        // Wait for the component to finish loading
+        await waitFor(() => {
+          expect(screen.getByText("Test Video · video")).toBeInTheDocument();
+        });
 
         await waitFor(() => {
           expect(screen.getByText("Scale")).toBeInTheDocument();
         });
 
-        const scaleToggle = screen.getByLabelText("Override scale");
-        expect(scaleToggle).toBeInTheDocument();
-      });
-
-      it("shows single scale input when linked", async () => {
-        render(
-          <AssetSettingsForm
-            spawnId="spawn1"
-            spawnAssetId="asset1"
-            onBack={mockOnBack}
-            setCachedDraft={mockSetCachedDraft}
-          />
-        );
-
-        const scaleToggle = await screen.findByLabelText("Override scale");
-        await act(async () => {
-          fireEvent.click(scaleToggle);
-        });
-
-        // Should show single scale input when linked
+        // Scale controls should be directly editable
         const scaleInputs = screen.getAllByDisplayValue("1");
-        expect(scaleInputs).toHaveLength(1);
+        expect(scaleInputs.length).toBeGreaterThan(0);
+        scaleInputs.forEach((input) => {
+          expect(input).not.toBeDisabled();
+        });
       });
 
       it("shows separate X and Y inputs when unlinked", async () => {
@@ -1259,13 +1082,21 @@ describe("AssetSettingsForm", () => {
           />
         );
 
-        const scaleToggle = await screen.findByLabelText("Override scale");
-        await act(async () => {
-          fireEvent.click(scaleToggle);
+        // Wait for the component to finish loading
+        await waitFor(() => {
+          expect(screen.getByText("Test Video · video")).toBeInTheDocument();
         });
 
-        // First, set a scale value to ensure the scale controls are rendered
-        const scaleInput = screen.getByDisplayValue("1");
+        // First, find the scale input by role and aria-describedby attribute
+        const numberInputs = screen.getAllByRole("spinbutton");
+        const scaleInput = numberInputs.find((input) =>
+          input.getAttribute("aria-describedby")?.includes("scale-error")
+        );
+        if (!scaleInput) throw new Error("Scale input not found");
+
+        // Input should be enabled for direct editing
+        expect(scaleInput).not.toBeDisabled();
+
         await act(async () => {
           fireEvent.change(scaleInput, { target: { value: "1.5" } });
         });
@@ -1301,7 +1132,9 @@ describe("AssetSettingsForm", () => {
           expect(screen.getByText("Bounds Type")).toBeInTheDocument();
         });
 
-        const boundsTypeSelect = screen.getByLabelText("Override bounds type");
+        const boundsTypeSelect = screen.getByDisplayValue(
+          "Select bounds type..."
+        );
         expect(boundsTypeSelect).toBeInTheDocument();
       });
 
@@ -1315,16 +1148,17 @@ describe("AssetSettingsForm", () => {
           />
         );
 
-        const boundsTypeToggle = await screen.findByLabelText(
-          "Override bounds type"
-        );
-        await act(async () => {
-          fireEvent.click(boundsTypeToggle);
+        // Wait for the component to finish loading
+        await waitFor(() => {
+          expect(screen.getByText("Test Video · video")).toBeInTheDocument();
         });
 
         const boundsTypeSelect = screen.getByDisplayValue(
           "Select bounds type..."
         );
+        // Select should be enabled for direct editing
+        expect(boundsTypeSelect).not.toBeDisabled();
+
         await act(async () => {
           fireEvent.change(boundsTypeSelect, {
             target: { value: "OBS_BOUNDS_STRETCH" },
@@ -1349,14 +1183,17 @@ describe("AssetSettingsForm", () => {
           />
         );
 
-        const boundsTypeToggle = await screen.findByLabelText(
-          "Override bounds type"
-        );
-        await act(async () => {
-          fireEvent.click(boundsTypeToggle);
+        // Wait for the component to finish loading
+        await waitFor(() => {
+          expect(screen.getByText("Test Video · video")).toBeInTheDocument();
         });
 
-        const boundsTypeSelect = screen.getByLabelText("Override bounds type");
+        const boundsTypeSelect = screen.getByDisplayValue(
+          "Select bounds type..."
+        );
+        // Select should be enabled for direct editing
+        expect(boundsTypeSelect).not.toBeDisabled();
+
         await act(async () => {
           fireEvent.change(boundsTypeSelect, {
             target: { value: "INVALID_TYPE" },
@@ -1384,7 +1221,7 @@ describe("AssetSettingsForm", () => {
           expect(screen.getByText("Alignment")).toBeInTheDocument();
         });
 
-        const alignmentSelect = screen.getByLabelText("Override alignment");
+        const alignmentSelect = screen.getByDisplayValue("Select alignment...");
         expect(alignmentSelect).toBeInTheDocument();
       });
 
@@ -1398,14 +1235,15 @@ describe("AssetSettingsForm", () => {
           />
         );
 
-        const alignmentToggle = await screen.findByLabelText(
-          "Override alignment"
-        );
-        await act(async () => {
-          fireEvent.click(alignmentToggle);
+        // Wait for the component to finish loading
+        await waitFor(() => {
+          expect(screen.getByText("Test Video · video")).toBeInTheDocument();
         });
 
         const alignmentSelect = screen.getByDisplayValue("Select alignment...");
+        // Select should be enabled for direct editing
+        expect(alignmentSelect).not.toBeDisabled();
+
         await act(async () => {
           fireEvent.change(alignmentSelect, { target: { value: "5" } });
         });
@@ -1428,14 +1266,15 @@ describe("AssetSettingsForm", () => {
           />
         );
 
-        const alignmentToggle = await screen.findByLabelText(
-          "Override alignment"
-        );
-        await act(async () => {
-          fireEvent.click(alignmentToggle);
+        // Wait for the component to finish loading
+        await waitFor(() => {
+          expect(screen.getByText("Test Video · video")).toBeInTheDocument();
         });
 
-        const alignmentSelect = screen.getByLabelText("Override alignment");
+        const alignmentSelect = screen.getByDisplayValue("Select alignment...");
+        // Select should be enabled for direct editing
+        expect(alignmentSelect).not.toBeDisabled();
+
         await act(async () => {
           fireEvent.change(alignmentSelect, { target: { value: "99" } });
         });

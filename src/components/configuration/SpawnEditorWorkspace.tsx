@@ -93,15 +93,6 @@ const dayOfWeekOptions = [
   { value: 6, label: "Saturday" },
 ];
 
-type FieldKey = keyof MediaAssetProperties;
-const DEFAULT_FIELDS: FieldKey[] = [
-  "dimensions",
-  "position",
-  "scale",
-  "positionMode",
-  "volume",
-];
-
 // Helper function to safely access command config
 const getCommandConfig = (trigger: Trigger | null) => {
   if (trigger?.type === "streamerbot.command") {
@@ -180,18 +171,11 @@ const SpawnEditorWorkspace: React.FC = () => {
     Record<
       string,
       {
-        overrideEnabled: Partial<Record<keyof MediaAssetProperties, boolean>>;
         draftValues: Partial<MediaAssetProperties>;
       }
     >
   >({});
 
-  const [defaultsEnabled, setDefaultsEnabled] = useState<
-    Partial<Record<FieldKey, boolean>>
-  >({});
-  const [draftDefaults, setDraftDefaults] = useState<
-    Partial<MediaAssetProperties>
-  >({});
   const [showMetadata, setShowMetadata] = useState<boolean>(true);
   const validation = useMemo(() => validateTrigger(trigger), [trigger]);
   const bucketValidation = useMemo(() => {
@@ -283,12 +267,6 @@ const SpawnEditorWorkspace: React.FC = () => {
       setEnabled(!!selectedSpawn.enabled);
       setTrigger(selectedSpawn.trigger || getDefaultTrigger("manual"));
       setDuration(selectedSpawn.duration);
-      const toggles: Partial<Record<FieldKey, boolean>> = {};
-      DEFAULT_FIELDS.forEach((k) => {
-        toggles[k] = false;
-      });
-      setDefaultsEnabled(toggles);
-      setDraftDefaults({});
       setBucketsDraft([...(selectedSpawn.randomizationBuckets || [])]);
       // Clear messages only if changing to a different spawn
       if (prevSpawnIdRef.current !== selectedSpawn.id) {
@@ -307,7 +285,6 @@ const SpawnEditorWorkspace: React.FC = () => {
     const triggerChanged =
       JSON.stringify(trigger) !== JSON.stringify(selectedSpawn.trigger || null);
     const durationChanged = duration !== selectedSpawn.duration;
-    const defaultsChanged = false;
     const bucketsChanged =
       JSON.stringify(bucketsDraft || []) !==
       JSON.stringify(selectedSpawn.randomizationBuckets || []);
@@ -315,7 +292,6 @@ const SpawnEditorWorkspace: React.FC = () => {
       name !== baselineName ||
       description !== baselineDesc ||
       durationChanged ||
-      defaultsChanged ||
       triggerChanged ||
       bucketsChanged
     );
@@ -374,12 +350,6 @@ const SpawnEditorWorkspace: React.FC = () => {
     setDescription(selectedSpawn.description || "");
     setTrigger(selectedSpawn.trigger || getDefaultTrigger("manual"));
     setDuration(selectedSpawn.duration);
-    const toggles: Partial<Record<FieldKey, boolean>> = {};
-    DEFAULT_FIELDS.forEach((k) => {
-      toggles[k] = false;
-    });
-    setDefaultsEnabled(toggles);
-    setDraftDefaults({});
     setSaveError(null);
     setSaveSuccess(null);
   };
@@ -578,12 +548,6 @@ const SpawnEditorWorkspace: React.FC = () => {
             setName(selectedSpawn.name);
             setDescription(selectedSpawn.description || "");
             setDuration(selectedSpawn.duration);
-            const toggles: Partial<Record<FieldKey, boolean>> = {};
-            DEFAULT_FIELDS.forEach((k) => {
-              toggles[k] = false;
-            });
-            setDefaultsEnabled(toggles);
-            setDraftDefaults({});
             setSaveError(null);
             setSaveSuccess(null);
             setShowDiscardDialog(false);
@@ -2285,266 +2249,6 @@ const SpawnEditorWorkspace: React.FC = () => {
                 </div>
               </section>
             )}
-
-            <section className="bg-white border border-gray-200 rounded-lg p-4">
-              <h3 className="text-base font-semibold text-gray-800 mb-3">
-                Default Asset Properties
-              </h3>
-              <p className="text-xs text-gray-600 mb-3">
-                Assets inherit these values unless specifically overridden.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Duration (ms)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={duration}
-                    onChange={(e) => {
-                      const val = Math.max(0, Number(e.target.value) || 0);
-                      setDuration(val);
-                    }}
-                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Width (px)
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={!!defaultsEnabled.dimensions}
-                      onChange={(e) =>
-                        setDefaultsEnabled((prev) => ({
-                          ...prev,
-                          dimensions: e.target.checked,
-                        }))
-                      }
-                      aria-label="Enable default for dimensions"
-                    />
-                    <input
-                      type="number"
-                      min={1}
-                      value={draftDefaults.dimensions?.width ?? ""}
-                      onChange={(e) =>
-                        setDraftDefaults((prev) => ({
-                          ...prev,
-                          dimensions: {
-                            width: Math.max(1, Number(e.target.value) || 1),
-                            height: prev.dimensions?.height ?? 1,
-                          },
-                        }))
-                      }
-                      disabled={!defaultsEnabled.dimensions}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Height (px)
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min={1}
-                      value={draftDefaults.dimensions?.height ?? ""}
-                      onChange={(e) =>
-                        setDraftDefaults((prev) => ({
-                          ...prev,
-                          dimensions: {
-                            width: prev.dimensions?.width ?? 1,
-                            height: Math.max(1, Number(e.target.value) || 1),
-                          },
-                        }))
-                      }
-                      disabled={!defaultsEnabled.dimensions}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    X Position (px)
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={!!defaultsEnabled.position}
-                      onChange={(e) =>
-                        setDefaultsEnabled((prev) => ({
-                          ...prev,
-                          position: e.target.checked,
-                        }))
-                      }
-                      aria-label="Enable default for position"
-                    />
-                    <input
-                      type="number"
-                      min={0}
-                      value={draftDefaults.position?.x ?? ""}
-                      onChange={(e) =>
-                        setDraftDefaults((prev) => ({
-                          ...prev,
-                          position: {
-                            x: Math.max(0, Number(e.target.value) || 0),
-                            y: prev.position?.y ?? 0,
-                          },
-                        }))
-                      }
-                      disabled={!defaultsEnabled.position}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Y Position (px)
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min={0}
-                      value={draftDefaults.position?.y ?? ""}
-                      onChange={(e) =>
-                        setDraftDefaults((prev) => ({
-                          ...prev,
-                          position: {
-                            x: prev.position?.x ?? 0,
-                            y: Math.max(0, Number(e.target.value) || 0),
-                          },
-                        }))
-                      }
-                      disabled={!defaultsEnabled.position}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Scale
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={!!defaultsEnabled.scale}
-                      onChange={(e) =>
-                        setDefaultsEnabled((prev) => ({
-                          ...prev,
-                          scale: e.target.checked,
-                        }))
-                      }
-                      aria-label="Enable default for scale"
-                    />
-                    <input
-                      type="number"
-                      min={0}
-                      step={0.1}
-                      value={
-                        typeof draftDefaults.scale === "number"
-                          ? draftDefaults.scale
-                          : draftDefaults.scale?.x ?? ""
-                      }
-                      onChange={(e) =>
-                        setDraftDefaults((prev) => ({
-                          ...prev,
-                          scale: Math.max(0, parseFloat(e.target.value) || 0),
-                        }))
-                      }
-                      disabled={!defaultsEnabled.scale}
-                      className="w-24 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Position Mode
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={!!defaultsEnabled.positionMode}
-                      onChange={(e) =>
-                        setDefaultsEnabled((prev) => ({
-                          ...prev,
-                          positionMode: e.target.checked,
-                        }))
-                      }
-                      aria-label="Enable default for position mode"
-                    />
-                    <select
-                      value={draftDefaults.positionMode ?? "absolute"}
-                      onChange={(e) =>
-                        setDraftDefaults((prev) => ({
-                          ...prev,
-                          positionMode: e.target
-                            .value as MediaAssetProperties["positionMode"],
-                        }))
-                      }
-                      disabled={!defaultsEnabled.positionMode}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent bg-white"
-                    >
-                      <option value="absolute">Absolute (px)</option>
-                      <option value="relative">Relative (%)</option>
-                      <option value="centered">Centered</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Volume (%)
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={!!defaultsEnabled.volume}
-                      onChange={(e) =>
-                        setDefaultsEnabled((prev) => ({
-                          ...prev,
-                          volume: e.target.checked,
-                        }))
-                      }
-                      aria-label="Enable default for volume"
-                    />
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={Math.round((draftDefaults.volume ?? 0.5) * 100)}
-                      onChange={(e) =>
-                        setDraftDefaults((prev) => ({
-                          ...prev,
-                          volume: (Number(e.target.value) || 0) / 100,
-                        }))
-                      }
-                      disabled={!defaultsEnabled.volume}
-                      className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                    />
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={Math.round((draftDefaults.volume ?? 0.5) * 100)}
-                      onChange={(e) =>
-                        setDraftDefaults((prev) => ({
-                          ...prev,
-                          volume: (Number(e.target.value) || 0) / 100,
-                        }))
-                      }
-                      disabled={!defaultsEnabled.volume}
-                      className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-              </div>
-            </section>
 
             <section className="bg-white border border-gray-200 rounded-lg p-4">
               <div className="flex items-center justify-between mb-3">
