@@ -7,6 +7,8 @@ import {
   getTriggerScheduleLabel,
   getOverallStatusLabel,
 } from "../../utils/triggerDisplay";
+import { Switch } from "../ui/Switch";
+import * as Tooltip from "@radix-ui/react-tooltip";
 
 /**
  * Props for the spawn list item component
@@ -61,12 +63,21 @@ const SpawnListItem: React.FC<SpawnListItemProps> = ({
   return (
     <div
       ref={itemRef}
-      className={`p-3 border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50 ${
-        isSelected ? "bg-blue-50 border-blue-200" : ""
+      className={`p-3 border-b border-[rgb(var(--color-border))] cursor-pointer transition-colors hover:bg-[rgb(var(--color-muted))]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2 ${
+        isSelected
+          ? "bg-[rgb(var(--color-accent))]/5 border-[rgb(var(--color-accent))]"
+          : ""
       } ${!spawn.enabled ? "opacity-60" : ""} ${className}`}
       onClick={handleClick}
-      role="button"
-      tabIndex={0}
+      role="option"
+      tabIndex={isSelected ? 0 : -1}
+      aria-selected={isSelected}
+      aria-label={`Spawn: ${spawn.name}. ${
+        spawn.enabled ? "Enabled" : "Disabled"
+      }. ${spawn.assets.length} asset${
+        spawn.assets.length !== 1 ? "s" : ""
+      }. ${getTriggerTypeLabel(spawn.trigger)} trigger.`}
+      aria-describedby={`spawn-${spawn.id}-description`}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
@@ -76,70 +87,128 @@ const SpawnListItem: React.FC<SpawnListItemProps> = ({
     >
       {/* Spawn Name and Toggle */}
       <div className="flex items-center justify-between mb-1">
-        <h3 className="font-medium text-gray-900 truncate flex-1">
-          {spawn.name}
-        </h3>
+        <Tooltip.Root>
+          <Tooltip.Trigger asChild>
+            <h3 className="font-medium text-[rgb(var(--color-fg))] truncate flex-1 cursor-default">
+              {spawn.name}
+            </h3>
+          </Tooltip.Trigger>
+          <Tooltip.Portal>
+            <Tooltip.Content
+              sideOffset={6}
+              className="z-50 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-3 py-2 text-sm text-[rgb(var(--color-fg))] shadow-md max-w-xs"
+            >
+              <div className="whitespace-pre-line">{spawn.name}</div>
+              <Tooltip.Arrow className="fill-[rgb(var(--color-bg))]" />
+            </Tooltip.Content>
+          </Tooltip.Portal>
+        </Tooltip.Root>
         <div className="flex items-center ml-2">
-          <button
-            type="button"
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-              spawn.enabled ? "bg-blue-600" : "bg-gray-200"
-            } ${
-              isToggleProcessing
-                ? "opacity-50 cursor-not-allowed"
-                : "cursor-pointer"
-            }`}
-            onClick={handleToggle}
-            onKeyDown={handleToggleKeyDown}
-            disabled={isToggleProcessing}
-            aria-label={`${spawn.enabled ? "Disable" : "Enable"} ${spawn.name}`}
-            title={`${spawn.enabled ? "Disable" : "Enable"} ${spawn.name}`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                spawn.enabled ? "translate-x-6" : "translate-x-1"
-              }`}
-            />
-            {isToggleProcessing && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="h-3 w-3 animate-spin rounded-full border border-white border-t-transparent"></div>
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <div
+                onClick={handleToggle}
+                onKeyDown={handleToggleKeyDown}
+                className={`${
+                  isToggleProcessing
+                    ? "opacity-50 cursor-not-allowed"
+                    : "cursor-pointer"
+                }`}
+                tabIndex={0}
+                aria-label={`${spawn.enabled ? "Disable" : "Enable"} ${
+                  spawn.name
+                }`}
+                aria-describedby={`spawn-${spawn.id}-toggle-description`}
+              >
+                <Switch
+                  checked={spawn.enabled}
+                  disabled={isToggleProcessing}
+                  size="md"
+                />
               </div>
-            )}
-          </button>
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                sideOffset={6}
+                className="z-50 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-3 py-2 text-sm text-[rgb(var(--color-fg))] shadow-md"
+              >
+                <div>{`${spawn.enabled ? "Disable" : "Enable"} ${
+                  spawn.name
+                }`}</div>
+                <Tooltip.Arrow className="fill-[rgb(var(--color-bg))]" />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
         </div>
       </div>
 
       {/* Spawn Description */}
       {spawn.description && (
-        <p className="text-sm text-gray-600 truncate mb-2">
-          {spawn.description}
-        </p>
+        <Tooltip.Root>
+          <Tooltip.Trigger asChild>
+            <p className="text-sm text-[rgb(var(--color-muted-foreground))] truncate mb-2 cursor-default">
+              {spawn.description}
+            </p>
+          </Tooltip.Trigger>
+          <Tooltip.Portal>
+            <Tooltip.Content
+              sideOffset={6}
+              className="z-50 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-3 py-2 text-sm text-[rgb(var(--color-fg))] shadow-md max-w-xs"
+            >
+              <div className="whitespace-pre-line">{spawn.description}</div>
+              <Tooltip.Arrow className="fill-[rgb(var(--color-bg))]" />
+            </Tooltip.Content>
+          </Tooltip.Portal>
+        </Tooltip.Root>
       )}
 
-      <div
-        className="flex items-center text-xs text-gray-500"
-        title={getTriggerTooltip(spawn.trigger)}
-      >
-        {/* Type badge */}
-        <span className="mr-2 inline-flex items-center px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200">
-          {getTriggerTypeLabel(spawn.trigger)}
-        </span>
-        {/* Abbreviated info */}
-        <span className="mr-3 truncate max-w-[40%]">
-          {getTriggerAbbrev(spawn.trigger)}
-        </span>
-        {/* Scheduled label if applicable */}
-        {getTriggerScheduleLabel(spawn.trigger) && (
-          <span className="mr-3 text-gray-600">
-            {getTriggerScheduleLabel(spawn.trigger)}
-          </span>
-        )}
-        {/* Assets count */}
-        <span className="mr-3">
-          {spawn.assets.length} asset{spawn.assets.length !== 1 ? "s" : ""}
-        </span>
-        {/* Overall status */}
-        <span>{getOverallStatusLabel(spawn)}</span>
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>
+          <div className="flex items-center text-xs text-[rgb(var(--color-muted))] cursor-default">
+            {/* Type badge */}
+            <span className="mr-2 inline-flex items-center px-1.5 py-0.5 rounded bg-[rgb(var(--color-muted))]/10 text-[rgb(var(--color-fg))] border border-[rgb(var(--color-border))]">
+              {getTriggerTypeLabel(spawn.trigger)}
+            </span>
+            {/* Abbreviated info */}
+            <span className="mr-3 truncate max-w-[40%]">
+              {getTriggerAbbrev(spawn.trigger)}
+            </span>
+            {/* Scheduled label if applicable */}
+            {getTriggerScheduleLabel(spawn.trigger) && (
+              <span className="mr-3 text-[rgb(var(--color-muted-foreground))]">
+                {getTriggerScheduleLabel(spawn.trigger)}
+              </span>
+            )}
+            {/* Assets count */}
+            <span className="mr-3">
+              {spawn.assets.length} asset{spawn.assets.length !== 1 ? "s" : ""}
+            </span>
+            {/* Overall status */}
+            <span>{getOverallStatusLabel(spawn)}</span>
+          </div>
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content
+            sideOffset={6}
+            className="z-50 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-3 py-2 text-sm text-[rgb(var(--color-fg))] shadow-md max-w-xs"
+          >
+            <div className="whitespace-pre-line">
+              {getTriggerTooltip(spawn.trigger)}
+            </div>
+            <Tooltip.Arrow className="fill-[rgb(var(--color-bg))]" />
+          </Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+
+      {/* Screen reader descriptions */}
+      <div id={`spawn-${spawn.id}-description`} className="sr-only">
+        {spawn.description && `Description: ${spawn.description}. `}
+        Trigger: {getTriggerTooltip(spawn.trigger)}. Status:{" "}
+        {getOverallStatusLabel(spawn)}.
+      </div>
+      <div id={`spawn-${spawn.id}-toggle-description`} className="sr-only">
+        Toggle to {spawn.enabled ? "disable" : "enable"} this spawn.
+        {isToggleProcessing && "Processing request..."}
       </div>
     </div>
   );
