@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import type { Spawn } from "../../types/spawn";
 import { SpawnService } from "../../services/spawnService";
 import SpawnListItem from "./SpawnListItem";
+import { Button } from "../ui/Button";
 
 /**
  * Props for the spawn list component
@@ -228,8 +229,10 @@ const SpawnList: React.FC<SpawnListProps> = ({
     return (
       <div className={`h-full flex items-center justify-center ${className}`}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-          <p className="text-sm text-gray-600">Loading spawns...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgb(var(--color-accent))] mx-auto mb-2"></div>
+          <p className="text-sm text-[rgb(var(--color-muted-foreground))]">
+            Loading spawns...
+          </p>
         </div>
       </div>
     );
@@ -239,9 +242,13 @@ const SpawnList: React.FC<SpawnListProps> = ({
     return (
       <div className={`h-full flex items-center justify-center ${className}`}>
         <div className="text-center">
-          <div className="text-red-500 text-2xl mb-2">⚠️</div>
-          <p className="text-sm text-gray-600">Failed to load spawns</p>
-          <p className="text-xs text-gray-500 mt-1">{loadError}</p>
+          <div className="text-[rgb(var(--color-error))] text-2xl mb-2">⚠️</div>
+          <p className="text-sm text-[rgb(var(--color-muted-foreground))]">
+            Failed to load spawns
+          </p>
+          <p className="text-xs text-[rgb(var(--color-muted))] mt-1">
+            {loadError}
+          </p>
         </div>
       </div>
     );
@@ -249,6 +256,7 @@ const SpawnList: React.FC<SpawnListProps> = ({
 
   const handleListKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (spawns.length === 0) return;
+
     if (e.key === "ArrowDown") {
       e.preventDefault();
       const current = focusedIndexRef.current;
@@ -266,61 +274,79 @@ const SpawnList: React.FC<SpawnListProps> = ({
       focusedIndexRef.current = next;
       setFocusedIndex(next);
       itemRefs.current[next]?.focus();
-    } else if (e.key === "Enter") {
+    } else if (e.key === "Enter" || e.key === " ") {
       const index = focusedIndexRef.current;
       if (index >= 0 && index < spawns.length) {
         e.preventDefault();
         handleSpawnClick(spawns[index]);
       }
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      focusedIndexRef.current = 0;
+      setFocusedIndex(0);
+      itemRefs.current[0]?.focus();
+    } else if (e.key === "End") {
+      e.preventDefault();
+      const lastIndex = spawns.length - 1;
+      focusedIndexRef.current = lastIndex;
+      setFocusedIndex(lastIndex);
+      itemRefs.current[lastIndex]?.focus();
+    } else if (e.key === "n" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      handleCreateSpawn();
     }
   };
 
   if (spawns.length === 0) {
     return (
       <div className={`h-full flex flex-col ${className}`}>
-        <div className="p-4 border-b border-gray-200 bg-gray-50">
+        <div className="p-4 border-b border-[rgb(var(--color-border))] bg-[rgb(var(--color-muted))]/5">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-gray-800">Spawns</h2>
-              <p className="text-sm text-gray-600">0 spawns</p>
+              <h2 className="text-lg font-semibold text-[rgb(var(--color-fg))]">
+                Spawns
+              </h2>
+              <p className="text-sm text-[rgb(var(--color-muted-foreground))]">
+                0 spawns
+              </p>
             </div>
             <div className="flex items-center gap-2">
-              <button
-                type="button"
+              <Button
                 onClick={handleCreateSpawn}
                 disabled={isCreating}
-                className={`inline-flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors ${
-                  isCreating ? "opacity-60 cursor-not-allowed" : ""
-                }`}
+                loading={isCreating}
                 aria-label="Create New Spawn"
               >
-                {isCreating && (
-                  <span className="mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                )}
                 New Spawn
-              </button>
+              </Button>
             </div>
           </div>
         </div>
 
         {(toggleError || createError) && (
-          <div className="p-3 bg-red-50 border-b border-red-200">
+          <div className="p-3 bg-[rgb(var(--color-error-bg))] border-b border-[rgb(var(--color-error-border))]">
             {toggleError && (
-              <p className="text-sm text-red-700">{toggleError}</p>
+              <p className="text-sm text-[rgb(var(--color-error))]">
+                {toggleError}
+              </p>
             )}
             {createError && (
-              <p className="text-sm text-red-700">{createError}</p>
+              <p className="text-sm text-[rgb(var(--color-error))]">
+                {createError}
+              </p>
             )}
           </div>
         )}
 
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="text-gray-400 text-4xl mb-3">📋</div>
-            <h3 className="text-lg font-medium text-gray-700 mb-2">
+            <div className="text-[rgb(var(--color-muted))] text-4xl mb-3">
+              📋
+            </div>
+            <h3 className="text-lg font-medium text-[rgb(var(--color-fg))] mb-2">
               No Spawns Found
             </h3>
-            <p className="text-sm text-gray-500 max-w-xs">
+            <p className="text-sm text-[rgb(var(--color-muted-foreground))] max-w-xs">
               You haven't created any spawns yet. Create your first spawn to get
               started.
             </p>
@@ -333,38 +359,42 @@ const SpawnList: React.FC<SpawnListProps> = ({
   return (
     <div className={`h-full flex flex-col ${className}`}>
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 bg-gray-50">
+      <div className="p-4 border-b border-[rgb(var(--color-border))] bg-[rgb(var(--color-muted))]/5">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-gray-800">Spawns</h2>
-            <p className="text-sm text-gray-600">
+            <h2 className="text-lg font-semibold text-[rgb(var(--color-fg))]">
+              Spawns
+            </h2>
+            <p className="text-sm text-[rgb(var(--color-muted-foreground))]">
               {spawns.length} spawn{spawns.length !== 1 ? "s" : ""}
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
+            <Button
               onClick={handleCreateSpawn}
               disabled={isCreating}
-              className={`inline-flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors ${
-                isCreating ? "opacity-60 cursor-not-allowed" : ""
-              }`}
+              loading={isCreating}
               aria-label="Create New Spawn"
             >
-              {isCreating && (
-                <span className="mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              )}
               New Spawn
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
       {/* Error banners */}
       {(toggleError || createError) && (
-        <div className="p-3 bg-red-50 border-b border-red-200">
-          {toggleError && <p className="text-sm text-red-700">{toggleError}</p>}
-          {createError && <p className="text-sm text-red-700">{createError}</p>}
+        <div className="p-3 bg-[rgb(var(--color-error-bg))] border-b border-[rgb(var(--color-error-border))]">
+          {toggleError && (
+            <p className="text-sm text-[rgb(var(--color-error))]">
+              {toggleError}
+            </p>
+          )}
+          {createError && (
+            <p className="text-sm text-[rgb(var(--color-error))]">
+              {createError}
+            </p>
+          )}
         </div>
       )}
 
@@ -372,10 +402,20 @@ const SpawnList: React.FC<SpawnListProps> = ({
       <div
         className="flex-1 overflow-y-auto"
         role="listbox"
-        aria-label="Spawns"
+        aria-label={`Spawns list with ${spawns.length} spawn${
+          spawns.length !== 1 ? "s" : ""
+        }`}
+        aria-describedby="spawn-list-instructions"
         onKeyDown={handleListKeyDown}
         tabIndex={0}
       >
+        {/* Screen reader instructions */}
+        <div id="spawn-list-instructions" className="sr-only">
+          Use arrow keys to navigate between spawns. Press Enter or Space to
+          select a spawn. Press Home to go to first spawn, End to go to last
+          spawn. Press Ctrl+N or Cmd+N to create a new spawn. Press Tab to focus
+          on individual spawn controls.
+        </div>
         {spawns.map((spawn, index) => (
           <SpawnListItem
             key={spawn.id}

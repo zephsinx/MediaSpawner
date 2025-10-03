@@ -1,6 +1,7 @@
 import React from "react";
 import { render, type RenderOptions } from "@testing-library/react";
 import { vi } from "vitest";
+import * as Tooltip from "@radix-ui/react-tooltip";
 import type { Spawn } from "../../../types/spawn";
 
 /**
@@ -73,13 +74,17 @@ export const mockSpawns: Spawn[] = [
 ];
 
 /**
- * Custom render function for spawn list components
+ * Custom render function for spawn list components with TooltipProvider
  */
 export const renderSpawnList = (
   ui: React.ReactElement,
   options?: Omit<RenderOptions, "wrapper">
 ) => {
-  return render(ui, options);
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
+    <Tooltip.Provider>{children}</Tooltip.Provider>
+  );
+
+  return render(ui, { wrapper: Wrapper, ...options });
 };
 
 /**

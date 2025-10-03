@@ -75,3 +75,35 @@ export const cardDescriptionVariants = cva(
 );
 export const cardContentVariants = cva("p-6 pt-0");
 export const cardFooterVariants = cva("flex items-center p-6 pt-0");
+
+export const switchVariants = cva(
+  "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--color-bg))] disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-[rgb(var(--color-accent))] data-[state=unchecked]:bg-[rgb(var(--color-border))]",
+  {
+    variants: {
+      size: {
+        sm: "h-5 w-9",
+        md: "h-6 w-11",
+        lg: "h-7 w-12",
+      },
+    },
+    defaultVariants: {
+      size: "md",
+    },
+  }
+);
+
+export const switchThumbVariants = cva(
+  "pointer-events-none block h-5 w-5 rounded-full bg-[rgb(var(--color-bg))] shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0",
+  {
+    variants: {
+      size: {
+        sm: "h-4 w-4 data-[state=checked]:translate-x-4",
+        md: "h-5 w-5 data-[state=checked]:translate-x-5",
+        lg: "h-6 w-6 data-[state=checked]:translate-x-6",
+      },
+    },
+    defaultVariants: {
+      size: "md",
+    },
+  }
+);

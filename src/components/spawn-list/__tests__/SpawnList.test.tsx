@@ -1,13 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
 import {
-  render,
   screen,
   fireEvent,
   waitForElementToBeRemoved,
   act,
 } from "@testing-library/react";
 import SpawnList from "../SpawnList";
-import { createMockSpawn } from "./testUtils";
+import { createMockSpawn, renderSpawnList } from "./testUtils";
 
 // Mock the SpawnService
 vi.mock("../../../services/spawnService", () => ({
@@ -48,7 +47,7 @@ describe("SpawnList", () => {
 
     // Render the component
     await act(async () => {
-      render(<SpawnList />);
+      renderSpawnList(<SpawnList />);
     });
 
     // Verify the component loaded spawns
@@ -69,11 +68,11 @@ describe("SpawnList", () => {
     // Verify status text is displayed correctly per row
     const row1 = screen
       .getByText("Test Spawn 1")
-      .closest('[role="button"]') as HTMLElement;
+      .closest('[role="option"]') as HTMLElement;
     expect(within(row1).getByText("Active")).toBeInTheDocument();
     const row2 = screen
       .getByText("Test Spawn 2")
-      .closest('[role="button"]') as HTMLElement;
+      .closest('[role="option"]') as HTMLElement;
     expect(within(row2).getByText("Inactive")).toBeInTheDocument();
   });
 
@@ -84,7 +83,7 @@ describe("SpawnList", () => {
 
     // Render the component
     await act(async () => {
-      render(<SpawnList />);
+      renderSpawnList(<SpawnList />);
     });
 
     // Verify the component loaded spawns
@@ -117,7 +116,7 @@ describe("SpawnList", () => {
 
     // Render the component
     await act(async () => {
-      render(<SpawnList />);
+      renderSpawnList(<SpawnList />);
     });
 
     // Verify the component called the service
@@ -156,7 +155,7 @@ describe("SpawnList", () => {
 
     // Render the component
     await act(async () => {
-      render(<SpawnList />);
+      renderSpawnList(<SpawnList />);
     });
 
     // Verify initial state
@@ -168,9 +167,7 @@ describe("SpawnList", () => {
     expect(await screen.findByText("Inactive")).toBeInTheDocument();
 
     // Find and click the toggle button
-    const toggleButton = screen.getByRole("button", {
-      name: "Enable Disabled Spawn",
-    });
+    const toggleButton = screen.getByLabelText("Enable Disabled Spawn");
     await act(async () => {
       fireEvent.click(toggleButton);
     });
@@ -202,7 +199,7 @@ describe("SpawnList", () => {
     vi.mocked(SpawnService.disableSpawn).mockImplementation(mockDisableSpawn);
 
     // Render the component
-    render(<SpawnList />);
+    renderSpawnList(<SpawnList />);
 
     // Verify initial state
     await waitForElementToBeRemoved(() =>
@@ -211,13 +208,11 @@ describe("SpawnList", () => {
     expect(await screen.findByText("Enabled Spawn")).toBeInTheDocument();
     const enabledRow = screen
       .getByText("Enabled Spawn")
-      .closest('[role="button"]') as HTMLElement;
+      .closest('[role="option"]') as HTMLElement;
     expect(within(enabledRow).getByText("Active")).toBeInTheDocument();
 
     // Find and click the toggle button
-    const toggleButton = screen.getByRole("button", {
-      name: "Disable Enabled Spawn",
-    });
+    const toggleButton = screen.getByLabelText("Disable Enabled Spawn");
     await act(async () => {
       fireEvent.click(toggleButton);
     });
@@ -253,7 +248,7 @@ describe("SpawnList", () => {
     SpawnService.enableSpawn = mockEnableSpawn;
 
     // Render with fresh service
-    render(<SpawnList />);
+    renderSpawnList(<SpawnList />);
 
     // Verify initial state
     await waitForElementToBeRemoved(() =>
@@ -263,9 +258,7 @@ describe("SpawnList", () => {
     expect(await screen.findByText("Inactive")).toBeInTheDocument();
 
     // Find and click the toggle button
-    const toggleButton = screen.getByRole("button", {
-      name: "Enable Disabled Spawn",
-    });
+    const toggleButton = screen.getByLabelText("Enable Disabled Spawn");
 
     await act(async () => {
       fireEvent.click(toggleButton);
@@ -305,7 +298,7 @@ describe("SpawnList", () => {
     const onSpawnClick = vi.fn();
 
     await act(async () => {
-      render(<SpawnList onSpawnClick={onSpawnClick} />);
+      renderSpawnList(<SpawnList onSpawnClick={onSpawnClick} />);
     });
     const loading = screen.queryByText("Loading spawns...");
     if (loading) {
@@ -335,16 +328,14 @@ describe("SpawnList", () => {
     vi.mocked(SpawnService.enableSpawn).mockRejectedValue(new Error("Boom"));
 
     await act(async () => {
-      render(<SpawnList />);
+      renderSpawnList(<SpawnList />);
     });
     const loading = screen.queryByText("Loading spawns...");
     if (loading) {
       await waitForElementToBeRemoved(loading);
     }
 
-    const toggleButton = screen.getByRole("button", {
-      name: "Enable Err Spawn",
-    });
+    const toggleButton = screen.getByLabelText("Enable Err Spawn");
     await act(async () => {
       fireEvent.click(toggleButton);
     });
@@ -366,16 +357,14 @@ describe("SpawnList", () => {
     vi.mocked(SpawnService.disableSpawn).mockRejectedValue("weird");
 
     await act(async () => {
-      render(<SpawnList />);
+      renderSpawnList(<SpawnList />);
     });
     const loading = screen.queryByText("Loading spawns...");
     if (loading) {
       await waitForElementToBeRemoved(loading);
     }
 
-    const toggleButton = screen.getByRole("button", {
-      name: "Disable Weird Spawn",
-    });
+    const toggleButton = screen.getByLabelText("Disable Weird Spawn");
     await act(async () => {
       fireEvent.click(toggleButton);
     });
@@ -397,7 +386,7 @@ describe("SpawnList", () => {
     vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([oneSpawn]);
 
     await act(async () => {
-      render(<SpawnList />);
+      renderSpawnList(<SpawnList />);
     });
 
     const loading = screen.queryByText("Loading spawns...");
@@ -413,7 +402,7 @@ describe("SpawnList", () => {
     vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([]);
 
     await act(async () => {
-      render(<SpawnList className="extra-class" />);
+      renderSpawnList(<SpawnList className="extra-class" />);
     });
 
     const loading = screen.queryByText("Loading spawns...");
@@ -434,7 +423,7 @@ describe("SpawnList", () => {
     vi.mocked(SpawnService.getAllSpawns).mockResolvedValue(items);
 
     await act(async () => {
-      render(<SpawnList selectedSpawnId="s2" />);
+      renderSpawnList(<SpawnList selectedSpawnId="s2" />);
     });
 
     const loading = screen.queryByText("Loading spawns...");
@@ -442,10 +431,16 @@ describe("SpawnList", () => {
       await waitForElementToBeRemoved(loading);
     }
 
-    const selectedRow = screen.getByText("B").closest('[role="button"]')!;
-    expect(selectedRow).toHaveClass("bg-blue-50", "border-blue-200");
-    const otherRow = screen.getByText("A").closest('[role="button"]')!;
-    expect(otherRow).not.toHaveClass("bg-blue-50", "border-blue-200");
+    const selectedRow = screen.getByText("B").closest('[role="option"]')!;
+    expect(selectedRow).toHaveClass(
+      "bg-[rgb(var(--color-accent))]/5",
+      "border-[rgb(var(--color-accent))]"
+    );
+    const otherRow = screen.getByText("A").closest('[role="option"]')!;
+    expect(otherRow).not.toHaveClass(
+      "bg-[rgb(var(--color-accent))]/5",
+      "border-[rgb(var(--color-accent))]"
+    );
   });
 
   it("supports arrow key navigation and Enter to select via onSpawnClick", async () => {
@@ -459,7 +454,7 @@ describe("SpawnList", () => {
     const onSpawnClick = vi.fn();
 
     await act(async () => {
-      render(<SpawnList onSpawnClick={onSpawnClick} />);
+      renderSpawnList(<SpawnList onSpawnClick={onSpawnClick} />);
     });
 
     const loading = screen.queryByText("Loading spawns...");
@@ -467,7 +462,7 @@ describe("SpawnList", () => {
       await waitForElementToBeRemoved(loading);
     }
 
-    const listbox = screen.getByRole("listbox", { name: "Spawns" });
+    const listbox = screen.getByRole("listbox");
 
     await act(async () => {
       fireEvent.keyDown(listbox, { key: "ArrowDown" });
@@ -506,7 +501,7 @@ describe("SpawnList", () => {
     const onSpawnClick = vi.fn();
 
     await act(async () => {
-      render(<SpawnList onSpawnClick={onSpawnClick} />);
+      renderSpawnList(<SpawnList onSpawnClick={onSpawnClick} />);
     });
 
     const loading = screen.queryByText("Loading spawns...");
@@ -535,7 +530,7 @@ describe("SpawnList", () => {
     });
 
     await act(async () => {
-      render(<SpawnList />);
+      renderSpawnList(<SpawnList />);
     });
 
     const loading = screen.queryByText("Loading spawns...");
@@ -564,7 +559,7 @@ describe("SpawnList", () => {
     });
 
     await act(async () => {
-      render(<SpawnList />);
+      renderSpawnList(<SpawnList />);
     });
 
     const loading = screen.queryByText("Loading spawns...");
@@ -573,7 +568,7 @@ describe("SpawnList", () => {
     }
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Enable Toggle" }));
+      fireEvent.click(screen.getByLabelText("Enable Toggle"));
     });
     expect(await screen.findByText("Nope")).toBeInTheDocument();
 
@@ -583,13 +578,13 @@ describe("SpawnList", () => {
     });
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Enable Toggle" }));
+      fireEvent.click(screen.getByLabelText("Enable Toggle"));
     });
 
     // Only one row in this test; verify it shows Active before the click
     const row = screen
       .getByText("Toggle")
-      .closest('[role="button"]') as HTMLElement;
+      .closest('[role="option"]') as HTMLElement;
     expect(within(row).getByText("Active")).toBeInTheDocument();
     expect(screen.queryByText("Nope")).not.toBeInTheDocument();
   });
@@ -608,7 +603,7 @@ describe("SpawnList", () => {
     });
 
     await act(async () => {
-      render(<SpawnList />);
+      renderSpawnList(<SpawnList />);
     });
     const loading = screen.queryByText("Loading spawns...");
     if (loading) {
@@ -616,7 +611,7 @@ describe("SpawnList", () => {
     }
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Disable Toggle" }));
+      fireEvent.click(screen.getByLabelText("Disable Toggle"));
     });
 
     expect(await screen.findByText("Cannot disable")).toBeInTheDocument();
@@ -634,7 +629,7 @@ describe("SpawnList", () => {
     vi.mocked(SpawnService.enableSpawn).mockRejectedValue("weird");
 
     await act(async () => {
-      render(<SpawnList />);
+      renderSpawnList(<SpawnList />);
     });
     const loading = screen.queryByText("Loading spawns...");
     if (loading) {
@@ -642,9 +637,7 @@ describe("SpawnList", () => {
     }
 
     await act(async () => {
-      fireEvent.click(
-        screen.getByRole("button", { name: "Enable Weird Enable" })
-      );
+      fireEvent.click(screen.getByLabelText("Enable Weird Enable"));
     });
 
     expect(
@@ -659,7 +652,7 @@ describe("SpawnList", () => {
       vi.mocked(SpawnService.getAllSpawns).mockImplementation(mockGetAllSpawns);
 
       await act(async () => {
-        render(<SpawnList />);
+        renderSpawnList(<SpawnList />);
       });
 
       const msgs = await screen.findAllByText("Failed to load spawns");
@@ -693,7 +686,7 @@ describe("SpawnList", () => {
       const onSpawnClick = vi.fn();
 
       await act(async () => {
-        render(<SpawnList onSpawnClick={onSpawnClick} />);
+        renderSpawnList(<SpawnList onSpawnClick={onSpawnClick} />);
       });
       const loading = screen.queryByText("Loading spawns...");
       if (loading) {
@@ -719,7 +712,7 @@ describe("SpawnList", () => {
       );
 
       await act(async () => {
-        render(<SpawnList />);
+        renderSpawnList(<SpawnList />);
       });
       const loading = screen.queryByText("Loading spawns...");
       if (loading) {
@@ -751,14 +744,14 @@ describe("SpawnList", () => {
       const onSpawnClick = vi.fn();
 
       await act(async () => {
-        render(<SpawnList onSpawnClick={onSpawnClick} />);
+        renderSpawnList(<SpawnList onSpawnClick={onSpawnClick} />);
       });
       const loading = screen.queryByText("Loading spawns...");
       if (loading) {
         await waitForElementToBeRemoved(loading);
       }
 
-      const listbox = screen.getByRole("listbox", { name: "Spawns" });
+      const listbox = screen.getByRole("listbox");
       await act(async () => {
         fireEvent.keyDown(listbox, { key: "ArrowUp" });
         fireEvent.keyDown(listbox, { key: "Enter" });
@@ -788,7 +781,7 @@ describe("SpawnList", () => {
       });
 
       await act(async () => {
-        render(<SpawnList />);
+        renderSpawnList(<SpawnList />);
       });
       const loading = screen.queryByText("Loading spawns...");
       if (loading) {
@@ -797,7 +790,7 @@ describe("SpawnList", () => {
 
       // Trigger toggle error
       await act(async () => {
-        fireEvent.click(screen.getByRole("button", { name: "Disable Row" }));
+        fireEvent.click(screen.getByLabelText("Disable Row"));
       });
 
       // Trigger create error
@@ -841,7 +834,7 @@ describe("SpawnList", () => {
       const onSpawnClick = vi.fn();
 
       await act(async () => {
-        render(<SpawnList onSpawnClick={onSpawnClick} />);
+        renderSpawnList(<SpawnList onSpawnClick={onSpawnClick} />);
       });
       const loading = screen.queryByText("Loading spawns...");
       if (loading) {
@@ -890,7 +883,7 @@ describe("SpawnList", () => {
       const onSpawnClick = vi.fn();
 
       await act(async () => {
-        render(<SpawnList onSpawnClick={onSpawnClick} />);
+        renderSpawnList(<SpawnList onSpawnClick={onSpawnClick} />);
       });
 
       const loading = screen.queryByText("Loading spawns...");
@@ -922,7 +915,7 @@ describe("SpawnList", () => {
         .mockResolvedValueOnce(second);
 
       await act(async () => {
-        render(<SpawnList />);
+        renderSpawnList(<SpawnList />);
       });
       const loading = screen.queryByText("Loading spawns...");
       if (loading) {
@@ -947,7 +940,7 @@ describe("SpawnList", () => {
       vi.mocked(SpawnService.createSpawn).mockRejectedValue("weird");
 
       await act(async () => {
-        render(<SpawnList />);
+        renderSpawnList(<SpawnList />);
       });
       const loading = screen.queryByText("Loading spawns...");
       if (loading) {
@@ -978,7 +971,7 @@ describe("SpawnList", () => {
     vi.mocked(SpawnService.disableSpawn).mockResolvedValue({ success: false });
 
     await act(async () => {
-      render(<SpawnList />);
+      renderSpawnList(<SpawnList />);
     });
     const loading = screen.queryByText("Loading spawns...");
     if (loading) {
@@ -986,7 +979,7 @@ describe("SpawnList", () => {
     }
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Disable No Error" }));
+      fireEvent.click(screen.getByLabelText("Disable No Error"));
     });
 
     expect(
@@ -1009,7 +1002,7 @@ describe("SpawnList", () => {
     });
 
     await act(async () => {
-      render(<SpawnList />);
+      renderSpawnList(<SpawnList />);
     });
     const loading = screen.queryByText("Loading spawns...");
     if (loading) {
@@ -1019,7 +1012,7 @@ describe("SpawnList", () => {
     expect(await screen.findByText("Old Name")).toBeInTheDocument();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Enable Old Name" }));
+      fireEvent.click(screen.getByLabelText("Enable Old Name"));
     });
 
     expect(await screen.findByText("New Name")).toBeInTheDocument();
@@ -1060,32 +1053,33 @@ describe("SpawnList", () => {
     );
 
     await act(async () => {
-      render(<SpawnList />);
+      renderSpawnList(<SpawnList />);
     });
     const loading = screen.queryByText("Loading spawns...");
     if (loading) {
       await waitForElementToBeRemoved(loading);
     }
 
-    const btn1 = screen.getByRole("button", { name: "Enable First" });
-    const btn2 = screen.getByRole("button", { name: "Enable Second" });
+    const btn1 = screen.getByLabelText("Enable First");
+    const btn2 = screen.getByLabelText("Enable Second");
 
     await act(async () => {
       fireEvent.click(btn1);
     });
 
-    // First is disabled and shows spinner
-    expect(btn1).toBeDisabled();
-    expect(btn1.querySelector(".animate-spin")).not.toBeNull();
+    // First is disabled
+    const switchElement1 = btn1.querySelector('[role="switch"]') as HTMLElement;
+    expect(switchElement1).toBeDisabled();
 
     // Second remains interactive
-    expect(btn2).not.toBeDisabled();
+    const switchElement2 = btn2.querySelector('[role="switch"]') as HTMLElement;
+    expect(switchElement2).not.toBeDisabled();
     await act(async () => {
       fireEvent.click(btn2);
     });
     const secondRow = screen
       .getByText("Second")
-      .closest('[role="button"]') as HTMLElement;
+      .closest('[role="option"]') as HTMLElement;
     expect(await within(secondRow).findByText("Active")).toBeInTheDocument();
 
     // Resolve first toggle to avoid dangling promises
