@@ -376,7 +376,10 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
         )
         .closest("div");
 
-      expect(helpBox).toHaveClass("bg-blue-50", "border-blue-200");
+      expect(helpBox).toHaveClass(
+        "bg-[rgb(var(--color-accent))]/10",
+        "border-[rgb(var(--color-accent))]/20"
+      );
     });
   });
 

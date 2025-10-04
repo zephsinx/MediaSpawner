@@ -43,7 +43,7 @@ const SBCommandAliasCombobox: React.FC<{
         type="button"
         onClick={() => refresh()}
         disabled={loading}
-        className="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
+        className="text-xs text-[rgb(var(--color-accent))] hover:text-[rgb(var(--color-accent-hover))] disabled:opacity-50"
       >
         Refresh
       </button>
@@ -970,7 +970,7 @@ const SpawnEditorWorkspace: React.FC = () => {
                               },
                             });
                           }}
-                          className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded border border-blue-200"
+                          className="px-3 py-1 text-sm text-[rgb(var(--color-accent))] hover:text-[rgb(var(--color-accent-hover))] hover:bg-[rgb(var(--color-accent))]/10 rounded border border-[rgb(var(--color-accent))]/20"
                         >
                           + Add Alias
                         </button>
@@ -1207,8 +1207,8 @@ const SpawnEditorWorkspace: React.FC = () => {
                     </div>
 
                     {/* Help Text */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <p className="text-xs text-blue-800">
+                    <div className="bg-[rgb(var(--color-accent))]/10 border border-[rgb(var(--color-accent))]/20 rounded-lg p-3">
+                      <p className="text-xs text-[rgb(var(--color-accent))]">
                         <strong>Note:</strong> Twitch handles all reward logic
                         including cooldowns, usage limits, and point costs.
                         MediaSpawner only configures when spawns trigger based
@@ -2106,14 +2106,15 @@ const SpawnEditorWorkspace: React.FC = () => {
                   <CardTitle className="text-base font-semibold text-[rgb(var(--color-fg))]">
                     Metadata
                   </CardTitle>
-                  <button
+                  <Button
                     type="button"
-                    className="text-sm text-[rgb(var(--color-fg))] border border-[rgb(var(--color-input-border))] rounded px-2 py-1 bg-[rgb(var(--color-input))] hover:bg-[rgb(var(--color-muted))]/5"
+                    variant="outline"
+                    size="sm"
                     onClick={() => setShowMetadata((v) => !v)}
                     aria-label="Toggle metadata"
                   >
                     {showMetadata ? "Hide" : "Show"}
-                  </button>
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
