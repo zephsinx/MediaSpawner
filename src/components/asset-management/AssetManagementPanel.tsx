@@ -227,6 +227,41 @@ function SpawnAssetsSection() {
     };
   }, [selectedSpawnId]);
 
+  // Listen for profile changes to reset spawn-related state
+  useEffect(() => {
+    const handleProfileChanged = (e: Event) => {
+      const ce = e as CustomEvent<{
+        profileId?: string;
+        previousProfileId?: string;
+      }>;
+      const { profileId } = ce.detail || {};
+      if (profileId) {
+        // Reset spawn-related state when profile changes
+        setSpawn(null);
+        setLoadError(null);
+        setIsLoading(false);
+        setDraggingId(null);
+        setDragOverIndex(null);
+        setRemoveError(null);
+        setConfirmRemoveId(null);
+        setIsRemoving(false);
+        setSkipRemoveConfirm(false);
+      }
+    };
+
+    window.addEventListener(
+      "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
+      handleProfileChanged as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
+        handleProfileChanged as EventListener
+      );
+    };
+  }, []);
+
   const resolvedAssets: ResolvedSpawnAsset[] = useMemo(() => {
     if (!spawn) return [];
     const items = [...spawn.assets]

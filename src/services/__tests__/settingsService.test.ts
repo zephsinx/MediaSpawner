@@ -72,10 +72,9 @@ describe("SettingsService", () => {
       expect(result.settings?.themeMode).toBe("light");
     });
 
-    it("should migrate system theme to light", () => {
-      // Mock localStorage with legacy system theme
+    it("should default to light for legacy system theme", () => {
       localStorage.setItem(
-        "mediaspawner-settings",
+        "mediaspawner_settings",
         JSON.stringify({
           workingDirectory: "",
           themeMode: "system",
@@ -84,12 +83,6 @@ describe("SettingsService", () => {
 
       const themeMode = SettingsService.getThemeMode();
       expect(themeMode).toBe("light");
-
-      // Verify migration occurred
-      const storedSettings = JSON.parse(
-        localStorage.getItem("mediaspawner-settings") || "{}"
-      );
-      expect(storedSettings.themeMode).toBe("light");
     });
 
     it("should apply theme mode to DOM", () => {
@@ -199,14 +192,14 @@ describe("SettingsService", () => {
       expect(result.isValid).toBe(true);
     });
 
-    it("should accept settings with system theme for backward compatibility", () => {
+    it("should reject settings with legacy system theme", () => {
       const legacySettings = {
         workingDirectory: "",
         themeMode: "system",
       } as unknown as Parameters<typeof SettingsService.validateSettings>[0];
 
       const result = SettingsService.validateSettings(legacySettings);
-      expect(result.isValid).toBe(true);
+      expect(result.isValid).toBe(false);
     });
 
     it("should reject settings with invalid theme mode", () => {

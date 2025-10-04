@@ -22,6 +22,62 @@ vi.mock("../../../services/settingsService", () => ({
   },
 }));
 
+// Mock Radix UI DropdownMenu to avoid complexity in tests
+vi.mock("@radix-ui/react-dropdown-menu", () => ({
+  Root: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="dropdown-root">{children}</div>
+  ),
+  Trigger: ({
+    children,
+    asChild,
+  }: {
+    children: React.ReactNode;
+    asChild?: boolean;
+  }) =>
+    asChild ? (
+      <>{children}</>
+    ) : (
+      <div data-testid="dropdown-trigger">{children}</div>
+    ),
+  Portal: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="dropdown-portal">{children}</div>
+  ),
+  Content: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="dropdown-content" role="menu">
+      {children}
+    </div>
+  ),
+  Item: ({
+    children,
+    onSelect,
+    disabled,
+    ...props
+  }: {
+    children: React.ReactNode;
+    onSelect?: (e: Event) => void;
+    disabled?: boolean;
+    [key: string]: unknown;
+  }) => (
+    <div
+      data-testid="dropdown-item"
+      role="menuitem"
+      onClick={(e) => {
+        if (!disabled && onSelect) {
+          onSelect(e as unknown as Event);
+        }
+      }}
+      style={{
+        opacity: disabled ? 0.5 : 1,
+        cursor: disabled ? "not-allowed" : "pointer",
+      }}
+      aria-disabled={disabled}
+      {...props}
+    >
+      {children}
+    </div>
+  ),
+}));
+
 // Import after mocking
 import Header from "../Header";
 import { SpawnProfileService } from "../../../services/spawnProfileService";
@@ -129,10 +185,10 @@ describe("Header", () => {
     it("renders navigation dropdown component", () => {
       renderWithAllProviders(<Header />);
 
-      expect(screen.getByText("Open Asset Library")).toBeInTheDocument();
-      // Settings is now in dropdown menu
+      expect(screen.getByText("Edit Assets")).toBeInTheDocument();
+      // NavigationDropdown only has primary action, no dropdown menu
       expect(
-        screen.getByLabelText("Additional navigation options")
+        screen.getByRole("button", { name: "Edit Assets" })
       ).toBeInTheDocument();
     });
 
@@ -237,16 +293,17 @@ describe("Header", () => {
   });
 
   describe("Profile Management Actions", () => {
-    it("calls placeholder functions for profile management actions", () => {
-      const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-
+    it("opens dialogs for profile management actions", () => {
       renderWithAllProviders(<Header />);
 
       // Test Create Profile button (primary action)
-      fireEvent.click(screen.getByText("Create Profile"));
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "Create profile - to be implemented in Epic 6"
-      );
+      fireEvent.click(screen.getByRole("button", { name: "Create Profile" }));
+      expect(
+        screen.getByRole("heading", { name: "Create Profile" })
+      ).toBeInTheDocument();
+
+      // Close the dialog
+      fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
       // Test Edit Profile button (in dropdown)
       const dropdownTrigger = screen.getByLabelText(
@@ -254,20 +311,23 @@ describe("Header", () => {
       );
       fireEvent.click(dropdownTrigger);
 
-      const editButton = screen.getByText("Edit Profile");
+      const editButton = screen.getByRole("menuitem", { name: "Edit Profile" });
       fireEvent.click(editButton);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "Edit profile - to be implemented in Epic 6"
-      );
+      expect(
+        screen.getByRole("heading", { name: "Edit Profile" })
+      ).toBeInTheDocument();
+
+      // Close the dialog
+      fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
       // Test Delete Profile button (in dropdown)
-      const deleteButton = screen.getByText("Delete Profile");
+      const deleteButton = screen.getByRole("menuitem", {
+        name: "Delete Profile",
+      });
       fireEvent.click(deleteButton);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "Delete profile - to be implemented in Epic 6"
-      );
-
-      consoleSpy.mockRestore();
+      expect(
+        screen.getByRole("heading", { name: "Delete Profile" })
+      ).toBeInTheDocument();
     });
 
     it("disables Edit and Delete buttons when no active profile", () => {
@@ -284,11 +344,13 @@ describe("Header", () => {
       );
       fireEvent.click(dropdownTrigger);
 
-      const editButton = screen.getByText("Edit Profile");
-      const deleteButton = screen.getByText("Delete Profile");
+      const editButton = screen.getByRole("menuitem", { name: "Edit Profile" });
+      const deleteButton = screen.getByRole("menuitem", {
+        name: "Delete Profile",
+      });
 
-      expect(editButton).toBeDisabled();
-      expect(deleteButton).toBeDisabled();
+      expect(editButton).toHaveAttribute("aria-disabled", "true");
+      expect(deleteButton).toHaveAttribute("aria-disabled", "true");
     });
 
     it("enables Edit and Delete buttons when active profile exists", () => {
@@ -300,8 +362,10 @@ describe("Header", () => {
       );
       fireEvent.click(dropdownTrigger);
 
-      const editButton = screen.getByText("Edit Profile");
-      const deleteButton = screen.getByText("Delete Profile");
+      const editButton = screen.getByRole("menuitem", { name: "Edit Profile" });
+      const deleteButton = screen.getByRole("menuitem", {
+        name: "Delete Profile",
+      });
 
       expect(editButton).not.toBeDisabled();
       expect(deleteButton).not.toBeDisabled();
@@ -361,11 +425,15 @@ describe("Header", () => {
     it("opens create profile dialog when Create Profile button is clicked", () => {
       renderWithAllProviders(<Header />);
 
-      const createButton = screen.getByText("Create Profile");
+      const createButton = screen.getByRole("button", {
+        name: "Create Profile",
+      });
       fireEvent.click(createButton);
 
       // Check that ProfileFormDialog is rendered
-      expect(screen.getByText("Create Profile")).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Create Profile" })
+      ).toBeInTheDocument();
       expect(screen.getByLabelText("Profile Name")).toBeInTheDocument();
     });
 
@@ -379,11 +447,13 @@ describe("Header", () => {
       fireEvent.click(dropdownTrigger);
 
       // Click Edit Profile option
-      const editOption = screen.getByText("Edit Profile");
+      const editOption = screen.getByRole("menuitem", { name: "Edit Profile" });
       fireEvent.click(editOption);
 
       // Check that ProfileFormDialog is rendered in edit mode
-      expect(screen.getByText("Edit Profile")).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Edit Profile" })
+      ).toBeInTheDocument();
       expect(screen.getByDisplayValue("Default Profile")).toBeInTheDocument();
     });
 
@@ -397,11 +467,15 @@ describe("Header", () => {
       fireEvent.click(dropdownTrigger);
 
       // Click Delete Profile option
-      const deleteOption = screen.getByText("Delete Profile");
+      const deleteOption = screen.getByRole("menuitem", {
+        name: "Delete Profile",
+      });
       fireEvent.click(deleteOption);
 
       // Check that ProfileDeletionDialog is rendered
-      expect(screen.getByText("Delete Profile")).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Delete Profile" })
+      ).toBeInTheDocument();
       expect(screen.getByText("Default Profile")).toBeInTheDocument();
     });
 
@@ -423,14 +497,18 @@ describe("Header", () => {
       renderWithAllProviders(<Header />);
 
       // Open create dialog
-      const createButton = screen.getByText("Create Profile");
+      const createButton = screen.getByRole("button", {
+        name: "Create Profile",
+      });
       fireEvent.click(createButton);
 
       // Fill form and submit
       const nameInput = screen.getByLabelText("Profile Name");
       fireEvent.change(nameInput, { target: { value: "New Profile" } });
 
-      const submitButton = screen.getByText("Create Profile");
+      const submitButton = screen.getByRole("button", {
+        name: "Create Profile",
+      });
       fireEvent.click(submitButton);
 
       // Check that service was called
@@ -458,7 +536,7 @@ describe("Header", () => {
         "Additional profile actions"
       );
       fireEvent.click(dropdownTrigger);
-      const editOption = screen.getByText("Edit Profile");
+      const editOption = screen.getByRole("menuitem", { name: "Edit Profile" });
       fireEvent.click(editOption);
 
       // Update form and submit
@@ -490,11 +568,15 @@ describe("Header", () => {
         "Additional profile actions"
       );
       fireEvent.click(dropdownTrigger);
-      const deleteOption = screen.getByText("Delete Profile");
+      const deleteOption = screen.getByRole("menuitem", {
+        name: "Delete Profile",
+      });
       fireEvent.click(deleteOption);
 
       // Confirm deletion
-      const confirmButton = screen.getByText("Delete Profile");
+      const confirmButton = screen.getByRole("button", {
+        name: "Delete Profile",
+      });
       fireEvent.click(confirmButton);
 
       // Check that service was called
@@ -517,11 +599,13 @@ describe("Header", () => {
         "Additional profile actions"
       );
       fireEvent.click(dropdownTrigger);
-      const editOption = screen.getByText("Edit Profile");
+      const editOption = screen.getByRole("menuitem", { name: "Edit Profile" });
       fireEvent.click(editOption);
 
       // Should not open edit dialog
-      expect(screen.queryByText("Edit Profile")).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("heading", { name: "Edit Profile" })
+      ).not.toBeInTheDocument();
     });
 
     it("shows error when no active profile for delete", () => {
@@ -538,11 +622,15 @@ describe("Header", () => {
         "Additional profile actions"
       );
       fireEvent.click(dropdownTrigger);
-      const deleteOption = screen.getByText("Delete Profile");
+      const deleteOption = screen.getByRole("menuitem", {
+        name: "Delete Profile",
+      });
       fireEvent.click(deleteOption);
 
       // Should not open delete dialog
-      expect(screen.queryByText("Delete Profile")).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("heading", { name: "Delete Profile" })
+      ).not.toBeInTheDocument();
     });
 
     it("refreshes profiles list after successful operations", () => {
@@ -562,19 +650,23 @@ describe("Header", () => {
       renderWithAllProviders(<Header />);
 
       // Open create dialog and submit
-      const createButton = screen.getByText("Create Profile");
+      const createButton = screen.getByRole("button", {
+        name: "Create Profile",
+      });
       fireEvent.click(createButton);
 
       const nameInput = screen.getByLabelText("Profile Name");
       fireEvent.change(nameInput, { target: { value: "New Profile" } });
 
-      const submitButton = screen.getByText("Create Profile");
+      const submitButton = screen.getByRole("button", {
+        name: "Create Profile",
+      });
       fireEvent.click(submitButton);
 
       // Check that profiles list was refreshed
       expect(
         mockSpawnProfileService.getProfilesWithActiveInfo
-      ).toHaveBeenCalledTimes(2);
+      ).toHaveBeenCalledTimes(3);
     });
 
     it("sets new profile as active after creation", () => {
@@ -594,13 +686,17 @@ describe("Header", () => {
       renderWithAllProviders(<Header />);
 
       // Open create dialog and submit
-      const createButton = screen.getByText("Create Profile");
+      const createButton = screen.getByRole("button", {
+        name: "Create Profile",
+      });
       fireEvent.click(createButton);
 
       const nameInput = screen.getByLabelText("Profile Name");
       fireEvent.change(nameInput, { target: { value: "New Profile" } });
 
-      const submitButton = screen.getByText("Create Profile");
+      const submitButton = screen.getByRole("button", {
+        name: "Create Profile",
+      });
       fireEvent.click(submitButton);
 
       // Check that setActiveProfile was called

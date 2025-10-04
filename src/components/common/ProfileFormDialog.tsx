@@ -76,10 +76,10 @@ export function ProfileFormDialog({
   profile,
   title,
 }: ProfileFormDialogProps) {
-  const [formData, setFormData] = useState<ProfileFormData>({
-    name: "",
-    description: "",
-  });
+  const [formData, setFormData] = useState<ProfileFormData>(() => ({
+    name: profile?.name ?? "",
+    description: profile?.description ?? "",
+  }));
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);

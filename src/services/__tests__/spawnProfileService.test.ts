@@ -94,7 +94,7 @@ describe("SpawnProfileService", () => {
     mockCacheService.invalidate.mockImplementation(() => {});
     mockSettingsService.getSettings.mockReturnValue({
       workingDirectory: "",
-      themeMode: "system" as const,
+      themeMode: "light" as const,
     });
     mockSettingsService.updateSettings.mockReturnValue({ success: true });
     mockCreateSpawnProfile.mockImplementation((name, description) => ({
@@ -230,7 +230,7 @@ describe("SpawnProfileService", () => {
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
         activeProfileId: "profile-2",
-        themeMode: "system" as const,
+        themeMode: "light" as const,
       });
 
       const result = SpawnProfileService.getActiveProfile();
@@ -241,7 +241,7 @@ describe("SpawnProfileService", () => {
     it("returns null when no active profile ID", () => {
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
-        themeMode: "system" as const,
+        themeMode: "light" as const,
       });
 
       const result = SpawnProfileService.getActiveProfile();
@@ -255,7 +255,7 @@ describe("SpawnProfileService", () => {
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
         activeProfileId: "non-existent",
-        themeMode: "system" as const,
+        themeMode: "light" as const,
       });
 
       const result = SpawnProfileService.getActiveProfile();
@@ -272,7 +272,7 @@ describe("SpawnProfileService", () => {
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
         activeProfileId: "profile-1",
-        themeMode: "system" as const,
+        themeMode: "light" as const,
       });
 
       const result = SpawnProfileService.getActiveProfileId();
@@ -283,7 +283,7 @@ describe("SpawnProfileService", () => {
     it("returns undefined when no active profile", () => {
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
-        themeMode: "system" as const,
+        themeMode: "light" as const,
       });
 
       const result = SpawnProfileService.getActiveProfileId();
@@ -743,7 +743,7 @@ describe("SpawnProfileService", () => {
       localStorage.setItem.mockImplementation(() => {});
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
-        themeMode: "system" as const,
+        themeMode: "light" as const,
       });
 
       const result = SpawnProfileService.ensureDefaultProfile();
@@ -762,7 +762,7 @@ describe("SpawnProfileService", () => {
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
         activeProfileId: "profile-2",
-        themeMode: "system" as const,
+        themeMode: "light" as const,
       });
 
       const result = SpawnProfileService.ensureDefaultProfile();
@@ -781,7 +781,7 @@ describe("SpawnProfileService", () => {
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
         activeProfileId: "profile-2",
-        themeMode: "system" as const,
+        themeMode: "light" as const,
       });
 
       const result = SpawnProfileService.getProfilesWithActiveInfo();
@@ -829,7 +829,7 @@ describe("SpawnProfileService", () => {
       localStorage.getItem.mockReturnValue(JSON.stringify([]));
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
-        themeMode: "system" as const,
+        themeMode: "light" as const,
       });
 
       const result = SpawnProfileService.getProfileStats();
@@ -856,7 +856,7 @@ describe("SpawnProfileService", () => {
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
         activeProfileId: "profile-1",
-        themeMode: "system" as const,
+        themeMode: "light" as const,
       });
 
       const result = SpawnProfileService.getProfileStats();
@@ -876,7 +876,7 @@ describe("SpawnProfileService", () => {
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
         activeProfileId: "non-existent",
-        themeMode: "system" as const,
+        themeMode: "light" as const,
       });
 
       const result = SpawnProfileService.getProfileStats();

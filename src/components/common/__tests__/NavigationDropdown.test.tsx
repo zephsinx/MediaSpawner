@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { screen, fireEvent } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { NavigationDropdown } from "../NavigationDropdown";
 import { renderWithAllProviders } from "../../layout/__tests__/testUtils";
 
@@ -20,18 +20,15 @@ describe("NavigationDropdown", () => {
       renderWithAllProviders(<NavigationDropdown />);
 
       expect(screen.getByText("Edit Assets")).toBeInTheDocument();
-      expect(
-        screen.getByLabelText("Additional navigation options")
-      ).toBeInTheDocument();
+      expect(screen.getByLabelText("Edit Assets")).toBeInTheDocument();
     });
 
-    it("renders dropdown trigger button", () => {
+    it("renders with correct structure", () => {
       renderWithAllProviders(<NavigationDropdown />);
 
-      const dropdownTrigger = screen.getByLabelText(
-        "Additional navigation options"
-      );
-      expect(dropdownTrigger).toBeInTheDocument();
+      // Should have a container div with flex layout
+      const container = screen.getByText("Edit Assets").closest("div");
+      expect(container).toHaveClass("flex", "items-center", "gap-2");
     });
   });
 
@@ -44,16 +41,23 @@ describe("NavigationDropdown", () => {
       expect(editAssetsLink).toHaveAttribute("href", "/assets");
     });
 
-    it("dropdown is empty when opened (no additional navigation items)", () => {
+    it("renders as a proper Link component", () => {
       renderWithAllProviders(<NavigationDropdown />);
 
-      const dropdownTrigger = screen.getByLabelText(
-        "Additional navigation options"
-      );
-      fireEvent.click(dropdownTrigger);
+      const editAssetsLink = screen.getByText("Edit Assets").closest("a");
+      expect(editAssetsLink).toHaveAttribute("data-discover", "true");
+    });
 
-      // Should not find any Settings or other dropdown items
-      expect(screen.queryByText("Settings")).not.toBeInTheDocument();
+    it("does not render dropdown when no additional actions exist", () => {
+      renderWithAllProviders(<NavigationDropdown />);
+
+      // Should not find any dropdown trigger or additional navigation options
+      expect(
+        screen.queryByLabelText("Additional navigation options")
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /chevron/i })
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -62,47 +66,56 @@ describe("NavigationDropdown", () => {
       renderWithAllProviders(<NavigationDropdown />);
 
       expect(screen.getByLabelText("Edit Assets")).toBeInTheDocument();
-      expect(
-        screen.getByLabelText("Additional navigation options")
-      ).toBeInTheDocument();
     });
 
-    it("has proper ARIA attributes on dropdown trigger", () => {
+    it("has proper button structure", () => {
       renderWithAllProviders(<NavigationDropdown />);
 
-      const dropdownTrigger = screen.getByLabelText(
-        "Additional navigation options"
-      );
-      expect(dropdownTrigger).toHaveAttribute("aria-haspopup", "menu");
-      expect(dropdownTrigger).toHaveAttribute("aria-expanded", "false");
+      const button = screen.getByRole("button", { name: "Edit Assets" });
+      expect(button).toHaveAttribute("aria-disabled", "false");
     });
 
-    it("dropdown trigger maintains accessibility when opened", () => {
+    it("has proper icon accessibility", () => {
       renderWithAllProviders(<NavigationDropdown />);
 
-      const dropdownTrigger = screen.getByLabelText(
-        "Additional navigation options"
-      );
-      fireEvent.click(dropdownTrigger);
-
-      // Dropdown trigger should still be accessible
-      expect(dropdownTrigger).toBeInTheDocument();
+      // The icon should be properly hidden from screen readers
+      const link = screen.getByRole("link", { name: "Edit Assets" });
+      const svg = link.querySelector("svg");
+      expect(svg).toHaveAttribute("aria-hidden", "true");
     });
   });
 
   describe("Styling", () => {
-    it("applies correct CSS classes", () => {
+    it("applies correct CSS classes to button", () => {
       renderWithAllProviders(<NavigationDropdown />);
 
       const editAssetsButton = screen
         .getByText("Edit Assets")
         .closest("button");
       expect(editAssetsButton).toHaveClass("min-w-[140px]");
+    });
 
-      const dropdownTrigger = screen.getByLabelText(
-        "Additional navigation options"
-      );
-      expect(dropdownTrigger).toHaveClass("px-2");
+    it("applies correct CSS classes to link", () => {
+      renderWithAllProviders(<NavigationDropdown />);
+
+      const editAssetsLink = screen.getByText("Edit Assets").closest("a");
+      expect(editAssetsLink).toHaveClass("flex", "items-center");
+    });
+  });
+
+  describe("Component Props", () => {
+    it("accepts className prop", () => {
+      renderWithAllProviders(<NavigationDropdown className="custom-class" />);
+
+      const container = screen.getByText("Edit Assets").closest("div");
+      expect(container).toHaveClass("custom-class");
+    });
+
+    it("renders without className prop", () => {
+      renderWithAllProviders(<NavigationDropdown />);
+
+      const container = screen.getByText("Edit Assets").closest("div");
+      expect(container).toHaveClass("flex", "items-center", "gap-2");
     });
   });
 });

@@ -22,6 +22,7 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
   switch (action.type) {
     case "SET_ACTIVE_PROFILE": {
       const { profileId } = action.payload;
+      const previousProfileId = state.activeProfileId;
 
       // If switching to a different profile, reset spawn selection
       const newSelectedSpawnId =
@@ -29,13 +30,31 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
           ? state.profileSpawnSelections[profileId || ""] || undefined
           : state.selectedSpawnId;
 
-      return {
+      const newState = {
         ...state,
         activeProfileId: profileId,
         selectedSpawnId: newSelectedSpawnId,
-        centerPanelMode: "spawn-settings", // Reset to spawn settings mode
+        centerPanelMode: "spawn-settings" as const, // Reset to spawn settings mode
         hasUnsavedChanges: false, // Clear unsaved changes when switching profiles
       };
+
+      // Dispatch profile change event if profile actually changed
+      if (profileId !== previousProfileId) {
+        try {
+          window.dispatchEvent(
+            new CustomEvent(
+              "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
+              {
+                detail: { profileId, previousProfileId },
+              } as CustomEventInit
+            )
+          );
+        } catch {
+          // Best-effort notification
+        }
+      }
+
+      return newState;
     }
 
     case "SELECT_SPAWN": {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { screen, fireEvent, waitFor } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { SettingsButton } from "../SettingsButton";
 import { renderWithAllProviders } from "../../layout/__tests__/testUtils";
 
@@ -95,8 +95,6 @@ describe("SettingsButton", () => {
     it("shows tooltip on hover", () => {
       renderWithAllProviders(<SettingsButton />);
 
-      const button = screen.getByLabelText("Settings");
-
       // Check if tooltip components are rendered
       expect(screen.getByTestId("tooltip-root")).toBeInTheDocument();
       expect(screen.getByTestId("tooltip-content")).toBeInTheDocument();
@@ -105,8 +103,6 @@ describe("SettingsButton", () => {
 
     it("tooltip has proper styling", () => {
       renderWithAllProviders(<SettingsButton />);
-
-      const button = screen.getByLabelText("Settings");
 
       // Check tooltip content is rendered
       const tooltipContent = screen.getByTestId("tooltip-content");

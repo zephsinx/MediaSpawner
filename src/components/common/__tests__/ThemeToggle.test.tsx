@@ -124,7 +124,7 @@ describe("ThemeToggle", () => {
     it("handles theme switching success", () => {
       mockSettingsService.setThemeMode.mockReturnValue({
         success: true,
-        settings: { themeMode: "light", workingDirectory: "" },
+        settings: { themeMode: "dark", workingDirectory: "" },
       });
 
       renderWithAllProviders(<ThemeToggle />);
@@ -132,7 +132,7 @@ describe("ThemeToggle", () => {
       const switchElement = screen.getByRole("switch");
       fireEvent.click(switchElement);
 
-      expect(mockSettingsService.setThemeMode).toHaveBeenCalledWith("light");
+      expect(mockSettingsService.setThemeMode).toHaveBeenCalledWith("dark");
     });
 
     it("handles theme switching failure gracefully", () => {

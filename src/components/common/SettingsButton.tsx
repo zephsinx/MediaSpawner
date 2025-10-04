@@ -1,4 +1,3 @@
-import * as React from "react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { Link } from "react-router-dom";
 import { Settings } from "lucide-react";

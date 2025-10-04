@@ -1,4 +1,3 @@
-import * as React from "react";
 import { useState } from "react";
 import { SpawnProfileService } from "../../services/spawnProfileService";
 import type { SpawnProfile } from "../../types/spawn";
@@ -172,7 +171,6 @@ export function ProfileDeletionDialog({
   return (
     <ConfirmDialog
       isOpen={isOpen}
-      onClose={handleClose}
       title="Delete Profile"
       message={`Are you sure you want to delete the profile "${profile.name}"?`}
       confirmText={isDeleting ? "Deleting..." : "Delete Profile"}
