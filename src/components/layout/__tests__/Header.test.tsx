@@ -7,6 +7,9 @@ vi.mock("../../../services/spawnProfileService", () => ({
   SpawnProfileService: {
     getProfilesWithActiveInfo: vi.fn(),
     setActiveProfile: vi.fn(),
+    createProfile: vi.fn(),
+    updateProfile: vi.fn(),
+    deleteProfile: vi.fn(),
   },
 }));
 
@@ -74,6 +77,17 @@ describe("Header", () => {
     mockSpawnProfileService.setActiveProfile.mockReturnValue({
       success: true,
       profile: mockProfiles[0],
+    });
+    mockSpawnProfileService.createProfile.mockReturnValue({
+      success: true,
+      profile: mockProfiles[0],
+    });
+    mockSpawnProfileService.updateProfile.mockReturnValue({
+      success: true,
+      profile: mockProfiles[0],
+    });
+    mockSpawnProfileService.deleteProfile.mockReturnValue({
+      success: true,
     });
 
     // Default SettingsService mock
@@ -340,6 +354,259 @@ describe("Header", () => {
 
       // Should not crash the component
       expect(() => renderWithAllProviders(<Header />)).not.toThrow();
+    });
+  });
+
+  describe("Profile Management", () => {
+    it("opens create profile dialog when Create Profile button is clicked", () => {
+      renderWithAllProviders(<Header />);
+
+      const createButton = screen.getByText("Create Profile");
+      fireEvent.click(createButton);
+
+      // Check that ProfileFormDialog is rendered
+      expect(screen.getByText("Create Profile")).toBeInTheDocument();
+      expect(screen.getByLabelText("Profile Name")).toBeInTheDocument();
+    });
+
+    it("opens edit profile dialog when Edit Profile is clicked", () => {
+      renderWithAllProviders(<Header />);
+
+      // Click on the dropdown trigger
+      const dropdownTrigger = screen.getByLabelText(
+        "Additional profile actions"
+      );
+      fireEvent.click(dropdownTrigger);
+
+      // Click Edit Profile option
+      const editOption = screen.getByText("Edit Profile");
+      fireEvent.click(editOption);
+
+      // Check that ProfileFormDialog is rendered in edit mode
+      expect(screen.getByText("Edit Profile")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("Default Profile")).toBeInTheDocument();
+    });
+
+    it("opens delete profile dialog when Delete Profile is clicked", () => {
+      renderWithAllProviders(<Header />);
+
+      // Click on the dropdown trigger
+      const dropdownTrigger = screen.getByLabelText(
+        "Additional profile actions"
+      );
+      fireEvent.click(dropdownTrigger);
+
+      // Click Delete Profile option
+      const deleteOption = screen.getByText("Delete Profile");
+      fireEvent.click(deleteOption);
+
+      // Check that ProfileDeletionDialog is rendered
+      expect(screen.getByText("Delete Profile")).toBeInTheDocument();
+      expect(screen.getByText("Default Profile")).toBeInTheDocument();
+    });
+
+    it("handles profile creation success", () => {
+      const newProfile: SpawnProfile = {
+        id: "new-profile",
+        name: "New Profile",
+        description: "New description",
+        spawns: [],
+        lastModified: Date.now(),
+        isActive: false,
+      };
+
+      mockSpawnProfileService.createProfile.mockReturnValue({
+        success: true,
+        profile: newProfile,
+      });
+
+      renderWithAllProviders(<Header />);
+
+      // Open create dialog
+      const createButton = screen.getByText("Create Profile");
+      fireEvent.click(createButton);
+
+      // Fill form and submit
+      const nameInput = screen.getByLabelText("Profile Name");
+      fireEvent.change(nameInput, { target: { value: "New Profile" } });
+
+      const submitButton = screen.getByText("Create Profile");
+      fireEvent.click(submitButton);
+
+      // Check that service was called
+      expect(mockSpawnProfileService.createProfile).toHaveBeenCalledWith(
+        "New Profile",
+        undefined
+      );
+    });
+
+    it("handles profile update success", () => {
+      const updatedProfile: SpawnProfile = {
+        ...mockProfiles[0],
+        name: "Updated Profile",
+      };
+
+      mockSpawnProfileService.updateProfile.mockReturnValue({
+        success: true,
+        profile: updatedProfile,
+      });
+
+      renderWithAllProviders(<Header />);
+
+      // Open edit dialog
+      const dropdownTrigger = screen.getByLabelText(
+        "Additional profile actions"
+      );
+      fireEvent.click(dropdownTrigger);
+      const editOption = screen.getByText("Edit Profile");
+      fireEvent.click(editOption);
+
+      // Update form and submit
+      const nameInput = screen.getByLabelText("Profile Name");
+      fireEvent.change(nameInput, { target: { value: "Updated Profile" } });
+
+      const submitButton = screen.getByText("Update Profile");
+      fireEvent.click(submitButton);
+
+      // Check that service was called
+      expect(mockSpawnProfileService.updateProfile).toHaveBeenCalledWith(
+        mockProfiles[0].id,
+        {
+          name: "Updated Profile",
+          description: "Default spawn profile",
+        }
+      );
+    });
+
+    it("handles profile deletion success", () => {
+      mockSpawnProfileService.deleteProfile.mockReturnValue({
+        success: true,
+      });
+
+      renderWithAllProviders(<Header />);
+
+      // Open delete dialog
+      const dropdownTrigger = screen.getByLabelText(
+        "Additional profile actions"
+      );
+      fireEvent.click(dropdownTrigger);
+      const deleteOption = screen.getByText("Delete Profile");
+      fireEvent.click(deleteOption);
+
+      // Confirm deletion
+      const confirmButton = screen.getByText("Delete Profile");
+      fireEvent.click(confirmButton);
+
+      // Check that service was called
+      expect(mockSpawnProfileService.deleteProfile).toHaveBeenCalledWith(
+        mockProfiles[0].id
+      );
+    });
+
+    it("shows error when no active profile for edit", () => {
+      // Mock no active profile
+      mockSpawnProfileService.getProfilesWithActiveInfo.mockReturnValue({
+        profiles: mockProfiles,
+        activeProfileId: undefined,
+      });
+
+      renderWithAllProviders(<Header />);
+
+      // Try to edit profile
+      const dropdownTrigger = screen.getByLabelText(
+        "Additional profile actions"
+      );
+      fireEvent.click(dropdownTrigger);
+      const editOption = screen.getByText("Edit Profile");
+      fireEvent.click(editOption);
+
+      // Should not open edit dialog
+      expect(screen.queryByText("Edit Profile")).not.toBeInTheDocument();
+    });
+
+    it("shows error when no active profile for delete", () => {
+      // Mock no active profile
+      mockSpawnProfileService.getProfilesWithActiveInfo.mockReturnValue({
+        profiles: mockProfiles,
+        activeProfileId: undefined,
+      });
+
+      renderWithAllProviders(<Header />);
+
+      // Try to delete profile
+      const dropdownTrigger = screen.getByLabelText(
+        "Additional profile actions"
+      );
+      fireEvent.click(dropdownTrigger);
+      const deleteOption = screen.getByText("Delete Profile");
+      fireEvent.click(deleteOption);
+
+      // Should not open delete dialog
+      expect(screen.queryByText("Delete Profile")).not.toBeInTheDocument();
+    });
+
+    it("refreshes profiles list after successful operations", () => {
+      const newProfile: SpawnProfile = {
+        id: "new-profile",
+        name: "New Profile",
+        spawns: [],
+        lastModified: Date.now(),
+        isActive: false,
+      };
+
+      mockSpawnProfileService.createProfile.mockReturnValue({
+        success: true,
+        profile: newProfile,
+      });
+
+      renderWithAllProviders(<Header />);
+
+      // Open create dialog and submit
+      const createButton = screen.getByText("Create Profile");
+      fireEvent.click(createButton);
+
+      const nameInput = screen.getByLabelText("Profile Name");
+      fireEvent.change(nameInput, { target: { value: "New Profile" } });
+
+      const submitButton = screen.getByText("Create Profile");
+      fireEvent.click(submitButton);
+
+      // Check that profiles list was refreshed
+      expect(
+        mockSpawnProfileService.getProfilesWithActiveInfo
+      ).toHaveBeenCalledTimes(2);
+    });
+
+    it("sets new profile as active after creation", () => {
+      const newProfile: SpawnProfile = {
+        id: "new-profile",
+        name: "New Profile",
+        spawns: [],
+        lastModified: Date.now(),
+        isActive: false,
+      };
+
+      mockSpawnProfileService.createProfile.mockReturnValue({
+        success: true,
+        profile: newProfile,
+      });
+
+      renderWithAllProviders(<Header />);
+
+      // Open create dialog and submit
+      const createButton = screen.getByText("Create Profile");
+      fireEvent.click(createButton);
+
+      const nameInput = screen.getByLabelText("Profile Name");
+      fireEvent.change(nameInput, { target: { value: "New Profile" } });
+
+      const submitButton = screen.getByText("Create Profile");
+      fireEvent.click(submitButton);
+
+      // Check that setActiveProfile was called
+      expect(mockSpawnProfileService.setActiveProfile).toHaveBeenCalledWith(
+        newProfile.id
+      );
     });
   });
 });

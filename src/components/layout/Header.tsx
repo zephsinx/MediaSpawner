@@ -9,6 +9,8 @@ import {
   ProfileActionsDropdown,
   NavigationDropdown,
   SettingsButton,
+  ProfileFormDialog,
+  ProfileDeletionDialog,
 } from "../common";
 import { StreamerbotService } from "../../services/streamerbotService";
 import type { SyncStatusInfo } from "../../types/sync";
@@ -32,6 +34,15 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
   const [syncStatus, setSyncStatus] = useState<SyncStatusInfo>({
     status: "unknown",
   });
+
+  // Dialog state management
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [profileToEdit, setProfileToEdit] = useState<SpawnProfile | null>(null);
+  const [profileToDelete, setProfileToDelete] = useState<SpawnProfile | null>(
+    null
+  );
 
   // Load profiles on mount
   useEffect(() => {
@@ -116,19 +127,73 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
     }
   };
 
+  /**
+   * Refresh the profiles list from the service
+   */
+  const refreshProfiles = () => {
+    try {
+      const { profiles: loadedProfiles } =
+        SpawnProfileService.getProfilesWithActiveInfo();
+      setProfiles(loadedProfiles);
+    } catch (error) {
+      console.error("Failed to refresh profiles:", error);
+    }
+  };
+
   const handleCreateProfile = () => {
-    // Placeholder for Epic 6 implementation
-    console.log("Create profile - to be implemented in Epic 6");
+    setIsCreateDialogOpen(true);
   };
 
   const handleEditProfile = () => {
-    // Placeholder for Epic 6 implementation
-    console.log("Edit profile - to be implemented in Epic 6");
+    const activeProfile = profiles.find((p) => p.id === activeProfileId);
+    if (activeProfile) {
+      setProfileToEdit(activeProfile);
+      setIsEditDialogOpen(true);
+    } else {
+      toast.error("No active profile found to edit");
+    }
   };
 
   const handleDeleteProfile = () => {
-    // Placeholder for Epic 6 implementation
-    console.log("Delete profile - to be implemented in Epic 6");
+    const activeProfile = profiles.find((p) => p.id === activeProfileId);
+    if (activeProfile) {
+      setProfileToDelete(activeProfile);
+      setIsDeleteDialogOpen(true);
+    } else {
+      toast.error("No active profile found to delete");
+    }
+  };
+
+  /**
+   * Handle successful profile creation
+   */
+  const handleProfileCreated = (newProfile: SpawnProfile) => {
+    refreshProfiles();
+    // Optionally set the new profile as active
+    const result = SpawnProfileService.setActiveProfile(newProfile.id);
+    if (result.success) {
+      setActiveProfile(newProfile.id);
+    }
+  };
+
+  /**
+   * Handle successful profile update
+   */
+  const handleProfileUpdated = (updatedProfile: SpawnProfile) => {
+    refreshProfiles();
+    // Update active profile if it was the one being edited
+    if (updatedProfile.id === activeProfileId) {
+      setActiveProfile(updatedProfile.id);
+    }
+  };
+
+  /**
+   * Handle successful profile deletion
+   */
+  const handleProfileDeleted = () => {
+    refreshProfiles();
+    // Clear active profile if it was deleted
+    setActiveProfile(undefined);
   };
 
   return (
@@ -210,6 +275,35 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
           </div>
         </div>
       </div>
+
+      {/* Profile Management Dialogs */}
+      <ProfileFormDialog
+        isOpen={isCreateDialogOpen}
+        onClose={() => setIsCreateDialogOpen(false)}
+        onSuccess={handleProfileCreated}
+      />
+
+      <ProfileFormDialog
+        isOpen={isEditDialogOpen}
+        onClose={() => {
+          setIsEditDialogOpen(false);
+          setProfileToEdit(null);
+        }}
+        onSuccess={handleProfileUpdated}
+        profile={profileToEdit || undefined}
+      />
+
+      {profileToDelete && (
+        <ProfileDeletionDialog
+          isOpen={isDeleteDialogOpen}
+          onClose={() => {
+            setIsDeleteDialogOpen(false);
+            setProfileToDelete(null);
+          }}
+          onSuccess={handleProfileDeleted}
+          profile={profileToDelete}
+        />
+      )}
     </header>
   );
 };

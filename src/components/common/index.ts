@@ -37,3 +37,11 @@ export {
   type NavigationDropdownProps,
 } from "./NavigationDropdown";
 export { SettingsButton, type SettingsButtonProps } from "./SettingsButton";
+export {
+  ProfileFormDialog,
+  type ProfileFormDialogProps,
+} from "./ProfileFormDialog";
+export {
+  ProfileDeletionDialog,
+  type ProfileDeletionDialogProps,
+} from "./ProfileDeletionDialog";
