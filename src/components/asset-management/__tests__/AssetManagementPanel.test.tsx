@@ -118,7 +118,10 @@ describe("AssetManagementPanel (Core Functionality)", () => {
         ".flex.flex-col.overflow-hidden"
       ) as HTMLElement | null;
       expect(topBorderWrapper).toBeTruthy();
-      expect(topBorderWrapper!).toHaveClass("border-b", "border-gray-200");
+      expect(topBorderWrapper!).toHaveClass(
+        "border-b",
+        "border-[rgb(var(--color-border))]"
+      );
 
       const topPanel = sections[0].querySelector(
         "[id^='headlessui-disclosure-panel']"
@@ -144,10 +147,16 @@ describe("AssetManagementPanel (Core Functionality)", () => {
       ];
       expect(disclosureButtons).toHaveLength(2);
 
-      // One inner toolbar (library section only)
-      const innerToolbars = container.querySelectorAll(
-        ".bg-gray-50.border-b.border-gray-200"
-      );
+      // One inner toolbar (library section only) - look for elements with both classes
+      const allElements = container.querySelectorAll("*");
+      const innerToolbars = Array.from(allElements).filter((el) => {
+        const classList = el.classList;
+        return (
+          classList.contains("border-b") &&
+          Array.from(classList).some((cls) => cls.includes("color-muted")) &&
+          Array.from(classList).some((cls) => cls.includes("color-border"))
+        );
+      });
       expect(innerToolbars).toHaveLength(1);
 
       const scrollers = container.querySelectorAll(".flex-1.overflow-auto");
