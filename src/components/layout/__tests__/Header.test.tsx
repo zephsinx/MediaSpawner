@@ -10,12 +10,23 @@ vi.mock("../../../services/spawnProfileService", () => ({
   },
 }));
 
+// Mock SettingsService for theme functionality
+vi.mock("../../../services/settingsService", () => ({
+  SettingsService: {
+    getThemeMode: vi.fn(),
+    setThemeMode: vi.fn(),
+    applyThemeMode: vi.fn(),
+  },
+}));
+
 // Import after mocking
 import Header from "../Header";
 import { SpawnProfileService } from "../../../services/spawnProfileService";
+import { SettingsService } from "../../../services/settingsService";
 import { renderWithAllProviders, mockLocalStorage } from "./testUtils";
 
 const mockSpawnProfileService = vi.mocked(SpawnProfileService);
+const mockSettingsService = vi.mocked(SettingsService);
 
 describe("Header", () => {
   // Test data
@@ -64,6 +75,13 @@ describe("Header", () => {
       success: true,
       profile: mockProfiles[0],
     });
+
+    // Default SettingsService mock
+    mockSettingsService.getThemeMode.mockReturnValue("system");
+    mockSettingsService.setThemeMode.mockReturnValue({
+      success: true,
+      settings: { themeMode: "light", workingDirectory: "" },
+    });
   });
 
   afterEach(() => {
@@ -90,6 +108,13 @@ describe("Header", () => {
       expect(screen.getByText("Create Profile")).toBeInTheDocument();
       expect(screen.getByText("Edit Profile")).toBeInTheDocument();
       expect(screen.getByText("Delete Profile")).toBeInTheDocument();
+    });
+
+    it("renders theme toggle component", () => {
+      renderWithAllProviders(<Header />);
+
+      expect(screen.getByText("System theme")).toBeInTheDocument();
+      expect(screen.getByRole("switch")).toBeInTheDocument();
     });
   });
 

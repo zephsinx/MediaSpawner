@@ -10,7 +10,7 @@
   --color-ring: 99 102 241; /* indigo-500 */
 
   /* Color System - Neutral Grays */
-  --color-bg: 255 255 255; /* white */
+  --color-bg: 248 250 252; /* gray-50 - softer background */
   --color-fg: 17 24 39; /* gray-900 */
   --color-muted: 107 114 128; /* gray-500 */
   --color-muted-foreground: 75 85 99; /* gray-600 */
@@ -18,6 +18,11 @@
   --color-border-strong: 209 213 219; /* gray-300 */
   --color-input: 255 255 255; /* white */
   --color-input-border: 209 213 219; /* gray-300 */
+
+  /* Surface Layer Tokens */
+  --color-surface-1: 255 255 255; /* white - highest surface */
+  --color-surface-2: 248 250 252; /* gray-50 - medium surface */
+  --color-surface-3: 241 245 249; /* gray-100 - lowest surface */
 
   /* Color System - Semantic Colors */
   --color-success: 16 185 129; /* emerald-500 */
@@ -78,6 +83,11 @@
   --color-input: 31 41 55; /* gray-800 */
   --color-input-border: 75 85 99; /* gray-600 */
 
+  /* Surface Layer Tokens - Dark Mode */
+  --color-surface-1: 31 41 55; /* gray-800 - highest surface */
+  --color-surface-2: 17 24 39; /* gray-900 - medium surface */
+  --color-surface-3: 15 23 42; /* slate-900 - lowest surface */
+
   /* Semantic Colors - Adjusted for dark mode */
   --color-success: 16 185 129; /* emerald-500 */
   --color-success-foreground: 255 255 255;
@@ -93,6 +103,10 @@
 }
 
 /* Base styles for MediaSpawner */
+html {
+  color-scheme: light dark;
+}
+
 html,
 body {
   margin: 0;
@@ -144,6 +158,19 @@ body {
 
 .border-input {
   border-color: rgb(var(--color-input-border));
+}
+
+/* Surface layer utility classes */
+.bg-surface-1 {
+  background-color: rgb(var(--color-surface-1));
+}
+
+.bg-surface-2 {
+  background-color: rgb(var(--color-surface-2));
+}
+
+.bg-surface-3 {
+  background-color: rgb(var(--color-surface-3));
 }
 
 /* Focus utilities using CSS variables */

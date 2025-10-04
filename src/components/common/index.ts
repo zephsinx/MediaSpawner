@@ -27,3 +27,4 @@ export {
   SyncActionsDropdown,
   type SyncActionsDropdownProps,
 } from "./SyncActionsDropdown";
+export { ThemeToggle, type ThemeToggleProps } from "./ThemeToggle";

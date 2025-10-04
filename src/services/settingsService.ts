@@ -256,7 +256,13 @@ export class SettingsService {
     }
 
     const record = obj as Record<string, unknown>;
-    return typeof record.workingDirectory === "string";
+    const hasWorkingDirectory = typeof record.workingDirectory === "string";
+    const hasValidThemeMode =
+      record.themeMode === "light" ||
+      record.themeMode === "dark" ||
+      record.themeMode === "system";
+
+    return hasWorkingDirectory && hasValidThemeMode;
   }
 
   /**
@@ -372,7 +378,10 @@ export class SettingsService {
    */
   static isUsingDefaults(): boolean {
     const current = this.getSettings();
-    return current.workingDirectory === DEFAULT_SETTINGS.workingDirectory;
+    return (
+      current.workingDirectory === DEFAULT_SETTINGS.workingDirectory &&
+      current.themeMode === DEFAULT_SETTINGS.themeMode
+    );
   }
 
   /**
@@ -394,5 +403,48 @@ export class SettingsService {
       workingDirectorySet: current.workingDirectory !== "",
       settingsValid: validation.isValid,
     };
+  }
+
+  /**
+   * Get current theme mode
+   */
+  static getThemeMode(): "light" | "dark" | "system" {
+    const settings = this.getSettings();
+    return settings.themeMode;
+  }
+
+  /**
+   * Set theme mode and apply it to the DOM
+   */
+  static setThemeMode(
+    mode: "light" | "dark" | "system"
+  ): SettingsOperationResult {
+    const result = this.updateSettings({ themeMode: mode });
+    if (result.success) {
+      this.applyThemeMode();
+    }
+    return result;
+  }
+
+  /**
+   * Apply the current theme mode to the DOM
+   */
+  static applyThemeMode(): void {
+    const settings = this.getSettings();
+    const htmlElement = document.documentElement;
+
+    // Remove existing theme classes
+    htmlElement.classList.remove("light", "dark");
+
+    if (settings.themeMode === "system") {
+      // Use system preference
+      const prefersDark = window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      ).matches;
+      htmlElement.classList.add(prefersDark ? "dark" : "light");
+    } else {
+      // Use explicit theme
+      htmlElement.classList.add(settings.themeMode);
+    }
   }
 }

@@ -13,7 +13,10 @@ import type { SyncStatusInfo } from "../../types/sync";
 const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
   const { hasUnsavedChanges, setUnsavedChanges } = usePanelState();
-  const [settings, setSettings] = useState<Settings>({ workingDirectory: "" });
+  const [settings, setSettings] = useState<Settings>({
+    workingDirectory: "",
+    themeMode: "system",
+  });
   const [workingDirectory, setWorkingDirectory] = useState("");
   const [isWorkingDirValid, setIsWorkingDirValid] = useState(true);
   const [isSaving, setIsSaving] = useState(false);

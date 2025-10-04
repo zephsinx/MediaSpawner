@@ -3,7 +3,11 @@ import { Link } from "react-router-dom";
 import { SpawnProfileService } from "../../services/spawnProfileService";
 import type { SpawnProfile } from "../../types/spawn";
 import { usePanelState, useStreamerbotStatus } from "../../hooks";
-import { SyncStatusIndicator, SyncActionsDropdown } from "../common";
+import {
+  SyncStatusIndicator,
+  SyncActionsDropdown,
+  ThemeToggle,
+} from "../common";
 import { StreamerbotService } from "../../services/streamerbotService";
 import type { SyncStatusInfo } from "../../types/sync";
 import { toast } from "sonner";
@@ -127,12 +131,12 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
 
   return (
     <header
-      className={`bg-white border-b border-gray-200 px-6 py-4 lg:px-8 lg:py-5 xl:px-10 xl:py-6 ${className}`}
+      className={`bg-[rgb(var(--color-surface-1))] border-b border-[rgb(var(--color-border))] px-6 py-4 lg:px-8 lg:py-5 xl:px-10 xl:py-6 ${className}`}
     >
       <div className="flex items-center justify-between max-w-[2560px] mx-auto">
         {/* Application Title and Branding */}
         <div className="flex items-center">
-          <h1 className="text-xl lg:text-2xl xl:text-3xl font-semibold text-gray-800">
+          <h1 className="text-xl lg:text-2xl xl:text-3xl font-semibold text-[rgb(var(--color-fg))]">
             MediaSpawner
           </h1>
         </div>
@@ -141,13 +145,13 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
         <div className="flex items-center space-x-4 lg:space-x-5 xl:space-x-6">
           {/* Profile Selector */}
           <div className="flex items-center space-x-3 lg:space-x-4">
-            <label className="text-sm lg:text-base xl:text-lg font-medium text-gray-700 whitespace-nowrap">
+            <label className="text-sm lg:text-base xl:text-lg font-medium text-[rgb(var(--color-muted-foreground))] whitespace-nowrap">
               Active Profile:
             </label>
             <select
               value={activeProfileId || ""}
               onChange={(e) => handleProfileChange(e.target.value)}
-              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px] lg:min-w-[240px] xl:min-w-[280px]"
+              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg border border-[rgb(var(--color-input-border))] bg-[rgb(var(--color-input))] text-[rgb(var(--color-fg))] rounded-md focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-ring))] min-w-[200px] lg:min-w-[240px] xl:min-w-[280px]"
             >
               {profiles.map((profile) => (
                 <option key={profile.id} value={profile.id}>
@@ -162,36 +166,39 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
           <div className="flex items-center space-x-2 lg:space-x-3 xl:space-x-4">
             <Link
               to="/assets"
-              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors whitespace-nowrap"
+              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg text-[rgb(var(--color-muted-foreground))] border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] rounded-md hover:bg-[rgb(var(--color-surface-2))] transition-colors whitespace-nowrap"
             >
               Open Asset Library
             </Link>
             <Link
               to="/settings"
-              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors whitespace-nowrap"
+              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg text-[rgb(var(--color-muted-foreground))] border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] rounded-md hover:bg-[rgb(var(--color-surface-2))] transition-colors whitespace-nowrap"
             >
               Settings
             </Link>
             <button
               onClick={handleCreateProfile}
-              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap"
+              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg bg-[rgb(var(--color-accent))] text-[rgb(var(--color-accent-foreground))] rounded-md hover:bg-[rgb(var(--color-accent-hover))] transition-colors whitespace-nowrap"
             >
               Create Profile
             </button>
             <button
               onClick={handleEditProfile}
               disabled={!activeProfileId}
-              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg bg-[rgb(var(--color-muted))] text-[rgb(var(--color-fg))] rounded-md hover:bg-[rgb(var(--color-muted))]/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
             >
               Edit Profile
             </button>
             <button
               onClick={handleDeleteProfile}
               disabled={!activeProfileId}
-              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg bg-[rgb(var(--color-error))] text-[rgb(var(--color-error-foreground))] rounded-md hover:bg-[rgb(var(--color-error-hover))] transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
             >
               Delete Profile
             </button>
+            {/* Theme Toggle */}
+            <ThemeToggle className="hidden lg:flex" />
+
             {/* Sync Status and Actions */}
             <div className="flex items-center space-x-3">
               <SyncStatusIndicator statusInfo={syncStatus} size="sm" />
@@ -204,7 +211,7 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
 
             {/* Streamer.bot Status */}
             <span
-              className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700"
+              className="inline-flex items-center rounded-full bg-[rgb(var(--color-surface-2))] px-2 py-1 text-xs text-[rgb(var(--color-muted-foreground))]"
               aria-label={`Streamer.bot ${streamerbot.state} (${streamerbot.host}:${streamerbot.port})`}
               title={`Streamer.bot ${streamerbot.state} (${streamerbot.host}:${streamerbot.port})`}
             >
