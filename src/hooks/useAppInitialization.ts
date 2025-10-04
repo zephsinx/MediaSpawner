@@ -17,10 +17,8 @@ export function useAppInitialization() {
         // Set up system preference listener
         const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
         const handleSystemThemeChange = () => {
-          const currentTheme = SettingsService.getThemeMode();
-          if (currentTheme === "system") {
-            SettingsService.applyThemeMode();
-          }
+          // System theme changes are no longer supported
+          // Theme mode is now either "light" or "dark"
         };
 
         mediaQuery.addEventListener("change", handleSystemThemeChange);
