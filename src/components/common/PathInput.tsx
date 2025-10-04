@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type { ChangeEvent } from "react";
 import { SettingsService } from "../../services/settingsService";
 import type { WorkingDirectoryValidationResult } from "../../types/settings";
+import { inputVariants } from "../ui/variants";
+import { cn } from "../../utils/cn";
 
 // Constants for timing
 const VALIDATION_DEBOUNCE_MS = 300;
@@ -88,7 +90,9 @@ export function PathInput({
 
     if (!validationState.isValid && validationState.error) {
       return (
-        <div className="mt-1 text-sm text-red-600">{validationState.error}</div>
+        <div className="mt-1 text-sm text-[rgb(var(--color-error))]">
+          {validationState.error}
+        </div>
       );
     }
 
@@ -98,7 +102,7 @@ export function PathInput({
       validationState.normalizedPath
     ) {
       return (
-        <div className="mt-1 text-sm text-green-600">
+        <div className="mt-1 text-sm text-[rgb(var(--color-success))]">
           ✓ Valid path
           {validationState.normalizedPath !== currentValue
             ? ` (normalized: ${validationState.normalizedPath})`
@@ -110,31 +114,34 @@ export function PathInput({
     return null;
   };
 
-  const inputClasses = `
-    w-full px-3 py-2 border rounded-md
-    focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2 focus:border-indigo-500
-    transition-colors duration-200
-    ${
-      !isDirty || !currentValue
-        ? "border-gray-300"
-        : validationState.isValid
-        ? "border-green-500 bg-green-50"
-        : "border-red-500 bg-red-50"
-    }
-    ${disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}
-    ${className}
-  `.trim();
+  const getInputVariant = () => {
+    if (disabled) return "disabled";
+    if (!isDirty || !currentValue) return "default";
+    if (!validationState.isValid) return "error";
+    return "default";
+  };
 
-  const buttonClasses = `
-    px-4 py-2 ml-2 bg-gray-200 border border-gray-300 rounded-md
-    cursor-not-allowed opacity-50 text-gray-500
-    transition-colors duration-200
-  `.trim();
+  const inputClasses = cn(
+    inputVariants({ variant: getInputVariant() }),
+    // Add success state styling for valid paths
+    !disabled &&
+      isDirty &&
+      currentValue &&
+      validationState.isValid &&
+      "border-[rgb(var(--color-success))] bg-[rgb(var(--color-success))]/10",
+    className
+  );
+
+  const buttonClasses = cn(
+    "px-4 py-2 ml-2 bg-[rgb(var(--color-muted))] border border-[rgb(var(--color-border))] rounded-md",
+    "cursor-not-allowed opacity-50 text-[rgb(var(--color-muted-foreground))]",
+    "transition-colors duration-200"
+  );
 
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
           {label}
         </label>
       )}
@@ -164,7 +171,7 @@ export function PathInput({
       {getValidationMessage()}
 
       {!currentValue && isDirty && (
-        <div className="mt-1 text-sm text-gray-500">
+        <div className="mt-1 text-sm text-[rgb(var(--color-muted-foreground))]">
           Leave empty to not set a working directory
         </div>
       )}

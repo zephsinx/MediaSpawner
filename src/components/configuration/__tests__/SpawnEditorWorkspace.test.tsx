@@ -441,10 +441,10 @@ describe("SpawnEditorWorkspace", () => {
       await waitFor(() => expect(typeSelect.value).toBe("time.weeklyAt"));
       expect(screen.getByText("Time-based Configuration")).toBeInTheDocument();
       // Trigger Enabled toggle present
-      const enabledToggle = screen.getByRole("checkbox", {
+      const enabledToggle = screen.getByRole("switch", {
         name: "Trigger Enabled",
       });
-      expect(enabledToggle).toBeChecked();
+      expect(enabledToggle).toHaveAttribute("aria-checked", "true");
 
       // Switch to Monthly and ensure panel renders
       await act(async () => {

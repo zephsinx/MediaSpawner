@@ -133,9 +133,9 @@ export const RandomizationBucketsSection: React.FC<
   const cancelMove = () => setPendingMove(null);
 
   return (
-    <section className="bg-white border border-gray-200 rounded-lg p-4">
+    <section className="bg-[rgb(var(--color-bg))] border border-[rgb(var(--color-border))] rounded-lg p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-base font-semibold text-gray-800">
+        <h3 className="text-base font-semibold text-[rgb(var(--color-fg))]">
           Randomization Buckets
         </h3>
         <button
@@ -148,33 +148,36 @@ export const RandomizationBucketsSection: React.FC<
       </div>
 
       {(buckets || []).length === 0 ? (
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-[rgb(var(--color-muted-foreground))]">
           No buckets yet. Create one to randomize selected assets.
         </p>
       ) : (
         <div className="space-y-3">
           {buckets.map((b) => (
-            <div key={b.id} className="border border-gray-200 rounded-md p-3">
+            <div
+              key={b.id}
+              className="border border-[rgb(var(--color-border))] rounded-md p-3"
+            >
               <div className="flex items-center justify-between">
                 <div className="min-w-0">
-                  <div className="text-sm font-medium text-gray-900 truncate">
+                  <div className="text-sm font-medium text-[rgb(var(--color-fg))] truncate">
                     {b.name}
                   </div>
-                  <div className="text-xs text-gray-600">
+                  <div className="text-xs text-[rgb(var(--color-muted-foreground))]">
                     {b.selection === "one" ? "Pick one" : `Pick ${b.n ?? 1}`}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    className="text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                    className="text-xs px-2 py-1 rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] text-[rgb(var(--color-muted-foreground))] hover:bg-[rgb(var(--color-muted))]"
                     onClick={() => openMembersEditor(b.id)}
                   >
                     Edit Members ({b.members.length})
                   </button>
                   <button
                     type="button"
-                    className="text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                    className="text-xs px-2 py-1 rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] text-[rgb(var(--color-muted-foreground))] hover:bg-[rgb(var(--color-muted))]"
                     onClick={() =>
                       updateBucket(b.id, {
                         selection: b.selection === "one" ? "n" : "one",
@@ -189,7 +192,7 @@ export const RandomizationBucketsSection: React.FC<
                   </button>
                   <button
                     type="button"
-                    className="text-xs px-2 py-1 rounded border border-red-300 bg-white text-red-700 hover:bg-red-50"
+                    className="text-xs px-2 py-1 rounded border border-[rgb(var(--color-error-border))] bg-[rgb(var(--color-surface-1))] text-red-700 hover:bg-[rgb(var(--color-muted))]"
                     onClick={() => removeBucket(b.id)}
                     aria-label="Delete bucket"
                   >
@@ -199,7 +202,9 @@ export const RandomizationBucketsSection: React.FC<
               </div>
               {b.selection === "n" && (
                 <div className="mt-2">
-                  <label className="text-xs text-gray-700">N to select</label>
+                  <label className="text-xs text-[rgb(var(--color-muted-foreground))]">
+                    N to select
+                  </label>
                   <input
                     type="number"
                     min={1}
@@ -209,7 +214,7 @@ export const RandomizationBucketsSection: React.FC<
                         n: Math.max(1, Number(e.target.value) || 1),
                       })
                     }
-                    className="ml-2 w-20 px-2 py-1 text-sm border border-gray-300 rounded"
+                    className="ml-2 w-20 px-2 py-1 text-sm border border-[rgb(var(--color-border))] bg-[rgb(var(--color-input))] text-[rgb(var(--color-fg))] rounded"
                   />
                 </div>
               )}
@@ -231,7 +236,7 @@ export const RandomizationBucketsSection: React.FC<
           <div>
             <label
               htmlFor="bucket-name"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-medium text-[rgb(var(--color-muted-foreground))] mb-1"
             >
               Name
             </label>
@@ -242,11 +247,14 @@ export const RandomizationBucketsSection: React.FC<
               onChange={(e) =>
                 setCreateForm((f) => ({ ...f, name: e.target.value }))
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="w-full px-3 py-2 border border-[rgb(var(--color-border))] bg-[rgb(var(--color-input))] text-[rgb(var(--color-fg))] rounded-md"
             />
           </div>
           <div className="flex items-center gap-3">
-            <label htmlFor="bucket-selection" className="text-sm text-gray-700">
+            <label
+              htmlFor="bucket-selection"
+              className="text-sm text-[rgb(var(--color-muted-foreground))]"
+            >
               Selection
             </label>
             <select
@@ -258,14 +266,17 @@ export const RandomizationBucketsSection: React.FC<
                   selection: e.target.value as "one" | "n",
                 }))
               }
-              className="px-2 py-1 text-sm border border-gray-300 rounded"
+              className="px-2 py-1 text-sm border border-[rgb(var(--color-border))] bg-[rgb(var(--color-input))] text-[rgb(var(--color-fg))] rounded"
             >
               <option value="one">Pick one</option>
               <option value="n">Pick N</option>
             </select>
             {createForm.selection === "n" && (
               <>
-                <label htmlFor="bucket-n" className="text-sm text-gray-700">
+                <label
+                  htmlFor="bucket-n"
+                  className="text-sm text-[rgb(var(--color-muted-foreground))]"
+                >
                   N
                 </label>
                 <input
@@ -279,7 +290,7 @@ export const RandomizationBucketsSection: React.FC<
                       n: Math.max(1, Number(e.target.value) || 1),
                     }))
                   }
-                  className="w-20 px-2 py-1 text-sm border border-gray-300 rounded"
+                  className="w-20 px-2 py-1 text-sm border border-[rgb(var(--color-border))] bg-[rgb(var(--color-input))] text-[rgb(var(--color-fg))] rounded"
                 />
               </>
             )}
@@ -288,7 +299,7 @@ export const RandomizationBucketsSection: React.FC<
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
-              className="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+              className="px-3 py-1.5 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] text-[rgb(var(--color-muted-foreground))] hover:bg-[rgb(var(--color-muted))]"
               onClick={() => {
                 setIsCreateOpen(false);
                 setCreateForm({ name: "", selection: "one", n: 1 });
@@ -330,7 +341,7 @@ export const RandomizationBucketsSection: React.FC<
                 return (
                   <label
                     key={sa.id}
-                    className="flex items-center gap-2 text-sm border border-gray-200 rounded p-2"
+                    className="flex items-center gap-2 text-sm border border-[rgb(var(--color-border))] rounded p-2"
                   >
                     <input
                       type="checkbox"
@@ -339,28 +350,28 @@ export const RandomizationBucketsSection: React.FC<
                     />
                     <Tooltip.Root>
                       <Tooltip.Trigger asChild>
-                        <span className="text-gray-800 truncate">
+                        <span className="text-[rgb(var(--color-fg))] truncate">
                           {base?.name || sa.assetId}
                         </span>
                       </Tooltip.Trigger>
                       <Tooltip.Portal>
                         <Tooltip.Content
                           sideOffset={6}
-                          className="z-[60] rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-800 shadow-md"
+                          className="z-[60] rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] px-2 py-1 text-xs text-[rgb(var(--color-fg))] shadow-md"
                         >
                           {base?.path || sa.assetId}
                           <Tooltip.Arrow className="fill-white" />
                         </Tooltip.Content>
                       </Tooltip.Portal>
                     </Tooltip.Root>
-                    <span className="inline-flex items-center gap-1 capitalize bg-gray-100 text-gray-700 px-2 py-0.5 rounded">
+                    <span className="inline-flex items-center gap-1 capitalize bg-[rgb(var(--color-surface-2))] text-[rgb(var(--color-muted-foreground))] px-2 py-0.5 rounded">
                       {base?.type || "asset"}
                     </span>
-                    <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-2 py-0.5 rounded">
+                    <span className="inline-flex items-center gap-1 bg-[rgb(var(--color-surface-2))] text-[rgb(var(--color-muted-foreground))] px-2 py-0.5 rounded">
                       #{sa.order}
                     </span>
                     {otherBucket && otherBucket !== memberEditFor && (
-                      <span className="ml-auto text-xs text-gray-500">
+                      <span className="ml-auto text-xs text-[rgb(var(--color-muted-foreground))]">
                         In another bucket
                       </span>
                     )}
@@ -371,7 +382,7 @@ export const RandomizationBucketsSection: React.FC<
             <div className="flex justify-end gap-2">
               <button
                 type="button"
-                className="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                className="px-3 py-1.5 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] text-[rgb(var(--color-muted-foreground))] hover:bg-gray-50"
                 onClick={closeMembersEditor}
               >
                 Done

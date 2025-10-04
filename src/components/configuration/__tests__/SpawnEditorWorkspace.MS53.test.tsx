@@ -119,36 +119,34 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
     });
 
     it("starts with empty reward identifier field", () => {
-      const rewardInput = screen.getByPlaceholderText(
-        "Enter reward name or ID (e.g., Alert, Scene1, 12345)"
-      );
+      const rewardInput = screen.getByLabelText("Reward Identifier");
       expect(rewardInput).toHaveValue("");
     });
 
     it("has useViewerInput defaulting to false", () => {
-      const useViewerInputCheckbox = screen.getByRole("checkbox", {
+      const useViewerInputCheckbox = screen.getByRole("switch", {
         name: /use viewer input in spawn configuration/i,
       });
-      expect(useViewerInputCheckbox).not.toBeChecked();
+      expect(useViewerInputCheckbox).toHaveAttribute("aria-checked", "false");
     });
 
     it("has fulfilled status selected by default", () => {
-      const fulfilledCheckbox = screen.getByRole("checkbox", {
+      const fulfilledCheckbox = screen.getByRole("switch", {
         name: /fulfilled/i,
       });
-      expect(fulfilledCheckbox).toBeChecked();
+      expect(fulfilledCheckbox).toHaveAttribute("aria-checked", "true");
     });
 
     it("has pending and cancelled statuses unchecked by default", () => {
-      const pendingCheckbox = screen.getByRole("checkbox", {
+      const pendingCheckbox = screen.getByRole("switch", {
         name: /pending/i,
       });
-      const cancelledCheckbox = screen.getByRole("checkbox", {
+      const cancelledCheckbox = screen.getByRole("switch", {
         name: /cancelled/i,
       });
 
-      expect(pendingCheckbox).not.toBeChecked();
-      expect(cancelledCheckbox).not.toBeChecked();
+      expect(pendingCheckbox).toHaveAttribute("aria-checked", "false");
+      expect(cancelledCheckbox).toHaveAttribute("aria-checked", "false");
     });
   });
 
@@ -168,9 +166,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
     });
 
     it("can enter reward identifier and updates input value", () => {
-      const rewardInput = screen.getByPlaceholderText(
-        "Enter reward name or ID (e.g., Alert, Scene1, 12345)"
-      );
+      const rewardInput = screen.getByLabelText("Reward Identifier");
 
       act(() => {
         fireEvent.change(rewardInput, { target: { value: "Alert" } });
@@ -187,9 +183,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
     });
 
     it("hides error when reward identifier has content", () => {
-      const rewardInput = screen.getByPlaceholderText(
-        "Enter reward name or ID (e.g., Alert, Scene1, 12345)"
-      );
+      const rewardInput = screen.getByLabelText("Reward Identifier");
 
       act(() => {
         fireEvent.change(rewardInput, { target: { value: "Alert" } });
@@ -201,6 +195,13 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
     });
 
     it("displays help text explaining reward identification requirements", () => {
+      const rewardInput = screen.getByLabelText("Reward Identifier");
+
+      // Set a value to clear any error and show helper text
+      act(() => {
+        fireEvent.change(rewardInput, { target: { value: "Alert" } });
+      });
+
       expect(
         screen.getByText(
           "Enter the name or ID of the channel point reward from your Twitch channel"
@@ -225,7 +226,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
     });
 
     it("can toggle useViewerInput checkbox", () => {
-      const useViewerInputCheckbox = screen.getByRole("checkbox", {
+      const useViewerInputCheckbox = screen.getByRole("switch", {
         name: /use viewer input in spawn configuration/i,
       });
 
@@ -233,7 +234,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
         fireEvent.click(useViewerInputCheckbox);
       });
 
-      expect(useViewerInputCheckbox).toBeChecked();
+      expect(useViewerInputCheckbox).toHaveAttribute("aria-checked", "true");
     });
 
     it("displays help text explaining viewer input functionality", () => {
@@ -261,49 +262,49 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
     });
 
     it("can select multiple redemption statuses", () => {
-      const pendingCheckbox = screen.getByRole("checkbox", {
+      const pendingCheckbox = screen.getByRole("switch", {
         name: /pending/i,
       });
-      const fulfilledCheckbox = screen.getByRole("checkbox", {
+      const fulfilledCheckbox = screen.getByRole("switch", {
         name: /fulfilled/i,
       });
-      const cancelledCheckbox = screen.getByRole("checkbox", {
+      const cancelledCheckbox = screen.getByRole("switch", {
         name: /cancelled/i,
       });
 
       // Start with only fulfilled selected
-      expect(fulfilledCheckbox).toBeChecked();
-      expect(pendingCheckbox).not.toBeChecked();
-      expect(cancelledCheckbox).not.toBeChecked();
+      expect(fulfilledCheckbox).toHaveAttribute("aria-checked", "true");
+      expect(pendingCheckbox).not.toHaveAttribute("aria-checked", "true");
+      expect(cancelledCheckbox).not.toHaveAttribute("aria-checked", "true");
 
       // Select pending
       act(() => {
         fireEvent.click(pendingCheckbox);
       });
 
-      expect(pendingCheckbox).toBeChecked();
-      expect(fulfilledCheckbox).toBeChecked();
-      expect(cancelledCheckbox).not.toBeChecked();
+      expect(pendingCheckbox).toHaveAttribute("aria-checked", "true");
+      expect(fulfilledCheckbox).toHaveAttribute("aria-checked", "true");
+      expect(cancelledCheckbox).not.toHaveAttribute("aria-checked", "true");
     });
 
     it("can deselect redemption statuses", () => {
-      const fulfilledCheckbox = screen.getByRole("checkbox", {
+      const fulfilledCheckbox = screen.getByRole("switch", {
         name: /fulfilled/i,
       });
 
       // Start with fulfilled selected
-      expect(fulfilledCheckbox).toBeChecked();
+      expect(fulfilledCheckbox).toHaveAttribute("aria-checked", "true");
 
       // Deselect fulfilled
       act(() => {
         fireEvent.click(fulfilledCheckbox);
       });
 
-      expect(fulfilledCheckbox).not.toBeChecked();
+      expect(fulfilledCheckbox).not.toHaveAttribute("aria-checked", "true");
     });
 
     it("shows error when no redemption statuses are selected", () => {
-      const fulfilledCheckbox = screen.getByRole("checkbox", {
+      const fulfilledCheckbox = screen.getByRole("switch", {
         name: /fulfilled/i,
       });
 
@@ -318,10 +319,10 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
     });
 
     it("hides error when at least one status is selected", () => {
-      const fulfilledCheckbox = screen.getByRole("checkbox", {
+      const fulfilledCheckbox = screen.getByRole("switch", {
         name: /fulfilled/i,
       });
-      const pendingCheckbox = screen.getByRole("checkbox", {
+      const pendingCheckbox = screen.getByRole("switch", {
         name: /pending/i,
       });
 
@@ -375,7 +376,10 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
         )
         .closest("div");
 
-      expect(helpBox).toHaveClass("bg-blue-50", "border-blue-200");
+      expect(helpBox).toHaveClass(
+        "bg-[rgb(var(--color-accent))]/10",
+        "border-[rgb(var(--color-accent))]/20"
+      );
     });
   });
 
@@ -406,9 +410,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
 
     it("enables Save when reward identifier becomes valid and form is dirty", () => {
       // Enter a valid reward identifier
-      const rewardInput = screen.getByPlaceholderText(
-        "Enter reward name or ID (e.g., Alert, Scene1, 12345)"
-      );
+      const rewardInput = screen.getByLabelText("Reward Identifier");
       act(() => {
         fireEvent.change(rewardInput, { target: { value: "Alert" } });
       });
@@ -425,9 +427,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
 
     it("re-disables Save when reward identifier is cleared back to invalid while dirty", () => {
       // Start with valid reward identifier and dirty form
-      const rewardInput = screen.getByPlaceholderText(
-        "Enter reward name or ID (e.g., Alert, Scene1, 12345)"
-      );
+      const rewardInput = screen.getByLabelText("Reward Identifier");
       act(() => {
         fireEvent.change(rewardInput, { target: { value: "Alert" } });
       });
@@ -453,15 +453,13 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
 
     it("keeps Save disabled while no redemption statuses are selected", () => {
       // Ensure at least one status is selected initially
-      const rewardInput = screen.getByPlaceholderText(
-        "Enter reward name or ID (e.g., Alert, Scene1, 12345)"
-      );
+      const rewardInput = screen.getByLabelText("Reward Identifier");
       act(() => {
         fireEvent.change(rewardInput, { target: { value: "Alert" } });
       });
 
       // Deselect all statuses
-      const fulfilledCheckbox = screen.getByRole("checkbox", {
+      const fulfilledCheckbox = screen.getByRole("switch", {
         name: /fulfilled/i,
       });
       act(() => {
@@ -499,20 +497,34 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
       });
 
       // Configure the trigger
-      const rewardInput = screen.getByPlaceholderText(
-        "Enter reward name or ID (e.g., Alert, Scene1, 12345)"
-      );
-      const useViewerInputCheckbox = screen.getByRole("checkbox", {
+      const rewardInput = screen.getByLabelText("Reward Identifier");
+      const useViewerInputCheckbox = screen.getByRole("switch", {
         name: /use viewer input in spawn configuration/i,
       });
-      const pendingCheckbox = screen.getByRole("checkbox", {
+      const pendingCheckbox = screen.getByRole("switch", {
         name: /pending/i,
       });
 
       act(() => {
         fireEvent.change(rewardInput, { target: { value: "Alert" } });
-        fireEvent.click(useViewerInputCheckbox);
+      });
+
+      // Check initial state and toggle if needed
+      const initialChecked =
+        useViewerInputCheckbox.getAttribute("aria-checked");
+      if (initialChecked === "false") {
+        act(() => {
+          fireEvent.click(useViewerInputCheckbox);
+        });
+      }
+
+      act(() => {
         fireEvent.click(pendingCheckbox);
+      });
+
+      // Wait for state updates
+      await waitFor(() => {
+        expect(useViewerInputCheckbox).toHaveAttribute("aria-checked", "true");
       });
 
       // Save the configuration
@@ -556,9 +568,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
     });
 
     it("handles very long reward identifiers", () => {
-      const rewardInput = screen.getByPlaceholderText(
-        "Enter reward name or ID (e.g., Alert, Scene1, 12345)"
-      );
+      const rewardInput = screen.getByLabelText("Reward Identifier");
       const longIdentifier = "a".repeat(1000);
 
       act(() => {
@@ -572,9 +582,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
     });
 
     it("handles special characters in reward identifiers", () => {
-      const rewardInput = screen.getByPlaceholderText(
-        "Enter reward name or ID (e.g., Alert, Scene1, 12345)"
-      );
+      const rewardInput = screen.getByLabelText("Reward Identifier");
       const specialIdentifier = "Alert!@#$%^&*()_+-=[]{}|;':\",./<>?";
 
       act(() => {
@@ -588,9 +596,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
     });
 
     it("handles whitespace-only reward identifiers as invalid", () => {
-      const rewardInput = screen.getByPlaceholderText(
-        "Enter reward name or ID (e.g., Alert, Scene1, 12345)"
-      );
+      const rewardInput = screen.getByLabelText("Reward Identifier");
 
       act(() => {
         fireEvent.change(rewardInput, { target: { value: "   " } });

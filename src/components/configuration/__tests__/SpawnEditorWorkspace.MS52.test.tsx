@@ -123,24 +123,24 @@ describe("SpawnEditorWorkspace - MS-52 Command Trigger Configuration", () => {
     });
 
     it("has case sensitivity defaulting to false", () => {
-      const caseSensitiveCheckbox = screen.getByRole("checkbox", {
+      const caseSensitiveCheckbox = screen.getByRole("switch", {
         name: /case sensitive/i,
       });
-      expect(caseSensitiveCheckbox).not.toBeChecked();
+      expect(caseSensitiveCheckbox).not.toHaveAttribute("aria-checked", "true");
     });
 
     // Platform sources removed (Twitch-only support); no checkbox expected
 
     it("has filtering options defaulting to true", () => {
-      const ignoreInternalCheckbox = screen.getByRole("checkbox", {
+      const ignoreInternalCheckbox = screen.getByRole("switch", {
         name: /Ignore internal messages/i,
       });
-      const ignoreBotAccountCheckbox = screen.getByRole("checkbox", {
+      const ignoreBotAccountCheckbox = screen.getByRole("switch", {
         name: /Ignore bot account messages/i,
       });
 
-      expect(ignoreInternalCheckbox).toBeChecked();
-      expect(ignoreBotAccountCheckbox).toBeChecked();
+      expect(ignoreInternalCheckbox).toHaveAttribute("aria-checked", "true");
+      expect(ignoreBotAccountCheckbox).toHaveAttribute("aria-checked", "true");
     });
   });
 

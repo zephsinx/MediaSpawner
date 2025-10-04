@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useStreamerbotCommands } from "../../hooks/useStreamerbotCommands";
 import { HUICombobox } from "../common";
+import { Button } from "../ui/Button";
+import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
+import { Input } from "../ui/Input";
+import { Switch } from "../ui/Switch";
 
 const SBCommandAliasCombobox: React.FC<{
   value: string;
@@ -39,7 +43,7 @@ const SBCommandAliasCombobox: React.FC<{
         type="button"
         onClick={() => refresh()}
         disabled={loading}
-        className="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
+        className="text-xs text-[rgb(var(--color-accent))] hover:text-[rgb(var(--color-accent-hover))] disabled:opacity-50"
       >
         Refresh
       </button>
@@ -441,14 +445,16 @@ const SpawnEditorWorkspace: React.FC = () => {
   if (!selectedSpawnId) {
     return (
       <div className="h-full flex flex-col">
-        <div className="p-4 border-b border-gray-200 bg-gray-50">
-          <h2 className="text-lg font-semibold text-gray-800">Spawn Editor</h2>
-          <p className="text-sm text-gray-600">
+        <div className="p-4 border-b border-[rgb(var(--color-border))] bg-[rgb(var(--color-muted))]/5">
+          <h2 className="text-lg font-semibold text-[rgb(var(--color-fg))]">
+            Spawn Editor
+          </h2>
+          <p className="text-sm text-[rgb(var(--color-muted-foreground))]">
             Select a spawn to edit its settings
           </p>
         </div>
         <div className="flex-1 flex items-center justify-center p-8">
-          <div className="text-center text-gray-600">
+          <div className="text-center text-[rgb(var(--color-muted-foreground))]">
             Select a spawn from the list to begin editing.
           </div>
         </div>
@@ -486,49 +492,51 @@ const SpawnEditorWorkspace: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-4 border-b border-gray-200 bg-gray-50">
-        <h2 className="text-lg font-semibold text-gray-800">Spawn Editor</h2>
+      <div className="p-4 border-b border-[rgb(var(--color-border))] bg-[rgb(var(--color-muted))]/5">
+        <h2 className="text-lg font-semibold text-[rgb(var(--color-fg))]">
+          Spawn Editor
+        </h2>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mt-1">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-[rgb(var(--color-muted-foreground))]">
             {selectedSpawn
               ? `Editing: ${selectedSpawn.name}`
               : "Loading spawn..."}
           </p>
           <div className="flex items-center gap-2">
             {selectedSpawn && (
-              <button
+              <Button
                 type="button"
                 onClick={() => {
                   setDeleteError(null);
                   setShowDeleteDialog(true);
                 }}
-                className="px-3 py-1.5 rounded-md text-white bg-red-600 hover:bg-red-700"
+                variant="destructive"
+                size="sm"
                 aria-label="Delete spawn"
               >
                 Delete
-              </button>
+              </Button>
             )}
-            <button
+            <Button
               type="button"
               onClick={handleCancel}
-              className="px-3 py-1.5 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+              variant="outline"
+              size="sm"
               aria-label="Cancel edits"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={handleSave}
               disabled={isSaveDisabled}
-              className={`px-3 py-1.5 rounded-md text-white ${
-                isSaveDisabled
-                  ? "bg-blue-300 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700"
-              }`}
+              variant="primary"
+              size="sm"
+              loading={isSaving}
               aria-label="Save spawn"
             >
               {isSaving ? "Saving..." : "Save"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -641,248 +649,236 @@ const SpawnEditorWorkspace: React.FC = () => {
           onCancel={() => setShowDeleteDialog(false)}
         />
         {deleteError && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-sm text-red-700 rounded">
+          <div className="mb-4 p-3 bg-[rgb(var(--color-error-bg))] border border-[rgb(var(--color-error-border))] text-sm text-[rgb(var(--color-error))] rounded">
             {deleteError}
           </div>
         )}
         {saveError && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-sm text-red-700 rounded">
+          <div className="mb-4 p-3 bg-[rgb(var(--color-error-bg))] border border-[rgb(var(--color-error-border))] text-sm text-[rgb(var(--color-error))] rounded">
             {saveError}
           </div>
         )}
         {saveSuccess && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 text-sm text-green-700 rounded">
+          <div className="mb-4 p-3 bg-[rgb(var(--color-success))]/10 border border-[rgb(var(--color-success))]/20 text-sm text-[rgb(var(--color-success))] rounded">
             {saveSuccess}
           </div>
         )}
         {selectedSpawn ? (
           <div className="max-w-2xl space-y-5">
-            <section className="bg-white border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-base font-semibold text-gray-800">
-                  Basic Details
-                </h3>
-                <label
-                  htmlFor="spawn-enabled"
-                  className="flex items-center cursor-pointer select-none"
-                >
-                  <input
-                    id="spawn-enabled"
-                    type="checkbox"
-                    checked={enabled}
-                    onChange={(e) => handleEnabledImmediate(e.target.checked)}
-                    aria-label="Enabled"
-                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <span className="ml-2 text-sm text-gray-700">Enabled</span>
-                </label>
-              </div>
-              <div className="mb-2 flex items-center gap-2 text-xs">
-                {validation.errors.length > 0 ? (
-                  <span className="px-2 py-0.5 rounded bg-red-100 text-red-700">
-                    Invalid
-                  </span>
-                ) : validation.warnings.length > 0 ? (
-                  <span className="px-2 py-0.5 rounded bg-yellow-100 text-yellow-800">
-                    Warning
-                  </span>
-                ) : (
-                  <span className="px-2 py-0.5 rounded bg-green-100 text-green-700">
-                    Valid
-                  </span>
-                )}
-                {validation.warnings.length > 0 && (
-                  <span className="text-gray-500">
-                    {validation.warnings[0]}
-                  </span>
-                )}
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="spawn-name"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Name
-                  </label>
-                  <input
-                    id="spawn-name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md ${
-                      isNameValid
-                        ? "border-gray-300 bg-white"
-                        : "border-red-300 bg-white"
-                    }`}
-                  />
-                  {!trimmedName && (
-                    <p className="mt-1 text-xs text-red-600">
-                      Name is required
-                    </p>
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base font-semibold text-[rgb(var(--color-fg))]">
+                    Basic Details
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="spawn-enabled"
+                      checked={enabled}
+                      onCheckedChange={handleEnabledImmediate}
+                      aria-label="Enabled"
+                    />
+                    <label
+                      htmlFor="spawn-enabled"
+                      className="text-sm text-[rgb(var(--color-fg))] cursor-pointer"
+                    >
+                      Enabled
+                    </label>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-2 flex items-center gap-2 text-xs">
+                  {validation.errors.length > 0 ? (
+                    <span className="px-2 py-0.5 rounded bg-[rgb(var(--color-error-bg))] text-[rgb(var(--color-error))]">
+                      Invalid
+                    </span>
+                  ) : validation.warnings.length > 0 ? (
+                    <span className="px-2 py-0.5 rounded bg-[rgb(var(--color-warning))]/10 text-[rgb(var(--color-warning))]">
+                      Warning
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded bg-[rgb(var(--color-success))]/10 text-[rgb(var(--color-success))]">
+                      Valid
+                    </span>
                   )}
-                  {trimmedName && !isNameValid && (
-                    <p className="mt-1 text-xs text-red-600">
-                      Name must be unique
-                    </p>
+                  {validation.warnings.length > 0 && (
+                    <span className="text-[rgb(var(--color-muted-foreground))]">
+                      {validation.warnings[0]}
+                    </span>
                   )}
                 </div>
-
-                <div className="md:col-span-2">
-                  <label
-                    htmlFor="spawn-description"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Description
-                  </label>
-                  <textarea
-                    id="spawn-description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700"
-                  />
-                </div>
-              </div>
-            </section>
-
-            <section className="bg-white border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-base font-semibold text-gray-800">
-                  Trigger
-                </h3>
-                <label className="flex items-center cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={trigger?.enabled !== false}
-                    onChange={(e) => {
-                      if (!trigger) return;
-                      setTrigger({ ...trigger, enabled: e.target.checked });
-                    }}
-                    aria-label="Trigger Enabled"
-                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <span className="ml-2 text-sm text-gray-700">
-                    Trigger Enabled
-                  </span>
-                </label>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="trigger-type"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Trigger Type
-                  </label>
-                  <select
-                    id="trigger-type"
-                    value={trigger?.type || "manual"}
-                    onChange={(e) => {
-                      const nextType = e.target.value as TriggerType;
-                      if (!trigger) {
-                        setTrigger(getDefaultTrigger(nextType));
-                        return;
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Input
+                      id="spawn-name"
+                      type="text"
+                      label="Name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      error={
+                        !trimmedName
+                          ? "Name is required"
+                          : !isNameValid
+                          ? "Name must be unique"
+                          : undefined
                       }
-                      if (nextType === trigger.type) return;
-                      pendingTriggerTypeRef.current = nextType;
-                      setShowTriggerTypeDialog(true);
-                    }}
-                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                  >
-                    <option value="manual">Manual</option>
-                    <option value="time.atDateTime">Time: At Date/Time</option>
-                    <option value="time.dailyAt">Time: Daily At</option>
-                    <option value="time.everyNMinutes">
-                      Time: Every N Minutes
-                    </option>
-                    <option value="time.weeklyAt">Time: Weekly At</option>
-                    <option value="time.monthlyOn">Time: Monthly On</option>
-                    <option value="time.minuteOfHour">
-                      Time: Minute Of Hour
-                    </option>
-                    <option value="streamerbot.command">
-                      Streamer.bot Command
-                    </option>
-                    <option value="twitch.channelPointReward">
-                      Twitch: Channel Point Reward
-                    </option>
-                    <option value="twitch.subscription">
-                      Twitch: Subscription
-                    </option>
-                    <option value="twitch.giftSub">Twitch: Gifted Subs</option>
-                    <option value="twitch.cheer">Twitch: Cheer</option>
-                    <option value="twitch.follow">Twitch: Follow</option>
-                  </select>
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <Input
+                      id="spawn-description"
+                      type="text"
+                      label="Description"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                    />
+                  </div>
                 </div>
-                <div className="md:col-span-2 text-xs text-gray-600">
-                  {(() => {
-                    const t = trigger?.type || "manual";
-                    if (t === "manual") {
-                      return (
-                        <p>
-                          Manual triggers are activated outside of MediaSpawner.
-                          No configuration required.
-                        </p>
-                      );
-                    }
-                    if (
-                      t === "time.atDateTime" ||
-                      t === "time.dailyAt" ||
-                      t === "time.everyNMinutes" ||
-                      t === "time.minuteOfHour" ||
-                      t === "time.weeklyAt" ||
-                      t === "time.monthlyOn"
-                    ) {
-                      return (
-                        <p>
-                          Schedule triggers based on timezone-aware date/time
-                          rules.
-                        </p>
-                      );
-                    }
-                    if (t === "streamerbot.command") {
-                      return (
-                        <p>
-                          Streamer.bot command: configure command aliases and
-                          platform sources.
-                        </p>
-                      );
-                    }
-                    if (t === "twitch.channelPointReward") {
-                      return (
-                        <p>
-                          Twitch Channel Point reward redemption. Configure
-                          reward details in a later story.
-                        </p>
-                      );
-                    }
-                    if (t === "twitch.subscription") {
-                      return (
-                        <p>Configure subscription tier or minimum months.</p>
-                      );
-                    }
-                    if (t === "twitch.giftSub") {
-                      return (
-                        <p>Configure gifted sub count and optional tier.</p>
-                      );
-                    }
-                    if (t === "twitch.cheer") {
-                      return <p>Configure minimum bits required to trigger.</p>;
-                    }
-                    if (t === "twitch.follow") {
-                      return (
-                        <p>
-                          Twitch follow events. No additional configuration
-                          required.
-                        </p>
-                      );
-                    }
-                    return null;
-                  })()}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base font-semibold text-[rgb(var(--color-fg))]">
+                    Trigger
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={trigger?.enabled !== false}
+                      onCheckedChange={(checked) => {
+                        if (!trigger) return;
+                        setTrigger({ ...trigger, enabled: checked });
+                      }}
+                      aria-label="Trigger Enabled"
+                    />
+                    <label className="text-sm text-[rgb(var(--color-fg))] cursor-pointer">
+                      Trigger Enabled
+                    </label>
+                  </div>
                 </div>
-              </div>
-            </section>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Input
+                      id="trigger-type"
+                      type="select"
+                      label="Trigger Type"
+                      value={trigger?.type || "manual"}
+                      onChange={(e) => {
+                        const nextType = e.target.value as TriggerType;
+                        if (!trigger) {
+                          setTrigger(getDefaultTrigger(nextType));
+                          return;
+                        }
+                        if (nextType === trigger.type) return;
+                        pendingTriggerTypeRef.current = nextType;
+                        setShowTriggerTypeDialog(true);
+                      }}
+                    >
+                      <option value="manual">Manual</option>
+                      <option value="time.atDateTime">
+                        Time: At Date/Time
+                      </option>
+                      <option value="time.dailyAt">Time: Daily At</option>
+                      <option value="time.everyNMinutes">
+                        Time: Every N Minutes
+                      </option>
+                      <option value="time.weeklyAt">Time: Weekly At</option>
+                      <option value="time.monthlyOn">Time: Monthly On</option>
+                      <option value="time.minuteOfHour">
+                        Time: Minute Of Hour
+                      </option>
+                      <option value="streamerbot.command">
+                        Streamer.bot Command
+                      </option>
+                      <option value="twitch.channelPointReward">
+                        Twitch: Channel Point Reward
+                      </option>
+                      <option value="twitch.subscription">
+                        Twitch: Subscription
+                      </option>
+                      <option value="twitch.giftSub">
+                        Twitch: Gifted Subs
+                      </option>
+                      <option value="twitch.cheer">Twitch: Cheer</option>
+                      <option value="twitch.follow">Twitch: Follow</option>
+                    </Input>
+                  </div>
+                  <div className="md:col-span-2 text-xs text-[rgb(var(--color-muted-foreground))]">
+                    {(() => {
+                      const t = trigger?.type || "manual";
+                      if (t === "manual") {
+                        return (
+                          <p>
+                            Manual triggers are activated outside of
+                            MediaSpawner. No configuration required.
+                          </p>
+                        );
+                      }
+                      if (
+                        t === "time.atDateTime" ||
+                        t === "time.dailyAt" ||
+                        t === "time.everyNMinutes" ||
+                        t === "time.minuteOfHour" ||
+                        t === "time.weeklyAt" ||
+                        t === "time.monthlyOn"
+                      ) {
+                        return (
+                          <p>
+                            Schedule triggers based on timezone-aware date/time
+                            rules.
+                          </p>
+                        );
+                      }
+                      if (t === "streamerbot.command") {
+                        return (
+                          <p>
+                            Streamer.bot command: configure command aliases and
+                            platform sources.
+                          </p>
+                        );
+                      }
+                      if (t === "twitch.channelPointReward") {
+                        return (
+                          <p>
+                            Twitch Channel Point reward redemption. Configure
+                            reward details in a later story.
+                          </p>
+                        );
+                      }
+                      if (t === "twitch.subscription") {
+                        return (
+                          <p>Configure subscription tier or minimum months.</p>
+                        );
+                      }
+                      if (t === "twitch.giftSub") {
+                        return (
+                          <p>Configure gifted sub count and optional tier.</p>
+                        );
+                      }
+                      if (t === "twitch.cheer") {
+                        return (
+                          <p>Configure minimum bits required to trigger.</p>
+                        );
+                      }
+                      if (t === "twitch.follow") {
+                        return (
+                          <p>
+                            Twitch follow events. No additional configuration
+                            required.
+                          </p>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Randomization Buckets */}
             <RandomizationBucketsSection
@@ -892,50 +888,37 @@ const SpawnEditorWorkspace: React.FC = () => {
             />
 
             {trigger?.type === "streamerbot.command" && (
-              <section className="bg-white border border-gray-200 rounded-lg p-4">
-                <h3 className="text-base font-semibold text-gray-800 mb-3">
-                  Command Configuration
-                </h3>
-                <div className="space-y-4">
-                  {/* Command Aliases */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Command Aliases
-                      {/* Refresh moved into SBCommandAliasCombobox */}
-                    </label>
-                    <div className="space-y-2">
-                      {(getCommandConfig(trigger)?.aliases || [""]).map(
-                        (alias: string, index: number) => (
-                          <div key={index} className="flex items-center gap-2">
-                            <SBCommandAliasCombobox
-                              value={alias}
-                              onChange={(v) => {
-                                const newAliases = [
-                                  ...(getCommandConfig(trigger)?.aliases || [
-                                    "",
-                                  ]),
-                                ];
-                                newAliases[index] =
-                                  typeof v === "string" ? v : "";
-                                setTrigger({
-                                  ...trigger,
-                                  config: {
-                                    ...getCommandConfig(trigger),
-                                    aliases: newAliases,
-                                  },
-                                });
-                              }}
-                            />
-                            {(getCommandConfig(trigger)?.aliases || [""])
-                              .length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const newAliases = (
-                                    getCommandConfig(trigger)?.aliases || [""]
-                                  ).filter(
-                                    (_: string, i: number) => i !== index
-                                  );
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base font-semibold text-[rgb(var(--color-fg))] mb-3">
+                    Command Configuration
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Command Aliases */}
+                    <div>
+                      <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-2">
+                        Command Aliases
+                        {/* Refresh moved into SBCommandAliasCombobox */}
+                      </label>
+                      <div className="space-y-2">
+                        {(getCommandConfig(trigger)?.aliases || [""]).map(
+                          (alias: string, index: number) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-2"
+                            >
+                              <SBCommandAliasCombobox
+                                value={alias}
+                                onChange={(v) => {
+                                  const newAliases = [
+                                    ...(getCommandConfig(trigger)?.aliases || [
+                                      "",
+                                    ]),
+                                  ];
+                                  newAliases[index] =
+                                    typeof v === "string" ? v : "";
                                   setTrigger({
                                     ...trigger,
                                     config: {
@@ -944,539 +927,504 @@ const SpawnEditorWorkspace: React.FC = () => {
                                     },
                                   });
                                 }}
-                                className="px-2 py-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
-                                aria-label="Remove command alias"
-                              >
-                                Remove
-                              </button>
-                            )}
-                          </div>
-                        )
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newAliases = [
-                            ...(getCommandConfig(trigger)?.aliases || [""]),
-                            "",
-                          ];
-                          setTrigger({
-                            ...trigger,
-                            config: {
-                              ...getCommandConfig(trigger),
-                              aliases: newAliases,
-                            },
-                          });
-                        }}
-                        className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded border border-blue-200"
-                      >
-                        + Add Alias
-                      </button>
-                    </div>
-                    {(() => {
-                      const config = getCommandConfig(trigger);
-                      const aliases = config?.aliases || [];
-                      const hasEmptyAlias = aliases.some(
-                        (a: string) => !a.trim()
-                      );
-                      if (!aliases.length || hasEmptyAlias) {
-                        return (
-                          <p className="mt-1 text-xs text-red-600">
-                            At least one command alias is required
-                          </p>
+                              />
+                              {(getCommandConfig(trigger)?.aliases || [""])
+                                .length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newAliases = (
+                                      getCommandConfig(trigger)?.aliases || [""]
+                                    ).filter(
+                                      (_: string, i: number) => i !== index
+                                    );
+                                    setTrigger({
+                                      ...trigger,
+                                      config: {
+                                        ...getCommandConfig(trigger),
+                                        aliases: newAliases,
+                                      },
+                                    });
+                                  }}
+                                  className="px-2 py-1 text-[rgb(var(--color-error))] hover:text-[rgb(var(--color-error-hover))] hover:bg-[rgb(var(--color-error-bg))] rounded"
+                                  aria-label="Remove command alias"
+                                >
+                                  Remove
+                                </button>
+                              )}
+                            </div>
+                          )
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newAliases = [
+                              ...(getCommandConfig(trigger)?.aliases || [""]),
+                              "",
+                            ];
+                            setTrigger({
+                              ...trigger,
+                              config: {
+                                ...getCommandConfig(trigger),
+                                aliases: newAliases,
+                              },
+                            });
+                          }}
+                          className="px-3 py-1 text-sm text-[rgb(var(--color-accent))] hover:text-[rgb(var(--color-accent-hover))] hover:bg-[rgb(var(--color-accent))]/10 rounded border border-[rgb(var(--color-accent))]/20"
+                        >
+                          + Add Alias
+                        </button>
+                      </div>
+                      {(() => {
+                        const config = getCommandConfig(trigger);
+                        const aliases = config?.aliases || [];
+                        const hasEmptyAlias = aliases.some(
+                          (a: string) => !a.trim()
                         );
-                      }
-                      return null;
-                    })()}
-                  </div>
-
-                  {/* Case Sensitivity */}
-                  <div>
-                    <label className="flex items-center cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={
-                          getCommandConfig(trigger)?.caseSensitive || false
+                        if (!aliases.length || hasEmptyAlias) {
+                          return (
+                            <p className="mt-1 text-xs text-[rgb(var(--color-error))]">
+                              At least one command alias is required
+                            </p>
+                          );
                         }
-                        onChange={(e) => {
-                          setTrigger({
-                            ...trigger,
-                            config: {
-                              ...getCommandConfig(trigger),
-                              caseSensitive: e.target.checked,
-                            },
-                          });
-                        }}
-                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">
-                        Case sensitive
-                      </span>
-                    </label>
-                    <p className="mt-1 text-xs text-gray-600">
-                      When enabled, command matching will be case-sensitive
-                    </p>
-                  </div>
+                        return null;
+                      })()}
+                    </div>
 
-                  {/* Platform Sources removed: Twitch-only support for now */}
-
-                  {/* Filtering Options */}
-                  <div className="space-y-3">
+                    {/* Case Sensitivity */}
                     <div>
-                      <label className="flex items-center cursor-pointer select-none">
-                        <input
-                          type="checkbox"
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          aria-label="Case sensitive"
                           checked={
-                            getCommandConfig(trigger)?.ignoreInternal !== false
+                            getCommandConfig(trigger)?.caseSensitive || false
                           }
-                          onChange={(e) => {
+                          onCheckedChange={(checked) => {
                             setTrigger({
                               ...trigger,
                               config: {
                                 ...getCommandConfig(trigger),
-                                ignoreInternal: e.target.checked,
+                                caseSensitive: checked,
                               },
                             });
                           }}
-                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                         />
-                        <span className="ml-2 text-sm text-gray-700">
-                          Ignore internal messages
-                        </span>
-                      </label>
-                      <p className="mt-1 text-xs text-gray-600">
-                        Skip messages from internal/system sources
+                        <label className="text-sm text-[rgb(var(--color-fg))] cursor-pointer">
+                          Case sensitive
+                        </label>
+                      </div>
+                      <p className="mt-1 text-xs text-[rgb(var(--color-muted-foreground))]">
+                        When enabled, command matching will be case-sensitive
                       </p>
                     </div>
 
-                    <div>
-                      <label className="flex items-center cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={
-                            getCommandConfig(trigger)?.ignoreBotAccount !==
-                            false
-                          }
-                          onChange={(e) => {
-                            setTrigger({
-                              ...trigger,
-                              config: {
-                                ...getCommandConfig(trigger),
-                                ignoreBotAccount: e.target.checked,
-                              },
-                            });
-                          }}
-                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        />
-                        <span className="ml-2 text-sm text-gray-700">
-                          Ignore bot account messages
-                        </span>
-                      </label>
-                      <p className="mt-1 text-xs text-gray-600">
-                        Skip messages from the bot account to avoid loops
-                      </p>
+                    {/* Platform Sources removed: Twitch-only support for now */}
+
+                    {/* Filtering Options */}
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            aria-label="Ignore internal messages"
+                            checked={
+                              getCommandConfig(trigger)?.ignoreInternal !==
+                              false
+                            }
+                            onCheckedChange={(checked) => {
+                              setTrigger({
+                                ...trigger,
+                                config: {
+                                  ...getCommandConfig(trigger),
+                                  ignoreInternal: checked,
+                                },
+                              });
+                            }}
+                          />
+                          <label className="text-sm text-[rgb(var(--color-fg))] cursor-pointer">
+                            Ignore internal messages
+                          </label>
+                        </div>
+                        <p className="mt-1 text-xs text-[rgb(var(--color-muted-foreground))]">
+                          Skip messages from internal/system sources
+                        </p>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            aria-label="Ignore bot account messages"
+                            checked={
+                              getCommandConfig(trigger)?.ignoreBotAccount !==
+                              false
+                            }
+                            onCheckedChange={(checked) => {
+                              setTrigger({
+                                ...trigger,
+                                config: {
+                                  ...getCommandConfig(trigger),
+                                  ignoreBotAccount: checked,
+                                },
+                              });
+                            }}
+                          />
+                          <label className="text-sm text-[rgb(var(--color-fg))] cursor-pointer">
+                            Ignore bot account messages
+                          </label>
+                        </div>
+                        <p className="mt-1 text-xs text-[rgb(var(--color-muted-foreground))]">
+                          Skip messages from the bot account to avoid loops
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </section>
+                </CardContent>
+              </Card>
             )}
 
             {trigger?.type === "twitch.channelPointReward" && (
-              <section className="bg-white border border-gray-200 rounded-lg p-4">
-                <h3 className="text-base font-semibold text-gray-800 mb-3">
-                  Channel Point Reward Configuration
-                </h3>
-                <div className="space-y-4">
-                  {/* Reward Identifier */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Reward Identifier
-                    </label>
-                    <input
-                      type="text"
-                      value={
-                        getChannelPointConfig(trigger)?.rewardIdentifier || ""
-                      }
-                      onChange={(e) => {
-                        setTrigger({
-                          ...trigger,
-                          config: {
-                            ...getChannelPointConfig(trigger),
-                            rewardIdentifier: e.target.value,
-                          },
-                        });
-                      }}
-                      placeholder="Enter reward name or ID (e.g., Alert, Scene1, 12345)"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    {(() => {
-                      const config = getChannelPointConfig(trigger);
-                      const rewardIdentifier = config?.rewardIdentifier || "";
-                      if (!rewardIdentifier.trim()) {
-                        return (
-                          <p className="mt-1 text-xs text-red-600">
-                            Reward identifier is required
-                          </p>
-                        );
-                      }
-                      return null;
-                    })()}
-                    <p className="mt-1 text-xs text-gray-600">
-                      Enter the name or ID of the channel point reward from your
-                      Twitch channel
-                    </p>
-                  </div>
-
-                  {/* Use Viewer Input */}
-                  <div>
-                    <label className="flex items-center cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={
-                          getChannelPointConfig(trigger)?.useViewerInput ||
-                          false
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base font-semibold text-[rgb(var(--color-fg))] mb-3">
+                    Channel Point Reward Configuration
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Reward Identifier */}
+                    <div>
+                      <Input
+                        type="text"
+                        label="Reward Identifier"
+                        value={
+                          getChannelPointConfig(trigger)?.rewardIdentifier || ""
                         }
                         onChange={(e) => {
                           setTrigger({
                             ...trigger,
                             config: {
                               ...getChannelPointConfig(trigger),
-                              useViewerInput: e.target.checked,
+                              rewardIdentifier: e.target.value,
                             },
                           });
                         }}
-                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        placeholder="Enter reward name or ID (e.g., Alert, Scene1, 12345)"
+                        error={
+                          !getChannelPointConfig(
+                            trigger
+                          )?.rewardIdentifier?.trim()
+                            ? "Reward identifier is required"
+                            : undefined
+                        }
+                        helperText="Enter the name or ID of the channel point reward from your Twitch channel"
                       />
-                      <span className="ml-2 text-sm text-gray-700">
-                        Use viewer input in spawn configuration
-                      </span>
-                    </label>
-                    <p className="mt-1 text-xs text-gray-600">
-                      When enabled, the viewer's message will be available for
-                      use in spawn settings
-                    </p>
-                  </div>
-
-                  {/* Redemption Statuses */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Redemption Statuses
-                    </label>
-                    <div className="space-y-2">
-                      {["pending", "fulfilled", "cancelled"].map((status) => (
-                        <label
-                          key={status}
-                          className="flex items-center cursor-pointer select-none"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={(
-                              getChannelPointConfig(trigger)?.statuses || [
-                                "fulfilled",
-                              ]
-                            ).includes(status)}
-                            onChange={(e) => {
-                              const currentStatuses = getChannelPointConfig(
-                                trigger
-                              )?.statuses || ["fulfilled"];
-                              const newStatuses = e.target.checked
-                                ? [...currentStatuses, status]
-                                : currentStatuses.filter(
-                                    (s: string) => s !== status
-                                  );
-                              setTrigger({
-                                ...trigger,
-                                config: {
-                                  ...getChannelPointConfig(trigger),
-                                  statuses: newStatuses,
-                                },
-                              });
-                            }}
-                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                          />
-                          <span className="ml-2 text-sm text-gray-700 capitalize">
-                            {status}
-                          </span>
-                        </label>
-                      ))}
                     </div>
-                    {(() => {
-                      const config = getChannelPointConfig(trigger);
-                      const statuses = config?.statuses || [];
-                      if (statuses.length === 0) {
-                        return (
-                          <p className="mt-1 text-xs text-red-600">
-                            At least one redemption status must be selected
-                          </p>
-                        );
-                      }
-                      return null;
-                    })()}
-                    <p className="mt-1 text-xs text-gray-600">
-                      Select which redemption statuses should trigger this spawn
-                    </p>
-                  </div>
 
-                  {/* Help Text */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-xs text-blue-800">
-                      <strong>Note:</strong> Twitch handles all reward logic
-                      including cooldowns, usage limits, and point costs.
-                      MediaSpawner only configures when spawns trigger based on
-                      redemption events.
-                    </p>
+                    {/* Use Viewer Input */}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          aria-label="Use viewer input in spawn configuration"
+                          checked={
+                            getChannelPointConfig(trigger)?.useViewerInput ||
+                            false
+                          }
+                          onCheckedChange={(checked) => {
+                            setTrigger({
+                              ...trigger,
+                              config: {
+                                ...getChannelPointConfig(trigger),
+                                useViewerInput: checked,
+                              },
+                            });
+                          }}
+                        />
+                        <label className="text-sm text-[rgb(var(--color-fg))] cursor-pointer">
+                          Use viewer input in spawn configuration
+                        </label>
+                      </div>
+                      <p className="mt-1 text-xs text-[rgb(var(--color-muted-foreground))]">
+                        When enabled, the viewer's message will be available for
+                        use in spawn settings
+                      </p>
+                    </div>
+
+                    {/* Redemption Statuses */}
+                    <div>
+                      <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-2">
+                        Redemption Statuses
+                      </label>
+                      <div className="space-y-2">
+                        {["pending", "fulfilled", "cancelled"].map((status) => (
+                          <div key={status} className="flex items-center gap-2">
+                            <Switch
+                              aria-label={status}
+                              checked={(
+                                getChannelPointConfig(trigger)?.statuses || [
+                                  "fulfilled",
+                                ]
+                              ).includes(status)}
+                              onCheckedChange={(checked) => {
+                                const currentStatuses = getChannelPointConfig(
+                                  trigger
+                                )?.statuses || ["fulfilled"];
+                                const newStatuses = checked
+                                  ? [...currentStatuses, status]
+                                  : currentStatuses.filter(
+                                      (s: string) => s !== status
+                                    );
+                                setTrigger({
+                                  ...trigger,
+                                  config: {
+                                    ...getChannelPointConfig(trigger),
+                                    statuses: newStatuses,
+                                  },
+                                });
+                              }}
+                            />
+                            <label className="text-sm text-[rgb(var(--color-fg))] cursor-pointer capitalize">
+                              {status}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                      {(() => {
+                        const config = getChannelPointConfig(trigger);
+                        const statuses = config?.statuses || [];
+                        if (statuses.length === 0) {
+                          return (
+                            <p className="mt-1 text-xs text-[rgb(var(--color-error))]">
+                              At least one redemption status must be selected
+                            </p>
+                          );
+                        }
+                        return null;
+                      })()}
+                      <p className="mt-1 text-xs text-[rgb(var(--color-muted-foreground))]">
+                        Select which redemption statuses should trigger this
+                        spawn
+                      </p>
+                    </div>
+
+                    {/* Help Text */}
+                    <div className="bg-[rgb(var(--color-accent))]/10 border border-[rgb(var(--color-accent))]/20 rounded-lg p-3">
+                      <p className="text-xs text-[rgb(var(--color-accent))]">
+                        <strong>Note:</strong> Twitch handles all reward logic
+                        including cooldowns, usage limits, and point costs.
+                        MediaSpawner only configures when spawns trigger based
+                        on redemption events.
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </section>
+                </CardContent>
+              </Card>
             )}
 
             {trigger?.type === "twitch.subscription" && (
-              <section className="bg-white border border-gray-200 rounded-lg p-4">
-                <h3 className="text-base font-semibold text-gray-800 mb-3">
-                  Subscription Configuration
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label
-                      htmlFor="sub-tier"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Tier
-                    </label>
-                    <select
-                      id="sub-tier"
-                      value={getSubscriptionConfig(trigger)?.tier ?? ""}
-                      onChange={(e) => {
-                        const v = (e.target.value || undefined) as
-                          | "1000"
-                          | "2000"
-                          | "3000"
-                          | undefined;
-                        setTrigger({
-                          ...trigger,
-                          config: {
-                            ...getSubscriptionConfig(trigger),
-                            tier: v,
-                          },
-                        });
-                      }}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                    >
-                      <option value="">Any</option>
-                      <option value="1000">Tier 1</option>
-                      <option value="2000">Tier 2</option>
-                      <option value="3000">Tier 3</option>
-                    </select>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base font-semibold text-[rgb(var(--color-fg))] mb-3">
+                    Subscription Configuration
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Input
+                        id="sub-tier"
+                        type="select"
+                        label="Tier"
+                        value={getSubscriptionConfig(trigger)?.tier ?? ""}
+                        onChange={(e) => {
+                          const v = (e.target.value || undefined) as
+                            | "1000"
+                            | "2000"
+                            | "3000"
+                            | undefined;
+                          setTrigger({
+                            ...trigger,
+                            config: {
+                              ...getSubscriptionConfig(trigger),
+                              tier: v,
+                            },
+                          });
+                        }}
+                      >
+                        <option value="">Any</option>
+                        <option value="1000">Tier 1</option>
+                        <option value="2000">Tier 2</option>
+                        <option value="3000">Tier 3</option>
+                      </Input>
+                    </div>
+                    <div>
+                      <Input
+                        id="sub-months-comparator"
+                        type="select"
+                        label="Months Comparator"
+                        value={
+                          getSubscriptionConfig(trigger)?.monthsComparator ?? ""
+                        }
+                        onChange={(e) => {
+                          const v = (e.target.value || undefined) as
+                            | "lt"
+                            | "eq"
+                            | "gt"
+                            | undefined;
+                          setTrigger({
+                            ...trigger,
+                            config: {
+                              ...getSubscriptionConfig(trigger),
+                              monthsComparator: v,
+                            },
+                          });
+                        }}
+                        error={validation.fieldErrors.monthsComparator?.[0]}
+                      >
+                        <option value="">- Select -</option>
+                        <option value="lt">Less than</option>
+                        <option value="eq">Equal to</option>
+                        <option value="gt">Greater than</option>
+                      </Input>
+                    </div>
+                    <div>
+                      <Input
+                        id="sub-months"
+                        type="number"
+                        label="Months"
+                        min={1}
+                        value={getSubscriptionConfig(trigger)?.months ?? ""}
+                        onChange={(e) => {
+                          const val = Math.max(1, Number(e.target.value) || 1);
+                          setTrigger({
+                            ...trigger,
+                            config: {
+                              ...getSubscriptionConfig(trigger),
+                              months: val,
+                            },
+                          });
+                        }}
+                        error={validation.fieldErrors.months?.[0]}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label
-                      htmlFor="sub-months-comparator"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Months Comparator
-                    </label>
-                    <select
-                      id="sub-months-comparator"
-                      value={
-                        getSubscriptionConfig(trigger)?.monthsComparator ?? ""
-                      }
-                      onChange={(e) => {
-                        const v = (e.target.value || undefined) as
-                          | "lt"
-                          | "eq"
-                          | "gt"
-                          | undefined;
-                        setTrigger({
-                          ...trigger,
-                          config: {
-                            ...getSubscriptionConfig(trigger),
-                            monthsComparator: v,
-                          },
-                        });
-                      }}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                    >
-                      <option value="">- Select -</option>
-                      <option value="lt">Less than</option>
-                      <option value="eq">Equal to</option>
-                      <option value="gt">Greater than</option>
-                    </select>
-                    {validation.fieldErrors.monthsComparator && (
-                      <p className="mt-1 text-xs text-red-600">
-                        {validation.fieldErrors.monthsComparator[0]}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="sub-months"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Months
-                    </label>
-                    <input
-                      id="sub-months"
-                      type="number"
-                      min={1}
-                      value={getSubscriptionConfig(trigger)?.months ?? ""}
-                      onChange={(e) => {
-                        const val = Math.max(1, Number(e.target.value) || 1);
-                        setTrigger({
-                          ...trigger,
-                          config: {
-                            ...getSubscriptionConfig(trigger),
-                            months: val,
-                          },
-                        });
-                      }}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                    />
-                    {validation.fieldErrors.months && (
-                      <p className="mt-1 text-xs text-red-600">
-                        {validation.fieldErrors.months[0]}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </section>
+                </CardContent>
+              </Card>
             )}
 
             {trigger?.type === "twitch.giftSub" && (
-              <section className="bg-white border border-gray-200 rounded-lg p-4">
-                <h3 className="text-base font-semibold text-gray-800 mb-3">
-                  Gifted Subs Configuration
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      htmlFor="gift-min-count"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Minimum Count
-                    </label>
-                    <input
-                      id="gift-min-count"
-                      type="number"
-                      min={1}
-                      value={getGiftSubConfig(trigger)?.minCount ?? ""}
-                      onChange={(e) => {
-                        const val = Math.max(1, Number(e.target.value) || 1);
-                        setTrigger({
-                          ...trigger,
-                          config: {
-                            ...getGiftSubConfig(trigger),
-                            minCount: val,
-                          },
-                        });
-                      }}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                    />
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base font-semibold text-[rgb(var(--color-fg))] mb-3">
+                    Gifted Subs Configuration
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Input
+                        id="gift-min-count"
+                        type="number"
+                        label="Minimum Count"
+                        min={1}
+                        value={getGiftSubConfig(trigger)?.minCount ?? ""}
+                        onChange={(e) => {
+                          const val = Math.max(1, Number(e.target.value) || 1);
+                          setTrigger({
+                            ...trigger,
+                            config: {
+                              ...getGiftSubConfig(trigger),
+                              minCount: val,
+                            },
+                          });
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <Input
+                        id="gift-tier"
+                        type="select"
+                        label="Tier"
+                        value={getGiftSubConfig(trigger)?.tier ?? ""}
+                        onChange={(e) => {
+                          const v = (e.target.value || undefined) as
+                            | "1000"
+                            | "2000"
+                            | "3000"
+                            | undefined;
+                          setTrigger({
+                            ...trigger,
+                            config: { ...getGiftSubConfig(trigger), tier: v },
+                          });
+                        }}
+                      >
+                        <option value="">Any</option>
+                        <option value="1000">Tier 1</option>
+                        <option value="2000">Tier 2</option>
+                        <option value="3000">Tier 3</option>
+                      </Input>
+                    </div>
                   </div>
-                  <div>
-                    <label
-                      htmlFor="gift-tier"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Tier
-                    </label>
-                    <select
-                      id="gift-tier"
-                      value={getGiftSubConfig(trigger)?.tier ?? ""}
-                      onChange={(e) => {
-                        const v = (e.target.value || undefined) as
-                          | "1000"
-                          | "2000"
-                          | "3000"
-                          | undefined;
-                        setTrigger({
-                          ...trigger,
-                          config: { ...getGiftSubConfig(trigger), tier: v },
-                        });
-                      }}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                    >
-                      <option value="">Any</option>
-                      <option value="1000">Tier 1</option>
-                      <option value="2000">Tier 2</option>
-                      <option value="3000">Tier 3</option>
-                    </select>
-                  </div>
-                </div>
-              </section>
+                </CardContent>
+              </Card>
             )}
 
             {trigger?.type === "twitch.cheer" && (
-              <section className="bg-white border border-gray-200 rounded-lg p-4">
-                <h3 className="text-base font-semibold text-gray-800 mb-3">
-                  Cheer Configuration
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label
-                      htmlFor="cheer-bits-comparator"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Bits Comparator
-                    </label>
-                    <select
-                      id="cheer-bits-comparator"
-                      value={getCheerConfig(trigger)?.bitsComparator ?? ""}
-                      onChange={(e) => {
-                        const v = (e.target.value || undefined) as
-                          | "lt"
-                          | "eq"
-                          | "gt"
-                          | undefined;
-                        setTrigger({
-                          ...trigger,
-                          config: {
-                            ...getCheerConfig(trigger),
-                            bitsComparator: v,
-                          },
-                        });
-                      }}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                    >
-                      <option value="">- Select -</option>
-                      <option value="lt">Less than</option>
-                      <option value="eq">Equal to</option>
-                      <option value="gt">Greater than</option>
-                    </select>
-                    {validation.fieldErrors.bitsComparator && (
-                      <p className="mt-1 text-xs text-red-600">
-                        {validation.fieldErrors.bitsComparator[0]}
-                      </p>
-                    )}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base font-semibold text-[rgb(var(--color-fg))] mb-3">
+                    Cheer Configuration
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Input
+                        id="cheer-bits-comparator"
+                        type="select"
+                        label="Bits Comparator"
+                        value={getCheerConfig(trigger)?.bitsComparator ?? ""}
+                        onChange={(e) => {
+                          const v = (e.target.value || undefined) as
+                            | "lt"
+                            | "eq"
+                            | "gt"
+                            | undefined;
+                          setTrigger({
+                            ...trigger,
+                            config: {
+                              ...getCheerConfig(trigger),
+                              bitsComparator: v,
+                            },
+                          });
+                        }}
+                        error={validation.fieldErrors.bitsComparator?.[0]}
+                      >
+                        <option value="">- Select -</option>
+                        <option value="lt">Less than</option>
+                        <option value="eq">Equal to</option>
+                        <option value="gt">Greater than</option>
+                      </Input>
+                    </div>
+                    <div>
+                      <Input
+                        id="cheer-bits"
+                        type="number"
+                        label="Bits"
+                        min={1}
+                        value={getCheerConfig(trigger)?.bits ?? ""}
+                        onChange={(e) => {
+                          const val = Math.max(1, Number(e.target.value) || 1);
+                          setTrigger({
+                            ...trigger,
+                            config: { ...getCheerConfig(trigger), bits: val },
+                          });
+                        }}
+                        error={validation.fieldErrors.bits?.[0]}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label
-                      htmlFor="cheer-bits"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Bits
-                    </label>
-                    <input
-                      id="cheer-bits"
-                      type="number"
-                      min={1}
-                      value={getCheerConfig(trigger)?.bits ?? ""}
-                      onChange={(e) => {
-                        const val = Math.max(1, Number(e.target.value) || 1);
-                        setTrigger({
-                          ...trigger,
-                          config: { ...getCheerConfig(trigger), bits: val },
-                        });
-                      }}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                    />
-                    {validation.fieldErrors.bits && (
-                      <p className="mt-1 text-xs text-red-600">
-                        {validation.fieldErrors.bits[0]}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </section>
+                </CardContent>
+              </Card>
             )}
 
             {(trigger?.type === "time.atDateTime" ||
@@ -1485,482 +1433,103 @@ const SpawnEditorWorkspace: React.FC = () => {
               trigger?.type === "time.minuteOfHour" ||
               trigger?.type === "time.weeklyAt" ||
               trigger?.type === "time.monthlyOn") && (
-              <section className="bg-white border border-gray-200 rounded-lg p-4">
-                <h3 className="text-base font-semibold text-gray-800 mb-3">
-                  Time-based Configuration
-                </h3>
-                <div className="space-y-4">
-                  {(() => {
-                    const next = getNextActivation(trigger);
-                    return (
-                      <div className="bg-gray-50 border border-gray-200 rounded p-2 text-sm text-gray-700">
-                        <span className="font-medium">Next activation: </span>
-                        {formatNextActivation(next.when, next.timezone)}
-                      </div>
-                    );
-                  })()}
-                  {trigger?.type === "time.weeklyAt" && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Day of Week
-                        </label>
-                        <select
-                          value={getWeeklyAtConfig(trigger)?.dayOfWeek ?? 0}
-                          onChange={(e) => {
-                            const base =
-                              getWeeklyAtConfig(trigger) ||
-                              ({
-                                dayOfWeek: 1,
-                                time: "09:00",
-                                timezone: moment.tz.guess(),
-                              } as {
-                                dayOfWeek: number;
-                                time: string;
-                                timezone: string;
-                              });
-                            setTrigger({
-                              ...trigger!,
-                              config: {
-                                ...base,
-                                dayOfWeek: parseInt(e.target.value, 10),
-                              },
-                            });
-                          }}
-                          disabled={trigger?.enabled === false}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                        >
-                          {dayOfWeekOptions.map((d) => (
-                            <option key={d.value} value={d.value}>
-                              {d.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Time (HH:mm)
-                        </label>
-                        <input
-                          type="time"
-                          value={getWeeklyAtConfig(trigger)?.time || "09:00"}
-                          onChange={(e) => {
-                            const base =
-                              getWeeklyAtConfig(trigger) ||
-                              ({
-                                dayOfWeek: 1,
-                                time: "09:00",
-                                timezone: moment.tz.guess(),
-                              } as {
-                                dayOfWeek: number;
-                                time: string;
-                                timezone: string;
-                              });
-                            setTrigger({
-                              ...trigger!,
-                              config: { ...base, time: e.target.value },
-                            });
-                          }}
-                          disabled={trigger?.enabled === false}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Timezone
-                        </label>
-                        <select
-                          value={
-                            getWeeklyAtConfig(trigger)?.timezone ||
-                            moment.tz.guess()
-                          }
-                          onChange={(e) => {
-                            const base =
-                              getWeeklyAtConfig(trigger) ||
-                              ({
-                                dayOfWeek: 1,
-                                time: "09:00",
-                                timezone: moment.tz.guess(),
-                              } as {
-                                dayOfWeek: number;
-                                time: string;
-                                timezone: string;
-                              });
-                            setTrigger({
-                              ...trigger!,
-                              config: { ...base, timezone: e.target.value },
-                            });
-                          }}
-                          disabled={trigger?.enabled === false}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                        >
-                          {timezoneOptions.map((tz) => (
-                            <option key={tz.value} value={tz.value}>
-                              {tz.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  )}
-                  {trigger?.type === "time.monthlyOn" && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Day of Month
-                        </label>
-                        <input
-                          type="number"
-                          min={1}
-                          max={31}
-                          value={getMonthlyOnConfig(trigger)?.dayOfMonth ?? 1}
-                          onChange={(e) => {
-                            const val = Math.max(
-                              1,
-                              Math.min(31, Number(e.target.value) || 1)
-                            );
-                            const base =
-                              getMonthlyOnConfig(trigger) ||
-                              ({
-                                dayOfMonth: 1,
-                                time: "09:00",
-                                timezone: moment.tz.guess(),
-                              } as {
-                                dayOfMonth: number;
-                                time: string;
-                                timezone: string;
-                              });
-                            setTrigger({
-                              ...trigger!,
-                              config: { ...base, dayOfMonth: val },
-                            });
-                          }}
-                          disabled={trigger?.enabled === false}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Time (HH:mm)
-                        </label>
-                        <input
-                          type="time"
-                          value={getMonthlyOnConfig(trigger)?.time || "09:00"}
-                          onChange={(e) => {
-                            const base =
-                              getMonthlyOnConfig(trigger) ||
-                              ({
-                                dayOfMonth: 1,
-                                time: "09:00",
-                                timezone: moment.tz.guess(),
-                              } as {
-                                dayOfMonth: number;
-                                time: string;
-                                timezone: string;
-                              });
-                            setTrigger({
-                              ...trigger!,
-                              config: { ...base, time: e.target.value },
-                            });
-                          }}
-                          disabled={trigger?.enabled === false}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Timezone
-                        </label>
-                        <select
-                          value={
-                            getMonthlyOnConfig(trigger)?.timezone ||
-                            moment.tz.guess()
-                          }
-                          onChange={(e) => {
-                            const base =
-                              getMonthlyOnConfig(trigger) ||
-                              ({
-                                dayOfMonth: 1,
-                                time: "09:00",
-                                timezone: moment.tz.guess(),
-                              } as {
-                                dayOfMonth: number;
-                                time: string;
-                                timezone: string;
-                              });
-                            setTrigger({
-                              ...trigger!,
-                              config: { ...base, timezone: e.target.value },
-                            });
-                          }}
-                          disabled={trigger?.enabled === false}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                        >
-                          {timezoneOptions.map((tz) => (
-                            <option key={tz.value} value={tz.value}>
-                              {tz.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  )}
-                  {trigger?.type === "time.atDateTime" && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label
-                          htmlFor="at-datetime"
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          ISO Date-Time
-                        </label>
-                        <input
-                          id="at-datetime"
-                          type="datetime-local"
-                          value={(() => {
-                            const cfg = getAtDateTimeConfig(trigger);
-                            if (!cfg?.isoDateTime) return "";
-                            try {
-                              return moment(cfg.isoDateTime)
-                                .tz(cfg.timezone)
-                                .format("YYYY-MM-DDTHH:mm");
-                            } catch {
-                              return "";
-                            }
-                          })()}
-                          onChange={(e) => {
-                            const current = getAtDateTimeConfig(trigger);
-                            const tz = current?.timezone || moment.tz.guess();
-                            const iso = e.target.value
-                              ? moment
-                                  .tz(e.target.value, "YYYY-MM-DDTHH:mm", tz)
-                                  .toISOString()
-                              : new Date().toISOString();
-                            const base =
-                              current ||
-                              ({
-                                isoDateTime: new Date().toISOString(),
-                                timezone: tz,
-                              } as {
-                                isoDateTime: string;
-                                timezone: string;
-                              });
-                            setTrigger({
-                              ...trigger,
-                              config: { ...base, isoDateTime: iso },
-                            });
-                          }}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                        />
-                        {validation.fieldErrors.isoDateTime && (
-                          <p className="mt-1 text-xs text-red-600">
-                            {validation.fieldErrors.isoDateTime[0]}
-                          </p>
-                        )}
-                      </div>
-                      <div>
-                        <label
-                          htmlFor="at-timezone"
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          Timezone
-                        </label>
-                        <select
-                          id="at-timezone"
-                          value={
-                            getAtDateTimeConfig(trigger)?.timezone ||
-                            moment.tz.guess()
-                          }
-                          onChange={(e) => {
-                            const base =
-                              getAtDateTimeConfig(trigger) ||
-                              ({
-                                isoDateTime: new Date().toISOString(),
-                                timezone: moment.tz.guess(),
-                              } as {
-                                isoDateTime: string;
-                                timezone: string;
-                              });
-                            setTrigger({
-                              ...trigger!,
-                              config: { ...base, timezone: e.target.value },
-                            });
-                          }}
-                          disabled={trigger?.enabled === false}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                        >
-                          {timezoneOptions.map((tz) => (
-                            <option key={tz.value} value={tz.value}>
-                              {tz.label}
-                            </option>
-                          ))}
-                        </select>
-                        {validation.fieldErrors.timezone && (
-                          <p className="mt-1 text-xs text-red-600">
-                            {validation.fieldErrors.timezone[0]}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {trigger?.type === "time.dailyAt" && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label
-                          htmlFor="daily-time"
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          Time (HH:mm)
-                        </label>
-                        <input
-                          id="daily-time"
-                          type="time"
-                          value={getDailyAtConfig(trigger)?.time || "09:00"}
-                          onChange={(e) => {
-                            const base =
-                              getDailyAtConfig(trigger) ||
-                              ({ time: "09:00", timezone: "UTC" } as {
-                                time: string;
-                                timezone: string;
-                              });
-                            setTrigger({
-                              ...trigger,
-                              config: { ...base, time: e.target.value },
-                            });
-                          }}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                        />
-                        {validation.fieldErrors.time && (
-                          <p className="mt-1 text-xs text-red-600">
-                            {validation.fieldErrors.time[0]}
-                          </p>
-                        )}
-                      </div>
-                      <div>
-                        <label
-                          htmlFor="daily-timezone"
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          Timezone
-                        </label>
-                        <select
-                          id="daily-timezone"
-                          value={
-                            getDailyAtConfig(trigger)?.timezone ||
-                            moment.tz.guess()
-                          }
-                          onChange={(e) => {
-                            const base =
-                              getDailyAtConfig(trigger) ||
-                              ({
-                                time: "09:00",
-                                timezone: moment.tz.guess(),
-                              } as {
-                                time: string;
-                                timezone: string;
-                              });
-                            setTrigger({
-                              ...trigger!,
-                              config: { ...base, timezone: e.target.value },
-                            });
-                          }}
-                          disabled={trigger?.enabled === false}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                        >
-                          {timezoneOptions.map((tz) => (
-                            <option key={tz.value} value={tz.value}>
-                              {tz.label}
-                            </option>
-                          ))}
-                        </select>
-                        {validation.fieldErrors.timezone && (
-                          <p className="mt-1 text-xs text-red-600">
-                            {validation.fieldErrors.timezone[0]}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {trigger?.type === "time.everyNMinutes" && (
-                    <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base font-semibold text-[rgb(var(--color-fg))] mb-3">
+                    Time-based Configuration
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {(() => {
+                      const next = getNextActivation(trigger);
+                      return (
+                        <div className="bg-[rgb(var(--color-muted))]/5 border border-[rgb(var(--color-border))] rounded p-2 text-sm text-[rgb(var(--color-fg))]">
+                          <span className="font-medium">Next activation: </span>
+                          {formatNextActivation(next.when, next.timezone)}
+                        </div>
+                      );
+                    })()}
+                    {trigger?.type === "time.weeklyAt" && (
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                          <label
-                            htmlFor="every-interval"
-                            className="block text-sm font-medium text-gray-700 mb-1"
-                          >
-                            Interval (minutes)
-                          </label>
-                          <input
-                            id="every-interval"
-                            type="number"
-                            min={1}
-                            value={
-                              getEveryNMinutesConfig(trigger)
-                                ?.intervalMinutes ?? 15
-                            }
+                          <Input
+                            type="select"
+                            label="Day of Week"
+                            value={getWeeklyAtConfig(trigger)?.dayOfWeek ?? 0}
                             onChange={(e) => {
-                              const val = Math.max(
-                                1,
-                                Number(e.target.value) || 1
-                              );
                               const base =
-                                getEveryNMinutesConfig(trigger) ||
-                                ({ intervalMinutes: 15, timezone: "UTC" } as {
-                                  intervalMinutes: number;
+                                getWeeklyAtConfig(trigger) ||
+                                ({
+                                  dayOfWeek: 1,
+                                  time: "09:00",
+                                  timezone: moment.tz.guess(),
+                                } as {
+                                  dayOfWeek: number;
+                                  time: string;
                                   timezone: string;
-                                  anchor?:
-                                    | { kind: "topOfHour" }
-                                    | {
-                                        kind: "custom";
-                                        isoDateTime: string;
-                                        timezone: string;
-                                      };
                                 });
                               setTrigger({
-                                ...trigger,
-                                config: { ...base, intervalMinutes: val },
+                                ...trigger!,
+                                config: {
+                                  ...base,
+                                  dayOfWeek: parseInt(e.target.value, 10),
+                                },
                               });
                             }}
-                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                          />
-                          {validation.fieldErrors.intervalMinutes && (
-                            <p className="mt-1 text-xs text-red-600">
-                              {validation.fieldErrors.intervalMinutes[0]}
-                            </p>
-                          )}
+                            disabled={trigger?.enabled === false}
+                          >
+                            {dayOfWeekOptions.map((d) => (
+                              <option key={d.value} value={d.value}>
+                                {d.label}
+                              </option>
+                            ))}
+                          </Input>
                         </div>
                         <div>
-                          <label
-                            htmlFor="every-timezone"
-                            className="block text-sm font-medium text-gray-700 mb-1"
-                          >
-                            Timezone
-                          </label>
-                          <select
-                            id="every-timezone"
+                          <Input
+                            type="time"
+                            label="Time (HH:mm)"
+                            value={getWeeklyAtConfig(trigger)?.time || "09:00"}
+                            onChange={(e) => {
+                              const base =
+                                getWeeklyAtConfig(trigger) ||
+                                ({
+                                  dayOfWeek: 1,
+                                  time: "09:00",
+                                  timezone: moment.tz.guess(),
+                                } as {
+                                  dayOfWeek: number;
+                                  time: string;
+                                  timezone: string;
+                                });
+                              setTrigger({
+                                ...trigger!,
+                                config: { ...base, time: e.target.value },
+                              });
+                            }}
+                            disabled={trigger?.enabled === false}
+                          />
+                        </div>
+                        <div>
+                          <Input
+                            type="select"
+                            label="Timezone"
                             value={
-                              getEveryNMinutesConfig(trigger)?.timezone ||
+                              getWeeklyAtConfig(trigger)?.timezone ||
                               moment.tz.guess()
                             }
                             onChange={(e) => {
                               const base =
-                                getEveryNMinutesConfig(trigger) ||
+                                getWeeklyAtConfig(trigger) ||
                                 ({
-                                  intervalMinutes: 15,
+                                  dayOfWeek: 1,
+                                  time: "09:00",
                                   timezone: moment.tz.guess(),
                                 } as {
-                                  intervalMinutes: number;
+                                  dayOfWeek: number;
+                                  time: string;
                                   timezone: string;
-                                  anchor?:
-                                    | { kind: "topOfHour" }
-                                    | {
-                                        kind: "custom";
-                                        isoDateTime: string;
-                                        timezone: string;
-                                      };
                                 });
                               setTrigger({
                                 ...trigger!,
@@ -1968,103 +1537,269 @@ const SpawnEditorWorkspace: React.FC = () => {
                               });
                             }}
                             disabled={trigger?.enabled === false}
-                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
                           >
                             {timezoneOptions.map((tz) => (
                               <option key={tz.value} value={tz.value}>
                                 {tz.label}
                               </option>
                             ))}
-                          </select>
-                          {validation.fieldErrors.timezone && (
-                            <p className="mt-1 text-xs text-red-600">
-                              {validation.fieldErrors.timezone[0]}
-                            </p>
-                          )}
-                        </div>
-                        <div>
-                          <label
-                            htmlFor="every-anchor"
-                            className="block text-sm font-medium text-gray-700 mb-1"
-                          >
-                            Anchor
-                          </label>
-                          <select
-                            id="every-anchor"
-                            value={(() => {
-                              const a = getEveryNMinutesConfig(trigger)?.anchor;
-                              return a?.kind === "custom"
-                                ? "custom"
-                                : "topOfHour";
-                            })()}
-                            onChange={(e) => {
-                              const kind =
-                                e.target.value === "custom"
-                                  ? "custom"
-                                  : "topOfHour";
-                              const existing =
-                                getEveryNMinutesConfig(trigger) ||
-                                ({ intervalMinutes: 15, timezone: "UTC" } as {
-                                  intervalMinutes: number;
-                                  timezone: string;
-                                  anchor?:
-                                    | { kind: "topOfHour" }
-                                    | {
-                                        kind: "custom";
-                                        isoDateTime: string;
-                                        timezone: string;
-                                      };
-                                });
-                              const nextAnchor =
-                                kind === "topOfHour"
-                                  ? { kind: "topOfHour" as const }
-                                  : ({
-                                      kind: "custom",
-                                      isoDateTime: new Date().toISOString(),
-                                      timezone: existing.timezone,
-                                    } as const);
-                              setTrigger({
-                                ...trigger,
-                                config: { ...existing, anchor: nextAnchor },
-                              });
-                            }}
-                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                          >
-                            <option value="topOfHour">Top of hour</option>
-                            <option value="custom">Custom</option>
-                          </select>
+                          </Input>
                         </div>
                       </div>
+                    )}
+                    {trigger?.type === "time.monthlyOn" && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <Input
+                            type="number"
+                            label="Day of Month"
+                            min={1}
+                            max={31}
+                            value={getMonthlyOnConfig(trigger)?.dayOfMonth ?? 1}
+                            onChange={(e) => {
+                              const val = Math.max(
+                                1,
+                                Math.min(31, Number(e.target.value) || 1)
+                              );
+                              const base =
+                                getMonthlyOnConfig(trigger) ||
+                                ({
+                                  dayOfMonth: 1,
+                                  time: "09:00",
+                                  timezone: moment.tz.guess(),
+                                } as {
+                                  dayOfMonth: number;
+                                  time: string;
+                                  timezone: string;
+                                });
+                              setTrigger({
+                                ...trigger!,
+                                config: { ...base, dayOfMonth: val },
+                              });
+                            }}
+                            disabled={trigger?.enabled === false}
+                          />
+                        </div>
+                        <div>
+                          <Input
+                            type="time"
+                            label="Time (HH:mm)"
+                            value={getMonthlyOnConfig(trigger)?.time || "09:00"}
+                            onChange={(e) => {
+                              const base =
+                                getMonthlyOnConfig(trigger) ||
+                                ({
+                                  dayOfMonth: 1,
+                                  time: "09:00",
+                                  timezone: moment.tz.guess(),
+                                } as {
+                                  dayOfMonth: number;
+                                  time: string;
+                                  timezone: string;
+                                });
+                              setTrigger({
+                                ...trigger!,
+                                config: { ...base, time: e.target.value },
+                              });
+                            }}
+                            disabled={trigger?.enabled === false}
+                          />
+                        </div>
+                        <div>
+                          <Input
+                            type="select"
+                            label="Timezone"
+                            value={
+                              getMonthlyOnConfig(trigger)?.timezone ||
+                              moment.tz.guess()
+                            }
+                            onChange={(e) => {
+                              const base =
+                                getMonthlyOnConfig(trigger) ||
+                                ({
+                                  dayOfMonth: 1,
+                                  time: "09:00",
+                                  timezone: moment.tz.guess(),
+                                } as {
+                                  dayOfMonth: number;
+                                  time: string;
+                                  timezone: string;
+                                });
+                              setTrigger({
+                                ...trigger!,
+                                config: { ...base, timezone: e.target.value },
+                              });
+                            }}
+                            disabled={trigger?.enabled === false}
+                          >
+                            {timezoneOptions.map((tz) => (
+                              <option key={tz.value} value={tz.value}>
+                                {tz.label}
+                              </option>
+                            ))}
+                          </Input>
+                        </div>
+                      </div>
+                    )}
+                    {trigger?.type === "time.atDateTime" && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Input
+                            id="at-datetime"
+                            type="datetime-local"
+                            label="ISO Date-Time"
+                            value={(() => {
+                              const cfg = getAtDateTimeConfig(trigger);
+                              if (!cfg?.isoDateTime) return "";
+                              try {
+                                return moment(cfg.isoDateTime)
+                                  .tz(cfg.timezone)
+                                  .format("YYYY-MM-DDTHH:mm");
+                              } catch {
+                                return "";
+                              }
+                            })()}
+                            onChange={(e) => {
+                              const current = getAtDateTimeConfig(trigger);
+                              const tz = current?.timezone || moment.tz.guess();
+                              const iso = e.target.value
+                                ? moment
+                                    .tz(e.target.value, "YYYY-MM-DDTHH:mm", tz)
+                                    .toISOString()
+                                : new Date().toISOString();
+                              const base =
+                                current ||
+                                ({
+                                  isoDateTime: new Date().toISOString(),
+                                  timezone: tz,
+                                } as {
+                                  isoDateTime: string;
+                                  timezone: string;
+                                });
+                              setTrigger({
+                                ...trigger,
+                                config: { ...base, isoDateTime: iso },
+                              });
+                            }}
+                            error={validation.fieldErrors.isoDateTime?.[0]}
+                          />
+                        </div>
+                        <div>
+                          <Input
+                            id="at-timezone"
+                            type="select"
+                            label="Timezone"
+                            value={
+                              getAtDateTimeConfig(trigger)?.timezone ||
+                              moment.tz.guess()
+                            }
+                            onChange={(e) => {
+                              const base =
+                                getAtDateTimeConfig(trigger) ||
+                                ({
+                                  isoDateTime: new Date().toISOString(),
+                                  timezone: moment.tz.guess(),
+                                } as {
+                                  isoDateTime: string;
+                                  timezone: string;
+                                });
+                              setTrigger({
+                                ...trigger!,
+                                config: { ...base, timezone: e.target.value },
+                              });
+                            }}
+                            disabled={trigger?.enabled === false}
+                            error={validation.fieldErrors.timezone?.[0]}
+                          >
+                            {timezoneOptions.map((tz) => (
+                              <option key={tz.value} value={tz.value}>
+                                {tz.label}
+                              </option>
+                            ))}
+                          </Input>
+                        </div>
+                      </div>
+                    )}
 
-                      {getEveryNMinutesConfig(trigger)?.anchor?.kind ===
-                        "custom" && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {trigger?.type === "time.dailyAt" && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Input
+                            id="daily-time"
+                            type="time"
+                            label="Time (HH:mm)"
+                            value={getDailyAtConfig(trigger)?.time || "09:00"}
+                            onChange={(e) => {
+                              const base =
+                                getDailyAtConfig(trigger) ||
+                                ({ time: "09:00", timezone: "UTC" } as {
+                                  time: string;
+                                  timezone: string;
+                                });
+                              setTrigger({
+                                ...trigger,
+                                config: { ...base, time: e.target.value },
+                              });
+                            }}
+                            error={validation.fieldErrors.time?.[0]}
+                          />
+                        </div>
+                        <div>
+                          <Input
+                            id="daily-timezone"
+                            type="select"
+                            label="Timezone"
+                            value={
+                              getDailyAtConfig(trigger)?.timezone ||
+                              moment.tz.guess()
+                            }
+                            onChange={(e) => {
+                              const base =
+                                getDailyAtConfig(trigger) ||
+                                ({
+                                  time: "09:00",
+                                  timezone: moment.tz.guess(),
+                                } as {
+                                  time: string;
+                                  timezone: string;
+                                });
+                              setTrigger({
+                                ...trigger!,
+                                config: { ...base, timezone: e.target.value },
+                              });
+                            }}
+                            disabled={trigger?.enabled === false}
+                            error={validation.fieldErrors.timezone?.[0]}
+                          >
+                            {timezoneOptions.map((tz) => (
+                              <option key={tz.value} value={tz.value}>
+                                {tz.label}
+                              </option>
+                            ))}
+                          </Input>
+                        </div>
+                      </div>
+                    )}
+
+                    {trigger?.type === "time.everyNMinutes" && (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <label
-                              htmlFor="every-custom-iso"
-                              className="block text-sm font-medium text-gray-700 mb-1"
-                            >
-                              Custom Anchor (ISO)
-                            </label>
-                            <input
-                              id="every-custom-iso"
-                              type="datetime-local"
-                              value={(() => {
-                                const a =
-                                  getEveryNMinutesConfig(trigger)?.anchor;
-                                const v =
-                                  a && a.kind === "custom" ? a.isoDateTime : "";
-                                if (!v) return "";
-                                try {
-                                  return v
-                                    .replace(/\.\d{3}Z$/, "")
-                                    .slice(0, 16);
-                                } catch {
-                                  return "";
-                                }
-                              })()}
+                            <Input
+                              id="every-interval"
+                              type="number"
+                              label="Interval (minutes)"
+                              min={1}
+                              value={
+                                getEveryNMinutesConfig(trigger)
+                                  ?.intervalMinutes ?? 15
+                              }
                               onChange={(e) => {
-                                const existing =
+                                const val = Math.max(
+                                  1,
+                                  Number(e.target.value) || 1
+                                );
+                                const base =
                                   getEveryNMinutesConfig(trigger) ||
                                   ({ intervalMinutes: 15, timezone: "UTC" } as {
                                     intervalMinutes: number;
@@ -2077,49 +1812,27 @@ const SpawnEditorWorkspace: React.FC = () => {
                                           timezone: string;
                                         };
                                   });
-                                const a = existing.anchor;
-                                if (!a || a.kind !== "custom") return;
-                                const iso = e.target.value
-                                  ? new Date(e.target.value).toISOString()
-                                  : new Date().toISOString();
                                 setTrigger({
                                   ...trigger,
-                                  config: {
-                                    ...existing,
-                                    anchor: { ...a, isoDateTime: iso },
-                                  },
+                                  config: { ...base, intervalMinutes: val },
                                 });
                               }}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                              error={
+                                validation.fieldErrors.intervalMinutes?.[0]
+                              }
                             />
-                            {validation.fieldErrors["anchor.isoDateTime"] && (
-                              <p className="mt-1 text-xs text-red-600">
-                                {
-                                  validation.fieldErrors[
-                                    "anchor.isoDateTime"
-                                  ][0]
-                                }
-                              </p>
-                            )}
                           </div>
                           <div>
-                            <label
-                              htmlFor="every-custom-tz"
-                              className="block text-sm font-medium text-gray-700 mb-1"
-                            >
-                              Anchor Timezone
-                            </label>
-                            <select
-                              id="every-custom-tz"
-                              value={(() => {
-                                const a =
-                                  getEveryNMinutesConfig(trigger)?.anchor;
-                                return a && a.kind === "custom"
-                                  ? a.timezone
-                                  : moment.tz.guess();
-                              })()}
+                            <Input
+                              id="every-timezone"
+                              type="select"
+                              label="Timezone"
+                              value={
+                                getEveryNMinutesConfig(trigger)?.timezone ||
+                                moment.tz.guess()
+                              }
                               onChange={(e) => {
-                                const existing =
+                                const base =
                                   getEveryNMinutesConfig(trigger) ||
                                   ({
                                     intervalMinutes: 15,
@@ -2135,191 +1848,317 @@ const SpawnEditorWorkspace: React.FC = () => {
                                           timezone: string;
                                         };
                                   });
-                                const a = existing.anchor;
-                                if (!a || a.kind !== "custom") return;
                                 setTrigger({
                                   ...trigger!,
-                                  config: {
-                                    ...existing,
-                                    anchor: { ...a, timezone: e.target.value },
-                                  },
+                                  config: { ...base, timezone: e.target.value },
                                 });
                               }}
                               disabled={trigger?.enabled === false}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
+                              error={validation.fieldErrors.timezone?.[0]}
                             >
                               {timezoneOptions.map((tz) => (
                                 <option key={tz.value} value={tz.value}>
                                   {tz.label}
                                 </option>
                               ))}
-                            </select>
-                            {validation.fieldErrors["anchor.timezone"] && (
-                              <p className="mt-1 text-xs text-red-600">
-                                {validation.fieldErrors["anchor.timezone"][0]}
-                              </p>
-                            )}
+                            </Input>
+                          </div>
+                          <div>
+                            <Input
+                              id="every-anchor"
+                              type="select"
+                              label="Anchor"
+                              value={(() => {
+                                const a =
+                                  getEveryNMinutesConfig(trigger)?.anchor;
+                                return a?.kind === "custom"
+                                  ? "custom"
+                                  : "topOfHour";
+                              })()}
+                              onChange={(e) => {
+                                const kind =
+                                  e.target.value === "custom"
+                                    ? "custom"
+                                    : "topOfHour";
+                                const existing =
+                                  getEveryNMinutesConfig(trigger) ||
+                                  ({ intervalMinutes: 15, timezone: "UTC" } as {
+                                    intervalMinutes: number;
+                                    timezone: string;
+                                    anchor?:
+                                      | { kind: "topOfHour" }
+                                      | {
+                                          kind: "custom";
+                                          isoDateTime: string;
+                                          timezone: string;
+                                        };
+                                  });
+                                const nextAnchor =
+                                  kind === "topOfHour"
+                                    ? { kind: "topOfHour" as const }
+                                    : ({
+                                        kind: "custom",
+                                        isoDateTime: new Date().toISOString(),
+                                        timezone: existing.timezone,
+                                      } as const);
+                                setTrigger({
+                                  ...trigger,
+                                  config: { ...existing, anchor: nextAnchor },
+                                });
+                              }}
+                            >
+                              <option value="topOfHour">Top of hour</option>
+                              <option value="custom">Custom</option>
+                            </Input>
                           </div>
                         </div>
-                      )}
-                    </div>
-                  )}
 
-                  {trigger?.type === "time.minuteOfHour" && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label
-                          htmlFor="minute-minute"
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          Minute (0-59)
-                        </label>
-                        <input
-                          id="minute-minute"
-                          type="number"
-                          min={0}
-                          max={59}
-                          value={getMinuteOfHourConfig(trigger)?.minute ?? 0}
-                          onChange={(e) => {
-                            const val = Math.max(
-                              0,
-                              Math.min(59, Number(e.target.value) || 0)
-                            );
-                            const base =
-                              getMinuteOfHourConfig(trigger) ||
-                              ({ minute: 0, timezone: "UTC" } as {
-                                minute: number;
-                                timezone: string;
-                              });
-                            setTrigger({
-                              ...trigger,
-                              config: { ...base, minute: val },
-                            });
-                          }}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                        />
-                        {validation.fieldErrors.minute && (
-                          <p className="mt-1 text-xs text-red-600">
-                            {validation.fieldErrors.minute[0]}
-                          </p>
+                        {getEveryNMinutesConfig(trigger)?.anchor?.kind ===
+                          "custom" && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Input
+                                id="every-custom-iso"
+                                type="datetime-local"
+                                label="Custom Anchor (ISO)"
+                                value={(() => {
+                                  const a =
+                                    getEveryNMinutesConfig(trigger)?.anchor;
+                                  const v =
+                                    a && a.kind === "custom"
+                                      ? a.isoDateTime
+                                      : "";
+                                  if (!v) return "";
+                                  try {
+                                    return v
+                                      .replace(/\.\d{3}Z$/, "")
+                                      .slice(0, 16);
+                                  } catch {
+                                    return "";
+                                  }
+                                })()}
+                                onChange={(e) => {
+                                  const existing =
+                                    getEveryNMinutesConfig(trigger) ||
+                                    ({
+                                      intervalMinutes: 15,
+                                      timezone: "UTC",
+                                    } as {
+                                      intervalMinutes: number;
+                                      timezone: string;
+                                      anchor?:
+                                        | { kind: "topOfHour" }
+                                        | {
+                                            kind: "custom";
+                                            isoDateTime: string;
+                                            timezone: string;
+                                          };
+                                    });
+                                  const a = existing.anchor;
+                                  if (!a || a.kind !== "custom") return;
+                                  const iso = e.target.value
+                                    ? new Date(e.target.value).toISOString()
+                                    : new Date().toISOString();
+                                  setTrigger({
+                                    ...trigger,
+                                    config: {
+                                      ...existing,
+                                      anchor: { ...a, isoDateTime: iso },
+                                    },
+                                  });
+                                }}
+                                error={
+                                  validation.fieldErrors[
+                                    "anchor.isoDateTime"
+                                  ]?.[0]
+                                }
+                              />
+                            </div>
+                            <div>
+                              <Input
+                                id="every-custom-tz"
+                                type="select"
+                                label="Anchor Timezone"
+                                value={(() => {
+                                  const a =
+                                    getEveryNMinutesConfig(trigger)?.anchor;
+                                  return a && a.kind === "custom"
+                                    ? a.timezone
+                                    : moment.tz.guess();
+                                })()}
+                                onChange={(e) => {
+                                  const existing =
+                                    getEveryNMinutesConfig(trigger) ||
+                                    ({
+                                      intervalMinutes: 15,
+                                      timezone: moment.tz.guess(),
+                                    } as {
+                                      intervalMinutes: number;
+                                      timezone: string;
+                                      anchor?:
+                                        | { kind: "topOfHour" }
+                                        | {
+                                            kind: "custom";
+                                            isoDateTime: string;
+                                            timezone: string;
+                                          };
+                                    });
+                                  const a = existing.anchor;
+                                  if (!a || a.kind !== "custom") return;
+                                  setTrigger({
+                                    ...trigger!,
+                                    config: {
+                                      ...existing,
+                                      anchor: {
+                                        ...a,
+                                        timezone: e.target.value,
+                                      },
+                                    },
+                                  });
+                                }}
+                                disabled={trigger?.enabled === false}
+                                error={
+                                  validation.fieldErrors["anchor.timezone"]?.[0]
+                                }
+                              >
+                                {timezoneOptions.map((tz) => (
+                                  <option key={tz.value} value={tz.value}>
+                                    {tz.label}
+                                  </option>
+                                ))}
+                              </Input>
+                            </div>
+                          </div>
                         )}
                       </div>
-                      <div>
-                        <label
-                          htmlFor="minute-timezone"
-                          className="block text-sm font-medium text-gray-700 mb-1"
-                        >
-                          Timezone
-                        </label>
-                        <select
-                          id="minute-timezone"
-                          value={
-                            getMinuteOfHourConfig(trigger)?.timezone ||
-                            moment.tz.guess()
-                          }
-                          onChange={(e) => {
-                            const base =
-                              getMinuteOfHourConfig(trigger) ||
-                              ({ minute: 0, timezone: moment.tz.guess() } as {
-                                minute: number;
-                                timezone: string;
+                    )}
+
+                    {trigger?.type === "time.minuteOfHour" && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Input
+                            id="minute-minute"
+                            type="number"
+                            label="Minute (0-59)"
+                            min={0}
+                            max={59}
+                            value={getMinuteOfHourConfig(trigger)?.minute ?? 0}
+                            onChange={(e) => {
+                              const val = Math.max(
+                                0,
+                                Math.min(59, Number(e.target.value) || 0)
+                              );
+                              const base =
+                                getMinuteOfHourConfig(trigger) ||
+                                ({ minute: 0, timezone: "UTC" } as {
+                                  minute: number;
+                                  timezone: string;
+                                });
+                              setTrigger({
+                                ...trigger,
+                                config: { ...base, minute: val },
                               });
-                            setTrigger({
-                              ...trigger!,
-                              config: { ...base, timezone: e.target.value },
-                            });
-                          }}
-                          disabled={trigger?.enabled === false}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-white"
-                        >
-                          {timezoneOptions.map((tz) => (
-                            <option key={tz.value} value={tz.value}>
-                              {tz.label}
-                            </option>
-                          ))}
-                        </select>
-                        {validation.fieldErrors.timezone && (
-                          <p className="mt-1 text-xs text-red-600">
-                            {validation.fieldErrors.timezone[0]}
-                          </p>
-                        )}
+                            }}
+                            error={validation.fieldErrors.minute?.[0]}
+                          />
+                        </div>
+                        <div>
+                          <Input
+                            id="minute-timezone"
+                            type="select"
+                            label="Timezone"
+                            value={
+                              getMinuteOfHourConfig(trigger)?.timezone ||
+                              moment.tz.guess()
+                            }
+                            onChange={(e) => {
+                              const base =
+                                getMinuteOfHourConfig(trigger) ||
+                                ({ minute: 0, timezone: moment.tz.guess() } as {
+                                  minute: number;
+                                  timezone: string;
+                                });
+                              setTrigger({
+                                ...trigger!,
+                                config: { ...base, timezone: e.target.value },
+                              });
+                            }}
+                            disabled={trigger?.enabled === false}
+                            error={validation.fieldErrors.timezone?.[0]}
+                          >
+                            {timezoneOptions.map((tz) => (
+                              <option key={tz.value} value={tz.value}>
+                                {tz.label}
+                              </option>
+                            ))}
+                          </Input>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              </section>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
-            <section className="bg-white border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-base font-semibold text-gray-800">
-                  Metadata
-                </h3>
-                <button
-                  type="button"
-                  className="text-sm text-gray-700 border border-gray-300 rounded px-2 py-1 bg-white hover:bg-gray-50"
-                  onClick={() => setShowMetadata((v) => !v)}
-                  aria-label="Toggle metadata"
-                >
-                  {showMetadata ? "Hide" : "Show"}
-                </button>
-              </div>
-              {showMetadata && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      htmlFor="spawn-id"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      ID
-                    </label>
-                    <input
-                      id="spawn-id"
-                      type="text"
-                      value={selectedSpawn.id}
-                      disabled
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="spawn-modified"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Last Modified
-                    </label>
-                    <input
-                      id="spawn-modified"
-                      type="text"
-                      value={formatDate(selectedSpawn.lastModified)}
-                      disabled
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="spawn-assets"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Assets
-                    </label>
-                    <input
-                      id="spawn-assets"
-                      type="text"
-                      value={`${selectedSpawn.assets.length} item${
-                        selectedSpawn.assets.length === 1 ? "" : "s"
-                      }`}
-                      disabled
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
-                    />
-                  </div>
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base font-semibold text-[rgb(var(--color-fg))]">
+                    Metadata
+                  </CardTitle>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowMetadata((v) => !v)}
+                    aria-label="Toggle metadata"
+                  >
+                    {showMetadata ? "Hide" : "Show"}
+                  </Button>
                 </div>
-              )}
-            </section>
+              </CardHeader>
+              <CardContent>
+                {showMetadata && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Input
+                        id="spawn-id"
+                        type="text"
+                        label="ID"
+                        value={selectedSpawn.id}
+                        disabled
+                      />
+                    </div>
+                    <div>
+                      <Input
+                        id="spawn-modified"
+                        type="text"
+                        label="Last Modified"
+                        value={formatDate(selectedSpawn.lastModified)}
+                        disabled
+                      />
+                    </div>
+
+                    <div>
+                      <Input
+                        id="spawn-assets"
+                        type="text"
+                        label="Assets"
+                        value={`${selectedSpawn.assets.length} item${
+                          selectedSpawn.assets.length === 1 ? "" : "s"
+                        }`}
+                        disabled
+                      />
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         ) : (
-          <div className="text-gray-500 text-sm">Loading spawn...</div>
+          <div className="text-[rgb(var(--color-muted-foreground))] text-sm">
+            Loading spawn...
+          </div>
         )}
       </div>
     </div>

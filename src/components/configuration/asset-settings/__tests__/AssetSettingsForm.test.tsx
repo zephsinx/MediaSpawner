@@ -952,7 +952,7 @@ describe("AssetSettingsForm", () => {
           expect(screen.getByText("Test Video · video")).toBeInTheDocument();
         });
 
-        const rotationInput = screen.getByLabelText("Rotation slider");
+        const rotationInput = screen.getByLabelText("Rotation input");
         // Input should be enabled for direct editing
         expect(rotationInput).not.toBeDisabled();
 
@@ -960,7 +960,7 @@ describe("AssetSettingsForm", () => {
           fireEvent.change(rotationInput, { target: { value: "180" } });
         });
 
-        expect(rotationInput).toHaveValue("180");
+        expect(rotationInput).toHaveValue(180);
       });
 
       it("shows validation error for invalid rotation", async () => {

@@ -71,7 +71,11 @@ function SpawnAssetsCount() {
       );
     };
   }, [selectedSpawnId]);
-  return <span className="ml-2 text-gray-600">({count})</span>;
+  return (
+    <span className="ml-2 text-[rgb(var(--color-muted-foreground))]">
+      ({count})
+    </span>
+  );
 }
 
 function AssetLibraryCount() {
@@ -89,7 +93,11 @@ function AssetLibraryCount() {
       );
     };
   }, []);
-  return <span className="ml-2 text-gray-600">({count})</span>;
+  return (
+    <span className="ml-2 text-[rgb(var(--color-muted-foreground))]">
+      ({count})
+    </span>
+  );
 }
 
 function ThumbnailWithPreview({ asset }: { asset: MediaAsset }) {
@@ -125,7 +133,7 @@ function ThumbnailWithPreview({ asset }: { asset: MediaAsset }) {
       <Popover.Portal>
         <Popover.Content
           sideOffset={6}
-          className="z-10 w-72 rounded-md border border-gray-200 bg-white shadow-md p-2"
+          className="z-10 w-72 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] shadow-md p-2"
         >
           <div className="w-full h-40 overflow-hidden rounded mb-2">
             <MediaPreview
@@ -135,15 +143,24 @@ function ThumbnailWithPreview({ asset }: { asset: MediaAsset }) {
               size="small"
             />
           </div>
-          <div className="text-xs text-gray-700 space-y-1">
+          <div className="text-xs text-[rgb(var(--color-fg))] space-y-1">
             <div>
-              <span className="text-gray-500">Name:</span> {asset.name}
+              <span className="text-[rgb(var(--color-muted-foreground))]">
+                Name:
+              </span>{" "}
+              {asset.name}
             </div>
             <div>
-              <span className="text-gray-500">Type:</span> {asset.type}
+              <span className="text-[rgb(var(--color-muted-foreground))]">
+                Type:
+              </span>{" "}
+              {asset.type}
             </div>
             <div className="truncate" title={asset.path}>
-              <span className="text-gray-500">Path:</span> {asset.path}
+              <span className="text-[rgb(var(--color-muted-foreground))]">
+                Path:
+              </span>{" "}
+              {asset.path}
             </div>
           </div>
           <Popover.Arrow className="fill-white" />
@@ -210,6 +227,41 @@ function SpawnAssetsSection() {
     };
   }, [selectedSpawnId]);
 
+  // Listen for profile changes to reset spawn-related state
+  useEffect(() => {
+    const handleProfileChanged = (e: Event) => {
+      const ce = e as CustomEvent<{
+        profileId?: string;
+        previousProfileId?: string;
+      }>;
+      const { profileId } = ce.detail || {};
+      if (profileId) {
+        // Reset spawn-related state when profile changes
+        setSpawn(null);
+        setLoadError(null);
+        setIsLoading(false);
+        setDraggingId(null);
+        setDragOverIndex(null);
+        setRemoveError(null);
+        setConfirmRemoveId(null);
+        setIsRemoving(false);
+        setSkipRemoveConfirm(false);
+      }
+    };
+
+    window.addEventListener(
+      "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
+      handleProfileChanged as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
+        handleProfileChanged as EventListener
+      );
+    };
+  }, []);
+
   const resolvedAssets: ResolvedSpawnAsset[] = useMemo(() => {
     if (!spawn) return [];
     const items = [...spawn.assets]
@@ -225,7 +277,7 @@ function SpawnAssetsSection() {
   const renderEmptyState = () => {
     if (!selectedSpawnId) {
       return (
-        <div className="h-full flex items-center justify-center text-gray-500 text-sm">
+        <div className="h-full flex items-center justify-center text-[rgb(var(--color-muted-foreground))] text-sm">
           Select a spawn to see its assets
         </div>
       );
@@ -234,21 +286,23 @@ function SpawnAssetsSection() {
       return (
         <div className="h-full flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2" />
-            <p className="text-xs text-gray-500">Loading assets…</p>
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[rgb(var(--color-accent))] mx-auto mb-2" />
+            <p className="text-xs text-[rgb(var(--color-muted-foreground))]">
+              Loading assets…
+            </p>
           </div>
         </div>
       );
     }
     if (loadError) {
       return (
-        <div className="h-full flex items-center justify-center text-red-600 text-sm">
+        <div className="h-full flex items-center justify-center text-[rgb(var(--color-error))] text-sm">
           {loadError}
         </div>
       );
     }
     return (
-      <div className="h-full flex items-center justify-center text-gray-500 text-sm">
+      <div className="h-full flex items-center justify-center text-[rgb(var(--color-muted-foreground))] text-sm">
         No assets assigned to this spawn
       </div>
     );
@@ -329,7 +383,10 @@ function SpawnAssetsSection() {
         aria-label="Assets in Current Spawn"
       >
         {removeError && (
-          <div className="mb-2 text-xs text-red-600" role="alert">
+          <div
+            className="mb-2 text-xs text-[rgb(var(--color-error))]"
+            role="alert"
+          >
             {removeError}
           </div>
         )}
@@ -341,7 +398,7 @@ function SpawnAssetsSection() {
               <li
                 role="listitem"
                 key={spawnAsset.id}
-                className={`border border-gray-200 rounded-md bg-white p-2 focus-within:ring-2 focus-within:ring-[rgb(var(--color-ring))] ${
+                className={`border border-[rgb(var(--color-border))] rounded-md bg-[rgb(var(--color-bg))] p-2 focus-within:ring-2 focus-within:ring-[rgb(var(--color-ring))] ${
                   draggingId === spawnAsset.id ? "opacity-70" : ""
                 }`}
                 draggable
@@ -376,7 +433,7 @@ function SpawnAssetsSection() {
               >
                 <div className="flex items-center gap-3">
                   <div
-                    className="w-4 text-gray-400 cursor-grab select-none"
+                    className="w-4 text-[rgb(var(--color-muted))] cursor-grab select-none"
                     title="Drag to reorder"
                     aria-hidden
                   >
@@ -396,7 +453,7 @@ function SpawnAssetsSection() {
                       <Popover.Portal>
                         <Popover.Content
                           sideOffset={6}
-                          className="z-10 w-72 rounded-md border border-gray-200 bg-white shadow-md p-2"
+                          className="z-10 w-72 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] shadow-md p-2"
                         >
                           <div className="w-full h-40 overflow-hidden rounded mb-2">
                             <MediaPreview
@@ -405,17 +462,23 @@ function SpawnAssetsSection() {
                               fit="contain"
                             />
                           </div>
-                          <div className="text-xs text-gray-700 space-y-1">
+                          <div className="text-xs text-[rgb(var(--color-fg))] space-y-1">
                             <div>
-                              <span className="text-gray-500">Name:</span>{" "}
+                              <span className="text-[rgb(var(--color-muted-foreground))]">
+                                Name:
+                              </span>{" "}
                               {baseAsset.name}
                             </div>
                             <div>
-                              <span className="text-gray-500">Type:</span>{" "}
+                              <span className="text-[rgb(var(--color-muted-foreground))]">
+                                Type:
+                              </span>{" "}
                               {baseAsset.type}
                             </div>
                             <div className="truncate" title={baseAsset.path}>
-                              <span className="text-gray-500">Path:</span>{" "}
+                              <span className="text-[rgb(var(--color-muted-foreground))]">
+                                Path:
+                              </span>{" "}
                               {baseAsset.path}
                             </div>
                           </div>
@@ -426,7 +489,7 @@ function SpawnAssetsSection() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div
-                      className="text-sm font-medium text-gray-900 truncate"
+                      className="text-sm font-medium text-[rgb(var(--color-fg))] truncate"
                       title={baseAsset.name}
                     >
                       <Tooltip.Root>
@@ -438,7 +501,7 @@ function SpawnAssetsSection() {
                         <Tooltip.Portal>
                           <Tooltip.Content
                             sideOffset={6}
-                            className="z-10 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-800 shadow-md"
+                            className="z-10 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-2 py-1 text-xs text-[rgb(var(--color-fg))] shadow-md"
                           >
                             {baseAsset.name}
                             <Tooltip.Arrow className="fill-white" />
@@ -446,8 +509,8 @@ function SpawnAssetsSection() {
                         </Tooltip.Portal>
                       </Tooltip.Root>
                     </div>
-                    <div className="text-xs text-gray-600 flex items-center gap-1.5">
-                      <span className="inline-flex items-center gap-1 capitalize bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded">
+                    <div className="text-xs text-[rgb(var(--color-muted-foreground))] flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1 capitalize bg-[rgb(var(--color-muted))]/10 text-[rgb(var(--color-fg))] px-1.5 py-0.5 rounded">
                         <span>{getTypeIcon(baseAsset.type)}</span>
                         <span>{baseAsset.type}</span>
                       </span>
@@ -464,7 +527,7 @@ function SpawnAssetsSection() {
                               <Tooltip.Root>
                                 <Tooltip.Trigger asChild>
                                   <span
-                                    className="inline-flex items-center justify-center bg-blue-50 text-blue-700 w-6 h-6 rounded border border-blue-200"
+                                    className="inline-flex items-center justify-center bg-[rgb(var(--color-accent))]/10 text-[rgb(var(--color-accent))] w-6 h-6 rounded border border-[rgb(var(--color-accent))]"
                                     aria-label={`Bucket: ${bucket.name}`}
                                   >
                                     <Shuffle size={14} />
@@ -473,7 +536,7 @@ function SpawnAssetsSection() {
                                 <Tooltip.Portal>
                                   <Tooltip.Content
                                     sideOffset={6}
-                                    className="z-10 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-800 shadow-md"
+                                    className="z-10 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-2 py-1 text-xs text-[rgb(var(--color-fg))] shadow-md"
                                   >
                                     Bucket: {bucket.name}
                                     <Tooltip.Arrow className="fill-white" />
@@ -484,12 +547,12 @@ function SpawnAssetsSection() {
                           })()
                         : null}
                       {!spawnAsset.enabled && (
-                        <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[11px]">
+                        <span className="inline-flex items-center gap-1 bg-[rgb(var(--color-muted))]/10 text-[rgb(var(--color-fg))] px-1.5 py-0.5 rounded text-[11px]">
                           Disabled
                         </span>
                       )}
-                      <span className="text-gray-400">•</span>
-                      <span className="text-gray-500">
+                      <span className="text-[rgb(var(--color-muted))]">•</span>
+                      <span className="text-[rgb(var(--color-muted-foreground))]">
                         Order: {spawnAsset.order}
                       </span>
                     </div>
@@ -497,7 +560,7 @@ function SpawnAssetsSection() {
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
-                      className="inline-flex items-center justify-center text-xs rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2 w-7 h-7"
+                      className="inline-flex items-center justify-center text-xs rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] text-[rgb(var(--color-fg))] hover:bg-[rgb(var(--color-muted))]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2 w-7 h-7"
                       onClick={() => {
                         const detail = {
                           mode: "asset-settings",
@@ -517,7 +580,7 @@ function SpawnAssetsSection() {
                     <button
                       type="button"
                       aria-label="Remove from Spawn"
-                      className={`inline-flex items-center justify-center text-xs rounded border border-red-300 bg-white text-red-700 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2 w-7 h-7 ${
+                      className={`inline-flex items-center justify-center text-xs rounded border border-[rgb(var(--color-error))] bg-[rgb(var(--color-bg))] text-[rgb(var(--color-error))] hover:bg-[rgb(var(--color-error-bg))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2 w-7 h-7 ${
                         isRemoving ? "opacity-50 cursor-not-allowed" : ""
                       }`}
                       onClick={() => {
@@ -535,7 +598,7 @@ function SpawnAssetsSection() {
                       <DropdownMenu.Trigger asChild>
                         <button
                           type="button"
-                          className="inline-flex items-center justify-center rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
+                          className="inline-flex items-center justify-center rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] text-[rgb(var(--color-fg))] hover:bg-[rgb(var(--color-muted))]/5 p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
                           aria-label="More actions"
                         >
                           <MoreVertical size={16} />
@@ -544,10 +607,10 @@ function SpawnAssetsSection() {
                       <DropdownMenu.Portal>
                         <DropdownMenu.Content
                           sideOffset={6}
-                          className="z-10 rounded-md border border-gray-200 bg-white shadow-md p-1 text-sm"
+                          className="z-10 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] shadow-md p-1 text-sm"
                         >
                           <DropdownMenu.Item
-                            className="px-3 py-2 rounded data-[highlighted]:bg-gray-50 outline-none cursor-pointer"
+                            className="px-3 py-2 rounded data-[highlighted]:bg-[rgb(var(--color-muted))]/5 outline-none cursor-pointer"
                             onSelect={() => {
                               const toIndex = Math.max(0, index - 1);
                               if (toIndex !== index)
@@ -559,7 +622,7 @@ function SpawnAssetsSection() {
                             </span>
                           </DropdownMenu.Item>
                           <DropdownMenu.Item
-                            className="px-3 py-2 rounded data-[highlighted]:bg-gray-50 outline-none cursor-pointer"
+                            className="px-3 py-2 rounded data-[highlighted]:bg-[rgb(var(--color-muted))]/5 outline-none cursor-pointer"
                             onSelect={() => {
                               const toIndex = Math.min(
                                 resolvedAssets.length - 1,
@@ -573,9 +636,9 @@ function SpawnAssetsSection() {
                               <ChevronDown size={14} /> Move down
                             </span>
                           </DropdownMenu.Item>
-                          <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
+                          <DropdownMenu.Separator className="my-1 h-px bg-[rgb(var(--color-border))]" />
                           <DropdownMenu.Item
-                            className="px-3 py-2 rounded text-red-700 data-[highlighted]:bg-red-50 outline-none cursor-pointer"
+                            className="px-3 py-2 rounded text-[rgb(var(--color-error))] data-[highlighted]:bg-[rgb(var(--color-error-bg))] outline-none cursor-pointer"
                             onSelect={() => {
                               if (skipRemoveConfirm) {
                                 void performRemove(spawnAsset.id);
@@ -595,7 +658,10 @@ function SpawnAssetsSection() {
                   </div>
                 </div>
                 {dragOverIndex === index && draggingId !== null && (
-                  <div className="mt-2 h-0.5 bg-blue-500 rounded" aria-hidden />
+                  <div
+                    className="mt-2 h-0.5 bg-[rgb(var(--color-accent))] rounded"
+                    aria-hidden
+                  />
                 )}
               </li>
             ))}
@@ -618,7 +684,7 @@ function SpawnAssetsSection() {
         }}
         onCancel={() => setConfirmRemoveId(null)}
         extraContent={
-          <label className="flex items-center gap-2 text-xs text-gray-700">
+          <label className="flex items-center gap-2 text-xs text-[rgb(var(--color-fg))]">
             <input
               type="checkbox"
               className="h-3 w-3"
@@ -905,12 +971,12 @@ function AssetLibrarySection() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <div className="px-3 py-2 lg:px-4 lg:py-3 bg-gray-50 border-b border-gray-200">
+      <div className="flex-shrink-0 px-3 py-2 lg:px-4 lg:py-3 bg-[rgb(var(--color-muted))]/5 border-b border-[rgb(var(--color-border))]">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+              className="text-xs px-2 py-1 rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] text-[rgb(var(--color-fg))] hover:bg-[rgb(var(--color-muted))]/5"
               onClick={() => fileInputRef.current?.click()}
               aria-label="Add local assets"
             >
@@ -919,7 +985,7 @@ function AssetLibrarySection() {
             {!isAddingUrl && (
               <button
                 type="button"
-                className="text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                className="text-xs px-2 py-1 rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] text-[rgb(var(--color-fg))] hover:bg-[rgb(var(--color-muted))]/5"
                 onClick={() => {
                   setAddError(null);
                   setUrlInput("");
@@ -939,16 +1005,22 @@ function AssetLibrarySection() {
             onChange={(v) => setSearchQuery(v)}
             onSelect={(v) => setSearchQuery(v)}
             options={searchOptions}
-            placeholder="Search by name, type:image|video|audio, ext:png|mp4"
+            placeholder="Search assets..."
           />
         </div>
         {addError && (
-          <div className="mt-2 text-xs text-red-600" role="alert">
+          <div
+            className="mt-2 text-xs text-[rgb(var(--color-error))]"
+            role="alert"
+          >
             {addError}
           </div>
         )}
         {filesError && (
-          <div className="mt-2 text-xs text-orange-700" role="alert">
+          <div
+            className="mt-2 text-xs text-[rgb(var(--color-warning))]"
+            role="alert"
+          >
             {filesError}
           </div>
         )}
@@ -963,14 +1035,14 @@ function AssetLibrarySection() {
         />
       </div>
       {isAddingUrl && (
-        <div className="px-3 lg:px-4 py-2 bg-gray-50 border-b border-gray-200">
+        <div className="flex-shrink-0 px-3 lg:px-4 py-2 bg-[rgb(var(--color-muted))]/5 border-b border-[rgb(var(--color-border))]">
           <div className="w-full flex flex-col sm:flex-row sm:items-center gap-2">
             <input
               type="url"
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
               placeholder="https://example.com/media.png"
-              className="flex-1 min-w-0 sm:w-96 max-w-full px-2 py-1 border border-gray-300 rounded text-sm"
+              className="flex-1 min-w-0 sm:w-96 max-w-full px-2 py-1 border border-[rgb(var(--color-border))] rounded text-sm"
               aria-label="Asset URL"
             />
             <div className="flex items-center gap-2">
@@ -978,8 +1050,8 @@ function AssetLibrarySection() {
                 type="button"
                 className={`text-xs px-2 py-1 rounded text-white ${
                   isSubmitting
-                    ? "bg-blue-300 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700"
+                    ? "bg-[rgb(var(--color-accent))]/50 cursor-not-allowed"
+                    : "bg-[rgb(var(--color-accent))] hover:bg-[rgb(var(--color-accent-hover))]"
                 }`}
                 onClick={handleAddUrl}
                 disabled={isSubmitting}
@@ -988,7 +1060,7 @@ function AssetLibrarySection() {
               </button>
               <button
                 type="button"
-                className="text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                className="text-xs px-2 py-1 rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] text-[rgb(var(--color-fg))] hover:bg-[rgb(var(--color-muted))]/5"
                 onClick={() => {
                   setIsAddingUrl(false);
                   setAddError(null);
@@ -1035,7 +1107,7 @@ function AssetLibrarySection() {
         tabIndex={0}
       >
         {assets.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-gray-500 text-sm">
+          <div className="h-full flex items-center justify-center text-[rgb(var(--color-muted-foreground))] text-sm">
             No assets in library
           </div>
         ) : (
@@ -1044,7 +1116,7 @@ function AssetLibrarySection() {
               <li
                 role="listitem"
                 key={asset.id}
-                className={`border border-gray-200 rounded-md bg-white p-1.5 outline-none ${
+                className={`border border-[rgb(var(--color-border))] rounded-md bg-[rgb(var(--color-bg))] p-1.5 outline-none ${
                   activeIndex === idx
                     ? "ring-2 ring-[rgb(var(--color-ring))]"
                     : ""
@@ -1056,7 +1128,7 @@ function AssetLibrarySection() {
                   <ThumbnailWithPreview asset={asset} />
                   <div className="flex-1 min-w-0">
                     <div
-                      className="text-sm font-medium text-gray-900 truncate"
+                      className="text-sm font-medium text-[rgb(var(--color-fg))] truncate"
                       title={asset.name}
                     >
                       <Tooltip.Root>
@@ -1068,7 +1140,7 @@ function AssetLibrarySection() {
                         <Tooltip.Portal>
                           <Tooltip.Content
                             sideOffset={6}
-                            className="z-10 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-800 shadow-md"
+                            className="z-10 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-2 py-1 text-xs text-[rgb(var(--color-fg))] shadow-md"
                           >
                             {asset.name}
                             <Tooltip.Arrow className="fill-white" />
@@ -1076,14 +1148,14 @@ function AssetLibrarySection() {
                         </Tooltip.Portal>
                       </Tooltip.Root>
                     </div>
-                    <div className="text-xs text-gray-600 flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1 capitalize bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded">
+                    <div className="text-xs text-[rgb(var(--color-muted-foreground))] flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 capitalize bg-[rgb(var(--color-muted))]/10 text-[rgb(var(--color-fg))] px-1.5 py-0.5 rounded">
                         <span>{getTypeIcon(asset.type)}</span>
                         <span>{asset.type}</span>
                       </span>
-                      <span className="text-gray-400">•</span>
+                      <span className="text-[rgb(var(--color-muted))]">•</span>
                       <span
-                        className="text-gray-500"
+                        className="text-[rgb(var(--color-muted-foreground))]"
                         title={asset.isUrl ? "URL asset" : "Local file"}
                       >
                         {asset.isUrl ? "🌐" : "📁"}
@@ -1093,7 +1165,7 @@ function AssetLibrarySection() {
                   <div className="flex items-center gap-2">
                     {selectedSpawnId && spawnAssetIds.has(asset.id) ? (
                       <span
-                        className="text-xs px-2 py-1 rounded border border-gray-300 bg-gray-100 text-gray-500 cursor-default"
+                        className="text-xs px-2 py-1 rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-muted))]/10 text-[rgb(var(--color-muted-foreground))] cursor-default"
                         aria-label="Already in spawn"
                       >
                         Added ✓
@@ -1101,10 +1173,10 @@ function AssetLibrarySection() {
                     ) : (
                       <button
                         type="button"
-                        className={`p-1.5 rounded border border-gray-300 bg-white text-gray-700 ${
+                        className={`p-1.5 rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] text-[rgb(var(--color-fg))] ${
                           !selectedSpawnId || assigningAssetId === asset.id
                             ? "opacity-50 cursor-not-allowed"
-                            : "hover:bg-gray-50"
+                            : "hover:bg-[rgb(var(--color-muted))]/5"
                         }`}
                         aria-label="Add to Spawn"
                         onClick={() => handleAddToSpawn(asset)}
@@ -1166,20 +1238,23 @@ const AssetManagementPanel: React.FC = () => {
   }, [libraryOpen]);
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col">
       <Disclosure as="section" defaultOpen={spawnOpen}>
         {({ open }) => (
-          <div className="flex flex-col overflow-hidden border-b border-gray-200">
+          <div className="flex-shrink-0 flex flex-col overflow-hidden border-b border-[rgb(var(--color-border))]">
             <Disclosure.Button
               onClick={() => setSpawnOpen(!open)}
-              className="flex items-center justify-between w-full px-3 py-2 lg:px-4 lg:py-3 bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))]"
+              className="flex items-center justify-between w-full px-3 py-2 lg:px-4 lg:py-3 bg-[rgb(var(--color-muted))]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))]"
               aria-label="Toggle Assets in Current Spawn"
             >
-              <div className="text-sm lg:text-base font-semibold text-gray-800 flex items-center">
+              <div className="text-sm lg:text-base font-semibold text-[rgb(var(--color-fg))] flex items-center">
                 <span>Assets in Current Spawn</span>
                 <SpawnAssetsCount />
               </div>
-              <span className="text-gray-600" aria-hidden>
+              <span
+                className="text-[rgb(var(--color-muted-foreground))]"
+                aria-hidden
+              >
                 {open ? "−" : "+"}
               </span>
             </Disclosure.Button>
@@ -1194,22 +1269,25 @@ const AssetManagementPanel: React.FC = () => {
 
       <Disclosure as="section" defaultOpen={libraryOpen}>
         {({ open }) => (
-          <div className="flex flex-col overflow-hidden">
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
             <Disclosure.Button
               onClick={() => setLibraryOpen(!open)}
-              className="flex items-center justify-between w-full px-3 py-2 lg:px-4 lg:py-3 bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))]"
+              className="flex items-center justify-between w-full px-3 py-2 lg:px-4 lg:py-3 bg-[rgb(var(--color-muted))]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))]"
               aria-label="Toggle Asset Library"
             >
-              <div className="text-sm lg:text-base font-semibold text-gray-800 flex items-center">
+              <div className="text-sm lg:text-base font-semibold text-[rgb(var(--color-fg))] flex items-center">
                 <span id={bottomHeaderId}>Asset Library</span>
                 <AssetLibraryCount />
               </div>
-              <span className="text-gray-600" aria-hidden>
+              <span
+                className="text-[rgb(var(--color-muted-foreground))]"
+                aria-hidden
+              >
                 {open ? "−" : "+"}
               </span>
             </Disclosure.Button>
-            <Disclosure.Panel className="min-h-[200px]">
-              <div className="min-h-0">
+            <Disclosure.Panel className="flex-1 min-h-0">
+              <div className="h-full">
                 <AssetLibrarySection />
               </div>
             </Disclosure.Panel>

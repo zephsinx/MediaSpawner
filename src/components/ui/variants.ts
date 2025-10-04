@@ -107,3 +107,22 @@ export const switchThumbVariants = cva(
     },
   }
 );
+
+export const comboboxVariants = cva(
+  "w-full px-3 py-2 border rounded-md bg-[rgb(var(--color-input))] text-[rgb(var(--color-fg))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+  {
+    variants: {
+      variant: {
+        default:
+          "border-[rgb(var(--color-input-border))] focus-visible:border-[rgb(var(--color-accent))]",
+        error:
+          "border-[rgb(var(--color-error))] bg-[rgb(var(--color-error-bg))] focus-visible:border-[rgb(var(--color-error))] focus-visible:ring-[rgb(var(--color-error))]",
+        disabled:
+          "border-[rgb(var(--color-border))] bg-[rgb(var(--color-muted))] text-[rgb(var(--color-muted-foreground))] cursor-not-allowed",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+);

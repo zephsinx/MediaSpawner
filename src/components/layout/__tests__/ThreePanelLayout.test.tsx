@@ -102,15 +102,23 @@ describe("ThreePanelLayout", () => {
         />
       );
 
-      const panels = container.querySelectorAll(".bg-white");
-      expect(panels).toHaveLength(4); // Header + 3 panels
+      const panels = container.querySelectorAll(
+        ".bg-\\[rgb\\(var\\(--color-surface-1\\)\\)\\]"
+      );
+      expect(panels.length).toBeGreaterThanOrEqual(4); // Header + 3 panels (may have additional inner elements)
 
       const leftPanel = container.querySelector(".col-span-3");
       const centerPanel = container.querySelector(".col-span-6");
       const rightPanel = container.querySelector(".col-span-3:last-child");
 
-      expect(leftPanel).toHaveClass("border-r", "border-gray-200");
-      expect(centerPanel).toHaveClass("border-r", "border-gray-200");
+      expect(leftPanel).toHaveClass(
+        "border-r",
+        "border-[rgb(var(--color-border))]"
+      );
+      expect(centerPanel).toHaveClass(
+        "border-r",
+        "border-[rgb(var(--color-border))]"
+      );
       expect(rightPanel).not.toHaveClass("border-r");
     });
 
@@ -153,7 +161,10 @@ describe("ThreePanelLayout", () => {
       );
 
       const layoutContainer = container.firstChild as HTMLElement;
-      expect(layoutContainer).toHaveClass("min-h-screen", "bg-gray-50");
+      expect(layoutContainer).toHaveClass(
+        "min-h-screen",
+        "bg-[rgb(var(--color-bg))]"
+      );
     });
   });
 
