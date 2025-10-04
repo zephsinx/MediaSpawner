@@ -35,12 +35,12 @@ describe("ThemeToggle", () => {
     // Default mock implementation
     mockSettingsService.getSettings.mockReturnValue({
       workingDirectory: "",
-      themeMode: "system" as const,
+      themeMode: "light" as const,
     });
-    mockSettingsService.getThemeMode.mockReturnValue("system");
+    mockSettingsService.getThemeMode.mockReturnValue("light");
     mockSettingsService.setThemeMode.mockReturnValue({
       success: true,
-      settings: { themeMode: "light", workingDirectory: "" },
+      settings: { themeMode: "dark", workingDirectory: "" },
     });
     mockSettingsService.applyThemeMode.mockImplementation(() => {});
 
@@ -56,11 +56,15 @@ describe("ThemeToggle", () => {
   });
 
   describe("Basic Rendering", () => {
-    it("renders theme toggle with system theme by default", () => {
+    it("renders theme toggle with light theme by default", () => {
       renderWithAllProviders(<ThemeToggle />);
 
-      expect(screen.getByText("System theme")).toBeInTheDocument();
       expect(screen.getByRole("switch")).toBeInTheDocument();
+      // Should show sun icon for light theme
+      const icon = screen
+        .getByRole("switch")
+        .parentElement?.querySelector("svg");
+      expect(icon).toHaveClass("lucide-sun");
     });
 
     it("renders with light theme", () => {
@@ -68,7 +72,11 @@ describe("ThemeToggle", () => {
 
       renderWithAllProviders(<ThemeToggle />);
 
-      expect(screen.getByText("Light theme")).toBeInTheDocument();
+      // Should show sun icon for light theme
+      const icon = screen
+        .getByRole("switch")
+        .parentElement?.querySelector("svg");
+      expect(icon).toHaveClass("lucide-sun");
     });
 
     it("renders with dark theme", () => {
@@ -76,34 +84,41 @@ describe("ThemeToggle", () => {
 
       renderWithAllProviders(<ThemeToggle />);
 
-      expect(screen.getByText("Dark theme")).toBeInTheDocument();
+      // Should show moon icon for dark theme
+      const icon = screen
+        .getByRole("switch")
+        .parentElement?.querySelector("svg");
+      expect(icon).toHaveClass("lucide-moon");
     });
 
     it("applies custom className", () => {
       renderWithAllProviders(<ThemeToggle className="custom-class" />);
 
-      const container = screen.getByText("System theme").closest("div");
+      const container = screen.getByRole("switch").closest("div");
       expect(container).toHaveClass("custom-class");
+    });
+
+    it("has fixed width container to prevent layout shifts", () => {
+      renderWithAllProviders(<ThemeToggle />);
+
+      const container = screen.getByRole("switch").closest("div");
+      expect(container).toHaveClass("min-w-[120px]");
     });
   });
 
   describe("Theme Switching", () => {
-    it("cycles through themes when toggled", () => {
+    it("toggles between light and dark themes", () => {
       renderWithAllProviders(<ThemeToggle />);
 
       const switchElement = screen.getByRole("switch");
 
-      // First toggle: system -> light
-      fireEvent.click(switchElement);
-      expect(mockSettingsService.setThemeMode).toHaveBeenCalledWith("light");
-
-      // Second toggle: light -> dark
+      // First toggle: light -> dark
       fireEvent.click(switchElement);
       expect(mockSettingsService.setThemeMode).toHaveBeenCalledWith("dark");
 
-      // Third toggle: dark -> system
+      // Second toggle: dark -> light
       fireEvent.click(switchElement);
-      expect(mockSettingsService.setThemeMode).toHaveBeenCalledWith("system");
+      expect(mockSettingsService.setThemeMode).toHaveBeenCalledWith("light");
     });
 
     it("handles theme switching success", () => {
@@ -154,31 +169,34 @@ describe("ThemeToggle", () => {
       const switchElement = screen.getByRole("switch");
       fireEvent.click(switchElement);
 
-      // Should still show system theme (original state)
-      expect(screen.getByText("System theme")).toBeInTheDocument();
+      // Should still show light theme (original state)
+      const icon = screen
+        .getByRole("switch")
+        .parentElement?.querySelector("svg");
+      expect(icon).toHaveClass("lucide-sun");
     });
   });
 
   describe("Accessibility", () => {
-    it("has proper ARIA label", () => {
+    it("has proper ARIA label for light theme", () => {
       renderWithAllProviders(<ThemeToggle />);
 
       const switchElement = screen.getByRole("switch");
       expect(switchElement).toHaveAttribute(
         "aria-label",
-        "Switch theme. Current: System theme"
+        "Switch to dark theme"
       );
     });
 
     it("updates ARIA label when theme changes", () => {
-      mockSettingsService.getThemeMode.mockReturnValue("light");
+      mockSettingsService.getThemeMode.mockReturnValue("dark");
 
       renderWithAllProviders(<ThemeToggle />);
 
       const switchElement = screen.getByRole("switch");
       expect(switchElement).toHaveAttribute(
         "aria-label",
-        "Switch theme. Current: Light theme"
+        "Switch to light theme"
       );
     });
 
@@ -205,7 +223,7 @@ describe("ThemeToggle", () => {
 
       // Check for sun icon (from lucide-react)
       const icon = screen
-        .getByText("Light theme")
+        .getByRole("switch")
         .parentElement?.querySelector("svg");
       expect(icon).toHaveClass("lucide-sun");
     });
@@ -217,21 +235,9 @@ describe("ThemeToggle", () => {
 
       // Check for moon icon (from lucide-react)
       const icon = screen
-        .getByText("Dark theme")
+        .getByRole("switch")
         .parentElement?.querySelector("svg");
       expect(icon).toHaveClass("lucide-moon");
-    });
-
-    it("shows monitor icon for system theme", () => {
-      mockSettingsService.getThemeMode.mockReturnValue("system");
-
-      renderWithAllProviders(<ThemeToggle />);
-
-      // Check for monitor icon (from lucide-react)
-      const icon = screen
-        .getByText("System theme")
-        .parentElement?.querySelector("svg");
-      expect(icon).toHaveClass("lucide-monitor");
     });
   });
 
@@ -241,8 +247,11 @@ describe("ThemeToggle", () => {
 
       renderWithAllProviders(<ThemeToggle />);
 
-      // Should default to light theme (first in array)
-      expect(screen.getByText("Light theme")).toBeInTheDocument();
+      // Should default to light theme (isDark = false)
+      const icon = screen
+        .getByRole("switch")
+        .parentElement?.querySelector("svg");
+      expect(icon).toHaveClass("lucide-sun");
     });
 
     it("handles service errors during initialization", () => {

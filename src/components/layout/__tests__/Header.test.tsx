@@ -77,10 +77,10 @@ describe("Header", () => {
     });
 
     // Default SettingsService mock
-    mockSettingsService.getThemeMode.mockReturnValue("system");
+    mockSettingsService.getThemeMode.mockReturnValue("light");
     mockSettingsService.setThemeMode.mockReturnValue({
       success: true,
-      settings: { themeMode: "light", workingDirectory: "" },
+      settings: { themeMode: "dark", workingDirectory: "" },
     });
   });
 
@@ -98,23 +98,54 @@ describe("Header", () => {
     it("renders spawn profile selector", () => {
       renderWithAllProviders(<Header />);
 
-      expect(screen.getByText("Active Profile:")).toBeInTheDocument();
+      expect(screen.getByText("Profile:")).toBeInTheDocument();
       expect(screen.getByRole("combobox")).toBeInTheDocument();
     });
 
-    it("renders profile management action buttons", () => {
+    it("renders profile actions dropdown component", () => {
       renderWithAllProviders(<Header />);
 
       expect(screen.getByText("Create Profile")).toBeInTheDocument();
-      expect(screen.getByText("Edit Profile")).toBeInTheDocument();
-      expect(screen.getByText("Delete Profile")).toBeInTheDocument();
+      // Edit and Delete Profile are now in dropdown menu
+      expect(
+        screen.getByLabelText("Additional profile actions")
+      ).toBeInTheDocument();
+    });
+
+    it("renders navigation dropdown component", () => {
+      renderWithAllProviders(<Header />);
+
+      expect(screen.getByText("Open Asset Library")).toBeInTheDocument();
+      // Settings is now in dropdown menu
+      expect(
+        screen.getByLabelText("Additional navigation options")
+      ).toBeInTheDocument();
     });
 
     it("renders theme toggle component", () => {
       renderWithAllProviders(<Header />);
 
-      expect(screen.getByText("System theme")).toBeInTheDocument();
       expect(screen.getByRole("switch")).toBeInTheDocument();
+      // Should show sun icon for light theme by default
+      const icon = screen
+        .getByRole("switch")
+        .parentElement?.querySelector("svg");
+      expect(icon).toHaveClass("lucide-sun");
+    });
+
+    it("renders settings button component", () => {
+      renderWithAllProviders(<Header />);
+
+      const settingsButton = screen.getByLabelText("Settings");
+      expect(settingsButton).toBeInTheDocument();
+
+      // Check for Settings icon
+      const icon = settingsButton.querySelector("svg");
+      expect(icon).toHaveClass("lucide-settings");
+
+      // Check that it's a link to /settings
+      const link = settingsButton.closest("a");
+      expect(link).toHaveAttribute("href", "/settings");
     });
   });
 
@@ -197,20 +228,27 @@ describe("Header", () => {
 
       renderWithAllProviders(<Header />);
 
-      // Test Create Profile button
+      // Test Create Profile button (primary action)
       fireEvent.click(screen.getByText("Create Profile"));
       expect(consoleSpy).toHaveBeenCalledWith(
         "Create profile - to be implemented in Epic 6"
       );
 
-      // Test Edit Profile button
-      fireEvent.click(screen.getByText("Edit Profile"));
+      // Test Edit Profile button (in dropdown)
+      const dropdownTrigger = screen.getByLabelText(
+        "Additional profile actions"
+      );
+      fireEvent.click(dropdownTrigger);
+
+      const editButton = screen.getByText("Edit Profile");
+      fireEvent.click(editButton);
       expect(consoleSpy).toHaveBeenCalledWith(
         "Edit profile - to be implemented in Epic 6"
       );
 
-      // Test Delete Profile button
-      fireEvent.click(screen.getByText("Delete Profile"));
+      // Test Delete Profile button (in dropdown)
+      const deleteButton = screen.getByText("Delete Profile");
+      fireEvent.click(deleteButton);
       expect(consoleSpy).toHaveBeenCalledWith(
         "Delete profile - to be implemented in Epic 6"
       );
@@ -226,6 +264,12 @@ describe("Header", () => {
 
       renderWithAllProviders(<Header />);
 
+      // Open dropdown to access Edit and Delete buttons
+      const dropdownTrigger = screen.getByLabelText(
+        "Additional profile actions"
+      );
+      fireEvent.click(dropdownTrigger);
+
       const editButton = screen.getByText("Edit Profile");
       const deleteButton = screen.getByText("Delete Profile");
 
@@ -235,6 +279,12 @@ describe("Header", () => {
 
     it("enables Edit and Delete buttons when active profile exists", () => {
       renderWithAllProviders(<Header />);
+
+      // Open dropdown to access Edit and Delete buttons
+      const dropdownTrigger = screen.getByLabelText(
+        "Additional profile actions"
+      );
+      fireEvent.click(dropdownTrigger);
 
       const editButton = screen.getByText("Edit Profile");
       const deleteButton = screen.getByText("Delete Profile");

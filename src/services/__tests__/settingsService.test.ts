@@ -54,7 +54,7 @@ describe("SettingsService", () => {
   describe("Theme Management", () => {
     it("should get default theme mode", () => {
       const themeMode = SettingsService.getThemeMode();
-      expect(themeMode).toBe("system");
+      expect(themeMode).toBe("light");
     });
 
     it("should set theme mode successfully", () => {
@@ -72,11 +72,24 @@ describe("SettingsService", () => {
       expect(result.settings?.themeMode).toBe("light");
     });
 
-    it("should set theme mode to system", () => {
-      const result = SettingsService.setThemeMode("system");
+    it("should migrate system theme to light", () => {
+      // Mock localStorage with legacy system theme
+      localStorage.setItem(
+        "mediaspawner-settings",
+        JSON.stringify({
+          workingDirectory: "",
+          themeMode: "system",
+        })
+      );
 
-      expect(result.success).toBe(true);
-      expect(result.settings?.themeMode).toBe("system");
+      const themeMode = SettingsService.getThemeMode();
+      expect(themeMode).toBe("light");
+
+      // Verify migration occurred
+      const storedSettings = JSON.parse(
+        localStorage.getItem("mediaspawner-settings") || "{}"
+      );
+      expect(storedSettings.themeMode).toBe("light");
     });
 
     it("should apply theme mode to DOM", () => {
@@ -114,7 +127,7 @@ describe("SettingsService", () => {
       expect(mockHtmlElement.classList.add).toHaveBeenCalledWith("light");
     });
 
-    it("should apply system theme based on preference", () => {
+    it("should apply migrated system theme as light", () => {
       // Mock document.documentElement
       const mockHtmlElement = {
         classList: {
@@ -127,26 +140,23 @@ describe("SettingsService", () => {
         writable: true,
       });
 
-      // Mock window.matchMedia to return dark preference
-      const mockMatchMedia = vi.fn().mockReturnValue({
-        matches: true,
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-      });
-      Object.defineProperty(window, "matchMedia", {
-        value: mockMatchMedia,
-        writable: true,
-      });
+      // Mock localStorage with legacy system theme
+      localStorage.setItem(
+        "mediaspawner-settings",
+        JSON.stringify({
+          workingDirectory: "",
+          themeMode: "system",
+        })
+      );
 
-      // Set theme to system and apply
-      SettingsService.setThemeMode("system");
+      // Apply theme mode (should migrate system to light)
       SettingsService.applyThemeMode();
 
       expect(mockHtmlElement.classList.remove).toHaveBeenCalledWith(
         "light",
         "dark"
       );
-      expect(mockHtmlElement.classList.add).toHaveBeenCalledWith("dark");
+      expect(mockHtmlElement.classList.add).toHaveBeenCalledWith("light");
     });
 
     it("should handle invalid theme mode gracefully", () => {
@@ -189,11 +199,21 @@ describe("SettingsService", () => {
       expect(result.isValid).toBe(true);
     });
 
+    it("should accept settings with system theme for backward compatibility", () => {
+      const legacySettings = {
+        workingDirectory: "",
+        themeMode: "system",
+      } as unknown as Parameters<typeof SettingsService.validateSettings>[0];
+
+      const result = SettingsService.validateSettings(legacySettings);
+      expect(result.isValid).toBe(true);
+    });
+
     it("should reject settings with invalid theme mode", () => {
       const invalidSettings = {
         workingDirectory: "",
-        themeMode: "invalid" as "light" | "dark" | "system",
-      };
+        themeMode: "invalid",
+      } as unknown as Parameters<typeof SettingsService.validateSettings>[0];
 
       const result = SettingsService.validateSettings(invalidSettings);
       expect(result.isValid).toBe(false);
@@ -231,7 +251,7 @@ describe("SettingsService", () => {
       });
 
       const themeMode = SettingsService.getThemeMode();
-      expect(themeMode).toBe("system");
+      expect(themeMode).toBe("light");
     });
   });
 });

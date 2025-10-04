@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { SpawnProfileService } from "../../services/spawnProfileService";
 import type { SpawnProfile } from "../../types/spawn";
 import { usePanelState, useStreamerbotStatus } from "../../hooks";
@@ -7,6 +6,9 @@ import {
   SyncStatusIndicator,
   SyncActionsDropdown,
   ThemeToggle,
+  ProfileActionsDropdown,
+  NavigationDropdown,
+  SettingsButton,
 } from "../common";
 import { StreamerbotService } from "../../services/streamerbotService";
 import type { SyncStatusInfo } from "../../types/sync";
@@ -144,14 +146,15 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
         {/* Spawn Profile Selector and Actions */}
         <div className="flex items-center space-x-4 lg:space-x-5 xl:space-x-6">
           {/* Profile Selector */}
-          <div className="flex items-center space-x-3 lg:space-x-4">
+          <div className="flex items-center space-x-2 lg:space-x-3">
             <label className="text-sm lg:text-base xl:text-lg font-medium text-[rgb(var(--color-muted-foreground))] whitespace-nowrap">
-              Active Profile:
+              Profile:
             </label>
             <select
               value={activeProfileId || ""}
               onChange={(e) => handleProfileChange(e.target.value)}
-              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg border border-[rgb(var(--color-input-border))] bg-[rgb(var(--color-input))] text-[rgb(var(--color-fg))] rounded-md focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-ring))] min-w-[200px] lg:min-w-[240px] xl:min-w-[280px]"
+              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg border border-[rgb(var(--color-input-border))] bg-[rgb(var(--color-input))] text-[rgb(var(--color-fg))] rounded-md focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-ring))] min-w-[150px] lg:min-w-[180px] xl:min-w-[200px]"
+              aria-label="Select active profile"
             >
               {profiles.map((profile) => (
                 <option key={profile.id} value={profile.id}>
@@ -162,40 +165,17 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
             </select>
           </div>
 
-          {/* Profile Management Actions */}
+          {/* Navigation and Profile Actions */}
           <div className="flex items-center space-x-2 lg:space-x-3 xl:space-x-4">
-            <Link
-              to="/assets"
-              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg text-[rgb(var(--color-muted-foreground))] border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] rounded-md hover:bg-[rgb(var(--color-surface-2))] transition-colors whitespace-nowrap"
-            >
-              Open Asset Library
-            </Link>
-            <Link
-              to="/settings"
-              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg text-[rgb(var(--color-muted-foreground))] border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] rounded-md hover:bg-[rgb(var(--color-surface-2))] transition-colors whitespace-nowrap"
-            >
-              Settings
-            </Link>
-            <button
-              onClick={handleCreateProfile}
-              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg bg-[rgb(var(--color-accent))] text-[rgb(var(--color-accent-foreground))] rounded-md hover:bg-[rgb(var(--color-accent-hover))] transition-colors whitespace-nowrap"
-            >
-              Create Profile
-            </button>
-            <button
-              onClick={handleEditProfile}
-              disabled={!activeProfileId}
-              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg bg-[rgb(var(--color-muted))] text-[rgb(var(--color-fg))] rounded-md hover:bg-[rgb(var(--color-muted))]/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-            >
-              Edit Profile
-            </button>
-            <button
-              onClick={handleDeleteProfile}
-              disabled={!activeProfileId}
-              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg bg-[rgb(var(--color-error))] text-[rgb(var(--color-error-foreground))] rounded-md hover:bg-[rgb(var(--color-error-hover))] transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-            >
-              Delete Profile
-            </button>
+            <NavigationDropdown />
+            <ProfileActionsDropdown
+              hasActiveProfile={!!activeProfileId}
+              onCreateProfile={handleCreateProfile}
+              onEditProfile={handleEditProfile}
+              onDeleteProfile={handleDeleteProfile}
+            />
+            {/* Settings Button */}
+            <SettingsButton />
             {/* Theme Toggle */}
             <ThemeToggle className="hidden lg:flex" />
 

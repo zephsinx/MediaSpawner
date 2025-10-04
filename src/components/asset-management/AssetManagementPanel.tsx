@@ -936,7 +936,7 @@ function AssetLibrarySection() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <div className="px-3 py-2 lg:px-4 lg:py-3 bg-[rgb(var(--color-muted))]/5 border-b border-[rgb(var(--color-border))]">
+      <div className="flex-shrink-0 px-3 py-2 lg:px-4 lg:py-3 bg-[rgb(var(--color-muted))]/5 border-b border-[rgb(var(--color-border))]">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <button
@@ -1000,7 +1000,7 @@ function AssetLibrarySection() {
         />
       </div>
       {isAddingUrl && (
-        <div className="px-3 lg:px-4 py-2 bg-[rgb(var(--color-muted))]/5 border-b border-[rgb(var(--color-border))]">
+        <div className="flex-shrink-0 px-3 lg:px-4 py-2 bg-[rgb(var(--color-muted))]/5 border-b border-[rgb(var(--color-border))]">
           <div className="w-full flex flex-col sm:flex-row sm:items-center gap-2">
             <input
               type="url"
@@ -1203,10 +1203,10 @@ const AssetManagementPanel: React.FC = () => {
   }, [libraryOpen]);
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col">
       <Disclosure as="section" defaultOpen={spawnOpen}>
         {({ open }) => (
-          <div className="flex flex-col overflow-hidden border-b border-[rgb(var(--color-border))]">
+          <div className="flex-shrink-0 flex flex-col overflow-hidden border-b border-[rgb(var(--color-border))]">
             <Disclosure.Button
               onClick={() => setSpawnOpen(!open)}
               className="flex items-center justify-between w-full px-3 py-2 lg:px-4 lg:py-3 bg-[rgb(var(--color-muted))]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))]"
@@ -1234,7 +1234,7 @@ const AssetManagementPanel: React.FC = () => {
 
       <Disclosure as="section" defaultOpen={libraryOpen}>
         {({ open }) => (
-          <div className="flex flex-col overflow-hidden">
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
             <Disclosure.Button
               onClick={() => setLibraryOpen(!open)}
               className="flex items-center justify-between w-full px-3 py-2 lg:px-4 lg:py-3 bg-[rgb(var(--color-muted))]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))]"
@@ -1251,8 +1251,8 @@ const AssetManagementPanel: React.FC = () => {
                 {open ? "−" : "+"}
               </span>
             </Disclosure.Button>
-            <Disclosure.Panel className="min-h-[200px]">
-              <div className="min-h-0">
+            <Disclosure.Panel className="flex-1 min-h-0">
+              <div className="h-full">
                 <AssetLibrarySection />
               </div>
             </Disclosure.Panel>

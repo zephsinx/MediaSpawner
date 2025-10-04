@@ -260,7 +260,7 @@ export class SettingsService {
     const hasValidThemeMode =
       record.themeMode === "light" ||
       record.themeMode === "dark" ||
-      record.themeMode === "system";
+      record.themeMode === "system"; // Allow 'system' for backward compatibility
 
     return hasWorkingDirectory && hasValidThemeMode;
   }
@@ -408,17 +408,21 @@ export class SettingsService {
   /**
    * Get current theme mode
    */
-  static getThemeMode(): "light" | "dark" | "system" {
+  static getThemeMode(): "light" | "dark" {
     const settings = this.getSettings();
+    // Check for legacy 'system' theme in raw localStorage data
+    const rawTheme = this.getRawThemeMode();
+    if (rawTheme === "system") {
+      this.migrateSystemTheme();
+      return "light";
+    }
     return settings.themeMode;
   }
 
   /**
    * Set theme mode and apply it to the DOM
    */
-  static setThemeMode(
-    mode: "light" | "dark" | "system"
-  ): SettingsOperationResult {
+  static setThemeMode(mode: "light" | "dark"): SettingsOperationResult {
     const result = this.updateSettings({ themeMode: mode });
     if (result.success) {
       this.applyThemeMode();
@@ -436,15 +440,52 @@ export class SettingsService {
     // Remove existing theme classes
     htmlElement.classList.remove("light", "dark");
 
-    if (settings.themeMode === "system") {
-      // Use system preference
-      const prefersDark = window.matchMedia(
-        "(prefers-color-scheme: dark)"
-      ).matches;
-      htmlElement.classList.add(prefersDark ? "dark" : "light");
-    } else {
-      // Use explicit theme
-      htmlElement.classList.add(settings.themeMode);
+    // Handle backward compatibility: migrate 'system' to 'light'
+    const rawTheme = this.getRawThemeMode();
+    const themeMode = rawTheme === "system" ? "light" : settings.themeMode;
+
+    // Apply the theme
+    htmlElement.classList.add(themeMode);
+  }
+
+  /**
+   * Get raw theme mode from localStorage (including legacy 'system' values)
+   */
+  private static getRawThemeMode(): string {
+    try {
+      const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
+      if (!stored) {
+        return "light";
+      }
+      const parsed = JSON.parse(stored);
+      return parsed.themeMode || "light";
+    } catch (error) {
+      console.error("Failed to get raw theme mode:", error);
+      return "light";
+    }
+  }
+
+  /**
+   * Migrate 'system' theme preference to 'light' for backward compatibility
+   */
+  private static migrateSystemTheme(): void {
+    try {
+      const rawTheme = this.getRawThemeMode();
+      if (rawTheme === "system") {
+        const currentSettings = this.getSettings();
+        const updatedSettings = {
+          ...currentSettings,
+          themeMode: "light" as const,
+        };
+        localStorage.setItem(
+          SETTINGS_STORAGE_KEY,
+          JSON.stringify(updatedSettings)
+        );
+        // Invalidate cache after successful migration
+        CacheService.invalidate(CACHE_KEYS.SETTINGS);
+      }
+    } catch (error) {
+      console.error("Failed to migrate system theme preference:", error);
     }
   }
 }
