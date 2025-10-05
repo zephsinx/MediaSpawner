@@ -42,10 +42,12 @@ export class SettingsService {
           return { ...DEFAULT_SETTINGS };
         }
 
-        return {
+        const settings: Settings = {
           ...DEFAULT_SETTINGS,
           ...parsed,
         };
+
+        return settings;
       } catch (error) {
         console.error("Failed to load settings from localStorage:", error);
         this.clearSettings();
@@ -62,7 +64,7 @@ export class SettingsService {
   ): SettingsOperationResult {
     try {
       const currentSettings = this.getSettings();
-      const updatedSettings = {
+      const updatedSettings: Settings = {
         ...currentSettings,
         ...newSettings,
       };
@@ -256,7 +258,11 @@ export class SettingsService {
     }
 
     const record = obj as Record<string, unknown>;
-    return typeof record.workingDirectory === "string";
+    const hasWorkingDirectory = typeof record.workingDirectory === "string";
+    const hasValidThemeMode =
+      record.themeMode === "light" || record.themeMode === "dark";
+
+    return hasWorkingDirectory && hasValidThemeMode;
   }
 
   /**
@@ -372,7 +378,10 @@ export class SettingsService {
    */
   static isUsingDefaults(): boolean {
     const current = this.getSettings();
-    return current.workingDirectory === DEFAULT_SETTINGS.workingDirectory;
+    return (
+      current.workingDirectory === DEFAULT_SETTINGS.workingDirectory &&
+      current.themeMode === DEFAULT_SETTINGS.themeMode
+    );
   }
 
   /**
@@ -394,5 +403,41 @@ export class SettingsService {
       workingDirectorySet: current.workingDirectory !== "",
       settingsValid: validation.isValid,
     };
+  }
+
+  /**
+   * Get current theme mode
+   */
+  static getThemeMode(): "light" | "dark" {
+    const settings = this.getSettings();
+    if (settings.themeMode !== "light" && settings.themeMode !== "dark") {
+      return "light";
+    }
+    return settings.themeMode;
+  }
+
+  /**
+   * Set theme mode and apply it to the DOM
+   */
+  static setThemeMode(mode: "light" | "dark"): SettingsOperationResult {
+    const result = this.updateSettings({ themeMode: mode });
+    if (result.success) {
+      this.applyThemeMode();
+    }
+    return result;
+  }
+
+  /**
+   * Apply the current theme mode to the DOM
+   */
+  static applyThemeMode(): void {
+    const themeMode = this.getThemeMode();
+    const htmlElement = document.documentElement;
+
+    // Remove existing theme classes
+    htmlElement.classList.remove("light", "dark");
+
+    // Apply the theme
+    htmlElement.classList.add(themeMode);
   }
 }

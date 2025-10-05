@@ -5,6 +5,8 @@ import { ImportOptionsModal } from "./ImportOptionsModal";
 import { ImportExportService } from "../../services/importExportService";
 import { downloadConfiguration } from "../../utils/fileDownload";
 import type { ImportOptions } from "../../services/importExportService";
+import { Button } from "../ui/Button";
+import { cn } from "../../utils/cn";
 
 /**
  * Props for the ImportExportSection component
@@ -181,39 +183,32 @@ export function ImportExportSection({
   };
 
   return (
-    <div className={`bg-white border rounded-lg p-6 mb-6 ${className}`}>
-      <h2 className="text-xl font-semibold text-gray-800 mb-4">
-        Import/Export Configuration
-      </h2>
-
-      <div className="mb-4">
-        <p className="text-sm text-gray-600 mb-4">
-          Export your MediaSpawner configuration as a JSON file for backup or
-          sharing, or import a previously exported configuration file.
-        </p>
-      </div>
-
+    <div className={cn("", className)}>
       {/* Action Buttons */}
       <div className="flex items-center gap-3">
-        <button
+        <Button
           onClick={handleExport}
           disabled={isExporting || isImporting}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+          loading={isExporting}
+          variant="primary"
+          className="flex items-center gap-2"
           aria-label="Export configuration as JSON file"
         >
           <Download className="w-4 h-4" />
           {isExporting ? "Exporting..." : "Export Configuration"}
-        </button>
+        </Button>
 
-        <button
+        <Button
           onClick={handleImport}
           disabled={isExporting || isImporting}
-          className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 bg-white rounded-md hover:bg-gray-50 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+          loading={isImporting}
+          variant="outline"
+          className="flex items-center gap-2"
           aria-label="Import configuration from JSON file"
         >
           <Upload className="w-4 h-4" />
           {isImporting ? "Importing..." : "Import Configuration"}
-        </button>
+        </Button>
       </div>
 
       {/* Hidden file input for import */}
@@ -228,18 +223,18 @@ export function ImportExportSection({
 
       {/* Error display */}
       {importError && (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-sm text-red-700">
+        <div className="mt-4 p-3 bg-[rgb(var(--color-error-bg))] border border-[rgb(var(--color-error-border))] rounded-md">
+          <p className="text-sm text-[rgb(var(--color-error))]">
             <strong>Import Error:</strong> {importError}
           </p>
         </div>
       )}
 
       {/* Information section */}
-      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+      <div className="mt-4 p-3 bg-[rgb(var(--color-accent))]/10 border border-[rgb(var(--color-accent))]/20 rounded-md">
         <div className="flex items-start gap-2">
-          <FileText className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-          <div className="text-sm text-blue-700">
+          <FileText className="w-4 h-4 text-[rgb(var(--color-accent))] mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-[rgb(var(--color-accent))]">
             <p className="font-medium mb-1">Configuration Files</p>
             <p>
               Exported files contain all your spawn profiles, assets, and

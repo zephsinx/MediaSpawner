@@ -1,5 +1,7 @@
 import React, { useMemo } from "react";
 import { Combobox as HCombobox } from "@headlessui/react";
+import { comboboxVariants } from "../ui/variants";
+import { cn } from "../../utils/cn";
 
 export interface HUIComboboxOption {
   value: string;
@@ -61,20 +63,22 @@ export const HUICombobox: React.FC<HUIComboboxProps> = ({
               onChange(next);
             }}
             placeholder={placeholder}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2 focus:border-indigo-500"
+            className={cn(comboboxVariants({ variant: "default" }))}
           />
           <HCombobox.Button
-            className="absolute inset-y-0 right-0 px-2 text-gray-500 hover:text-gray-700"
+            className="absolute inset-y-0 right-0 px-2 text-[rgb(var(--color-muted))] hover:text-[rgb(var(--color-fg))]"
             aria-label="Toggle options"
           >
             ▼
           </HCombobox.Button>
         </div>
-        <HCombobox.Options className="absolute z-10 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-md max-h-56 overflow-auto py-1">
+        <HCombobox.Options className="absolute z-10 mt-1 w-full rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] shadow-md max-h-56 overflow-auto py-1">
           {isLoading ? (
-            <div className="px-3 py-2 text-sm text-gray-600">Loading…</div>
+            <div className="px-3 py-2 text-sm text-[rgb(var(--color-muted-foreground))]">
+              Loading…
+            </div>
           ) : filtered.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-gray-600">
+            <div className="px-3 py-2 text-sm text-[rgb(var(--color-muted-foreground))]">
               {noResultsText}
             </div>
           ) : (
@@ -84,7 +88,9 @@ export const HUICombobox: React.FC<HUIComboboxProps> = ({
                 value={opt.value}
                 className={({ active }) =>
                   `px-3 py-2 text-sm cursor-pointer ${
-                    active ? "bg-blue-50" : "hover:bg-gray-50"
+                    active
+                      ? "bg-[rgb(var(--color-accent))]/10"
+                      : "hover:bg-[rgb(var(--color-muted))]/5"
                   }`
                 }
               >

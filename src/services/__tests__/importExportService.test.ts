@@ -52,6 +52,7 @@ describe("ImportExportService", () => {
       const mockSettings = {
         workingDirectory: "/test/path",
         activeProfileId: "profile-1",
+        themeMode: "light" as const,
       };
 
       // Setup mocks
@@ -85,6 +86,7 @@ describe("ImportExportService", () => {
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
         activeProfileId: undefined,
+        themeMode: "light" as const,
       });
 
       // Execute
@@ -190,6 +192,7 @@ describe("ImportExportService", () => {
         settings: {
           workingDirectory: "/imported/path",
           activeProfileId: undefined,
+          themeMode: "light" as const,
         },
       });
 
@@ -297,6 +300,7 @@ describe("ImportExportService", () => {
         settings: {
           workingDirectory: "/conflict/path",
           activeProfileId: undefined,
+          themeMode: "light" as const,
         },
       });
 

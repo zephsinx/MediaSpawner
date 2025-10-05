@@ -16,16 +16,7 @@ function App() {
 
   if (isInitializing) {
     return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-          fontSize: "16px",
-          color: "#666",
-        }}
-      >
+      <div className="flex justify-center items-center h-screen text-base bg-[rgb(var(--color-bg))] text-[rgb(var(--color-muted-foreground))]">
         Initializing MediaSpawner...
       </div>
     );
@@ -33,22 +24,9 @@ function App() {
 
   if (error) {
     return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-          fontSize: "16px",
-          color: "#d32f2f",
-          textAlign: "center",
-          padding: "20px",
-        }}
-      >
+      <div className="flex justify-center items-center h-screen text-base text-[rgb(var(--color-error))] text-center p-5 bg-[rgb(var(--color-bg))]">
         <div>
-          <div style={{ marginBottom: "10px", fontWeight: "bold" }}>
-            Initialization Error
-          </div>
+          <div className="mb-2.5 font-bold">Initialization Error</div>
           <div>{error}</div>
         </div>
       </div>
@@ -58,7 +36,13 @@ function App() {
   return (
     <Tooltip.Provider delayDuration={300} skipDelayDuration={100}>
       <BrowserRouter basename={import.meta.env.BASE_URL}>
-        <Suspense fallback={<div>Loading…</div>}>
+        <Suspense
+          fallback={
+            <div className="flex justify-center items-center h-screen bg-[rgb(var(--color-bg))] text-[rgb(var(--color-muted-foreground))]">
+              Loading…
+            </div>
+          }
+        >
           <Routes>
             <Route path="/" element={<Layout />} />
             <Route path="/assets" element={<AssetLibraryPage />} />

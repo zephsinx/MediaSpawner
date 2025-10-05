@@ -126,11 +126,9 @@ describe("Layout", () => {
       expect(
         await screen.findByDisplayValue("Test Spawn 1")
       ).toBeInTheDocument();
-      // Enabled is now a checkbox; look for the checkbox and its label text
-      const enabledCheckbox = screen.getByLabelText(
-        "Enabled"
-      ) as HTMLInputElement;
-      expect(enabledCheckbox.checked).toBe(true);
+      // Enabled is now a switch; look for the switch and its label text
+      const enabledSwitch = screen.getByRole("switch", { name: "Enabled" });
+      expect(enabledSwitch).toHaveAttribute("aria-checked", "true");
 
       // Select second spawn
       await act(async () => {
@@ -140,10 +138,8 @@ describe("Layout", () => {
       expect(
         await screen.findByDisplayValue("Test Spawn 2")
       ).toBeInTheDocument();
-      const enabledCheckbox2 = screen.getByLabelText(
-        "Enabled"
-      ) as HTMLInputElement;
-      expect(enabledCheckbox2.checked).toBe(false);
+      const enabledSwitch2 = screen.getByRole("switch", { name: "Enabled" });
+      expect(enabledSwitch2).toHaveAttribute("aria-checked", "false");
     });
 
     it("dirty reflects edits across fields and resets after save/cancel", async () => {
@@ -588,15 +584,23 @@ describe("Layout", () => {
         container = r.container as unknown as HTMLElement;
       });
 
-      const panels = container.querySelectorAll(".bg-white");
+      const panels = container.querySelectorAll(
+        ".bg-\\[rgb\\(var\\(--color-surface-1\\)\\)\\]"
+      );
       // Header + 3 panels; allow additional inner white backgrounds
       expect(panels.length).toBeGreaterThanOrEqual(4);
 
       const leftPanel = container.querySelector(".col-span-3");
       const centerPanel = container.querySelector(".col-span-6");
 
-      expect(leftPanel).toHaveClass("border-r", "border-gray-200");
-      expect(centerPanel).toHaveClass("border-r", "border-gray-200");
+      expect(leftPanel).toHaveClass(
+        "border-r",
+        "border-[rgb(var(--color-border))]"
+      );
+      expect(centerPanel).toHaveClass(
+        "border-r",
+        "border-[rgb(var(--color-border))]"
+      );
     });
   });
 
@@ -647,7 +651,10 @@ describe("Layout", () => {
       });
 
       const mainContainer = container.firstChild as HTMLElement;
-      expect(mainContainer).toHaveClass("min-h-screen", "bg-gray-50");
+      expect(mainContainer).toHaveClass(
+        "min-h-screen",
+        "bg-[rgb(var(--color-bg))]"
+      );
     });
 
     it("applies overflow handling to prevent content overflow", async () => {

@@ -104,7 +104,7 @@ describe("AssetManagementPanel (Core Functionality)", () => {
 
       const { container } = render(<AssetManagementPanel />);
       const root = container.firstChild as HTMLElement;
-      expect(root).toHaveClass("h-full", "flex", "flex-col", "overflow-hidden");
+      expect(root).toHaveClass("h-full", "flex", "flex-col");
     });
 
     it("applies min-heights and border separation to sections", () => {
@@ -115,10 +115,14 @@ describe("AssetManagementPanel (Core Functionality)", () => {
       expect(sections).toHaveLength(2);
 
       const topBorderWrapper = sections[0].querySelector(
-        ".flex.flex-col.overflow-hidden"
+        ".flex-shrink-0.flex.flex-col.overflow-hidden"
       ) as HTMLElement | null;
       expect(topBorderWrapper).toBeTruthy();
-      expect(topBorderWrapper!).toHaveClass("border-b", "border-gray-200");
+      expect(topBorderWrapper!).toHaveClass(
+        "flex-shrink-0",
+        "border-b",
+        "border-[rgb(var(--color-border))]"
+      );
 
       const topPanel = sections[0].querySelector(
         "[id^='headlessui-disclosure-panel']"
@@ -130,7 +134,7 @@ describe("AssetManagementPanel (Core Functionality)", () => {
         "[id^='headlessui-disclosure-panel']"
       ) as HTMLElement | null;
       expect(bottomPanel).toBeTruthy();
-      expect(bottomPanel!).toHaveClass("min-h-[200px]");
+      expect(bottomPanel!).toHaveClass("flex-1", "min-h-0");
     });
 
     it("uses sticky-like headers and scrollable content areas", () => {
@@ -144,10 +148,16 @@ describe("AssetManagementPanel (Core Functionality)", () => {
       ];
       expect(disclosureButtons).toHaveLength(2);
 
-      // One inner toolbar (library section only)
-      const innerToolbars = container.querySelectorAll(
-        ".bg-gray-50.border-b.border-gray-200"
-      );
+      // One inner toolbar (library section only) - look for elements with both classes
+      const allElements = container.querySelectorAll("*");
+      const innerToolbars = Array.from(allElements).filter((el) => {
+        const classList = el.classList;
+        return (
+          classList.contains("border-b") &&
+          Array.from(classList).some((cls) => cls.includes("color-muted")) &&
+          Array.from(classList).some((cls) => cls.includes("color-border"))
+        );
+      });
       expect(innerToolbars).toHaveLength(1);
 
       const scrollers = container.querySelectorAll(".flex-1.overflow-auto");

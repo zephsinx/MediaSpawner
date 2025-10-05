@@ -684,7 +684,10 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  htmlFor="rotation-input"
+                >
                   Rotation (°)
                 </label>
                 <div className="flex-1">
@@ -714,6 +717,8 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       )
                     }
                     className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent mt-2"
+                    id="rotation-input"
+                    aria-label="Rotation input"
                     aria-describedby="rotation-help rotation-error"
                   />
                 </div>

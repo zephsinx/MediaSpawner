@@ -10,6 +10,8 @@ export interface Settings {
   workingDirectory: string;
   /** ID of the currently active spawn profile */
   activeProfileId?: string;
+  /** Theme mode preference */
+  themeMode: "light" | "dark";
 }
 
 /**
@@ -18,6 +20,7 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   workingDirectory: "",
   activeProfileId: undefined,
+  themeMode: "light",
 };
 
 /**

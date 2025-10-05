@@ -27,3 +27,21 @@ export {
   SyncActionsDropdown,
   type SyncActionsDropdownProps,
 } from "./SyncActionsDropdown";
+export { ThemeToggle, type ThemeToggleProps } from "./ThemeToggle";
+export {
+  ProfileActionsDropdown,
+  type ProfileActionsDropdownProps,
+} from "./ProfileActionsDropdown";
+export {
+  NavigationDropdown,
+  type NavigationDropdownProps,
+} from "./NavigationDropdown";
+export { SettingsButton, type SettingsButtonProps } from "./SettingsButton";
+export {
+  ProfileFormDialog,
+  type ProfileFormDialogProps,
+} from "./ProfileFormDialog";
+export {
+  ProfileDeletionDialog,
+  type ProfileDeletionDialogProps,
+} from "./ProfileDeletionDialog";

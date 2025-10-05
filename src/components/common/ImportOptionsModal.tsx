@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Modal } from "./Modal";
+import { Button } from "../ui/Button";
 import type { ImportOptions } from "../../services/importExportService";
 
 /**
@@ -30,7 +31,7 @@ export function ImportOptionsModal({
       assetConflictStrategy: "rename",
       updateWorkingDirectory: true,
       validateAssetReferences: true,
-    }
+    },
   );
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -67,7 +68,7 @@ export function ImportOptionsModal({
    */
   const handleOptionChange = (
     key: keyof ImportOptions,
-    value: ImportOptions[keyof ImportOptions]
+    value: ImportOptions[keyof ImportOptions],
   ) => {
     setOptions((prev) => ({ ...prev, [key]: value }));
 
@@ -95,10 +96,10 @@ export function ImportOptionsModal({
       <form onSubmit={handleSubmit} className="space-y-6" role="form">
         {/* Profile Conflict Strategy */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-2">
             Profile Conflict Strategy
           </label>
-          <p className="text-xs text-gray-500 mb-3">
+          <p className="text-xs text-[rgb(var(--color-muted-foreground))] mb-3">
             How to handle profiles that already exist with the same ID
           </p>
           <div className="space-y-2">
@@ -128,16 +129,16 @@ export function ImportOptionsModal({
                   onChange={(e) =>
                     handleOptionChange(
                       "profileConflictStrategy",
-                      e.target.value as "skip" | "overwrite" | "rename"
+                      e.target.value as "skip" | "overwrite" | "rename",
                     )
                   }
-                  className="mt-1 text-indigo-600 focus:ring-indigo-500"
+                  className="mt-1 text-[rgb(var(--color-accent))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
                 />
                 <div className="flex-1">
-                  <div className="text-sm font-medium text-gray-900">
+                  <div className="text-sm font-medium text-[rgb(var(--color-fg))]">
                     {option.label}
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-[rgb(var(--color-muted-foreground))]">
                     {option.description}
                   </div>
                 </div>
@@ -145,7 +146,10 @@ export function ImportOptionsModal({
             ))}
           </div>
           {errors.profileConflictStrategy && (
-            <p className="mt-1 text-xs text-red-600">
+            <p
+              className="mt-1 text-xs text-[rgb(var(--color-error))]"
+              role="alert"
+            >
               {errors.profileConflictStrategy}
             </p>
           )}
@@ -153,10 +157,10 @@ export function ImportOptionsModal({
 
         {/* Asset Conflict Strategy */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-2">
             Asset Conflict Strategy
           </label>
-          <p className="text-xs text-gray-500 mb-3">
+          <p className="text-xs text-[rgb(var(--color-muted-foreground))] mb-3">
             How to handle assets that already exist with the same ID
           </p>
           <div className="space-y-2">
@@ -186,16 +190,16 @@ export function ImportOptionsModal({
                   onChange={(e) =>
                     handleOptionChange(
                       "assetConflictStrategy",
-                      e.target.value as "skip" | "overwrite" | "rename"
+                      e.target.value as "skip" | "overwrite" | "rename",
                     )
                   }
-                  className="mt-1 text-indigo-600 focus:ring-indigo-500"
+                  className="mt-1 text-[rgb(var(--color-accent))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
                 />
                 <div className="flex-1">
-                  <div className="text-sm font-medium text-gray-900">
+                  <div className="text-sm font-medium text-[rgb(var(--color-fg))]">
                     {option.label}
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-[rgb(var(--color-muted-foreground))]">
                     {option.description}
                   </div>
                 </div>
@@ -203,7 +207,10 @@ export function ImportOptionsModal({
             ))}
           </div>
           {errors.assetConflictStrategy && (
-            <p className="mt-1 text-xs text-red-600">
+            <p
+              className="mt-1 text-xs text-[rgb(var(--color-error))]"
+              role="alert"
+            >
               {errors.assetConflictStrategy}
             </p>
           )}
@@ -211,7 +218,7 @@ export function ImportOptionsModal({
 
         {/* Additional Options */}
         <div className="space-y-4">
-          <h4 className="text-sm font-medium text-gray-700">
+          <h4 className="text-sm font-medium text-[rgb(var(--color-fg))]">
             Additional Options
           </h4>
 
@@ -223,13 +230,13 @@ export function ImportOptionsModal({
               onChange={(e) =>
                 handleOptionChange("updateWorkingDirectory", e.target.checked)
               }
-              className="mt-1 text-indigo-600 focus:ring-indigo-500"
+              className="mt-1 text-[rgb(var(--color-accent))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
             />
             <div className="flex-1">
-              <div className="text-sm font-medium text-gray-900">
+              <div className="text-sm font-medium text-[rgb(var(--color-fg))]">
                 Update Working Directory
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-[rgb(var(--color-muted-foreground))]">
                 Update the working directory setting from the imported
                 configuration
               </div>
@@ -244,13 +251,13 @@ export function ImportOptionsModal({
               onChange={(e) =>
                 handleOptionChange("validateAssetReferences", e.target.checked)
               }
-              className="mt-1 text-indigo-600 focus:ring-indigo-500"
+              className="mt-1 text-[rgb(var(--color-accent))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
             />
             <div className="flex-1">
-              <div className="text-sm font-medium text-gray-900">
+              <div className="text-sm font-medium text-[rgb(var(--color-fg))]">
                 Validate Asset References
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-[rgb(var(--color-muted-foreground))]">
                 Check that all asset references in profiles point to valid
                 assets
               </div>
@@ -259,20 +266,13 @@ export function ImportOptionsModal({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-          <button
-            type="button"
-            onClick={handleCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-          >
+        <div className="flex justify-end space-x-3 pt-4 border-t border-[rgb(var(--color-border))]">
+          <Button type="button" variant="outline" onClick={handleCancel}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-          >
+          </Button>
+          <Button type="submit" variant="primary">
             Import Configuration
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>

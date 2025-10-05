@@ -54,6 +54,49 @@ const SpawnList: React.FC<SpawnListProps> = ({
     loadSpawns();
   }, []);
 
+  // Listen for profile changes to reload spawns
+  useEffect(() => {
+    const handleProfileChanged = (e: Event) => {
+      const ce = e as CustomEvent<{
+        profileId?: string;
+        previousProfileId?: string;
+      }>;
+      const { profileId } = ce.detail || {};
+      if (profileId) {
+        // Reload spawns for the new profile
+        const loadSpawns = async () => {
+          setIsLoading(true);
+          setLoadError(null);
+
+          try {
+            const allSpawns = await SpawnService.getAllSpawns();
+            setSpawns(allSpawns);
+          } catch (err) {
+            setLoadError(
+              err instanceof Error ? err.message : "Failed to load spawns"
+            );
+          } finally {
+            setIsLoading(false);
+          }
+        };
+
+        void loadSpawns();
+      }
+    };
+
+    window.addEventListener(
+      "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
+      handleProfileChanged as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
+        handleProfileChanged as EventListener
+      );
+    };
+  }, []);
+
   // Listen for external spawn updates to keep list in sync (name, enabled, etc.)
   useEffect(() => {
     const handleUpdated = (e: Event) => {

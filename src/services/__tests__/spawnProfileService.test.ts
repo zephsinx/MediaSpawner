@@ -92,7 +92,10 @@ describe("SpawnProfileService", () => {
     // Default mock implementations
     mockCacheService.get.mockImplementation((_key, fetcher) => fetcher());
     mockCacheService.invalidate.mockImplementation(() => {});
-    mockSettingsService.getSettings.mockReturnValue({ workingDirectory: "" });
+    mockSettingsService.getSettings.mockReturnValue({
+      workingDirectory: "",
+      themeMode: "light" as const,
+    });
     mockSettingsService.updateSettings.mockReturnValue({ success: true });
     mockCreateSpawnProfile.mockImplementation((name, description) => ({
       id: "00000000-0000-0000-0000-000000000000",
@@ -227,6 +230,7 @@ describe("SpawnProfileService", () => {
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
         activeProfileId: "profile-2",
+        themeMode: "light" as const,
       });
 
       const result = SpawnProfileService.getActiveProfile();
@@ -235,7 +239,10 @@ describe("SpawnProfileService", () => {
     });
 
     it("returns null when no active profile ID", () => {
-      mockSettingsService.getSettings.mockReturnValue({ workingDirectory: "" });
+      mockSettingsService.getSettings.mockReturnValue({
+        workingDirectory: "",
+        themeMode: "light" as const,
+      });
 
       const result = SpawnProfileService.getActiveProfile();
 
@@ -248,6 +255,7 @@ describe("SpawnProfileService", () => {
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
         activeProfileId: "non-existent",
+        themeMode: "light" as const,
       });
 
       const result = SpawnProfileService.getActiveProfile();
@@ -264,6 +272,7 @@ describe("SpawnProfileService", () => {
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
         activeProfileId: "profile-1",
+        themeMode: "light" as const,
       });
 
       const result = SpawnProfileService.getActiveProfileId();
@@ -272,7 +281,10 @@ describe("SpawnProfileService", () => {
     });
 
     it("returns undefined when no active profile", () => {
-      mockSettingsService.getSettings.mockReturnValue({ workingDirectory: "" });
+      mockSettingsService.getSettings.mockReturnValue({
+        workingDirectory: "",
+        themeMode: "light" as const,
+      });
 
       const result = SpawnProfileService.getActiveProfileId();
 
@@ -729,7 +741,10 @@ describe("SpawnProfileService", () => {
       const localStorage = getLocalStorageMock();
       localStorage.getItem.mockReturnValue(JSON.stringify([validProfile]));
       localStorage.setItem.mockImplementation(() => {});
-      mockSettingsService.getSettings.mockReturnValue({ workingDirectory: "" });
+      mockSettingsService.getSettings.mockReturnValue({
+        workingDirectory: "",
+        themeMode: "light" as const,
+      });
 
       const result = SpawnProfileService.ensureDefaultProfile();
 
@@ -747,6 +762,7 @@ describe("SpawnProfileService", () => {
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
         activeProfileId: "profile-2",
+        themeMode: "light" as const,
       });
 
       const result = SpawnProfileService.ensureDefaultProfile();
@@ -765,6 +781,7 @@ describe("SpawnProfileService", () => {
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
         activeProfileId: "profile-2",
+        themeMode: "light" as const,
       });
 
       const result = SpawnProfileService.getProfilesWithActiveInfo();
@@ -810,7 +827,10 @@ describe("SpawnProfileService", () => {
     it("returns correct statistics for empty profiles", () => {
       const localStorage = getLocalStorageMock();
       localStorage.getItem.mockReturnValue(JSON.stringify([]));
-      mockSettingsService.getSettings.mockReturnValue({ workingDirectory: "" });
+      mockSettingsService.getSettings.mockReturnValue({
+        workingDirectory: "",
+        themeMode: "light" as const,
+      });
 
       const result = SpawnProfileService.getProfileStats();
 
@@ -836,6 +856,7 @@ describe("SpawnProfileService", () => {
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
         activeProfileId: "profile-1",
+        themeMode: "light" as const,
       });
 
       const result = SpawnProfileService.getProfileStats();
@@ -855,6 +876,7 @@ describe("SpawnProfileService", () => {
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
         activeProfileId: "non-existent",
+        themeMode: "light" as const,
       });
 
       const result = SpawnProfileService.getProfileStats();

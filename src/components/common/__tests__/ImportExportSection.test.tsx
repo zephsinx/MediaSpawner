@@ -100,10 +100,9 @@ describe("ImportExportSection", () => {
     global.FileReader = MockFileReader as unknown as typeof FileReader;
   });
 
-  it("renders header and action buttons", () => {
+  it("renders action buttons", () => {
     render(<ImportExportSection />);
 
-    expect(screen.getByText("Import/Export Configuration")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /export configuration/i })
     ).toBeInTheDocument();

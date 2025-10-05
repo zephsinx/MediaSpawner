@@ -21,4 +21,5 @@ export {
   cardDescriptionVariants,
   cardContentVariants,
   cardFooterVariants,
+  comboboxVariants,
 } from "./variants";
