@@ -38,6 +38,11 @@ public class CPHInline
     private const int ConfigCacheTtlMinutes = 60;
 
     /// <summary>
+    /// Currently live profile ID for execution (source of truth)
+    /// </summary>
+    private string liveProfileId;
+
+    /// <summary>
     /// Maximum number of retries for OBS operations (0 = no retries)
     /// </summary>
     private const int MaxRetries = 0;
@@ -4753,9 +4758,9 @@ public class CPHInline
                         }
 
                         // Include error code if available
-                        if (status.TryGetValue("code", out object statu))
+                        if (status.TryGetValue("code", out object stat))
                         {
-                            errorMessage += $" (Code: {statu})";
+                            errorMessage += $" (Code: {stat})";
                         }
 
                         LogExecution(LogLevel.Error, $"CreateOBSSource: Failed to create OBS source '{sourceName}': {errorMessage}");
@@ -5092,9 +5097,9 @@ public class CPHInline
                         }
 
                         // Include error code if available
-                        if (status.TryGetValue("code", out object statu))
+                        if (status.TryGetValue("code", out object stat))
                         {
-                            errorMessage += $" (Code: {statu})";
+                            errorMessage += $" (Code: {stat})";
                         }
 
                         LogExecution(LogLevel.Error, $"DeleteOBSSource: Failed to delete OBS source '{sourceName}': {errorMessage}");
@@ -5791,6 +5796,17 @@ public class CPHInline
                 this.cachedConfigSha = currentSha;
                 this.configCacheTimestamp = DateTime.UtcNow;
 
+                // Load live profile ID from global variables
+                this.liveProfileId = CPH.GetGlobalVar<string>("MediaSpawner_LiveProfileId");
+                if (string.IsNullOrWhiteSpace(this.liveProfileId))
+                {
+                    LogExecution(LogLevel.Info, "LoadMediaSpawnerConfig: No live profile set, will use active profile as fallback");
+                }
+                else
+                {
+                    LogExecution(LogLevel.Info, $"LoadMediaSpawnerConfig: Live profile set to '{this.liveProfileId}'");
+                }
+
                 LogExecution(LogLevel.Info, $"LoadMediaSpawnerConfig: Successfully loaded configuration with {config.Profiles.Count} profiles and {config.Assets.Count} assets");
                 return true;
             }
@@ -5937,7 +5953,38 @@ public class CPHInline
     }
 
     /// <summary>
-    /// Get all enabled spawns from the loaded configuration
+    /// Refresh the live profile ID from global variables
+    /// </summary>
+    /// <returns>True if live profile ID was updated, false otherwise</returns>
+    public bool RefreshLiveProfileId()
+    {
+        try
+        {
+            string newLiveProfileId = CPH.GetGlobalVar<string>("MediaSpawner_LiveProfileId");
+            if (this.liveProfileId != newLiveProfileId)
+            {
+                this.liveProfileId = newLiveProfileId;
+                if (string.IsNullOrWhiteSpace(this.liveProfileId))
+                {
+                    LogExecution(LogLevel.Info, "RefreshLiveProfileId: Live profile cleared, will use active profile");
+                }
+                else
+                {
+                    LogExecution(LogLevel.Info, $"RefreshLiveProfileId: Live profile updated to '{this.liveProfileId}'");
+                }
+                return true;
+            }
+            return false;
+        }
+        catch (Exception ex)
+        {
+            LogExecution(LogLevel.Error, $"RefreshLiveProfileId: Unexpected error: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Get all enabled spawns from the loaded configuration using live profile
     /// </summary>
     /// <returns>True if spawns found and set in global variable, false otherwise</returns>
     public bool GetEnabledSpawns()
@@ -5950,10 +5997,47 @@ public class CPHInline
                 return false;
             }
 
-            List<Spawn> enabledSpawns = this.cachedConfig.GetEnabledSpawns();
+            // Refresh live profile ID in case it changed
+            RefreshLiveProfileId();
+
+            List<Spawn> enabledSpawns;
+            string profileSource;
+
+            // Use live profile if set, otherwise fall back to active profile
+            if (!string.IsNullOrWhiteSpace(this.liveProfileId))
+            {
+                // Validate that the live profile exists
+                SpawnProfile liveProfile = this.cachedConfig.Profiles?.FirstOrDefault(p => p.Id == this.liveProfileId);
+                if (liveProfile == null)
+                {
+                    LogExecution(LogLevel.Warning, $"GetEnabledSpawns: Live profile '{this.liveProfileId}' not found in configuration, falling back to active profile");
+                    enabledSpawns = this.cachedConfig.GetEnabledSpawns();
+                    profileSource = "active profile (fallback - invalid live profile)";
+                }
+                else
+                {
+                    enabledSpawns = this.cachedConfig.GetEnabledSpawns(this.liveProfileId);
+                    profileSource = $"live profile '{this.liveProfileId}'";
+
+                    if (enabledSpawns.Count == 0)
+                    {
+                        LogExecution(LogLevel.Warning, $"GetEnabledSpawns: No enabled spawns found in live profile '{this.liveProfileId}', falling back to active profile");
+                        // Fall back to active profile
+                        enabledSpawns = this.cachedConfig.GetEnabledSpawns();
+                        profileSource = "active profile (fallback - no spawns in live profile)";
+                    }
+                }
+            }
+            else
+            {
+                LogExecution(LogLevel.Info, "GetEnabledSpawns: No live profile set, using active profile");
+                enabledSpawns = this.cachedConfig.GetEnabledSpawns();
+                profileSource = "active profile";
+            }
+
             if (enabledSpawns.Count == 0)
             {
-                LogExecution(LogLevel.Warning, "GetEnabledSpawns: No enabled spawns found in configuration");
+                LogExecution(LogLevel.Warning, $"GetEnabledSpawns: No enabled spawns found in {profileSource}");
                 CPH.SetGlobalVar("MediaSpawner_EnabledSpawns", "[]", persisted: false);
                 CPH.SetGlobalVar("MediaSpawner_EnabledSpawnsCount", "0", persisted: false);
                 return true;
@@ -5963,7 +6047,7 @@ public class CPHInline
             CPH.SetGlobalVar("MediaSpawner_EnabledSpawns", JsonConvert.SerializeObject(enabledSpawns), persisted: false);
             CPH.SetGlobalVar("MediaSpawner_EnabledSpawnsCount", enabledSpawns.Count.ToString(), persisted: false);
 
-            LogExecution(LogLevel.Info, $"GetEnabledSpawns: Found {enabledSpawns.Count} enabled spawns");
+            LogExecution(LogLevel.Info, $"GetEnabledSpawns: Found {enabledSpawns.Count} enabled spawns from {profileSource}");
             return true;
         }
         catch (Exception ex)
@@ -6383,6 +6467,23 @@ public class CPHInline
             }
 
             return enabledSpawns;
+        }
+
+        /// <summary>
+        /// Get enabled spawns from a specific profile
+        /// </summary>
+        /// <param name="profileId">The profile ID to get spawns from</param>
+        /// <returns>List of enabled spawns from the specified profile</returns>
+        public List<Spawn> GetEnabledSpawns(string profileId)
+        {
+            if (string.IsNullOrWhiteSpace(profileId) || Profiles == null)
+                return new List<Spawn>();
+
+            SpawnProfile profile = Profiles.FirstOrDefault(p => p.Id == profileId);
+            if (profile == null)
+                return new List<Spawn>();
+
+            return profile.GetEnabledSpawns();
         }
 
         /// <summary>
