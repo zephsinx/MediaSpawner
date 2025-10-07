@@ -1,926 +1,770 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://mediaspawner.app/schema/config/v1.0.0",
-    "title": "MediaSpawnerConfig",
-    "description": "Configuration authored by MediaSpawner (config-only; no runtime info)",
-    "type": "object",
-    "properties": {
-        "version": {
-            "type": "string",
-            "const": "1.0.0"
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mediaspawner.app/schema/config/v1.0.0",
+  "title": "MediaSpawnerConfig",
+  "description": "Configuration authored by MediaSpawner (config-only; no runtime info)",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "profiles": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/SpawnProfile"
+      }
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Asset"
+      }
+    },
+    "liveProfileId": {
+      "type": "string",
+      "description": "ID of the currently live spawn profile for Streamer.bot execution"
+    }
+  },
+  "required": ["version", "profiles", "assets"],
+  "$defs": {
+    "SpawnProfile": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
         },
-        "profiles": {
-            "type": "array",
-            "items": {
-                "$ref": "#/$defs/SpawnProfile"
-            }
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "workingDirectory": {
+          "type": "string"
+        },
+        "spawns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Spawn"
+          }
+        },
+        "lastModified": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "name", "workingDirectory", "spawns"]
+    },
+    "Spawn": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "trigger": {
+          "$ref": "#/$defs/Trigger"
+        },
+        "duration": {
+          "type": "integer",
+          "minimum": 0
         },
         "assets": {
-            "type": "array",
-            "items": {
-                "$ref": "#/$defs/Asset"
-            }
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SpawnAsset"
+          }
+        },
+        "randomizationBuckets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RandomizationBucket"
+          }
         }
+      },
+      "required": ["id", "name", "enabled", "assets"]
     },
-    "required": [
-        "version",
-        "profiles",
-        "assets"
-    ],
-    "$defs": {
-        "SpawnProfile": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "workingDirectory": {
-                    "type": "string"
-                },
-                "spawns": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/$defs/Spawn"
-                    }
-                },
-                "lastModified": {
-                    "type": "string",
-                    "format": "date-time"
-                }
-            },
-            "required": [
-                "id",
-                "name",
-                "workingDirectory",
-                "spawns"
-            ]
+    "SpawnAsset": {
+      "type": "object",
+      "properties": {
+        "assetId": {
+          "type": "string"
         },
-        "Spawn": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "enabled": {
-                    "type": "boolean"
-                },
-                "trigger": {
-                    "$ref": "#/$defs/Trigger"
-                },
-                "duration": {
-                    "type": "integer",
-                    "minimum": 0
-                },
-                "assets": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/$defs/SpawnAsset"
-                    }
-                },
-                "randomizationBuckets": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/$defs/RandomizationBucket"
-                    }
-                }
-            },
-            "required": [
-                "id",
-                "name",
-                "enabled",
-                "assets"
-            ]
+        "id": {
+          "type": "string"
         },
-        "SpawnAsset": {
-            "type": "object",
-            "properties": {
-                "assetId": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "enabled": {
-                    "type": "boolean"
-                },
-                "order": {
-                    "type": "integer",
-                    "minimum": 0
-                },
-                "overrides": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "duration": {
-                            "type": "integer",
-                            "minimum": 0
-                        },
-                        "properties": {
-                            "$ref": "#/$defs/AssetSettings"
-                        }
-                    }
-                }
-            },
-            "required": [
-                "assetId"
-            ]
+        "enabled": {
+          "type": "boolean"
         },
-        "RandomizationBucket": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "selection": {
-                    "type": "string",
-                    "enum": [
-                        "one",
-                        "n"
-                    ]
-                },
-                "n": {
-                    "type": "integer",
-                    "minimum": 1
-                },
-                "weighted": {
-                    "type": "boolean"
-                },
-                "noImmediateRepeat": {
-                    "type": "boolean"
-                },
-                "members": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/$defs/RandomizationBucketMember"
-                    },
-                    "minItems": 1
-                }
-            },
-            "required": [
-                "id",
-                "name",
-                "selection",
-                "members"
-            ]
+        "order": {
+          "type": "integer",
+          "minimum": 0
         },
-        "RandomizationBucketMember": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "spawnAssetId": {
-                    "type": "string"
-                },
-                "weight": {
-                    "type": "integer",
-                    "minimum": 1
-                }
+        "overrides": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "duration": {
+              "type": "integer",
+              "minimum": 0
             },
-            "required": [
-                "spawnAssetId"
-            ]
-        },
-        "Asset": {
-            "type": "object",
             "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "path": {
-                    "type": "string"
-                },
-                "isUrl": {
-                    "type": "boolean"
-                },
-                "type": {
-                    "enum": [
-                        "image",
-                        "video",
-                        "audio"
-                    ]
-                }
+              "$ref": "#/$defs/AssetSettings"
+            }
+          }
+        }
+      },
+      "required": ["assetId"]
+    },
+    "RandomizationBucket": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "selection": {
+          "type": "string",
+          "enum": ["one", "n"]
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "weighted": {
+          "type": "boolean"
+        },
+        "noImmediateRepeat": {
+          "type": "boolean"
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RandomizationBucketMember"
+          },
+          "minItems": 1
+        }
+      },
+      "required": ["id", "name", "selection", "members"]
+    },
+    "RandomizationBucketMember": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "spawnAssetId": {
+          "type": "string"
+        },
+        "weight": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": ["spawnAssetId"]
+    },
+    "Asset": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "isUrl": {
+          "type": "boolean"
+        },
+        "type": {
+          "enum": ["image", "video", "audio"]
+        }
+      },
+      "required": ["id", "path", "type"]
+    },
+    "AssetSettings": {
+      "type": "object",
+      "properties": {
+        "volume": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "scale": {
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0
             },
-            "required": [
-                "id",
-                "path",
-                "type"
-            ]
-        },
-        "AssetSettings": {
-            "type": "object",
-            "properties": {
-                "volume": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                },
-                "width": {
-                    "type": "integer",
-                    "minimum": 1
-                },
-                "height": {
-                    "type": "integer",
-                    "minimum": 1
-                },
-                "scale": {
-                    "oneOf": [
-                        {
-                            "type": "number",
-                            "minimum": 0
-                        },
-                        {
-                            "type": "object",
-                            "properties": {
-                                "x": {
-                                    "type": "number",
-                                    "minimum": 0
-                                },
-                                "y": {
-                                    "type": "number",
-                                    "minimum": 0
-                                },
-                                "linked": {
-                                    "type": "boolean"
-                                }
-                            },
-                            "required": [
-                                "x",
-                                "y"
-                            ],
-                            "additionalProperties": false
-                        }
-                    ]
-                },
-                "positionMode": {
-                    "type": "string",
-                    "enum": [
-                        "absolute",
-                        "relative",
-                        "centered"
-                    ]
-                },
+            {
+              "type": "object",
+              "properties": {
                 "x": {
-                    "type": "number"
+                  "type": "number",
+                  "minimum": 0
                 },
                 "y": {
-                    "type": "number"
+                  "type": "number",
+                  "minimum": 0
                 },
-                "loop": {
-                    "type": "boolean"
-                },
-                "autoplay": {
-                    "type": "boolean"
-                },
-                "muted": {
-                    "type": "boolean"
-                },
-                "rotation": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 360
-                },
-                "crop": {
-                    "type": "object",
-                    "properties": {
-                        "left": {
-                            "type": "number",
-                            "minimum": 0
-                        },
-                        "top": {
-                            "type": "number",
-                            "minimum": 0
-                        },
-                        "right": {
-                            "type": "number",
-                            "minimum": 0
-                        },
-                        "bottom": {
-                            "type": "number",
-                            "minimum": 0
-                        }
-                    },
-                    "required": [
-                        "left",
-                        "top",
-                        "right",
-                        "bottom"
-                    ],
-                    "additionalProperties": false
-                },
-                "alignment": {
-                    "type": "integer",
-                    "enum": [
-                        0,
-                        1,
-                        2,
-                        4,
-                        5,
-                        6,
-                        8,
-                        9,
-                        10
-                    ]
-                },
-                "boundsType": {
-                    "type": "string",
-                    "enum": [
-                        "OBS_BOUNDS_NONE",
-                        "OBS_BOUNDS_STRETCH",
-                        "OBS_BOUNDS_SCALE_INNER",
-                        "OBS_BOUNDS_SCALE_OUTER",
-                        "OBS_BOUNDS_SCALE_TO_WIDTH",
-                        "OBS_BOUNDS_SCALE_TO_HEIGHT",
-                        "OBS_BOUNDS_MAX_ONLY"
-                    ]
-                },
-                "boundsAlignment": {
-                    "type": "integer",
-                    "enum": [
-                        0,
-                        1,
-                        2,
-                        4,
-                        5,
-                        6,
-                        8,
-                        9,
-                        10
-                    ]
+                "linked": {
+                  "type": "boolean"
                 }
-            },
-            "additionalProperties": false
-        },
-        "Trigger": {
-            "oneOf": [
-                {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "type": {
-                            "const": "manual"
-                        },
-                        "enabled": {
-                            "type": "boolean"
-                        },
-                        "config": {
-                            "$ref": "#/$defs/EmptyConfig"
-                        }
-                    },
-                    "required": [
-                        "type",
-                        "config"
-                    ]
-                },
-                {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "type": {
-                            "const": "time.atDateTime"
-                        },
-                        "enabled": {
-                            "type": "boolean"
-                        },
-                        "config": {
-                            "$ref": "#/$defs/TimeAtDateTimeConfig"
-                        }
-                    },
-                    "required": [
-                        "type",
-                        "config"
-                    ]
-                },
-                {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "type": {
-                            "const": "time.dailyAt"
-                        },
-                        "enabled": {
-                            "type": "boolean"
-                        },
-                        "config": {
-                            "$ref": "#/$defs/TimeDailyAtConfig"
-                        }
-                    },
-                    "required": [
-                        "type",
-                        "config"
-                    ]
-                },
-                {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "type": {
-                            "const": "time.weeklyAt"
-                        },
-                        "enabled": {
-                            "type": "boolean"
-                        },
-                        "config": {
-                            "$ref": "#/$defs/TimeWeeklyAtConfig"
-                        }
-                    },
-                    "required": [
-                        "type",
-                        "config"
-                    ]
-                },
-                {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "type": {
-                            "const": "time.monthlyOn"
-                        },
-                        "enabled": {
-                            "type": "boolean"
-                        },
-                        "config": {
-                            "$ref": "#/$defs/TimeMonthlyOnConfig"
-                        }
-                    },
-                    "required": [
-                        "type",
-                        "config"
-                    ]
-                },
-                {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "type": {
-                            "const": "time.everyNMinutes"
-                        },
-                        "enabled": {
-                            "type": "boolean"
-                        },
-                        "config": {
-                            "$ref": "#/$defs/TimeEveryNMinutesConfig"
-                        }
-                    },
-                    "required": [
-                        "type",
-                        "config"
-                    ]
-                },
-                {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "type": {
-                            "const": "time.minuteOfHour"
-                        },
-                        "enabled": {
-                            "type": "boolean"
-                        },
-                        "config": {
-                            "$ref": "#/$defs/TimeMinuteOfHourConfig"
-                        }
-                    },
-                    "required": [
-                        "type",
-                        "config"
-                    ]
-                },
-                {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "type": {
-                            "const": "streamerbot.command"
-                        },
-                        "enabled": {
-                            "type": "boolean"
-                        },
-                        "config": {
-                            "$ref": "#/$defs/StreamerbotCommandTriggerConfig"
-                        }
-                    },
-                    "required": [
-                        "type",
-                        "config"
-                    ]
-                },
-                {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "type": {
-                            "const": "twitch.follow"
-                        },
-                        "enabled": {
-                            "type": "boolean"
-                        },
-                        "config": {
-                            "$ref": "#/$defs/EmptyConfig"
-                        }
-                    },
-                    "required": [
-                        "type",
-                        "config"
-                    ]
-                },
-                {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "type": {
-                            "const": "twitch.cheer"
-                        },
-                        "enabled": {
-                            "type": "boolean"
-                        },
-                        "config": {
-                            "$ref": "#/$defs/TwitchCheerConfig"
-                        }
-                    },
-                    "required": [
-                        "type",
-                        "config"
-                    ]
-                },
-                {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "type": {
-                            "const": "twitch.subscription"
-                        },
-                        "enabled": {
-                            "type": "boolean"
-                        },
-                        "config": {
-                            "$ref": "#/$defs/TwitchSubscriptionConfig"
-                        }
-                    },
-                    "required": [
-                        "type",
-                        "config"
-                    ]
-                },
-                {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "type": {
-                            "const": "twitch.giftSub"
-                        },
-                        "enabled": {
-                            "type": "boolean"
-                        },
-                        "config": {
-                            "$ref": "#/$defs/TwitchGiftSubConfig"
-                        }
-                    },
-                    "required": [
-                        "type",
-                        "config"
-                    ]
-                },
-                {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "type": {
-                            "const": "twitch.channelPointReward"
-                        },
-                        "enabled": {
-                            "type": "boolean"
-                        },
-                        "config": {
-                            "$ref": "#/$defs/TwitchChannelPointRewardConfig"
-                        }
-                    },
-                    "required": [
-                        "type",
-                        "config"
-                    ]
-                }
-            ]
-        },
-        "EmptyConfig": {
-            "type": "object",
-            "additionalProperties": false
-        },
-        "TimeAtDateTimeConfig": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "isoDateTime": {
-                    "type": "string",
-                    "format": "date-time"
-                },
-                "timezone": {
-                    "type": "string",
-                    "minLength": 1
-                }
-            },
-            "required": [
-                "isoDateTime",
-                "timezone"
-            ]
-        },
-        "TimeDailyAtConfig": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "time": {
-                    "type": "string",
-                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
-                },
-                "timezone": {
-                    "type": "string",
-                    "minLength": 1
-                }
-            },
-            "required": [
-                "time",
-                "timezone"
-            ]
-        },
-        "TimeEveryNMinutesConfig": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "intervalMinutes": {
-                    "type": "integer",
-                    "minimum": 1
-                },
-                "timezone": {
-                    "type": "string",
-                    "minLength": 1
-                },
-                "anchor": {
-                    "oneOf": [
-                        {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "properties": {
-                                "kind": {
-                                    "const": "topOfHour"
-                                }
-                            },
-                            "required": [
-                                "kind"
-                            ],
-                            "default": {
-                                "kind": "topOfHour"
-                            }
-                        },
-                        {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "properties": {
-                                "kind": {
-                                    "const": "custom"
-                                },
-                                "isoDateTime": {
-                                    "type": "string",
-                                    "format": "date-time"
-                                },
-                                "timezone": {
-                                    "type": "string",
-                                    "minLength": 1
-                                }
-                            },
-                            "required": [
-                                "kind",
-                                "isoDateTime",
-                                "timezone"
-                            ]
-                        }
-                    ]
-                }
-            },
-            "required": [
-                "intervalMinutes",
-                "timezone"
-            ]
-        },
-        "TimeMinuteOfHourConfig": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "minute": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 59
-                },
-                "timezone": {
-                    "type": "string",
-                    "minLength": 1
-                }
-            },
-            "required": [
-                "minute",
-                "timezone"
-            ]
-        },
-        "TimeWeeklyAtConfig": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "dayOfWeek": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 6
-                },
-                "time": {
-                    "type": "string",
-                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
-                },
-                "timezone": {
-                    "type": "string",
-                    "minLength": 1
-                }
-            },
-            "required": [
-                "dayOfWeek",
-                "time",
-                "timezone"
-            ]
-        },
-        "TimeMonthlyOnConfig": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "dayOfMonth": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 31
-                },
-                "time": {
-                    "type": "string",
-                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
-                },
-                "timezone": {
-                    "type": "string",
-                    "minLength": 1
-                }
-            },
-            "required": [
-                "dayOfMonth",
-                "time",
-                "timezone"
-            ]
-        },
-        "StreamerbotCommandTriggerConfig": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "commandId": {
-                    "type": "string"
-                },
-                "aliases": {
-                    "type": "array",
-                    "items": {
-                        "type": "string",
-                        "minLength": 1
-                    },
-                    "minItems": 1
-                },
-                "caseSensitive": {
-                    "type": "boolean",
-                    "default": false
-                },
-                "ignoreInternal": {
-                    "type": "boolean",
-                    "default": true
-                },
-                "ignoreBotAccount": {
-                    "type": "boolean",
-                    "default": true
-                }
+              },
+              "required": ["x", "y"],
+              "additionalProperties": false
             }
+          ]
         },
-        "TwitchCheerConfig": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "bits": {
-                    "type": "integer",
-                    "minimum": 1
-                },
-                "bitsComparator": {
-                    "type": "string",
-                    "enum": [
-                        "lt",
-                        "eq",
-                        "gt"
-                    ]
-                }
+        "positionMode": {
+          "type": "string",
+          "enum": ["absolute", "relative", "centered"]
+        },
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "loop": {
+          "type": "boolean"
+        },
+        "autoplay": {
+          "type": "boolean"
+        },
+        "muted": {
+          "type": "boolean"
+        },
+        "rotation": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 360
+        },
+        "crop": {
+          "type": "object",
+          "properties": {
+            "left": {
+              "type": "number",
+              "minimum": 0
             },
-            "anyOf": [
-                {
-                    "required": [
-                        "bits",
-                        "bitsComparator"
-                    ]
-                },
-                {
-                    "not": {
-                        "required": [
-                            "bits",
-                            "bitsComparator"
-                        ]
-                    }
-                }
-            ]
-        },
-        "TwitchSubscriptionConfig": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "tier": {
-                    "type": "string",
-                    "enum": [
-                        "1000",
-                        "2000",
-                        "3000"
-                    ]
-                },
-                "months": {
-                    "type": "integer",
-                    "minimum": 1
-                },
-                "monthsComparator": {
-                    "type": "string",
-                    "enum": [
-                        "lt",
-                        "eq",
-                        "gt"
-                    ]
-                }
-            }
-        },
-        "TwitchGiftSubConfig": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "minCount": {
-                    "type": "integer",
-                    "minimum": 1
-                },
-                "tier": {
-                    "type": "string",
-                    "enum": [
-                        "1000",
-                        "2000",
-                        "3000"
-                    ]
-                }
-            }
-        },
-        "TwitchChannelPointRewardConfig": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "rewardIdentifier": {
-                    "type": "string",
-                    "minLength": 1
-                },
-                "useViewerInput": {
-                    "type": "boolean",
-                    "default": false
-                },
-                "statuses": {
-                    "type": "array",
-                    "items": {
-                        "type": "string",
-                        "enum": [
-                            "pending",
-                            "fulfilled",
-                            "cancelled"
-                        ]
-                    },
-                    "minItems": 1
-                }
+            "top": {
+              "type": "number",
+              "minimum": 0
             },
-            "required": [
-                "rewardIdentifier",
-                "statuses"
-            ]
+            "right": {
+              "type": "number",
+              "minimum": 0
+            },
+            "bottom": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "required": ["left", "top", "right", "bottom"],
+          "additionalProperties": false
+        },
+        "alignment": {
+          "type": "integer",
+          "enum": [0, 1, 2, 4, 5, 6, 8, 9, 10]
+        },
+        "boundsType": {
+          "type": "string",
+          "enum": [
+            "OBS_BOUNDS_NONE",
+            "OBS_BOUNDS_STRETCH",
+            "OBS_BOUNDS_SCALE_INNER",
+            "OBS_BOUNDS_SCALE_OUTER",
+            "OBS_BOUNDS_SCALE_TO_WIDTH",
+            "OBS_BOUNDS_SCALE_TO_HEIGHT",
+            "OBS_BOUNDS_MAX_ONLY"
+          ]
+        },
+        "boundsAlignment": {
+          "type": "integer",
+          "enum": [0, 1, 2, 4, 5, 6, 8, 9, 10]
         }
+      },
+      "additionalProperties": false
+    },
+    "Trigger": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "manual"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "config": {
+              "$ref": "#/$defs/EmptyConfig"
+            }
+          },
+          "required": ["type", "config"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "time.atDateTime"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "config": {
+              "$ref": "#/$defs/TimeAtDateTimeConfig"
+            }
+          },
+          "required": ["type", "config"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "time.dailyAt"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "config": {
+              "$ref": "#/$defs/TimeDailyAtConfig"
+            }
+          },
+          "required": ["type", "config"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "time.weeklyAt"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "config": {
+              "$ref": "#/$defs/TimeWeeklyAtConfig"
+            }
+          },
+          "required": ["type", "config"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "time.monthlyOn"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "config": {
+              "$ref": "#/$defs/TimeMonthlyOnConfig"
+            }
+          },
+          "required": ["type", "config"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "time.everyNMinutes"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "config": {
+              "$ref": "#/$defs/TimeEveryNMinutesConfig"
+            }
+          },
+          "required": ["type", "config"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "time.minuteOfHour"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "config": {
+              "$ref": "#/$defs/TimeMinuteOfHourConfig"
+            }
+          },
+          "required": ["type", "config"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "streamerbot.command"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "config": {
+              "$ref": "#/$defs/StreamerbotCommandTriggerConfig"
+            }
+          },
+          "required": ["type", "config"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "twitch.follow"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "config": {
+              "$ref": "#/$defs/EmptyConfig"
+            }
+          },
+          "required": ["type", "config"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "twitch.cheer"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "config": {
+              "$ref": "#/$defs/TwitchCheerConfig"
+            }
+          },
+          "required": ["type", "config"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "twitch.subscription"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "config": {
+              "$ref": "#/$defs/TwitchSubscriptionConfig"
+            }
+          },
+          "required": ["type", "config"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "twitch.giftSub"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "config": {
+              "$ref": "#/$defs/TwitchGiftSubConfig"
+            }
+          },
+          "required": ["type", "config"]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "twitch.channelPointReward"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "config": {
+              "$ref": "#/$defs/TwitchChannelPointRewardConfig"
+            }
+          },
+          "required": ["type", "config"]
+        }
+      ]
+    },
+    "EmptyConfig": {
+      "type": "object",
+      "additionalProperties": false
+    },
+    "TimeAtDateTimeConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "isoDateTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["isoDateTime", "timezone"]
+    },
+    "TimeDailyAtConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "time": {
+          "type": "string",
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["time", "timezone"]
+    },
+    "TimeEveryNMinutesConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "intervalMinutes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1
+        },
+        "anchor": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "topOfHour"
+                }
+              },
+              "required": ["kind"],
+              "default": {
+                "kind": "topOfHour"
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "custom"
+                },
+                "isoDateTime": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "timezone": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": ["kind", "isoDateTime", "timezone"]
+            }
+          ]
+        }
+      },
+      "required": ["intervalMinutes", "timezone"]
+    },
+    "TimeMinuteOfHourConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "minute": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 59
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["minute", "timezone"]
+    },
+    "TimeWeeklyAtConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dayOfWeek": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "time": {
+          "type": "string",
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["dayOfWeek", "time", "timezone"]
+    },
+    "TimeMonthlyOnConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dayOfMonth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 31
+        },
+        "time": {
+          "type": "string",
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["dayOfMonth", "time", "timezone"]
+    },
+    "StreamerbotCommandTriggerConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "commandId": {
+          "type": "string"
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "caseSensitive": {
+          "type": "boolean",
+          "default": false
+        },
+        "ignoreInternal": {
+          "type": "boolean",
+          "default": true
+        },
+        "ignoreBotAccount": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "TwitchCheerConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "bits": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "bitsComparator": {
+          "type": "string",
+          "enum": ["lt", "eq", "gt"]
+        }
+      },
+      "anyOf": [
+        {
+          "required": ["bits", "bitsComparator"]
+        },
+        {
+          "not": {
+            "required": ["bits", "bitsComparator"]
+          }
+        }
+      ]
+    },
+    "TwitchSubscriptionConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tier": {
+          "type": "string",
+          "enum": ["1000", "2000", "3000"]
+        },
+        "months": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "monthsComparator": {
+          "type": "string",
+          "enum": ["lt", "eq", "gt"]
+        }
+      }
+    },
+    "TwitchGiftSubConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "minCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "tier": {
+          "type": "string",
+          "enum": ["1000", "2000", "3000"]
+        }
+      }
+    },
+    "TwitchChannelPointRewardConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rewardIdentifier": {
+          "type": "string",
+          "minLength": 1
+        },
+        "useViewerInput": {
+          "type": "boolean",
+          "default": false
+        },
+        "statuses": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["pending", "fulfilled", "cancelled"]
+          },
+          "minItems": 1
+        }
+      },
+      "required": ["rewardIdentifier", "statuses"]
     }
+  }
 }

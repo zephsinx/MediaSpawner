@@ -9,6 +9,7 @@ import type { SpawnProfile } from "../types/spawn";
 import { createSpawnProfile, validateSpawnProfile } from "../types/spawn";
 import { CacheService, CACHE_KEYS } from "./cacheService";
 import { SettingsService } from "./settingsService";
+import { StreamerbotService } from "./streamerbotService";
 
 const PROFILES_STORAGE_KEY = "mediaspawner_spawn_profiles";
 const DEFAULT_PROFILE_NAME = "Default Profile";
@@ -53,7 +54,7 @@ export class SpawnProfileService {
             validProfiles.push(profile);
           } else {
             console.warn(
-              `Invalid profile found, skipping: ${validation.errors.join(", ")}`
+              `Invalid profile found, skipping: ${validation.errors.join(", ")}`,
             );
           }
         }
@@ -114,7 +115,7 @@ export class SpawnProfileService {
    */
   static createProfile(
     name: string,
-    description?: string
+    description?: string,
   ): ProfileOperationResult {
     try {
       const profiles = this.getAllProfiles();
@@ -141,7 +142,7 @@ export class SpawnProfileService {
         if (!setActiveResult.success) {
           console.warn(
             "Failed to set first profile as active:",
-            setActiveResult.error
+            setActiveResult.error,
           );
         }
       }
@@ -164,7 +165,7 @@ export class SpawnProfileService {
    */
   static updateProfile(
     id: string,
-    updates: Partial<Pick<SpawnProfile, "name" | "description">>
+    updates: Partial<Pick<SpawnProfile, "name" | "description">>,
   ): ProfileOperationResult {
     try {
       const profiles = this.getAllProfiles();
@@ -183,7 +184,7 @@ export class SpawnProfileService {
       if (updates.name && updates.name !== currentProfile.name) {
         if (
           profiles.some(
-            (profile) => profile.id !== id && profile.name === updates.name
+            (profile) => profile.id !== id && profile.name === updates.name,
           )
         ) {
           return {
@@ -306,7 +307,7 @@ export class SpawnProfileService {
       if (!settingsResult.success) {
         console.warn(
           "Failed to update active profile in settings:",
-          settingsResult.error
+          settingsResult.error,
         );
       }
 
@@ -333,6 +334,106 @@ export class SpawnProfileService {
       SettingsService.updateSettings({ activeProfileId: undefined });
     } catch (error) {
       console.error("Failed to clear active profile:", error);
+    }
+  }
+
+  /**
+   * Get the live profile ID from Streamer.bot
+   */
+  static async getLiveProfileId(): Promise<string | undefined> {
+    try {
+      const status = StreamerbotService.getStatus();
+      if (status.state !== "connected") {
+        return undefined;
+      }
+
+      // Get live profile ID from Streamer.bot global variable
+      const response = await StreamerbotService.getGlobalVariable(
+        "MediaSpawner_LiveProfileId",
+      );
+
+      if (typeof response === "string" && response.trim() !== "") {
+        return response.trim();
+      }
+
+      return undefined;
+    } catch (error) {
+      console.error("Failed to get live profile ID from Streamer.bot:", error);
+      return undefined;
+    }
+  }
+
+  /**
+   * Get the currently live profile
+   */
+  static async getLiveProfile(): Promise<SpawnProfile | null> {
+    const liveProfileId = await this.getLiveProfileId();
+    if (!liveProfileId) {
+      return null;
+    }
+
+    const profile = this.getProfile(liveProfileId);
+    if (!profile) {
+      // Live profile no longer exists, clear the setting
+      await this.clearLiveProfile();
+      return null;
+    }
+
+    return profile;
+  }
+
+  /**
+   * Set the live profile
+   */
+  static async setLiveProfile(id: string): Promise<ProfileOperationResult> {
+    try {
+      const profiles = this.getAllProfiles();
+      const targetProfile = profiles.find((profile) => profile.id === id);
+
+      if (!targetProfile) {
+        return {
+          success: false,
+          error: `Profile with ID "${id}" not found`,
+        };
+      }
+
+      // Set live profile ID in Streamer.bot
+      const success = await StreamerbotService.setGlobalVariable(
+        "MediaSpawner_LiveProfileId",
+        id,
+      );
+
+      if (!success) {
+        return {
+          success: false,
+          error: "Failed to set live profile in Streamer.bot",
+        };
+      }
+
+      return {
+        success: true,
+        profile: targetProfile,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to set live profile",
+      };
+    }
+  }
+
+  /**
+   * Clear the live profile setting
+   */
+  static async clearLiveProfile(): Promise<void> {
+    try {
+      await StreamerbotService.setGlobalVariable(
+        "MediaSpawner_LiveProfileId",
+        "",
+      );
+    } catch (error) {
+      console.error("Failed to clear live profile:", error);
     }
   }
 
@@ -379,7 +480,7 @@ export class SpawnProfileService {
    * Save profiles to localStorage
    */
   private static saveProfiles(
-    profiles: SpawnProfile[]
+    profiles: SpawnProfile[],
   ): ProfileOperationResult {
     try {
       localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(profiles));
@@ -425,11 +526,11 @@ export class SpawnProfileService {
     const activeProfileId = this.getActiveProfileId();
 
     const profilesWithSpawns = profiles.filter(
-      (profile) => profile.spawns.length > 0
+      (profile) => profile.spawns.length > 0,
     ).length;
     const totalSpawns = profiles.reduce(
       (sum, profile) => sum + profile.spawns.length,
-      0
+      0,
     );
 
     return {

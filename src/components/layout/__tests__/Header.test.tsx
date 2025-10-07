@@ -10,6 +10,8 @@ vi.mock("../../../services/spawnProfileService", () => ({
     createProfile: vi.fn(),
     updateProfile: vi.fn(),
     deleteProfile: vi.fn(),
+    getLiveProfileId: vi.fn(),
+    setLiveProfile: vi.fn(),
   },
 }));
 
@@ -20,6 +22,16 @@ vi.mock("../../../services/settingsService", () => ({
     setThemeMode: vi.fn(),
     applyThemeMode: vi.fn(),
   },
+}));
+
+// Mock useStreamerbotStatus hook
+vi.mock("../../../hooks/useStreamerbotStatus", () => ({
+  useStreamerbotStatus: vi.fn(() => ({
+    state: "connected",
+    host: "localhost",
+    port: 8080,
+    errorMessage: undefined,
+  })),
 }));
 
 // Mock Radix UI DropdownMenu to avoid complexity in tests
@@ -82,10 +94,12 @@ vi.mock("@radix-ui/react-dropdown-menu", () => ({
 import Header from "../Header";
 import { SpawnProfileService } from "../../../services/spawnProfileService";
 import { SettingsService } from "../../../services/settingsService";
+import { useStreamerbotStatus } from "../../../hooks/useStreamerbotStatus";
 import { renderWithAllProviders, mockLocalStorage } from "./testUtils";
 
 const mockSpawnProfileService = vi.mocked(SpawnProfileService);
 const mockSettingsService = vi.mocked(SettingsService);
+const mockUseStreamerbotStatus = vi.mocked(useStreamerbotStatus);
 
 describe("Header", () => {
   // Test data
@@ -145,6 +159,11 @@ describe("Header", () => {
     mockSpawnProfileService.deleteProfile.mockReturnValue({
       success: true,
     });
+    mockSpawnProfileService.getLiveProfileId.mockResolvedValue(undefined);
+    mockSpawnProfileService.setLiveProfile.mockResolvedValue({
+      success: true,
+      profile: mockProfiles[0],
+    });
 
     // Default SettingsService mock
     mockSettingsService.getThemeMode.mockReturnValue("light");
@@ -178,7 +197,7 @@ describe("Header", () => {
       expect(screen.getByText("Create Profile")).toBeInTheDocument();
       // Edit and Delete Profile are now in dropdown menu
       expect(
-        screen.getByLabelText("Additional profile actions")
+        screen.getByLabelText("Additional profile actions"),
       ).toBeInTheDocument();
     });
 
@@ -188,7 +207,7 @@ describe("Header", () => {
       expect(screen.getByText("Edit Assets")).toBeInTheDocument();
       // NavigationDropdown only has primary action, no dropdown menu
       expect(
-        screen.getByRole("button", { name: "Edit Assets" })
+        screen.getByRole("button", { name: "Edit Assets" }),
       ).toBeInTheDocument();
     });
 
@@ -228,10 +247,10 @@ describe("Header", () => {
 
       expect(options).toHaveLength(3);
       expect(options[0]).toHaveTextContent(
-        "Default Profile - Default spawn profile"
+        "Default Profile - Default spawn profile",
       );
       expect(options[1]).toHaveTextContent(
-        "Gaming Profile - Profile for gaming streams"
+        "Gaming Profile - Profile for gaming streams",
       );
       expect(options[2]).toHaveTextContent("Work Profile");
     });
@@ -247,7 +266,7 @@ describe("Header", () => {
       renderWithAllProviders(<Header />);
 
       expect(
-        mockSpawnProfileService.getProfilesWithActiveInfo
+        mockSpawnProfileService.getProfilesWithActiveInfo,
       ).toHaveBeenCalledTimes(2); // Called once by LayoutProvider and once by Header
     });
 
@@ -258,7 +277,7 @@ describe("Header", () => {
       fireEvent.change(select, { target: { value: "profile-2" } });
 
       expect(mockSpawnProfileService.setActiveProfile).toHaveBeenCalledWith(
-        "profile-2"
+        "profile-2",
       );
     });
 
@@ -270,7 +289,7 @@ describe("Header", () => {
 
       // The component should update its internal state
       expect(mockSpawnProfileService.setActiveProfile).toHaveBeenCalledWith(
-        "profile-2"
+        "profile-2",
       );
     });
 
@@ -287,7 +306,7 @@ describe("Header", () => {
 
       expect(console.error).toHaveBeenCalledWith(
         "Failed to set active profile:",
-        "Profile not found"
+        "Profile not found",
       );
     });
   });
@@ -299,7 +318,7 @@ describe("Header", () => {
       // Test Create Profile button (primary action)
       fireEvent.click(screen.getByRole("button", { name: "Create Profile" }));
       expect(
-        screen.getByRole("heading", { name: "Create Profile" })
+        screen.getByRole("heading", { name: "Create Profile" }),
       ).toBeInTheDocument();
 
       // Close the dialog
@@ -307,14 +326,14 @@ describe("Header", () => {
 
       // Test Edit Profile button (in dropdown)
       const dropdownTrigger = screen.getByLabelText(
-        "Additional profile actions"
+        "Additional profile actions",
       );
       fireEvent.click(dropdownTrigger);
 
       const editButton = screen.getByRole("menuitem", { name: "Edit Profile" });
       fireEvent.click(editButton);
       expect(
-        screen.getByRole("heading", { name: "Edit Profile" })
+        screen.getByRole("heading", { name: "Edit Profile" }),
       ).toBeInTheDocument();
 
       // Close the dialog
@@ -326,7 +345,7 @@ describe("Header", () => {
       });
       fireEvent.click(deleteButton);
       expect(
-        screen.getByRole("heading", { name: "Delete Profile" })
+        screen.getByRole("heading", { name: "Delete Profile" }),
       ).toBeInTheDocument();
     });
 
@@ -340,7 +359,7 @@ describe("Header", () => {
 
       // Open dropdown to access Edit and Delete buttons
       const dropdownTrigger = screen.getByLabelText(
-        "Additional profile actions"
+        "Additional profile actions",
       );
       fireEvent.click(dropdownTrigger);
 
@@ -358,7 +377,7 @@ describe("Header", () => {
 
       // Open dropdown to access Edit and Delete buttons
       const dropdownTrigger = screen.getByLabelText(
-        "Additional profile actions"
+        "Additional profile actions",
       );
       fireEvent.click(dropdownTrigger);
 
@@ -413,7 +432,7 @@ describe("Header", () => {
       mockSpawnProfileService.getProfilesWithActiveInfo.mockImplementation(
         () => {
           throw new Error("Service error");
-        }
+        },
       );
 
       // Should not crash the component
@@ -432,7 +451,7 @@ describe("Header", () => {
 
       // Check that ProfileFormDialog is rendered
       expect(
-        screen.getByRole("heading", { name: "Create Profile" })
+        screen.getByRole("heading", { name: "Create Profile" }),
       ).toBeInTheDocument();
       expect(screen.getByLabelText("Profile Name")).toBeInTheDocument();
     });
@@ -442,7 +461,7 @@ describe("Header", () => {
 
       // Click on the dropdown trigger
       const dropdownTrigger = screen.getByLabelText(
-        "Additional profile actions"
+        "Additional profile actions",
       );
       fireEvent.click(dropdownTrigger);
 
@@ -452,7 +471,7 @@ describe("Header", () => {
 
       // Check that ProfileFormDialog is rendered in edit mode
       expect(
-        screen.getByRole("heading", { name: "Edit Profile" })
+        screen.getByRole("heading", { name: "Edit Profile" }),
       ).toBeInTheDocument();
       expect(screen.getByDisplayValue("Default Profile")).toBeInTheDocument();
     });
@@ -462,7 +481,7 @@ describe("Header", () => {
 
       // Click on the dropdown trigger
       const dropdownTrigger = screen.getByLabelText(
-        "Additional profile actions"
+        "Additional profile actions",
       );
       fireEvent.click(dropdownTrigger);
 
@@ -474,7 +493,7 @@ describe("Header", () => {
 
       // Check that ProfileDeletionDialog is rendered
       expect(
-        screen.getByRole("heading", { name: "Delete Profile" })
+        screen.getByRole("heading", { name: "Delete Profile" }),
       ).toBeInTheDocument();
       expect(screen.getByText("Default Profile")).toBeInTheDocument();
     });
@@ -514,7 +533,7 @@ describe("Header", () => {
       // Check that service was called
       expect(mockSpawnProfileService.createProfile).toHaveBeenCalledWith(
         "New Profile",
-        undefined
+        undefined,
       );
     });
 
@@ -533,7 +552,7 @@ describe("Header", () => {
 
       // Open edit dialog
       const dropdownTrigger = screen.getByLabelText(
-        "Additional profile actions"
+        "Additional profile actions",
       );
       fireEvent.click(dropdownTrigger);
       const editOption = screen.getByRole("menuitem", { name: "Edit Profile" });
@@ -552,7 +571,7 @@ describe("Header", () => {
         {
           name: "Updated Profile",
           description: "Default spawn profile",
-        }
+        },
       );
     });
 
@@ -565,7 +584,7 @@ describe("Header", () => {
 
       // Open delete dialog
       const dropdownTrigger = screen.getByLabelText(
-        "Additional profile actions"
+        "Additional profile actions",
       );
       fireEvent.click(dropdownTrigger);
       const deleteOption = screen.getByRole("menuitem", {
@@ -581,7 +600,7 @@ describe("Header", () => {
 
       // Check that service was called
       expect(mockSpawnProfileService.deleteProfile).toHaveBeenCalledWith(
-        mockProfiles[0].id
+        mockProfiles[0].id,
       );
     });
 
@@ -596,7 +615,7 @@ describe("Header", () => {
 
       // Try to edit profile
       const dropdownTrigger = screen.getByLabelText(
-        "Additional profile actions"
+        "Additional profile actions",
       );
       fireEvent.click(dropdownTrigger);
       const editOption = screen.getByRole("menuitem", { name: "Edit Profile" });
@@ -604,7 +623,7 @@ describe("Header", () => {
 
       // Should not open edit dialog
       expect(
-        screen.queryByRole("heading", { name: "Edit Profile" })
+        screen.queryByRole("heading", { name: "Edit Profile" }),
       ).not.toBeInTheDocument();
     });
 
@@ -619,7 +638,7 @@ describe("Header", () => {
 
       // Try to delete profile
       const dropdownTrigger = screen.getByLabelText(
-        "Additional profile actions"
+        "Additional profile actions",
       );
       fireEvent.click(dropdownTrigger);
       const deleteOption = screen.getByRole("menuitem", {
@@ -629,7 +648,7 @@ describe("Header", () => {
 
       // Should not open delete dialog
       expect(
-        screen.queryByRole("heading", { name: "Delete Profile" })
+        screen.queryByRole("heading", { name: "Delete Profile" }),
       ).not.toBeInTheDocument();
     });
 
@@ -665,7 +684,7 @@ describe("Header", () => {
 
       // Check that profiles list was refreshed
       expect(
-        mockSpawnProfileService.getProfilesWithActiveInfo
+        mockSpawnProfileService.getProfilesWithActiveInfo,
       ).toHaveBeenCalledTimes(3);
     });
 
@@ -701,8 +720,118 @@ describe("Header", () => {
 
       // Check that setActiveProfile was called
       expect(mockSpawnProfileService.setActiveProfile).toHaveBeenCalledWith(
-        newProfile.id
+        newProfile.id,
       );
+    });
+  });
+
+  describe("Live Profile Functionality", () => {
+    it("renders live profile indicator", () => {
+      renderWithAllProviders(<Header />);
+
+      expect(
+        screen.getByRole("status", { name: "Live status: Not live" }),
+      ).toBeInTheDocument();
+      expect(screen.getByText("Not Live")).toBeInTheDocument();
+    });
+
+    it("shows live status when profile is live", async () => {
+      // Mock live profile as the first profile
+      mockSpawnProfileService.getLiveProfileId.mockResolvedValue("profile-1");
+
+      renderWithAllProviders(<Header />);
+
+      // Wait for async operations to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(screen.getAllByText("Live")).toHaveLength(2); // Status text and button text
+    });
+
+    it("calls setLiveProfile when Set as Live button is clicked", async () => {
+      renderWithAllProviders(<Header />);
+
+      const setLiveButton = screen.getByText("Set as Live");
+      fireEvent.click(setLiveButton);
+
+      // Wait for async operation to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(mockSpawnProfileService.setLiveProfile).toHaveBeenCalledWith(
+        "profile-1",
+      );
+    });
+
+    it("disables Set as Live button when no active profile", () => {
+      mockSpawnProfileService.getProfilesWithActiveInfo.mockReturnValue({
+        profiles: mockProfiles,
+        activeProfileId: undefined,
+      });
+
+      renderWithAllProviders(<Header />);
+
+      // When there's no active profile, the button should be disabled
+      const setLiveButton = screen.getByRole("button", {
+        name: "Profile is already live",
+      });
+      expect(setLiveButton).toBeDisabled();
+    });
+
+    it("disables Set as Live button when Streamer.bot is not connected", () => {
+      // Mock disconnected state
+      mockUseStreamerbotStatus.mockReturnValue({
+        state: "disconnected",
+        host: "localhost",
+        port: 8080,
+        endpoint: "ws://localhost:8080",
+        errorMessage: undefined,
+      });
+
+      renderWithAllProviders(<Header />);
+
+      const setLiveButton = screen.getByText("Set as Live");
+      expect(setLiveButton).toBeDisabled();
+    });
+
+    it("handles setLiveProfile success", async () => {
+      renderWithAllProviders(<Header />);
+
+      const setLiveButton = screen.getByText("Set as Live");
+      fireEvent.click(setLiveButton);
+
+      // Wait for async operation to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(mockSpawnProfileService.setLiveProfile).toHaveBeenCalledWith(
+        "profile-1",
+      );
+    });
+
+    it("handles setLiveProfile failure", async () => {
+      mockSpawnProfileService.setLiveProfile.mockResolvedValue({
+        success: false,
+        error: "Failed to set live profile",
+      });
+
+      renderWithAllProviders(<Header />);
+
+      const setLiveButton = screen.getByText("Set as Live");
+      fireEvent.click(setLiveButton);
+
+      // Wait for async operation to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(mockSpawnProfileService.setLiveProfile).toHaveBeenCalledWith(
+        "profile-1",
+      );
+    });
+
+    it("loads live profile on mount when connected", async () => {
+      renderWithAllProviders(<Header />);
+
+      // Wait for async operation to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(mockSpawnProfileService.getLiveProfileId).toHaveBeenCalled();
     });
   });
 });

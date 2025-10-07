@@ -60,7 +60,7 @@ function isValidSyncStatusInfo(obj: unknown): obj is SyncStatusInfo {
     !statusObj.status ||
     typeof statusObj.status !== "string" ||
     !["synced", "out-of-sync", "unknown", "error", "offline"].includes(
-      statusObj.status
+      statusObj.status,
     )
   ) {
     return false;
@@ -216,7 +216,7 @@ export class StreamerbotService {
    */
   static async executeAction(
     actionName: string,
-    args?: Record<string, unknown>
+    args?: Record<string, unknown>,
   ): Promise<boolean> {
     if (this.status.state !== "connected" || !this.client) {
       throw new Error("Streamer.bot client not connected");
@@ -241,6 +241,67 @@ export class StreamerbotService {
       return true;
     } catch (error) {
       console.error(`Error executing action ${actionName}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get a global variable from Streamer.bot
+   * @param variableName The name of the global variable to get
+   * @returns Promise<unknown> the variable value or undefined if not found
+   */
+  static async getGlobalVariable(variableName: string): Promise<unknown> {
+    if (this.status.state !== "connected" || !this.client) {
+      throw new Error("Streamer.bot client not connected");
+    }
+
+    try {
+      const response = await this.client.getGlobal(variableName);
+      if (response && "variable" in response && response.variable) {
+        return response.variable.value;
+      }
+      return undefined;
+    } catch (error) {
+      console.error(`Error getting global variable ${variableName}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Set a global variable in Streamer.bot
+   * @param variableName The name of the global variable to set
+   * @param variableValue The value to set
+   * @returns Promise<boolean> indicating success/failure
+   */
+  static async setGlobalVariable(
+    variableName: string,
+    variableValue: unknown,
+  ): Promise<boolean> {
+    if (this.status.state !== "connected" || !this.client) {
+      throw new Error("Streamer.bot client not connected");
+    }
+
+    try {
+      const response = await this.client.doAction(
+        { name: "Set Global Variable" },
+        {
+          variableName,
+          variableValue,
+        },
+      );
+
+      // Check if response indicates success
+      if (typeof response === "boolean") {
+        return response;
+      }
+
+      if (response && typeof response === "object" && "success" in response) {
+        return Boolean((response as { success: unknown }).success);
+      }
+
+      return true;
+    } catch (error) {
+      console.error(`Error setting global variable ${variableName}:`, error);
       throw error;
     }
   }
@@ -302,7 +363,7 @@ export class StreamerbotService {
 
   private static lastNotifyAt = 0;
   private static updateStatus(
-    update: Partial<StreamerbotConnectionStatus>
+    update: Partial<StreamerbotConnectionStatus>,
   ): void {
     const prev = this.status;
     const next: StreamerbotConnectionStatus = { ...prev, ...update };
@@ -341,7 +402,7 @@ export class StreamerbotService {
         // Return fresh data from memory
         return { ...this.syncStatus };
       },
-      syncStatusTTL
+      syncStatusTTL,
     );
   }
 
@@ -349,7 +410,7 @@ export class StreamerbotService {
    * Subscribe to sync status changes
    */
   static subscribeToSyncStatus(
-    listener: (status: SyncStatusInfo) => void
+    listener: (status: SyncStatusInfo) => void,
   ): () => void {
     this.syncStatusListeners.add(listener);
     listener(this.getSyncStatus());
@@ -404,7 +465,7 @@ export class StreamerbotService {
         const errorType: SyncErrorType = "config_export_failed";
         const errorMessage = this.createErrorMessage(
           errorType,
-          localConfigResult.error
+          localConfigResult.error,
         );
         this.updateSyncStatus({
           status: "error",
@@ -419,14 +480,14 @@ export class StreamerbotService {
       }
 
       const localConfigHash = await this.computeConfigHash(
-        localConfigResult.data
+        localConfigResult.data,
       );
 
       // Get remote configuration hash from Streamer.bot
       let remoteConfigHash: string | undefined;
       try {
         const response = await this.client.getGlobal(
-          "MediaSpawnerSha-59d16b77-5aa7-4336-9b18-eeb6af51a823"
+          "MediaSpawnerSha-59d16b77-5aa7-4336-9b18-eeb6af51a823",
         );
         if (response && "variable" in response && response.variable) {
           remoteConfigHash = response.variable.value as string;
@@ -489,7 +550,7 @@ export class StreamerbotService {
 
       const userFriendlyMessage = this.createErrorMessage(
         errorType,
-        errorMessage
+        errorMessage,
       );
       this.updateSyncStatus({
         status: "error",
@@ -539,7 +600,7 @@ export class StreamerbotService {
         const errorType: SyncErrorType = "config_export_failed";
         const errorMessage = this.createErrorMessage(
           errorType,
-          localConfigResult.error
+          localConfigResult.error,
         );
         return {
           success: false,
@@ -560,7 +621,7 @@ export class StreamerbotService {
 
       // Update sync status to synced with hash information
       const localConfigHash = await this.computeConfigHash(
-        localConfigResult.data
+        localConfigResult.data,
       );
       this.updateSyncStatus({
         status: "synced",
@@ -599,7 +660,7 @@ export class StreamerbotService {
 
       const userFriendlyMessage = this.createErrorMessage(
         errorType,
-        errorMessage
+        errorMessage,
       );
       this.setSyncStatus("error", userFriendlyMessage);
       return {
@@ -648,7 +709,7 @@ export class StreamerbotService {
    */
   private static createErrorMessage(
     errorType: SyncErrorType,
-    originalError?: string
+    originalError?: string,
   ): string {
     switch (errorType) {
       case "connection_failed":

@@ -8,6 +8,7 @@ import type { LayoutState, LayoutAction } from "./LayoutContextTypes";
  */
 const initialState: LayoutState = {
   activeProfileId: undefined,
+  liveProfileId: undefined,
   selectedSpawnId: undefined,
   selectedSpawnAssetId: undefined,
   centerPanelMode: "spawn-settings",
@@ -46,8 +47,8 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
               "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
               {
                 detail: { profileId, previousProfileId },
-              } as CustomEventInit
-            )
+              } as CustomEventInit,
+            ),
           );
         } catch {
           // Best-effort notification
@@ -55,6 +56,15 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
       }
 
       return newState;
+    }
+
+    case "SET_LIVE_PROFILE": {
+      const { profileId } = action.payload;
+
+      return {
+        ...state,
+        liveProfileId: profileId,
+      };
     }
 
     case "SELECT_SPAWN": {
@@ -112,7 +122,7 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
     case "LOAD_STATE_FROM_STORAGE": {
       try {
         const storedSelections = localStorage.getItem(
-          "mediaspawner_profile_spawn_selections"
+          "mediaspawner_profile_spawn_selections",
         );
         const profileSpawnSelections = storedSelections
           ? JSON.parse(storedSelections)
@@ -157,7 +167,7 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
     try {
       localStorage.setItem(
         "mediaspawner_profile_spawn_selections",
-        JSON.stringify(state.profileSpawnSelections)
+        JSON.stringify(state.profileSpawnSelections),
       );
     } catch (error) {
       console.error("Failed to persist state to storage:", error);

@@ -45,3 +45,7 @@ export {
   ProfileDeletionDialog,
   type ProfileDeletionDialogProps,
 } from "./ProfileDeletionDialog";
+export {
+  LiveProfileIndicator,
+  type LiveProfileIndicatorProps,
+} from "./LiveProfileIndicator";

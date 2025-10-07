@@ -46,6 +46,7 @@ describe("SpawnEditorWorkspace - Randomization Buckets UI", () => {
 
     mockUsePanelState.mockReturnValue({
       activeProfileId: "profile-1",
+      liveProfileId: undefined,
       selectedSpawnId: "spawn-1",
       selectedSpawnAssetId: undefined,
       centerPanelMode: "spawn-settings",
@@ -53,6 +54,7 @@ describe("SpawnEditorWorkspace - Randomization Buckets UI", () => {
       hasUnsavedChanges: false,
       profileSpawnSelections: {},
       setActiveProfile: vi.fn(),
+      setLiveProfile: vi.fn(),
       selectSpawn: vi.fn(),
       setCenterPanelMode: vi.fn(),
       selectSpawnAsset: vi.fn(),
@@ -79,7 +81,7 @@ describe("SpawnEditorWorkspace - Randomization Buckets UI", () => {
             isUrl: false,
           };
         return undefined;
-      }
+      },
     );
   });
 
@@ -87,7 +89,7 @@ describe("SpawnEditorWorkspace - Randomization Buckets UI", () => {
     render(
       <Tooltip.Provider delayDuration={0} skipDelayDuration={0}>
         {ui}
-      </Tooltip.Provider>
+      </Tooltip.Provider>,
     );
 
   it("disables Save when bucket N exceeds enabled member count", async () => {
@@ -152,7 +154,7 @@ describe("SpawnEditorWorkspace - Randomization Buckets UI", () => {
     const cbsA = within(membersModalA).getAllByRole("checkbox");
     fireEvent.click(cbsA[0]);
     fireEvent.click(
-      within(membersModalA).getByRole("button", { name: "Done" })
+      within(membersModalA).getByRole("button", { name: "Done" }),
     );
 
     // Create second bucket and toggle same asset -> expect move confirmation
@@ -175,7 +177,7 @@ describe("SpawnEditorWorkspace - Randomization Buckets UI", () => {
     fireEvent.click(cbsB[0]);
 
     expect(
-      await screen.findByText("Move asset to this bucket?")
+      await screen.findByText("Move asset to this bucket?"),
     ).toBeInTheDocument();
   });
 
@@ -183,6 +185,7 @@ describe("SpawnEditorWorkspace - Randomization Buckets UI", () => {
     // Reconfigure layout state to show hasUnsavedChanges
     mockUsePanelState.mockReturnValue({
       activeProfileId: "profile-1",
+      liveProfileId: undefined,
       selectedSpawnId: "spawn-1",
       selectedSpawnAssetId: undefined,
       centerPanelMode: "spawn-settings",
@@ -190,6 +193,7 @@ describe("SpawnEditorWorkspace - Randomization Buckets UI", () => {
       hasUnsavedChanges: true,
       profileSpawnSelections: {},
       setActiveProfile: vi.fn(),
+      setLiveProfile: vi.fn(),
       selectSpawn: vi.fn(),
       setCenterPanelMode: vi.fn(),
       selectSpawnAsset: vi.fn(),
@@ -207,8 +211,8 @@ describe("SpawnEditorWorkspace - Randomization Buckets UI", () => {
           "mediaspawner:request-center-switch" as unknown as keyof WindowEventMap,
           {
             detail: { mode: "asset-settings", spawnAssetId: "sa1" },
-          } as CustomEventInit
-        )
+          } as CustomEventInit,
+        ),
       );
     });
 

@@ -119,11 +119,13 @@ describe("AssetSettingsForm", () => {
     vi.mocked(usePanelState).mockReturnValue({
       selectedSpawnId: undefined,
       activeProfileId: undefined,
+      liveProfileId: undefined,
       selectedSpawnAssetId: undefined,
       centerPanelMode: "spawn-settings",
       hasUnsavedChanges: false,
       profileSpawnSelections: {},
       setActiveProfile: vi.fn(),
+      setLiveProfile: vi.fn(),
       selectSpawn: vi.fn(),
       selectSpawnAsset: vi.fn(),
       setCenterPanelMode: vi.fn(),

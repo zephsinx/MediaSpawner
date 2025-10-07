@@ -36,7 +36,7 @@ export class SettingsService {
         const parsed = JSON.parse(stored);
         if (!this.isValidSettingsObject(parsed)) {
           console.warn(
-            "Invalid settings found in localStorage, using defaults"
+            "Invalid settings found in localStorage, using defaults",
           );
           this.clearSettings();
           return { ...DEFAULT_SETTINGS };
@@ -60,7 +60,7 @@ export class SettingsService {
    * Update settings in localStorage
    */
   static updateSettings(
-    newSettings: Partial<Settings>
+    newSettings: Partial<Settings>,
   ): SettingsOperationResult {
     try {
       const currentSettings = this.getSettings();
@@ -80,7 +80,7 @@ export class SettingsService {
 
       localStorage.setItem(
         SETTINGS_STORAGE_KEY,
-        JSON.stringify(updatedSettings)
+        JSON.stringify(updatedSettings),
       );
 
       // Invalidate cache after successful write
@@ -147,7 +147,7 @@ export class SettingsService {
    * Validate working directory path (with memoization for performance)
    */
   static validateWorkingDirectory(
-    path: string
+    path: string,
   ): WorkingDirectoryValidationResult {
     // Check cache first
     if (validationCache.has(path)) {
@@ -174,7 +174,7 @@ export class SettingsService {
    * Perform the actual validation logic (extracted for memoization)
    */
   private static performValidation(
-    path: string
+    path: string,
   ): WorkingDirectoryValidationResult {
     if (!path || path.trim() === "") {
       return {
@@ -237,7 +237,7 @@ export class SettingsService {
     }
 
     const workingDirValidation = this.validateWorkingDirectory(
-      settings.workingDirectory
+      settings.workingDirectory,
     );
     if (!workingDirValidation.isValid) {
       return {
@@ -261,8 +261,19 @@ export class SettingsService {
     const hasWorkingDirectory = typeof record.workingDirectory === "string";
     const hasValidThemeMode =
       record.themeMode === "light" || record.themeMode === "dark";
+    const hasValidActiveProfileId =
+      record.activeProfileId === undefined ||
+      typeof record.activeProfileId === "string";
+    const hasValidLiveProfileId =
+      record.liveProfileId === undefined ||
+      typeof record.liveProfileId === "string";
 
-    return hasWorkingDirectory && hasValidThemeMode;
+    return (
+      hasWorkingDirectory &&
+      hasValidThemeMode &&
+      hasValidActiveProfileId &&
+      hasValidLiveProfileId
+    );
   }
 
   /**
@@ -294,7 +305,7 @@ export class SettingsService {
    */
   private static validatePathFormat(
     path: string,
-    os: SupportedOS
+    os: SupportedOS,
   ): WorkingDirectoryValidationResult {
     if (os === "windows") {
       // Windows path validation

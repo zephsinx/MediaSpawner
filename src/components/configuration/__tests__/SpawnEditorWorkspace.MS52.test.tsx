@@ -39,6 +39,7 @@ describe("SpawnEditorWorkspace - MS-52 Command Trigger Configuration", () => {
     // Default mock implementation
     mockUsePanelState.mockReturnValue({
       activeProfileId: "profile-1",
+      liveProfileId: undefined,
       selectedSpawnId: "spawn-1",
       selectedSpawnAssetId: undefined,
       centerPanelMode: "spawn-settings",
@@ -46,6 +47,7 @@ describe("SpawnEditorWorkspace - MS-52 Command Trigger Configuration", () => {
       hasUnsavedChanges: false,
       profileSpawnSelections: {},
       setActiveProfile: vi.fn(),
+      setLiveProfile: vi.fn(),
       selectSpawn: vi.fn(),
       setCenterPanelMode: vi.fn(),
       selectSpawnAsset: vi.fn(),
@@ -77,7 +79,7 @@ describe("SpawnEditorWorkspace - MS-52 Command Trigger Configuration", () => {
 
       await waitFor(() => {
         expect(
-          screen.queryByText("Command Configuration")
+          screen.queryByText("Command Configuration"),
         ).not.toBeInTheDocument();
       });
     });
@@ -95,7 +97,7 @@ describe("SpawnEditorWorkspace - MS-52 Command Trigger Configuration", () => {
 
       await waitFor(() => {
         expect(
-          screen.queryByText("Command Configuration")
+          screen.queryByText("Command Configuration"),
         ).not.toBeInTheDocument();
       });
     });
@@ -116,7 +118,7 @@ describe("SpawnEditorWorkspace - MS-52 Command Trigger Configuration", () => {
 
     it("starts with one empty alias input field", () => {
       const aliasInputs = screen.getAllByPlaceholderText(
-        "Enter command alias (e.g., scene1, alert)"
+        "Enter command alias (e.g., scene1, alert)",
       );
       expect(aliasInputs).toHaveLength(1);
       expect(aliasInputs[0]).toHaveValue("");
@@ -165,7 +167,7 @@ describe("SpawnEditorWorkspace - MS-52 Command Trigger Configuration", () => {
       });
 
       const aliasInputs = screen.getAllByPlaceholderText(
-        "Enter command alias (e.g., scene1, alert)"
+        "Enter command alias (e.g., scene1, alert)",
       );
       expect(aliasInputs).toHaveLength(2);
     });
@@ -179,7 +181,7 @@ describe("SpawnEditorWorkspace - MS-52 Command Trigger Configuration", () => {
 
       // Fill in the first alias so remove button appears
       const firstInput = screen.getAllByPlaceholderText(
-        "Enter command alias (e.g., scene1, alert)"
+        "Enter command alias (e.g., scene1, alert)",
       )[0];
       act(() => {
         fireEvent.change(firstInput, { target: { value: "test" } });
@@ -202,14 +204,14 @@ describe("SpawnEditorWorkspace - MS-52 Command Trigger Configuration", () => {
 
       // Should be back to 1 input
       const aliasInputs = screen.getAllByPlaceholderText(
-        "Enter command alias (e.g., scene1, alert)"
+        "Enter command alias (e.g., scene1, alert)",
       );
       expect(aliasInputs).toHaveLength(1);
     });
 
     it("updates input values when typing", () => {
       const aliasInput = screen.getByPlaceholderText(
-        "Enter command alias (e.g., scene1, alert)"
+        "Enter command alias (e.g., scene1, alert)",
       );
 
       act(() => {
@@ -236,11 +238,11 @@ describe("SpawnEditorWorkspace - MS-52 Command Trigger Configuration", () => {
     it("shows alias error when no non-empty aliases exist, hides when valid alias entered", () => {
       // Default state: one empty alias present -> error visible
       expect(
-        screen.getByText("At least one command alias is required")
+        screen.getByText("At least one command alias is required"),
       ).toBeInTheDocument();
 
       const aliasInput = screen.getByPlaceholderText(
-        "Enter command alias (e.g., scene1, alert)"
+        "Enter command alias (e.g., scene1, alert)",
       );
 
       act(() => {
@@ -248,18 +250,18 @@ describe("SpawnEditorWorkspace - MS-52 Command Trigger Configuration", () => {
       });
 
       expect(
-        screen.queryByText("At least one command alias is required")
+        screen.queryByText("At least one command alias is required"),
       ).not.toBeInTheDocument();
     });
 
     it("keeps Save disabled while alias invalid even when form is dirty (expected behavior)", () => {
       // Ensure alias is invalid (empty)
       const aliasInput = screen.getByPlaceholderText(
-        "Enter command alias (e.g., scene1, alert)"
+        "Enter command alias (e.g., scene1, alert)",
       );
       expect((aliasInput as HTMLInputElement).value).toBe("");
       expect(
-        screen.getByText("At least one command alias is required")
+        screen.getByText("At least one command alias is required"),
       ).toBeInTheDocument();
 
       // Make form dirty via description change (name remains valid)
@@ -276,7 +278,7 @@ describe("SpawnEditorWorkspace - MS-52 Command Trigger Configuration", () => {
     it("enables Save when alias becomes valid and form is dirty", () => {
       // Enter a valid alias
       const aliasInput = screen.getByPlaceholderText(
-        "Enter command alias (e.g., scene1, alert)"
+        "Enter command alias (e.g., scene1, alert)",
       );
       act(() => {
         fireEvent.change(aliasInput, { target: { value: "command1" } });
@@ -299,7 +301,7 @@ describe("SpawnEditorWorkspace - MS-52 Command Trigger Configuration", () => {
     it("re-disables Save when alias is cleared back to invalid while dirty", () => {
       // Start with valid alias and dirty form
       const aliasInput = screen.getByPlaceholderText(
-        "Enter command alias (e.g., scene1, alert)"
+        "Enter command alias (e.g., scene1, alert)",
       );
       act(() => {
         fireEvent.change(aliasInput, { target: { value: "command1" } });
@@ -322,7 +324,7 @@ describe("SpawnEditorWorkspace - MS-52 Command Trigger Configuration", () => {
         fireEvent.click(document.body);
       });
       expect(
-        screen.getByText("At least one command alias is required")
+        screen.getByText("At least one command alias is required"),
       ).toBeInTheDocument();
       expect(saveButton).toBeDisabled();
     });

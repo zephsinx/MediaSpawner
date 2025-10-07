@@ -5845,6 +5845,54 @@ public class CPHInline
     }
 
     /// <summary>
+    /// Set the live profile for execution
+    /// </summary>
+    /// <returns>True if live profile was set successfully, false otherwise</returns>
+    public bool SetLiveProfile()
+    {
+        try
+        {
+            if (!CPH.TryGetArg("liveProfileId", out string liveProfileId) || string.IsNullOrWhiteSpace(liveProfileId))
+            {
+                LogExecution(LogLevel.Error, "SetLiveProfile: Missing required argument 'liveProfileId'");
+                return false;
+            }
+
+            if (this.cachedConfig == null)
+            {
+                LogExecution(LogLevel.Error, "SetLiveProfile: No configuration loaded. Call LoadMediaSpawnerConfig first.");
+                return false;
+            }
+
+            // Validate that the profile exists in the cached configuration
+            SpawnProfile profile = this.cachedConfig.FindProfileById(liveProfileId);
+            if (profile == null)
+            {
+                LogExecution(LogLevel.Error, $"SetLiveProfile: Profile with ID '{liveProfileId}' not found in configuration");
+                return false;
+            }
+
+            // Set the live profile ID in global variable with persistence
+            CPH.SetGlobalVar("MediaSpawner_LiveProfileId", liveProfileId, persisted: true);
+
+            // Handle configuration update to rebuild timers and config for live profile
+            if (!HandleConfigurationUpdate())
+            {
+                LogExecution(LogLevel.Error, "SetLiveProfile: Failed to handle configuration update");
+                return false;
+            }
+
+            LogExecution(LogLevel.Info, $"SetLiveProfile: Successfully set live profile to '{profile.Name}' (ID: {liveProfileId})");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LogExecution(LogLevel.Error, $"SetLiveProfile: Unexpected error: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Get an asset by ID
     /// </summary>
     /// <returns>True if asset found and set in global variable, false otherwise</returns>
