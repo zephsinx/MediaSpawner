@@ -719,6 +719,7 @@ public class CPHInline
 
     /// <summary>
     /// Initialize all timers based on current MediaSpawnerConfig
+    /// Uses live profile when set, otherwise falls back to all profiles
     /// </summary>
     private void InitializeTimers()
     {
@@ -735,28 +736,46 @@ public class CPHInline
                     return;
                 }
 
-                int timerCount = 0;
+                // Refresh live profile ID in case it changed
+                RefreshLiveProfileId();
 
-                // Find all time-triggered spawns and create timers for them
-                foreach (SpawnProfile profile in this.cachedConfig.Profiles)
+                int timerCount = 0;
+                string profileSource;
+
+                // Use live profile if set, otherwise fall back to all profiles
+                if (!string.IsNullOrWhiteSpace(this.liveProfileId))
                 {
-                    if (profile.Spawns != null)
+                    // Validate that the live profile exists
+                    SpawnProfile liveProfile = this.cachedConfig.Profiles?.FirstOrDefault(p => p.Id == this.liveProfileId);
+                    if (liveProfile == null)
                     {
-                        foreach (Spawn spawn in profile.Spawns)
+                        LogExecution(LogLevel.Warning, $"InitializeTimers: Live profile '{this.liveProfileId}' not found in configuration, falling back to all profiles");
+                        timerCount = CreateTimersForProfiles(this.cachedConfig.Profiles);
+                        profileSource = "all profiles (fallback - invalid live profile)";
+                    }
+                    else
+                    {
+                        timerCount = CreateTimersForProfiles(new List<SpawnProfile> { liveProfile });
+                        profileSource = $"live profile '{this.liveProfileId}'";
+
+                        if (timerCount == 0)
                         {
-                            if (spawn.Enabled && spawn.Trigger?.Type?.StartsWith("time.") == true)
-                            {
-                                if (CreateTimerForSpawn(spawn))
-                                {
-                                    timerCount++;
-                                }
-                            }
+                            LogExecution(LogLevel.Warning, $"InitializeTimers: No time-triggered spawns found in live profile '{this.liveProfileId}', falling back to all profiles");
+                            // Fall back to all profiles
+                            timerCount = CreateTimersForProfiles(this.cachedConfig.Profiles);
+                            profileSource = "all profiles (fallback - no time spawns in live profile)";
                         }
                     }
                 }
+                else
+                {
+                    LogExecution(LogLevel.Info, "InitializeTimers: No live profile set, using all profiles");
+                    timerCount = CreateTimersForProfiles(this.cachedConfig.Profiles);
+                    profileSource = "all profiles";
+                }
 
                 this.timersInitialized = true;
-                LogExecution(LogLevel.Info, $"InitializeTimers: Successfully initialized {timerCount} timers");
+                LogExecution(LogLevel.Info, $"InitializeTimers: Successfully initialized {timerCount} timers from {profileSource}");
 
                 // Log timer status for monitoring
                 Dictionary<string, object> status = GetTimerStatus();
@@ -767,6 +786,35 @@ public class CPHInline
         {
             LogExecution(LogLevel.Error, $"InitializeTimers: Error during timer initialization: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Create timers for spawns in the specified profiles
+    /// </summary>
+    /// <param name="profiles">The profiles to create timers for</param>
+    /// <returns>Number of timers created</returns>
+    private int CreateTimersForProfiles(List<SpawnProfile> profiles)
+    {
+        int timerCount = 0;
+
+        foreach (SpawnProfile profile in profiles)
+        {
+            if (profile.Spawns != null)
+            {
+                foreach (Spawn spawn in profile.Spawns)
+                {
+                    if (spawn.Enabled && spawn.Trigger?.Type?.StartsWith("time.") == true)
+                    {
+                        if (CreateTimerForSpawn(spawn))
+                        {
+                            timerCount++;
+                        }
+                    }
+                }
+            }
+        }
+
+        return timerCount;
     }
 
     /// <summary>
