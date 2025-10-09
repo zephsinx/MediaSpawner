@@ -23,7 +23,6 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
   switch (action.type) {
     case "SET_ACTIVE_PROFILE": {
       const { profileId } = action.payload;
-      const previousProfileId = state.activeProfileId;
 
       // If switching to a different profile, reset spawn selection
       const newSelectedSpawnId =
@@ -38,22 +37,6 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
         centerPanelMode: "spawn-settings" as const, // Reset to spawn settings mode
         hasUnsavedChanges: false, // Clear unsaved changes when switching profiles
       };
-
-      // Dispatch profile change event if profile actually changed
-      if (profileId !== previousProfileId) {
-        try {
-          window.dispatchEvent(
-            new CustomEvent(
-              "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
-              {
-                detail: { profileId, previousProfileId },
-              } as CustomEventInit,
-            ),
-          );
-        } catch {
-          // Best-effort notification
-        }
-      }
 
       return newState;
     }
@@ -156,6 +139,7 @@ export interface LayoutProviderProps {
 export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(layoutReducer, initialState);
   const hasLoadedProfile = useRef(false);
+  const previousProfileIdRef = useRef<string | undefined>(undefined);
 
   // Load state from storage on mount
   useEffect(() => {
@@ -191,6 +175,31 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
         console.error("Failed to load active profile:", error);
       }
     }
+  }, [state.activeProfileId]);
+
+  // Dispatch profile change event when activeProfileId changes
+  useEffect(() => {
+    const currentProfileId = state.activeProfileId;
+    const previousProfileId = previousProfileIdRef.current;
+
+    // Only dispatch if profile actually changed and we're not in initial load
+    if (currentProfileId !== previousProfileId && hasLoadedProfile.current) {
+      try {
+        window.dispatchEvent(
+          new CustomEvent(
+            "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
+            {
+              detail: { profileId: currentProfileId, previousProfileId },
+            } as CustomEventInit,
+          ),
+        );
+      } catch {
+        // Best-effort notification
+      }
+    }
+
+    // Update ref for next comparison
+    previousProfileIdRef.current = currentProfileId;
   }, [state.activeProfileId]);
 
   return (

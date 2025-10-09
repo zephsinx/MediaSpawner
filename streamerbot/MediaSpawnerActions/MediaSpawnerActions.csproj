@@ -47,6 +47,7 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="MediaSpawnerClient.cs" />
+        <Compile Include="SbLogs.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
         <Compile Include="lib\CPHStub.cs" />
     </ItemGroup>

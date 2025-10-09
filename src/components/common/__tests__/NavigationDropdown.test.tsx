@@ -53,10 +53,10 @@ describe("NavigationDropdown", () => {
 
       // Should not find any dropdown trigger or additional navigation options
       expect(
-        screen.queryByLabelText("Additional navigation options")
+        screen.queryByLabelText("Additional navigation options"),
       ).not.toBeInTheDocument();
       expect(
-        screen.queryByRole("button", { name: /chevron/i })
+        screen.queryByRole("button", { name: /chevron/i }),
       ).not.toBeInTheDocument();
     });
   });
@@ -68,11 +68,11 @@ describe("NavigationDropdown", () => {
       expect(screen.getByLabelText("Edit Assets")).toBeInTheDocument();
     });
 
-    it("has proper button structure", () => {
+    it("has proper link structure", () => {
       renderWithAllProviders(<NavigationDropdown />);
 
-      const button = screen.getByRole("button", { name: "Edit Assets" });
-      expect(button).toHaveAttribute("aria-disabled", "false");
+      const link = screen.getByRole("link", { name: "Edit Assets" });
+      expect(link).toHaveAttribute("href", "/assets");
     });
 
     it("has proper icon accessibility", () => {
@@ -86,16 +86,14 @@ describe("NavigationDropdown", () => {
   });
 
   describe("Styling", () => {
-    it("applies correct CSS classes to button", () => {
+    it("applies correct CSS classes to link", () => {
       renderWithAllProviders(<NavigationDropdown />);
 
-      const editAssetsButton = screen
-        .getByText("Edit Assets")
-        .closest("button");
-      expect(editAssetsButton).toHaveClass("min-w-[140px]");
+      const editAssetsLink = screen.getByText("Edit Assets").closest("a");
+      expect(editAssetsLink).toHaveClass("min-w-[140px]");
     });
 
-    it("applies correct CSS classes to link", () => {
+    it("applies correct CSS classes to link container", () => {
       renderWithAllProviders(<NavigationDropdown />);
 
       const editAssetsLink = screen.getByText("Edit Assets").closest("a");

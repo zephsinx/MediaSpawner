@@ -1,5 +1,6 @@
 import * as React from "react";
 import { type VariantProps } from "class-variance-authority";
+import { Slot } from "@radix-ui/react-slot";
 import { cn } from "../../utils/cn";
 import {
   cardVariants,
@@ -17,13 +18,29 @@ export interface CardProps
 }
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, variant, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(cardVariants({ variant, className }))}
-      {...props}
-    />
-  )
+  ({ className, variant, asChild = false, ...props }, ref) => {
+    // Filter out asChild prop before spreading to DOM elements
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { asChild: _, ...filteredProps } = props as CardProps;
+
+    if (asChild) {
+      return (
+        <Slot
+          ref={ref}
+          className={cn(cardVariants({ variant, className }))}
+          {...filteredProps}
+        />
+      );
+    }
+
+    return (
+      <div
+        ref={ref}
+        className={cn(cardVariants({ variant, className }))}
+        {...filteredProps}
+      />
+    );
+  },
 );
 Card.displayName = "Card";
 

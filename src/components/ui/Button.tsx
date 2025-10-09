@@ -1,5 +1,6 @@
 import * as React from "react";
 import { type VariantProps } from "class-variance-authority";
+import { Slot } from "@radix-ui/react-slot";
 import { cn } from "../../utils/cn";
 import { buttonVariants } from "./variants";
 
@@ -12,19 +13,26 @@ export interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
-    { className, variant, size, loading = false, disabled, children, ...props },
-    ref
+    {
+      className,
+      variant,
+      size,
+      loading = false,
+      disabled,
+      asChild = false,
+      children,
+      ...props
+    },
+    ref,
   ) => {
     const isDisabled = disabled || loading;
 
-    return (
-      <button
-        className={cn(buttonVariants({ variant, size, className }))}
-        ref={ref}
-        disabled={isDisabled}
-        aria-disabled={isDisabled}
-        {...props}
-      >
+    // Filter out asChild prop before spreading to DOM elements
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { asChild: _, ...filteredProps } = props as ButtonProps;
+
+    const buttonContent = (
+      <>
         {loading && (
           <svg
             className="mr-2 h-4 w-4 animate-spin"
@@ -48,9 +56,33 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           </svg>
         )}
         {children}
+      </>
+    );
+
+    if (asChild) {
+      return (
+        <Slot
+          className={cn(buttonVariants({ variant, size, className }))}
+          ref={ref}
+          {...filteredProps}
+        >
+          {children}
+        </Slot>
+      );
+    }
+
+    return (
+      <button
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        disabled={isDisabled}
+        aria-disabled={isDisabled}
+        {...filteredProps}
+      >
+        {buttonContent}
       </button>
     );
-  }
+  },
 );
 Button.displayName = "Button";
 

@@ -53,6 +53,136 @@ This file guides coding agents working on MediaSpawner. It complements README.md
 - Write comments only to explain non-obvious "why" decisions, not "what" the code does.
 - UI guidelines and tokens: see `planning/UI_STYLE_GUIDE.md`.
 
+## React Best Practices
+
+### Reducer Purity
+
+- **Reducers must be pure functions**: They should only compute new state based on previous state and action, without side effects.
+- **No side effects in reducers**: Never dispatch events, make API calls, or perform other side effects within reducer functions.
+- **Example violation** (❌ Don't do this):
+
+  ```typescript
+  function layoutReducer(
+    state: LayoutState,
+    action: LayoutAction,
+  ): LayoutState {
+    // ... state computation ...
+
+    // ❌ WRONG: Side effect in reducer
+    if (profileId !== previousProfileId) {
+      window.dispatchEvent(new CustomEvent("mediaspawner:profile-changed"));
+    }
+
+    return newState;
+  }
+  ```
+
+- **Correct approach** (✅ Do this):
+
+  ```typescript
+  function layoutReducer(
+    state: LayoutState,
+    action: LayoutAction,
+  ): LayoutState {
+    // ✅ CORRECT: Pure function, only computes new state
+    return {
+      ...state,
+      activeProfileId: profileId,
+      // ... other state updates
+    };
+  }
+
+  // Side effects belong in useEffect
+  useEffect(() => {
+    if (currentProfileId !== previousProfileId) {
+      window.dispatchEvent(new CustomEvent("mediaspawner:profile-changed"));
+    }
+  }, [currentProfileId]);
+  ```
+
+### Side Effect Placement
+
+- **Render phase must be pure**: No state updates, API calls, or side effects during component render.
+- **Use useEffect for side effects**: All side effects should be placed in useEffect hooks, event handlers, or service methods.
+- **Common side effects to avoid in render**:
+  - `setState()` calls
+  - `dispatch()` calls
+  - `window.dispatchEvent()` calls
+  - API calls
+  - localStorage/sessionStorage access
+  - console.log (except for debugging)
+
+### Event Dispatching Best Practices
+
+- **Dispatch events after operations complete**: Events should be dispatched after successful operations, not during state computation.
+- **Use useEffect for reactive events**: When events need to be dispatched based on state changes, use useEffect to watch for changes.
+- **Example from MediaSpawner** (✅ Good pattern):
+
+  ```typescript
+  // In SpawnService.updateSpawn - dispatch after successful save
+  const result = await this.updateProfileSpawns(
+    activeProfile.id,
+    updatedSpawns,
+  );
+  if (result.success) {
+    window.dispatchEvent(
+      new CustomEvent("mediaspawner:spawn-updated", {
+        detail: { spawnId: updatedSpawn.id },
+      }),
+    );
+  }
+  ```
+
+### Common React Antipatterns to Avoid
+
+1. **State updates during render**:
+
+   ```typescript
+   // ❌ WRONG
+   function Component() {
+     const [count, setCount] = useState(0);
+     setCount(count + 1); // This will cause infinite re-renders
+     return <div>{count}</div>;
+   }
+   ```
+
+2. **Side effects in reducers**:
+
+   ```typescript
+   // ❌ WRONG
+   function reducer(state, action) {
+     localStorage.setItem("key", "value"); // Side effect in reducer
+     return newState;
+   }
+   ```
+
+3. **Event dispatch during render**:
+
+   ```typescript
+   // ❌ WRONG
+   function Component() {
+     window.dispatchEvent(new CustomEvent('my-event')); // Side effect in render
+     return <div>Content</div>;
+   }
+   ```
+
+### MediaSpawner-Specific Patterns
+
+- **Event dispatching**: Follow the pattern used in `SpawnService.updateSpawn` - dispatch events after successful operations.
+- **State management**: Use `useEffect` for reactive state updates, as seen in `SpawnList` and `AssetManagementPanel`.
+- **Profile changes**: The `LayoutProvider` correctly uses `useEffect` to dispatch profile change events after state updates.
+- **Event listening**: Components properly listen to events in `useEffect` hooks and clean up listeners on unmount.
+
+### Error Prevention Checklist
+
+Before implementing any React component or reducer:
+
+- [ ] Are all state updates in useEffect, event handlers, or service methods?
+- [ ] Is the reducer a pure function with no side effects?
+- [ ] Are event dispatches happening after operations complete?
+- [ ] Are all side effects properly contained in useEffect hooks?
+- [ ] Is the render function pure with no side effects?
+
 ## Layout and modes
 
 - Three-panel layout:

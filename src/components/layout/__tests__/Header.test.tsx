@@ -205,9 +205,9 @@ describe("Header", () => {
       renderWithAllProviders(<Header />);
 
       expect(screen.getByText("Edit Assets")).toBeInTheDocument();
-      // NavigationDropdown only has primary action, no dropdown menu
+      // NavigationDropdown renders as a link for navigation
       expect(
-        screen.getByRole("button", { name: "Edit Assets" }),
+        screen.getByRole("link", { name: "Edit Assets" }),
       ).toBeInTheDocument();
     });
 
