@@ -76,7 +76,6 @@ describe("ImportExportService", () => {
       expect(exportedData.version).toBe("1.0.0");
       expect(exportedData.profiles).toHaveLength(1);
       expect(exportedData.assets).toHaveLength(1);
-      expect(exportedData.profiles[0].workingDirectory).toBe("/test/path");
     });
 
     it("should return error when no data is available to export", async () => {
@@ -143,7 +142,6 @@ describe("ImportExportService", () => {
             id: "imported-profile",
             name: "Imported Profile",
             description: "Imported Description",
-            workingDirectory: "/imported/path",
             spawns: [
               {
                 id: "imported-spawn",
@@ -197,9 +195,8 @@ describe("ImportExportService", () => {
       });
 
       // Execute
-      const result = await ImportExportService.importConfiguration(
-        importedJson
-      );
+      const result =
+        await ImportExportService.importConfiguration(importedJson);
 
       // Verify
       expect(result.success).toBe(true);
@@ -212,9 +209,6 @@ describe("ImportExportService", () => {
       // Verify services were called
       expect(mockSpawnProfileService.replaceProfiles).toHaveBeenCalled();
       expect(mockAssetService.saveAssets).toHaveBeenCalled();
-      expect(mockSettingsService.updateWorkingDirectory).toHaveBeenCalledWith(
-        "/imported/path"
-      );
     });
 
     it("should handle import errors gracefully", async () => {
@@ -234,9 +228,8 @@ describe("ImportExportService", () => {
         // Missing profiles and assets
       });
 
-      const result = await ImportExportService.importConfiguration(
-        invalidConfig
-      );
+      const result =
+        await ImportExportService.importConfiguration(invalidConfig);
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Invalid configuration");
@@ -271,7 +264,6 @@ describe("ImportExportService", () => {
           {
             id: "conflict-profile",
             name: "Conflict Profile",
-            workingDirectory: "/conflict/path",
             spawns: [],
             lastModified: "2023-01-01T00:00:00.000Z",
           },
@@ -311,7 +303,7 @@ describe("ImportExportService", () => {
           ...DEFAULT_IMPORT_OPTIONS,
           profileConflictStrategy: "rename",
           assetConflictStrategy: "rename",
-        }
+        },
       );
 
       // Verify
@@ -346,10 +338,10 @@ describe("ImportExportService", () => {
 
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain(
-        "Configuration must have a profiles array"
+        "Configuration must have a profiles array",
       );
       expect(result.errors).toContain(
-        "Configuration must have an assets array"
+        "Configuration must have an assets array",
       );
     });
 
@@ -361,12 +353,12 @@ describe("ImportExportService", () => {
       };
 
       const result = ImportExportService.validateImportedConfig(
-        configWithVersionMismatch
+        configWithVersionMismatch,
       );
 
       expect(result.isValid).toBe(true);
       expect(result.warnings).toContain(
-        "Version mismatch: expected 1.0.0, got 2.0.0"
+        "Version mismatch: expected 1.0.0, got 2.0.0",
       );
     });
   });

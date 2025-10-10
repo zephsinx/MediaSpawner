@@ -102,6 +102,21 @@ public class CPHInline
     private readonly object lockObject = new object();
 
     /// <summary>
+    /// File path cache mapping filename (lowercase) to full resolved path
+    /// </summary>
+    private readonly Dictionary<string, string> filePathCache = new Dictionary<string, string>();
+
+    /// <summary>
+    /// Timestamp when file path cache was built
+    /// </summary>
+    private DateTime filePathCacheTimestamp = DateTime.MinValue;
+
+    /// <summary>
+    /// Tracks which files have duplicates (for logging once)
+    /// </summary>
+    private readonly HashSet<string> duplicateFileWarnings = new HashSet<string>();
+
+    /// <summary>
     /// Flag to track if timers have been initialized
     /// </summary>
     private bool timersInitialized;
@@ -5223,16 +5238,23 @@ public class CPHInline
         }
         else
         {
-            // Local files use appropriate parameter based on source type
+            // Local files - resolve path using working directory
+            string resolvedPath = asset.Path;
+            if (this.cachedConfig != null && !string.IsNullOrWhiteSpace(this.cachedConfig.WorkingDirectory))
+            {
+                resolvedPath = ResolveLocalFilePath(asset.Path, this.cachedConfig.WorkingDirectory);
+            }
+
+            // Use appropriate parameter based on source type
             if (asset.Type?.ToLowerInvariant() == "image")
             {
                 // image_source uses "file" parameter
-                settings["file"] = asset.Path;
+                settings["file"] = resolvedPath;
             }
             else
             {
                 // ffmpeg_source uses "local_file" parameter
-                settings["local_file"] = asset.Path;
+                settings["local_file"] = resolvedPath;
             }
         }
 
@@ -5844,6 +5866,12 @@ public class CPHInline
                 this.cachedConfigSha = currentSha;
                 this.configCacheTimestamp = DateTime.UtcNow;
 
+                // Build file path cache if working directory is set
+                if (!string.IsNullOrWhiteSpace(config.WorkingDirectory))
+                {
+                    BuildFilePathCache(config.WorkingDirectory);
+                }
+
                 // Load live profile ID from global variables
                 this.liveProfileId = CPH.GetGlobalVar<string>("MediaSpawner_LiveProfileId");
                 if (string.IsNullOrWhiteSpace(this.liveProfileId))
@@ -6020,6 +6048,10 @@ public class CPHInline
                 {
                     LogExecution(LogLevel.Info, $"RefreshLiveProfileId: Live profile updated to '{this.liveProfileId}'");
                 }
+
+                // Invalidate file path cache when live profile changes
+                InvalidateFilePathCache();
+
                 return true;
             }
             return false;
@@ -6343,6 +6375,9 @@ public class CPHInline
         [JsonProperty("version")]
         public string Version { get; set; } = string.Empty;
 
+        [JsonProperty("workingDirectory")]
+        public string WorkingDirectory { get; set; } = string.Empty;
+
         [JsonProperty("profiles")]
         public List<SpawnProfile> Profiles { get; set; } = new List<SpawnProfile>();
 
@@ -6549,7 +6584,7 @@ public class CPHInline
     }
 
     /// <summary>
-    /// Spawn profile containing multiple spawns and working directory
+    /// Spawn profile containing multiple spawns
     /// </summary>
     public class SpawnProfile
     {
@@ -6561,9 +6596,6 @@ public class CPHInline
 
         [JsonProperty("description")]
         public string Description { get; set; }
-
-        [JsonProperty("workingDirectory")]
-        public string WorkingDirectory { get; set; } = string.Empty;
 
         [JsonProperty("spawns")]
         public List<Spawn> Spawns { get; set; } = new List<Spawn>();
@@ -7445,6 +7477,7 @@ public class CPHInline
             this.cachedConfig = null;
             this.cachedConfigSha = null;
             this.configCacheTimestamp = DateTime.MinValue;
+            InvalidateFilePathCache();
             LogExecution(LogLevel.Info, "StateManagement: Configuration cache invalidated");
         }
     }
@@ -7845,6 +7878,151 @@ public class CPHInline
             case LogLevel.Error:
                 CPH.LogError(logMessage);
                 break;
+        }
+    }
+
+    #endregion
+
+    #region File Path Cache Methods
+
+    /// <summary>
+    /// Build file path cache by recursively scanning the working directory
+    /// </summary>
+    /// <param name="workingDirectory">The working directory to scan</param>
+    private void BuildFilePathCache(string workingDirectory)
+    {
+        lock (this.lockObject)
+        {
+            // Clear existing cache
+            this.filePathCache.Clear();
+            this.duplicateFileWarnings.Clear();
+            this.filePathCacheTimestamp = DateTime.UtcNow;
+
+            if (string.IsNullOrWhiteSpace(workingDirectory))
+            {
+                LogExecution(LogLevel.Info, "BuildFilePathCache: No working directory set, skipping file scan");
+                return;
+            }
+
+            if (!Directory.Exists(workingDirectory))
+            {
+                LogExecution(LogLevel.Warning, $"BuildFilePathCache: Working directory does not exist: {workingDirectory}");
+                return;
+            }
+
+            try
+            {
+                // Supported media file extensions
+                string[] supportedExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg",
+                                               ".mp4", ".webm", ".mov", ".avi", ".mkv", ".wmv",
+                                               ".mp3", ".wav", ".ogg", ".m4a", ".aac", ".flac" };
+
+                // Get all files recursively
+                string[] allFiles = Directory.GetFiles(workingDirectory, "*", SearchOption.AllDirectories);
+                int totalFiles = 0;
+                int duplicateCount = 0;
+
+                foreach (string filePath in allFiles)
+                {
+                    string extension = Path.GetExtension(filePath).ToLowerInvariant();
+                    if (!supportedExtensions.Contains(extension))
+                        continue;
+
+                    string filename = Path.GetFileName(filePath).ToLowerInvariant();
+                    totalFiles++;
+
+                    if (this.filePathCache.ContainsKey(filename))
+                    {
+                        // Duplicate filename found
+                        duplicateCount++;
+                        if (!this.duplicateFileWarnings.Contains(filename))
+                        {
+                            LogExecution(LogLevel.Info, $"BuildFilePathCache: Duplicate filename '{filename}' found in multiple locations. Using first match.");
+                            this.duplicateFileWarnings.Add(filename);
+                        }
+                    }
+                    else
+                    {
+                        // First occurrence of this filename
+                        this.filePathCache[filename] = filePath;
+                    }
+                }
+
+                LogExecution(LogLevel.Info, $"BuildFilePathCache: Scanned {totalFiles} media files, found {this.filePathCache.Count} unique filenames, {duplicateCount} duplicates");
+            }
+            catch (Exception ex)
+            {
+                LogExecution(LogLevel.Error, $"BuildFilePathCache: Error scanning working directory: {ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Resolve local file path using cache or filesystem scan
+    /// </summary>
+    /// <param name="filename">The filename to resolve</param>
+    /// <param name="workingDirectory">The working directory</param>
+    /// <returns>Full resolved path or original filename if not found</returns>
+    private string ResolveLocalFilePath(string filename, string workingDirectory)
+    {
+        if (string.IsNullOrWhiteSpace(filename) || string.IsNullOrWhiteSpace(workingDirectory))
+        {
+            return filename;
+        }
+
+        string filenameLower = filename.ToLowerInvariant();
+
+        lock (this.lockObject)
+        {
+            // Check cache first
+            if (this.filePathCache.TryGetValue(filenameLower, out string cachedPath))
+            {
+                return cachedPath;
+            }
+
+            // Cache miss - scan filesystem for this specific file
+            try
+            {
+                if (Directory.Exists(workingDirectory))
+                {
+                    string[] foundFiles = Directory.GetFiles(workingDirectory, filename, SearchOption.AllDirectories);
+                    if (foundFiles.Length > 0)
+                    {
+                        // Use first match (alphabetical order by default)
+                        string resolvedPath = foundFiles[0];
+                        this.filePathCache[filenameLower] = resolvedPath;
+
+                        if (foundFiles.Length > 1)
+                        {
+                            LogExecution(LogLevel.Info, $"ResolveLocalFilePath: Found {foundFiles.Length} files matching '{filename}', using first match");
+                        }
+
+                        return resolvedPath;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogExecution(LogLevel.Warning, $"ResolveLocalFilePath: Error scanning for '{filename}': {ex.Message}");
+            }
+
+            // File not found, return original filename
+            LogExecution(LogLevel.Warning, $"ResolveLocalFilePath: File '{filename}' not found in working directory '{workingDirectory}'");
+            return filename;
+        }
+    }
+
+    /// <summary>
+    /// Invalidate the file path cache
+    /// </summary>
+    private void InvalidateFilePathCache()
+    {
+        lock (this.lockObject)
+        {
+            this.filePathCache.Clear();
+            this.duplicateFileWarnings.Clear();
+            this.filePathCacheTimestamp = DateTime.MinValue;
+            LogExecution(LogLevel.Info, "InvalidateFilePathCache: File path cache cleared");
         }
     }
 
