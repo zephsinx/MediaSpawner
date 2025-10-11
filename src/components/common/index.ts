@@ -29,6 +29,10 @@ export {
 } from "./SyncActionsDropdown";
 export { ThemeToggle, type ThemeToggleProps } from "./ThemeToggle";
 export {
+  ConfigViewerModal,
+  type ConfigViewerModalProps,
+} from "./ConfigViewerModal";
+export {
   ProfileActionsDropdown,
   type ProfileActionsDropdownProps,
 } from "./ProfileActionsDropdown";

@@ -8,6 +8,7 @@
 import type { SpawnProfile, MediaAsset } from "../types";
 import { SpawnProfileService } from "./spawnProfileService";
 import { AssetService } from "./assetService";
+import { SettingsService } from "./settingsService";
 import {
   transformProfileToSchema,
   transformAssetToSchema,
@@ -114,6 +115,7 @@ export interface ImportMetadata {
  */
 export interface MediaSpawnerConfig {
   version: string;
+  workingDirectory: string;
   profiles: ExportedSpawnProfile[];
   assets: ExportedAsset[];
 }
@@ -132,6 +134,7 @@ export class ImportExportService {
       // Get data from services
       const profiles = SpawnProfileService.getAllProfiles();
       const assets = AssetService.getAssets();
+      const settings = SettingsService.getSettings();
 
       // Validate that we have data to export
       if (profiles.length === 0 && assets.length === 0) {
@@ -162,6 +165,7 @@ export class ImportExportService {
       // Create configuration object
       const config: MediaSpawnerConfig = {
         version: this.CONFIG_VERSION,
+        workingDirectory: settings.workingDirectory,
         profiles: exportedProfiles,
         assets: exportedAssets,
       };
@@ -257,6 +261,19 @@ export class ImportExportService {
           success: false,
           error: mergeResult.error,
         };
+      }
+
+      // Handle working directory update if option is enabled
+      if (options.updateWorkingDirectory && config.workingDirectory) {
+        const workingDirResult = SettingsService.updateWorkingDirectory(
+          config.workingDirectory,
+        );
+        if (!workingDirResult.success) {
+          console.warn(
+            `Failed to update working directory: ${workingDirResult.error}`,
+          );
+          // Don't fail the import, just log the warning
+        }
       }
 
       // Create metadata

@@ -491,7 +491,6 @@ public class CPHInline
             CPH.TryGetArg("userId", out string userId);
             CPH.TryGetArg("userName", out string userName);
             CPH.TryGetArg("rawInput", out string rawInput);
-            CPH.TryGetArg("isInternal", out bool isInternal);
             CPH.TryGetArg("isBotAccount", out bool isBotAccount);
 
             LogExecution(LogLevel.Info, $"HandleCommandTrigger: Command '{command}' from user '{userName}' (ID: {userId})");
@@ -506,7 +505,7 @@ public class CPHInline
             }
 
             // Filter spawns based on command configuration
-            List<Spawn> validSpawns = FilterSpawnsByCommandConfig(matchingSpawns, command, userName, rawInput, isInternal, isBotAccount);
+            List<Spawn> validSpawns = FilterSpawnsByCommandConfig(matchingSpawns, command, userName, rawInput, isBotAccount);
 
             if (validSpawns.Count == 0)
             {
@@ -543,7 +542,6 @@ public class CPHInline
                 ["userName"] = userName,
                 ["rawInput"] = rawInput,
                 ["source"] = source,
-                ["isInternal"] = isInternal,
                 ["isBotAccount"] = isBotAccount,
                 ["executionTime"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
             });
@@ -3271,10 +3269,9 @@ public class CPHInline
     /// <param name="command">The command that triggered</param>
     /// <param name="userName">The user who triggered the command</param>
     /// <param name="rawInput">The raw command input</param>
-    /// <param name="isInternal">Whether the command is internal</param>
     /// <param name="isBotAccount">Whether the command is from a bot account</param>
     /// <returns>List of spawns that match the command configuration</returns>
-    private List<Spawn> FilterSpawnsByCommandConfig(List<Spawn> spawns, string command, string userName, string rawInput, bool isInternal, bool isBotAccount)
+    private List<Spawn> FilterSpawnsByCommandConfig(List<Spawn> spawns, string command, string userName, string rawInput, bool isBotAccount)
     {
         List<Spawn> validSpawns = new List<Spawn>();
 
@@ -3289,21 +3286,41 @@ public class CPHInline
 
             // Check if command matches aliases
             bool commandMatches = false;
-            if (config.ContainsKey("aliases") && config["aliases"] is List<object> aliases)
+            if (config.ContainsKey("aliases"))
             {
-                foreach (object alias in aliases)
+                var aliasesValue = config["aliases"];
+                List<object> aliases = null;
+
+                // Handle different types of aliases collections
+                if (aliasesValue is List<object> listAliases)
                 {
-                    if (!(alias is string aliasStr) || string.IsNullOrWhiteSpace(aliasStr))
-                        continue;
+                    aliases = listAliases;
+                }
+                else if (aliasesValue is Newtonsoft.Json.Linq.JArray jArrayAliases)
+                {
+                    aliases = jArrayAliases.ToObject<List<object>>();
+                }
+                else if (aliasesValue is System.Collections.IEnumerable enumerableAliases)
+                {
+                    aliases = enumerableAliases.Cast<object>().ToList();
+                }
 
-                    bool caseSensitive = config.ContainsKey("caseSensitive") &&
-                                         config["caseSensitive"] is bool cs && cs;
+                if (aliases != null)
+                {
+                    foreach (object alias in aliases)
+                    {
+                        if (!(alias is string aliasStr) || string.IsNullOrWhiteSpace(aliasStr))
+                            continue;
 
-                    if (caseSensitive ? command != aliasStr : !command.Equals(aliasStr, StringComparison.OrdinalIgnoreCase))
-                        continue;
+                        bool caseSensitive = config.ContainsKey("caseSensitive") &&
+                                             config["caseSensitive"] is bool cs && cs;
 
-                    commandMatches = true;
-                    break;
+                        if (caseSensitive ? command == aliasStr : command.Equals(aliasStr, StringComparison.OrdinalIgnoreCase))
+                        {
+                            commandMatches = true;
+                            break;
+                        }
+                    }
                 }
             }
 
@@ -3317,11 +3334,6 @@ public class CPHInline
 
             if (!commandMatches)
                 continue;
-            // Check internal command filter
-            if (config.ContainsKey("ignoreInternal") && config["ignoreInternal"] is bool ignoreInternal && ignoreInternal && isInternal)
-            {
-                continue; // Skip internal commands if configured to ignore them
-            }
 
             // Check bot account filter
             if (config.ContainsKey("ignoreBotAccount") && config["ignoreBotAccount"] is bool ignoreBotAccount && ignoreBotAccount && isBotAccount)

@@ -25,6 +25,7 @@ vi.mock("../streamerbotService", () => ({
     getStatus: vi.fn(),
     getGlobalVariable: vi.fn(),
     setGlobalVariable: vi.fn(),
+    executeAction: vi.fn(),
   },
 }));
 
@@ -1016,7 +1017,7 @@ describe("SpawnProfileService", () => {
         mockStreamerbotService.getGlobalVariable.mockResolvedValue(
           "nonexistent-profile",
         );
-        mockStreamerbotService.setGlobalVariable.mockResolvedValue(true);
+        mockStreamerbotService.executeAction.mockResolvedValue(true);
 
         const result = await SpawnProfileService.getLiveProfile();
 
@@ -1033,7 +1034,7 @@ describe("SpawnProfileService", () => {
         const localStorage = getLocalStorageMock();
         localStorage.getItem.mockReturnValue(JSON.stringify([validProfile]));
         mockCacheService.get.mockReturnValue([validProfile]);
-        mockStreamerbotService.setGlobalVariable.mockResolvedValue(true);
+        mockStreamerbotService.executeAction.mockResolvedValue(true);
 
         const result = await SpawnProfileService.setLiveProfile(
           validProfile.id,
@@ -1041,9 +1042,9 @@ describe("SpawnProfileService", () => {
 
         expect(result.success).toBe(true);
         expect(result.profile).toEqual(validProfile);
-        expect(mockStreamerbotService.setGlobalVariable).toHaveBeenCalledWith(
-          "MediaSpawner_LiveProfileId",
-          validProfile.id,
+        expect(mockStreamerbotService.executeAction).toHaveBeenCalledWith(
+          "SetLiveProfile",
+          { liveProfileId: validProfile.id },
         );
       });
 
@@ -1060,14 +1061,14 @@ describe("SpawnProfileService", () => {
         expect(result.error).toBe(
           'Profile with ID "nonexistent-profile" not found',
         );
-        expect(mockStreamerbotService.setGlobalVariable).not.toHaveBeenCalled();
+        expect(mockStreamerbotService.executeAction).not.toHaveBeenCalled();
       });
 
       it("returns error when Streamer.bot fails", async () => {
         const localStorage = getLocalStorageMock();
         localStorage.getItem.mockReturnValue(JSON.stringify([validProfile]));
         mockCacheService.get.mockReturnValue([validProfile]);
-        mockStreamerbotService.setGlobalVariable.mockResolvedValue(false);
+        mockStreamerbotService.executeAction.mockResolvedValue(false);
 
         const result = await SpawnProfileService.setLiveProfile(
           validProfile.id,
@@ -1081,7 +1082,7 @@ describe("SpawnProfileService", () => {
         const localStorage = getLocalStorageMock();
         localStorage.getItem.mockReturnValue(JSON.stringify([validProfile]));
         mockCacheService.get.mockReturnValue([validProfile]);
-        mockStreamerbotService.setGlobalVariable.mockRejectedValue(
+        mockStreamerbotService.executeAction.mockRejectedValue(
           new Error("Connection failed"),
         );
 

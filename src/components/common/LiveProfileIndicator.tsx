@@ -69,7 +69,7 @@ export function LiveProfileIndicator({
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
           <div
-            className="inline-flex items-center gap-2"
+            className="inline-flex items-center gap-2 min-w-[80px]"
             role="status"
             aria-label={`Live status: ${isLive ? "Live" : "Not live"}`}
           >
@@ -116,7 +116,7 @@ export function LiveProfileIndicator({
           size={sizeStyles.button}
           onClick={handleSetLive}
           disabled={disabled || isLive}
-          className="ml-2"
+          className="ml-2 min-w-[100px]"
           aria-label={
             isLive ? "Profile is already live" : "Set this profile as live"
           }

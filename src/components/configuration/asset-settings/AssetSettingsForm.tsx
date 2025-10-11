@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 import { AssetService } from "../../../services/assetService";
 import { SpawnService } from "../../../services/spawnService";
 import type {
@@ -13,6 +19,7 @@ import {
   buildOverridesDiff,
 } from "../../../utils/assetSettingsResolver";
 import { usePanelState } from "../../../hooks/useLayout";
+import { useDebounce } from "../../../hooks/useDebounce";
 import {
   validateVolumePercent,
   validateDimensionsValues,
@@ -58,11 +65,15 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
   // Local draft state: values only
   const [durationDraftMs, setDurationDraftMs] = useState<number>(0);
   const [draftValues, setDraftValues] = useState<Partial<MediaAssetProperties>>(
-    {}
+    {},
   );
   const [validationErrors, setValidationErrors] = useState<
     Partial<Record<FieldKey, string>>
   >({});
+
+  // Local state for immediate slider feedback
+  const [localVolume, setLocalVolume] = useState<number>(0.5);
+  const [localRotation, setLocalRotation] = useState<number>(0);
 
   useEffect(() => {
     let active = true;
@@ -99,6 +110,10 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
     });
   }, [spawn, spawnAsset]);
 
+  // Debounced values for sliders
+  const debouncedVolume = useDebounce(localVolume, 150);
+  const debouncedRotation = useDebounce(localRotation, 150);
+
   // Initialize draft when context target changes (avoid loops on referential changes)
   const initKeyRef = useRef<string | null>(null);
   useEffect(() => {
@@ -119,10 +134,53 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
     setDurationDraftMs(
       hasDurationOverride
         ? Math.max(0, Number(spawnAsset.overrides?.duration))
-        : Math.max(0, Number(spawn.duration))
+        : Math.max(0, Number(spawn.duration)),
     );
     setUnsavedChanges(false);
   }, [effective, spawn, spawnAsset, setUnsavedChanges, getCachedDraft]);
+
+  const setField = useCallback(
+    (key: FieldKey, value: MediaAssetProperties[FieldKey]) => {
+      setDraftValues((prev) => ({ ...prev, [key]: value }));
+      setUnsavedChanges(true);
+      // Live-validate the field
+      setValidationErrors((prev) => ({
+        ...prev,
+        [key]: getFieldError(key, { ...draftValues, [key]: value }),
+      }));
+    },
+    [draftValues, setUnsavedChanges],
+  );
+
+  // Sync debounced values to draftValues
+  useEffect(() => {
+    if (debouncedVolume !== draftValues.volume) {
+      setField("volume", debouncedVolume);
+    }
+  }, [debouncedVolume, setField, draftValues.volume]);
+
+  useEffect(() => {
+    if (debouncedRotation !== draftValues.rotation) {
+      setField("rotation", debouncedRotation);
+    }
+  }, [debouncedRotation, setField, draftValues.rotation]);
+
+  // Initialize local state when component first loads
+  useEffect(() => {
+    if (effective) {
+      setLocalVolume(effective.effective.volume ?? 0.5);
+      setLocalRotation(effective.effective.rotation ?? 0);
+    }
+  }, [effective]);
+
+  // Reset local state when draftValues changes externally
+  useEffect(() => {
+    setLocalVolume(draftValues.volume ?? 0.5);
+  }, [draftValues.volume]);
+
+  useEffect(() => {
+    setLocalRotation(draftValues.rotation ?? 0);
+  }, [draftValues.rotation]);
 
   useEffect(() => {
     const onSpawnUpdated = async (evt: Event) => {
@@ -147,25 +205,15 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
     };
     window.addEventListener(
       "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-      onSpawnUpdated as EventListener
+      onSpawnUpdated as EventListener,
     );
     return () => {
       window.removeEventListener(
         "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-        onSpawnUpdated as EventListener
+        onSpawnUpdated as EventListener,
       );
     };
   }, [spawnId, spawnAssetId, baseAsset, spawnAsset]);
-
-  const setField = (key: FieldKey, value: MediaAssetProperties[FieldKey]) => {
-    setDraftValues((prev) => ({ ...prev, [key]: value }));
-    setUnsavedChanges(true);
-    // Live-validate the field
-    setValidationErrors((prev) => ({
-      ...prev,
-      [key]: getFieldError(key, { ...draftValues, [key]: value }),
-    }));
-  };
 
   const handleCancel = () => {
     if (!effective) return;
@@ -200,7 +248,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                 duration: Math.max(0, durationDraftMs),
               },
             }
-          : sa
+          : sa,
       );
 
       const result = await SpawnService.updateSpawn(spawn.id, {
@@ -225,12 +273,12 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
       window.dispatchEvent(
         new CustomEvent(
           "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-          { detail: { spawnId: result.spawn.id } } as CustomEventInit
-        )
+          { detail: { spawnId: result.spawn.id } } as CustomEventInit,
+        ),
       );
     } catch (e) {
       setError(
-        e instanceof Error ? e.message : "Failed to save asset settings"
+        e instanceof Error ? e.message : "Failed to save asset settings",
       );
     } finally {
       setIsSaving(false);
@@ -248,7 +296,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
 
   const getFieldError = (
     key: FieldKey,
-    values: Partial<MediaAssetProperties>
+    values: Partial<MediaAssetProperties>,
   ): string | undefined => {
     switch (key) {
       case "volume": {
@@ -299,13 +347,13 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
   if (!spawn || !spawnAsset || !baseAsset || !effective) {
     return (
       <div className="h-full flex flex-col">
-        <div className="p-4 border-b border-gray-200 bg-gray-50">
-          <h2 className="text-lg font-semibold text-gray-800">
+        <div className="p-4 border-b border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-2))]">
+          <h2 className="text-lg font-semibold text-[rgb(var(--color-fg))]">
             Asset Settings
           </h2>
         </div>
         <div className="flex-1 flex items-center justify-center p-8">
-          <div className="text-center text-gray-600">
+          <div className="text-center text-[rgb(var(--color-muted-foreground))]">
             Loading asset settings…
           </div>
         </div>
@@ -319,13 +367,13 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-4 border-b border-gray-200 bg-gray-50">
+      <div className="p-4 border-b border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-2))]">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-gray-800">
+            <h2 className="text-lg font-semibold text-[rgb(var(--color-fg))]">
               Asset Settings
             </h2>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-[rgb(var(--color-muted-foreground))]">
               {baseAsset.name} · {type}
             </p>
           </div>
@@ -333,7 +381,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
             <button
               type="button"
               onClick={onBack}
-              className="px-3 py-1.5 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+              className="px-3 py-1.5 rounded-md border border-[rgb(var(--color-input-border))] text-[rgb(var(--color-fg))] bg-[rgb(var(--color-surface-1))] hover:bg-[rgb(var(--color-surface-2))]"
               aria-label="Back to spawn settings"
             >
               Back
@@ -341,7 +389,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
             <button
               type="button"
               onClick={handleCancel}
-              className="px-3 py-1.5 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+              className="px-3 py-1.5 rounded-md border border-[rgb(var(--color-input-border))] text-[rgb(var(--color-fg))] bg-[rgb(var(--color-surface-1))] hover:bg-[rgb(var(--color-surface-2))]"
               aria-label="Cancel edits"
             >
               Cancel
@@ -352,8 +400,8 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
               disabled={isSaving || hasValidationErrors}
               className={`px-3 py-1.5 rounded-md text-white ${
                 isSaving || hasValidationErrors
-                  ? "bg-blue-300 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700"
+                  ? "bg-[rgb(var(--color-accent))]/50 cursor-not-allowed"
+                  : "bg-[rgb(var(--color-accent))] hover:bg-[rgb(var(--color-accent-hover))]"
               }`}
               aria-label="Save asset settings"
             >
@@ -363,7 +411,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
         </div>
         {error && (
           <div
-            className="mt-3 p-3 bg-red-50 border border-red-200 text-sm text-red-700 rounded"
+            className="mt-3 p-3 bg-[rgb(var(--color-error-bg))] border border-[rgb(var(--color-error-border))] text-sm text-[rgb(var(--color-error))] rounded"
             role="alert"
           >
             {error}
@@ -371,7 +419,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
         )}
         {success && (
           <div
-            className="mt-3 p-3 bg-green-50 border border-green-200 text-sm text-green-700 rounded"
+            className="mt-3 p-3 bg-[rgb(var(--color-success-bg))] border border-[rgb(var(--color-success-border))] text-sm text-[rgb(var(--color-success))] rounded"
             role="status"
           >
             {success}
@@ -381,13 +429,13 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
 
       <div className="flex-1 p-4">
         <div className="max-w-2xl space-y-6">
-          <section className="bg-white border border-gray-200 rounded-lg p-4">
-            <h3 className="text-base font-semibold text-gray-800 mb-3">
+          <section className="bg-[rgb(var(--color-surface-1))] border border-[rgb(var(--color-border))] rounded-lg p-4">
+            <h3 className="text-base font-semibold text-[rgb(var(--color-fg))] mb-3">
               Duration
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                   Duration (ms)
                 </label>
                 <input
@@ -399,19 +447,19 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     setDurationDraftMs(val);
                     setUnsavedChanges(true);
                   }}
-                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                 />
               </div>
             </div>
           </section>
           {isVisual && (
-            <section className="bg-white border border-gray-200 rounded-lg p-4">
-              <h3 className="text-base font-semibold text-gray-800 mb-3">
+            <section className="bg-[rgb(var(--color-surface-1))] border border-[rgb(var(--color-border))] rounded-lg p-4">
+              <h3 className="text-base font-semibold text-[rgb(var(--color-fg))] mb-3">
                 Visual Properties
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                     Width (px)
                   </label>
                   <input
@@ -424,20 +472,20 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                         height: draftValues.dimensions?.height ?? 1,
                       })
                     }
-                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                     aria-describedby="dimensions-help dimensions-error"
                   />
                   {validationErrors.dimensions && (
                     <p
                       id="dimensions-error"
-                      className="text-xs text-red-600 mt-1"
+                      className="text-xs text-[rgb(var(--color-error))] mt-1"
                     >
                       {validationErrors.dimensions}
                     </p>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                     Height (px)
                   </label>
                   <input
@@ -450,19 +498,19 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                         height: Math.max(1, Number(e.target.value) || 1),
                       })
                     }
-                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                     aria-describedby="dimensions-help"
                   />
                   <p
                     id="dimensions-help"
-                    className="text-xs text-gray-500 mt-1"
+                    className="text-xs text-[rgb(var(--color-muted))] mt-1"
                   >
                     Positive numbers only.
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                     X Position (px)
                   </label>
                   <input
@@ -475,20 +523,20 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                         y: draftValues.position?.y ?? 0,
                       })
                     }
-                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                     aria-describedby="position-help position-error"
                   />
                   {validationErrors.position && (
                     <p
                       id="position-error"
-                      className="text-xs text-red-600 mt-1"
+                      className="text-xs text-[rgb(var(--color-error))] mt-1"
                     >
                       {validationErrors.position}
                     </p>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                     Y Position (px)
                   </label>
                   <input
@@ -501,23 +549,26 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                         y: Math.max(0, Number(e.target.value) || 0),
                       })
                     }
-                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                     aria-describedby="position-help"
                   />
-                  <p id="position-help" className="text-xs text-gray-500 mt-1">
+                  <p
+                    id="position-help"
+                    className="text-xs text-[rgb(var(--color-muted))] mt-1"
+                  >
                     Use non-negative values. Relative/centered behavior depends
                     on mode.
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                     Scale
                   </label>
                   <div className="flex-1">
                     {/* Linked/Unlinked Toggle */}
                     <div className="flex items-center gap-2 mb-2">
-                      <label className="flex items-center gap-1 text-xs text-gray-600">
+                      <label className="flex items-center gap-1 text-xs text-[rgb(var(--color-muted-foreground))]">
                         <input
                           type="checkbox"
                           checked={
@@ -533,7 +584,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                               const scaleValue =
                                 typeof currentScale === "number"
                                   ? currentScale
-                                  : currentScale?.x ?? 1;
+                                  : (currentScale?.x ?? 1);
                               setField("scale", {
                                 x: scaleValue,
                                 y: scaleValue,
@@ -544,7 +595,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                               const scaleValue =
                                 typeof currentScale === "number"
                                   ? currentScale
-                                  : currentScale?.x ?? 1;
+                                  : (currentScale?.x ?? 1);
                               setField("scale", {
                                 x: scaleValue,
                                 y: scaleValue,
@@ -565,7 +616,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                         // Non-uniform mode: separate X/Y inputs
                         <>
                           <div className="flex-1">
-                            <label className="block text-xs text-gray-600 mb-1">
+                            <label className="block text-xs text-[rgb(var(--color-muted-foreground))] mb-1">
                               X
                             </label>
                             <input
@@ -576,7 +627,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                               onChange={(e) => {
                                 const xValue = Math.max(
                                   0,
-                                  parseFloat(e.target.value) || 0
+                                  parseFloat(e.target.value) || 0,
                                 );
                                 const currentScale = draftValues.scale;
                                 setField("scale", {
@@ -589,12 +640,12 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                                   linked: false,
                                 });
                               }}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                               aria-describedby="scale-help scale-error"
                             />
                           </div>
                           <div className="flex-1">
-                            <label className="block text-xs text-gray-600 mb-1">
+                            <label className="block text-xs text-[rgb(var(--color-muted-foreground))] mb-1">
                               Y
                             </label>
                             <input
@@ -605,7 +656,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                               onChange={(e) => {
                                 const yValue = Math.max(
                                   0,
-                                  parseFloat(e.target.value) || 0
+                                  parseFloat(e.target.value) || 0,
                                 );
                                 const currentScale = draftValues.scale;
                                 setField("scale", {
@@ -618,7 +669,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                                   linked: false,
                                 });
                               }}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                               aria-describedby="scale-help scale-error"
                             />
                           </div>
@@ -632,12 +683,12 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                           value={
                             typeof draftValues.scale === "number"
                               ? draftValues.scale
-                              : draftValues.scale?.x ?? ""
+                              : (draftValues.scale?.x ?? "")
                           }
                           onChange={(e) => {
                             const scaleValue = Math.max(
                               0,
-                              parseFloat(e.target.value) || 0
+                              parseFloat(e.target.value) || 0,
                             );
                             setField("scale", {
                               x: scaleValue,
@@ -645,26 +696,32 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                               linked: true,
                             });
                           }}
-                          className="w-24 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                          className="w-24 px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                           aria-describedby="scale-help scale-error"
                         />
                       )}
                     </div>
                   </div>
                 </div>
-                <p id="scale-help" className="text-xs text-gray-500 mt-1">
+                <p
+                  id="scale-help"
+                  className="text-xs text-[rgb(var(--color-muted))] mt-1"
+                >
                   Enter a non-negative factor (1.0 = 100%). Toggle "Unlinked" to
                   scale X and Y independently.
                 </p>
                 {validationErrors.scale && (
-                  <p id="scale-error" className="text-xs text-red-600 mt-1">
+                  <p
+                    id="scale-error"
+                    className="text-xs text-[rgb(var(--color-error))] mt-1"
+                  >
                     {validationErrors.scale}
                   </p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                   Position Mode
                 </label>
                 <select
@@ -672,10 +729,10 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   onChange={(e) =>
                     setField(
                       "positionMode",
-                      e.target.value as MediaAssetProperties["positionMode"]
+                      e.target.value as MediaAssetProperties["positionMode"],
                     )
                   }
-                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent bg-white"
+                  className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent bg-[rgb(var(--color-input))]"
                 >
                   <option value="absolute">Absolute (px)</option>
                   <option value="relative">Relative (%)</option>
@@ -685,7 +742,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
 
               <div>
                 <label
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1"
                   htmlFor="rotation-input"
                 >
                   Rotation (°)
@@ -696,11 +753,9 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     min={0}
                     max={360}
                     step={1}
-                    value={draftValues.rotation ?? 0}
-                    onChange={(e) =>
-                      setField("rotation", Number(e.target.value))
-                    }
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                    value={localRotation}
+                    onChange={(e) => setLocalRotation(Number(e.target.value))}
+                    className="w-full h-2 bg-[rgb(var(--color-border))] rounded-lg appearance-none cursor-pointer slider"
                     aria-label="Rotation slider"
                     aria-describedby="rotation-help rotation-error"
                   />
@@ -713,32 +768,38 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     onChange={(e) =>
                       setField(
                         "rotation",
-                        Math.max(0, Math.min(360, Number(e.target.value) || 0))
+                        Math.max(0, Math.min(360, Number(e.target.value) || 0)),
                       )
                     }
-                    className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent mt-2"
+                    className="w-20 px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent mt-2"
                     id="rotation-input"
                     aria-label="Rotation input"
                     aria-describedby="rotation-help rotation-error"
                   />
                 </div>
-                <p id="rotation-help" className="text-xs text-gray-500 mt-1">
+                <p
+                  id="rotation-help"
+                  className="text-xs text-[rgb(var(--color-muted))] mt-1"
+                >
                   Rotate the asset from 0° to 360°.
                 </p>
                 {validationErrors.rotation && (
-                  <p id="rotation-error" className="text-xs text-red-600 mt-1">
+                  <p
+                    id="rotation-error"
+                    className="text-xs text-[rgb(var(--color-error))] mt-1"
+                  >
                     {validationErrors.rotation}
                   </p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                   Crop (px)
                 </label>
                 <div className="flex-1 grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs text-gray-600 mb-1">
+                    <label className="block text-xs text-[rgb(var(--color-muted-foreground))] mb-1">
                       Left
                     </label>
                     <input
@@ -754,12 +815,12 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                           bottom: draftValues.crop?.bottom ?? 0,
                         })
                       }
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                       aria-describedby="crop-help crop-error"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-600 mb-1">
+                    <label className="block text-xs text-[rgb(var(--color-muted-foreground))] mb-1">
                       Top
                     </label>
                     <input
@@ -775,12 +836,12 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                           bottom: draftValues.crop?.bottom ?? 0,
                         })
                       }
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                       aria-describedby="crop-help crop-error"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-600 mb-1">
+                    <label className="block text-xs text-[rgb(var(--color-muted-foreground))] mb-1">
                       Right
                     </label>
                     <input
@@ -796,12 +857,12 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                           bottom: draftValues.crop?.bottom ?? 0,
                         })
                       }
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                       aria-describedby="crop-help crop-error"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-600 mb-1">
+                    <label className="block text-xs text-[rgb(var(--color-muted-foreground))] mb-1">
                       Bottom
                     </label>
                     <input
@@ -817,23 +878,29 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                           bottom: Math.max(0, Number(e.target.value) || 0),
                         })
                       }
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                       aria-describedby="crop-help crop-error"
                     />
                   </div>
                 </div>
-                <p id="crop-help" className="text-xs text-gray-500 mt-1">
+                <p
+                  id="crop-help"
+                  className="text-xs text-[rgb(var(--color-muted))] mt-1"
+                >
                   Crop the asset by removing pixels from the edges.
                 </p>
                 {validationErrors.crop && (
-                  <p id="crop-error" className="text-xs text-red-600 mt-1">
+                  <p
+                    id="crop-error"
+                    className="text-xs text-[rgb(var(--color-error))] mt-1"
+                  >
                     {validationErrors.crop}
                   </p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                   Bounds Type
                 </label>
                 <select
@@ -843,10 +910,10 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       "boundsType",
                       e.target.value
                         ? (e.target.value as BoundsType)
-                        : undefined
+                        : undefined,
                     )
                   }
-                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent bg-[rgb(var(--color-input))]"
                   aria-describedby="bounds-type-help bounds-type-error"
                 >
                   <option value="">Select bounds type...</option>
@@ -862,13 +929,16 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   </option>
                   <option value="OBS_BOUNDS_MAX_ONLY">Max Only</option>
                 </select>
-                <p id="bounds-type-help" className="text-xs text-gray-500 mt-1">
+                <p
+                  id="bounds-type-help"
+                  className="text-xs text-[rgb(var(--color-muted))] mt-1"
+                >
                   Select how the asset should be scaled within its bounds.
                 </p>
                 {validationErrors.boundsType && (
                   <p
                     id="bounds-type-error"
-                    className="text-xs text-red-600 mt-1"
+                    className="text-xs text-[rgb(var(--color-error))] mt-1"
                   >
                     {validationErrors.boundsType}
                   </p>
@@ -876,7 +946,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                   Alignment
                 </label>
                 <select
@@ -886,10 +956,10 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       "alignment",
                       e.target.value
                         ? (Number(e.target.value) as AlignmentOption)
-                        : undefined
+                        : undefined,
                     )
                   }
-                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent bg-[rgb(var(--color-input))]"
                   aria-describedby="alignment-help alignment-error"
                 >
                   <option value="">Select alignment...</option>
@@ -903,11 +973,17 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   <option value="9">Bottom Center</option>
                   <option value="10">Bottom Right</option>
                 </select>
-                <p id="alignment-help" className="text-xs text-gray-500 mt-1">
+                <p
+                  id="alignment-help"
+                  className="text-xs text-[rgb(var(--color-muted))] mt-1"
+                >
                   Select the alignment position for the asset within its bounds.
                 </p>
                 {validationErrors.alignment && (
-                  <p id="alignment-error" className="text-xs text-red-600 mt-1">
+                  <p
+                    id="alignment-error"
+                    className="text-xs text-[rgb(var(--color-error))] mt-1"
+                  >
                     {validationErrors.alignment}
                   </p>
                 )}
@@ -916,13 +992,13 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
           )}
 
           {(type === "video" || isAudio) && (
-            <section className="bg-white border border-gray-200 rounded-lg p-4">
-              <h3 className="text-base font-semibold text-gray-800 mb-3">
+            <section className="bg-[rgb(var(--color-surface-1))] border border-[rgb(var(--color-border))] rounded-lg p-4">
+              <h3 className="text-base font-semibold text-[rgb(var(--color-fg))] mb-3">
                 Playback Properties
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                     Volume (%)
                   </label>
                   <div className="flex items-center gap-2">
@@ -930,11 +1006,11 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       type="range"
                       min={0}
                       max={100}
-                      value={Math.round((draftValues.volume ?? 0.5) * 100)}
+                      value={Math.round(localVolume * 100)}
                       onChange={(e) =>
-                        setField("volume", (Number(e.target.value) || 0) / 100)
+                        setLocalVolume((Number(e.target.value) || 0) / 100)
                       }
-                      className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                      className="flex-1 h-2 bg-[rgb(var(--color-border))] rounded-lg appearance-none cursor-pointer"
                       aria-label="Volume slider"
                       aria-describedby="volume-help volume-error"
                     />
@@ -946,20 +1022,23 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       onChange={(e) =>
                         setField("volume", (Number(e.target.value) || 0) / 100)
                       }
-                      className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                      className="w-20 px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                       aria-describedby="volume-help volume-error"
                     />
                   </div>
 
                   {validationErrors.volume && (
-                    <p id="volume-error" className="text-xs text-red-600 mt-1">
+                    <p
+                      id="volume-error"
+                      className="text-xs text-[rgb(var(--color-error))] mt-1"
+                    >
                       {validationErrors.volume}
                     </p>
                   )}
                 </div>
 
                 <div className="flex items-center gap-4">
-                  <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                  <label className="inline-flex items-center gap-2 text-sm text-[rgb(var(--color-fg))]">
                     <input
                       type="checkbox"
                       checked={!!draftValues.loop}
@@ -968,7 +1047,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     Loop
                   </label>
 
-                  <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                  <label className="inline-flex items-center gap-2 text-sm text-[rgb(var(--color-fg))]">
                     <input
                       type="checkbox"
                       checked={!!draftValues.autoplay}
@@ -977,7 +1056,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     Autoplay
                   </label>
 
-                  <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                  <label className="inline-flex items-center gap-2 text-sm text-[rgb(var(--color-fg))]">
                     <input
                       type="checkbox"
                       checked={!!draftValues.muted}

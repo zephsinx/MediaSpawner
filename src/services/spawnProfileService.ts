@@ -397,10 +397,12 @@ export class SpawnProfileService {
         };
       }
 
-      // Set live profile ID in Streamer.bot
-      const success = await StreamerbotService.setGlobalVariable(
-        "MediaSpawner_LiveProfileId",
-        id,
+      // Set live profile ID in Streamer.bot by calling the C# SetLiveProfile method
+      const success = await StreamerbotService.executeAction(
+        "Set Live Profile",
+        {
+          liveProfileId: id,
+        },
       );
 
       if (!success) {

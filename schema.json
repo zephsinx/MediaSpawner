@@ -680,7 +680,7 @@
         },
         "ignoreInternal": {
           "type": "boolean",
-          "default": true
+          "default": false
         },
         "ignoreBotAccount": {
           "type": "boolean",
