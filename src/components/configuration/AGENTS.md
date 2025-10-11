@@ -19,8 +19,17 @@
 
 ## Validation and UX
 
-- Live validation examples: Volume 0–100; Dimensions > 0; Position ≥ 0; Scale ≥ 0.
+- Blur-based validation: Volume 0–100; Dimensions > 0; Position ≥ 0; Scale ≥ 0.
+- Validation triggers on field blur and before save; inline error messages shown when invalid.
 - Save disabled while invalid; inline error messages; confirm dialogs on destructive actions.
+
+## Hook patterns
+
+- Use `useCallback` with stable dependencies to prevent unnecessary re-renders.
+- Use refs to access latest state in event listeners without re-registering.
+- Extract complex logic into custom hooks (e.g., `useAssetValidation`).
+- Prefer functional state updates to avoid stale closures.
+- Debounced inputs use refs and functional updates to avoid circular dependencies.
 
 ## Services and events
 

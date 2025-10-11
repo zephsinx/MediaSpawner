@@ -105,6 +105,11 @@ const makeProperties = (
   loop: overrides.loop ?? false,
   autoplay: overrides.autoplay ?? false,
   muted: overrides.muted ?? false,
+  rotation: overrides.rotation ?? 0,
+  crop: overrides.crop,
+  boundsType: overrides.boundsType,
+  boundsAlignment: overrides.boundsAlignment,
+  alignment: overrides.alignment,
 });
 
 describe("AssetSettingsForm", () => {
@@ -166,6 +171,11 @@ describe("AssetSettingsForm", () => {
         loop: "none",
         autoplay: "none",
         muted: "none",
+        rotation: "none",
+        crop: "none",
+        boundsType: "none",
+        boundsAlignment: "none",
+        alignment: "none",
       },
     });
   });
@@ -465,6 +475,7 @@ describe("AssetSettingsForm", () => {
 
       await act(async () => {
         fireEvent.change(widthInput, { target: { value: "0" } });
+        fireEvent.blur(widthInput);
       });
 
       expect(
@@ -497,6 +508,7 @@ describe("AssetSettingsForm", () => {
 
       await act(async () => {
         fireEvent.change(volumeSlider, { target: { value: "150" } });
+        fireEvent.blur(volumeSlider);
       });
 
       expect(await screen.findByText("Enter 0–100")).toBeInTheDocument();
@@ -533,6 +545,7 @@ describe("AssetSettingsForm", () => {
 
       await act(async () => {
         fireEvent.change(widthInput, { target: { value: "0" } });
+        fireEvent.blur(widthInput);
       });
 
       const saveButton = await screen.findByRole("button", {
@@ -840,6 +853,7 @@ describe("AssetSettingsForm", () => {
 
         await act(async () => {
           fireEvent.change(rotationSlider, { target: { value: "400" } });
+          fireEvent.blur(rotationSlider);
         });
 
         expect(await screen.findByText("Enter 0–360°")).toBeInTheDocument();
@@ -1049,6 +1063,7 @@ describe("AssetSettingsForm", () => {
           fireEvent.change(boundsTypeSelect, {
             target: { value: "INVALID_TYPE" },
           });
+          fireEvent.blur(boundsTypeSelect);
         });
 
         expect(
@@ -1128,6 +1143,7 @@ describe("AssetSettingsForm", () => {
 
         await act(async () => {
           fireEvent.change(alignmentSelect, { target: { value: "99" } });
+          fireEvent.blur(alignmentSelect);
         });
 
         expect(

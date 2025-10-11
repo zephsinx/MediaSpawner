@@ -32,26 +32,31 @@ describe("ImportExportService", () => {
 
     // Setup transform function mocks
     mockDataTransformation.transformProfileToSchema.mockImplementation(
-      (profile) => ({
-        id: profile.id,
-        name: profile.name,
-        description: profile.description || "",
-        spawns: profile.spawns.map((spawn) => ({
-          id: spawn.id,
-          name: spawn.name,
-          enabled: spawn.enabled,
-          trigger: spawn.trigger,
-          duration: spawn.duration,
-          assets: spawn.assets.map((asset) => ({
-            assetId: asset.assetId,
-            id: asset.id,
-            enabled: asset.enabled,
-            order: asset.order,
-            overrides: asset.overrides || {},
+      (profile) =>
+        ({
+          id: profile.id,
+          name: profile.name,
+          description: profile.description || "",
+          spawns: profile.spawns.map((spawn) => ({
+            id: spawn.id,
+            name: spawn.name,
+            enabled: spawn.enabled,
+            trigger: {
+              type: spawn.trigger.type,
+              enabled: spawn.trigger.enabled ?? true,
+              config: spawn.trigger.config as Record<string, unknown>,
+            },
+            duration: spawn.duration,
+            assets: spawn.assets.map((asset) => ({
+              assetId: asset.assetId,
+              id: asset.id,
+              enabled: asset.enabled,
+              order: asset.order,
+              overrides: asset.overrides || {},
+            })),
+            randomizationBuckets: spawn.randomizationBuckets || [],
           })),
-          randomizationBuckets: spawn.randomizationBuckets || [],
-        })),
-      }),
+        }) as ReturnType<typeof dataTransformation.transformProfileToSchema>,
     );
 
     mockDataTransformation.transformAssetToSchema.mockImplementation(
@@ -65,28 +70,33 @@ describe("ImportExportService", () => {
     );
 
     mockDataTransformation.transformProfileFromSchema.mockImplementation(
-      (profile) => ({
-        id: profile.id,
-        name: profile.name,
-        description: profile.description,
-        spawns: profile.spawns.map((spawn) => ({
-          id: spawn.id,
-          name: spawn.name,
-          enabled: spawn.enabled,
-          trigger: spawn.trigger,
-          duration: spawn.duration,
-          assets: spawn.assets.map((asset) => ({
-            assetId: asset.assetId,
-            id: asset.id,
-            enabled: asset.enabled,
-            order: asset.order,
-            overrides: asset.overrides || {},
+      (profile) =>
+        ({
+          id: profile.id,
+          name: profile.name,
+          description: profile.description,
+          spawns: profile.spawns.map((spawn, index) => ({
+            id: spawn.id,
+            name: spawn.name,
+            enabled: spawn.enabled,
+            trigger: spawn.trigger as ReturnType<
+              typeof dataTransformation.transformProfileFromSchema
+            >["spawns"][number]["trigger"],
+            duration: spawn.duration,
+            assets: spawn.assets.map((asset) => ({
+              assetId: asset.assetId,
+              id: asset.id,
+              enabled: asset.enabled,
+              order: asset.order,
+              overrides: asset.overrides || {},
+            })),
+            randomizationBuckets: spawn.randomizationBuckets || [],
+            lastModified: Date.now(),
+            order: index,
           })),
-          randomizationBuckets: spawn.randomizationBuckets || [],
-        })),
-        lastModified: Date.now(),
-        isActive: false,
-      }),
+          lastModified: Date.now(),
+          isActive: false,
+        }) as ReturnType<typeof dataTransformation.transformProfileFromSchema>,
     );
 
     mockDataTransformation.transformAssetFromSchema.mockImplementation(
@@ -104,12 +114,21 @@ describe("ImportExportService", () => {
       isValid: true,
       errors: [],
       warnings: [],
+      fieldErrors: {},
+      profileErrors: {},
+      assetErrors: {},
+      spawnErrors: {},
     });
 
     mockImportExportValidation.validateImportData.mockReturnValue({
       isValid: true,
       errors: [],
       warnings: [],
+      fieldErrors: {},
+      profileErrors: {},
+      assetErrors: {},
+      spawnErrors: {},
+      relationshipErrors: [],
     });
   });
 
@@ -338,7 +357,10 @@ describe("ImportExportService", () => {
       // Mock successful working directory update
       mockSettingsService.updateWorkingDirectory.mockReturnValue({
         success: true,
-        settings: { workingDirectory: "/imported/path" },
+        settings: {
+          workingDirectory: "/imported/path",
+          themeMode: "light",
+        },
       });
 
       // Mock existing data for merge
@@ -352,6 +374,7 @@ describe("ImportExportService", () => {
           updateWorkingDirectory: true,
           profileConflictStrategy: "skip",
           assetConflictStrategy: "skip",
+          validateAssetReferences: true,
         },
       );
 
@@ -397,6 +420,7 @@ describe("ImportExportService", () => {
           updateWorkingDirectory: false,
           profileConflictStrategy: "skip",
           assetConflictStrategy: "skip",
+          validateAssetReferences: true,
         },
       );
 

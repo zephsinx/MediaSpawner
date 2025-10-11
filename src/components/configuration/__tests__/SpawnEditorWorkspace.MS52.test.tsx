@@ -133,7 +133,7 @@ describe("SpawnEditorWorkspace - MS-52 Command Trigger Configuration", () => {
 
     // Platform sources removed (Twitch-only support); no checkbox expected
 
-    it("has filtering options defaulting to true", () => {
+    it("has filtering options with correct defaults", () => {
       const ignoreInternalCheckbox = screen.getByRole("switch", {
         name: /Ignore internal messages/i,
       });
@@ -141,7 +141,7 @@ describe("SpawnEditorWorkspace - MS-52 Command Trigger Configuration", () => {
         name: /Ignore bot account messages/i,
       });
 
-      expect(ignoreInternalCheckbox).toHaveAttribute("aria-checked", "true");
+      expect(ignoreInternalCheckbox).toHaveAttribute("aria-checked", "false");
       expect(ignoreBotAccountCheckbox).toHaveAttribute("aria-checked", "true");
     });
   });

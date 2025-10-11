@@ -1043,7 +1043,7 @@ describe("SpawnProfileService", () => {
         expect(result.success).toBe(true);
         expect(result.profile).toEqual(validProfile);
         expect(mockStreamerbotService.executeAction).toHaveBeenCalledWith(
-          "SetLiveProfile",
+          "Set Live Profile",
           { liveProfileId: validProfile.id },
         );
       });

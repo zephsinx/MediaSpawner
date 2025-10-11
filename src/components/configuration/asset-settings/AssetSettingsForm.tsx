@@ -20,16 +20,7 @@ import {
 } from "../../../utils/assetSettingsResolver";
 import { usePanelState } from "../../../hooks/useLayout";
 import { useDebounce } from "../../../hooks/useDebounce";
-import {
-  validateVolumePercent,
-  validateDimensionsValues,
-  validatePositionValues,
-  validateScaleValue,
-  validateRotation,
-  validateCropSettings,
-  validateBoundsType,
-  validateAlignment,
-} from "../../../utils/assetValidation";
+import { useAssetValidation } from "../../../hooks/useAssetValidation";
 
 export interface AssetSettingsFormProps {
   spawnId: string;
@@ -114,6 +105,10 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
   const debouncedVolume = useDebounce(localVolume, 150);
   const debouncedRotation = useDebounce(localRotation, 150);
 
+  // Validation hook
+  const { validateField } = useAssetValidation();
+  const draftValuesRef = useRef(draftValues);
+
   // Initialize draft when context target changes (avoid loops on referential changes)
   const initKeyRef = useRef<string | null>(null);
   useEffect(() => {
@@ -139,31 +134,48 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
     setUnsavedChanges(false);
   }, [effective, spawn, spawnAsset, setUnsavedChanges, getCachedDraft]);
 
+  // Keep draftValuesRef in sync
+  useEffect(() => {
+    draftValuesRef.current = draftValues;
+  });
+
   const setField = useCallback(
     (key: FieldKey, value: MediaAssetProperties[FieldKey]) => {
       setDraftValues((prev) => ({ ...prev, [key]: value }));
       setUnsavedChanges(true);
-      // Live-validate the field
-      setValidationErrors((prev) => ({
-        ...prev,
-        [key]: getFieldError(key, { ...draftValues, [key]: value }),
-      }));
     },
-    [draftValues, setUnsavedChanges],
+    [setUnsavedChanges],
   );
 
-  // Sync debounced values to draftValues
-  useEffect(() => {
-    if (debouncedVolume !== draftValues.volume) {
-      setField("volume", debouncedVolume);
-    }
-  }, [debouncedVolume, setField, draftValues.volume]);
+  const handleBlur = useCallback(
+    (key: FieldKey) => {
+      const error = validateField(key, draftValuesRef.current);
+      setValidationErrors((prev) => ({
+        ...prev,
+        [key]: error,
+      }));
+    },
+    [validateField],
+  );
 
+  // Single effect to sync debounced slider values to draftValues
   useEffect(() => {
-    if (debouncedRotation !== draftValues.rotation) {
-      setField("rotation", debouncedRotation);
-    }
-  }, [debouncedRotation, setField, draftValues.rotation]);
+    setDraftValues((prev) => {
+      const volumeChanged = debouncedVolume !== prev.volume;
+      const rotationChanged = debouncedRotation !== prev.rotation;
+
+      if (!volumeChanged && !rotationChanged) return prev;
+
+      return {
+        ...prev,
+        volume: debouncedVolume,
+        rotation: debouncedRotation,
+      };
+    });
+
+    // Mark as unsaved when debounced values update
+    setUnsavedChanges(true);
+  }, [debouncedVolume, debouncedRotation, setUnsavedChanges]);
 
   // Initialize local state when component first loads
   useEffect(() => {
@@ -173,47 +185,66 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
     }
   }, [effective]);
 
-  // Reset local state when draftValues changes externally
+  // Single effect to sync draftValues back to local slider state
   useEffect(() => {
     setLocalVolume(draftValues.volume ?? 0.5);
-  }, [draftValues.volume]);
-
-  useEffect(() => {
     setLocalRotation(draftValues.rotation ?? 0);
-  }, [draftValues.rotation]);
+  }, [draftValues.volume, draftValues.rotation]);
 
+  // Create refs for latest state
+  const spawnRef = useRef(spawn);
+  const spawnAssetRef = useRef(spawnAsset);
+
+  // Keep refs in sync (no dependencies - runs after every render)
+  useEffect(() => {
+    spawnRef.current = spawn;
+    spawnAssetRef.current = spawnAsset;
+  });
+
+  // Stable event listener - only re-registered when IDs change
   useEffect(() => {
     const onSpawnUpdated = async (evt: Event) => {
       const detail = (evt as CustomEvent).detail as
         | { spawnId?: string; updatedSpawn?: Spawn }
         | undefined;
       if (!detail?.spawnId || detail.spawnId !== spawnId) return;
+
       const nextSpawn: Spawn | null = detail.updatedSpawn
         ? detail.updatedSpawn
         : await SpawnService.getSpawn(spawnId);
-      if (!nextSpawn || !spawnAsset) return;
+
+      if (!nextSpawn) return;
+
+      // Use refs to access latest state
+      const currentSpawnAsset = spawnAssetRef.current;
+      if (!currentSpawnAsset) return;
+
       const nextSpawnAsset =
         nextSpawn.assets.find((a) => a.id === spawnAssetId) || null;
       if (!nextSpawnAsset) return;
+
       setSpawn(nextSpawn);
       setSpawnAsset(nextSpawnAsset);
+
       const nextEffective = resolveEffectiveProperties({
         spawn: nextSpawn,
         overrides: nextSpawnAsset.overrides?.properties,
       });
       setDraftValues(nextEffective.effective);
     };
+
     window.addEventListener(
       "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
       onSpawnUpdated as EventListener,
     );
+
     return () => {
       window.removeEventListener(
         "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
         onSpawnUpdated as EventListener,
       );
     };
-  }, [spawnId, spawnAssetId, baseAsset, spawnAsset]);
+  }, [spawnId, spawnAssetId]);
 
   const handleCancel = () => {
     if (!effective) return;
@@ -225,6 +256,35 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
 
   const handleSave = async () => {
     if (!spawn || !spawnAsset) return;
+
+    // Validate all fields before save
+    const errors: Partial<Record<FieldKey, string>> = {};
+    const fieldsToValidate: FieldKey[] = [
+      "volume",
+      "dimensions",
+      "position",
+      "scale",
+      "rotation",
+      "crop",
+      "boundsType",
+      "alignment",
+    ];
+
+    fieldsToValidate.forEach((key) => {
+      if (draftValues[key] !== undefined) {
+        const error = validateField(key, draftValues);
+        if (error) {
+          errors[key] = error;
+        }
+      }
+    });
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      setError("Please fix validation errors before saving");
+      return;
+    }
+
     setIsSaving(true);
     setError(null);
     setSuccess(null);
@@ -293,52 +353,6 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
       }
     };
   }, [draftValues, setCachedDraft]);
-
-  const getFieldError = (
-    key: FieldKey,
-    values: Partial<MediaAssetProperties>,
-  ): string | undefined => {
-    switch (key) {
-      case "volume": {
-        const pct = Math.round(((values.volume ?? 0.5) as number) * 100);
-        const res = validateVolumePercent(pct);
-        return res.isValid ? undefined : res.error;
-      }
-      case "dimensions": {
-        const res = validateDimensionsValues(values.dimensions);
-        return res.isValid ? undefined : res.error;
-      }
-      case "position": {
-        const res = validatePositionValues(values.position);
-        return res.isValid ? undefined : res.error;
-      }
-      case "scale": {
-        // Handle both number and ScaleObject for backward compatibility
-        const scaleValue =
-          typeof values.scale === "number" ? values.scale : values.scale?.x;
-        const res = validateScaleValue(scaleValue);
-        return res.isValid ? undefined : res.error;
-      }
-      case "rotation": {
-        const res = validateRotation(values.rotation);
-        return res.isValid ? undefined : res.error;
-      }
-      case "crop": {
-        const res = validateCropSettings(values.crop);
-        return res.isValid ? undefined : res.error;
-      }
-      case "boundsType": {
-        const res = validateBoundsType(values.boundsType);
-        return res.isValid ? undefined : res.error;
-      }
-      case "alignment": {
-        const res = validateAlignment(values.alignment);
-        return res.isValid ? undefined : res.error;
-      }
-      default:
-        return undefined;
-    }
-  };
 
   const hasValidationErrors = useMemo(() => {
     return Object.values(validationErrors).some(Boolean);
@@ -472,6 +486,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                         height: draftValues.dimensions?.height ?? 1,
                       })
                     }
+                    onBlur={() => handleBlur("dimensions")}
                     className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                     aria-describedby="dimensions-help dimensions-error"
                   />
@@ -498,6 +513,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                         height: Math.max(1, Number(e.target.value) || 1),
                       })
                     }
+                    onBlur={() => handleBlur("dimensions")}
                     className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                     aria-describedby="dimensions-help"
                   />
@@ -523,6 +539,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                         y: draftValues.position?.y ?? 0,
                       })
                     }
+                    onBlur={() => handleBlur("position")}
                     className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                     aria-describedby="position-help position-error"
                   />
@@ -549,6 +566,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                         y: Math.max(0, Number(e.target.value) || 0),
                       })
                     }
+                    onBlur={() => handleBlur("position")}
                     className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                     aria-describedby="position-help"
                   />
@@ -640,6 +658,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                                   linked: false,
                                 });
                               }}
+                              onBlur={() => handleBlur("scale")}
                               className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                               aria-describedby="scale-help scale-error"
                             />
@@ -669,6 +688,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                                   linked: false,
                                 });
                               }}
+                              onBlur={() => handleBlur("scale")}
                               className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                               aria-describedby="scale-help scale-error"
                             />
@@ -696,6 +716,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                               linked: true,
                             });
                           }}
+                          onBlur={() => handleBlur("scale")}
                           className="w-24 px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                           aria-describedby="scale-help scale-error"
                         />
@@ -755,6 +776,17 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     step={1}
                     value={localRotation}
                     onChange={(e) => setLocalRotation(Number(e.target.value))}
+                    onBlur={() => {
+                      // Validate using the local value for sliders
+                      const error = validateField("rotation", {
+                        ...draftValuesRef.current,
+                        rotation: localRotation,
+                      });
+                      setValidationErrors((prev) => ({
+                        ...prev,
+                        rotation: error,
+                      }));
+                    }}
                     className="w-full h-2 bg-[rgb(var(--color-border))] rounded-lg appearance-none cursor-pointer slider"
                     aria-label="Rotation slider"
                     aria-describedby="rotation-help rotation-error"
@@ -771,6 +803,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                         Math.max(0, Math.min(360, Number(e.target.value) || 0)),
                       )
                     }
+                    onBlur={() => handleBlur("rotation")}
                     className="w-20 px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent mt-2"
                     id="rotation-input"
                     aria-label="Rotation input"
@@ -815,6 +848,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                           bottom: draftValues.crop?.bottom ?? 0,
                         })
                       }
+                      onBlur={() => handleBlur("crop")}
                       className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                       aria-describedby="crop-help crop-error"
                     />
@@ -836,6 +870,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                           bottom: draftValues.crop?.bottom ?? 0,
                         })
                       }
+                      onBlur={() => handleBlur("crop")}
                       className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                       aria-describedby="crop-help crop-error"
                     />
@@ -857,6 +892,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                           bottom: draftValues.crop?.bottom ?? 0,
                         })
                       }
+                      onBlur={() => handleBlur("crop")}
                       className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                       aria-describedby="crop-help crop-error"
                     />
@@ -878,6 +914,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                           bottom: Math.max(0, Number(e.target.value) || 0),
                         })
                       }
+                      onBlur={() => handleBlur("crop")}
                       className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                       aria-describedby="crop-help crop-error"
                     />
@@ -913,6 +950,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                         : undefined,
                     )
                   }
+                  onBlur={() => handleBlur("boundsType")}
                   className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent bg-[rgb(var(--color-input))]"
                   aria-describedby="bounds-type-help bounds-type-error"
                 >
@@ -959,6 +997,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                         : undefined,
                     )
                   }
+                  onBlur={() => handleBlur("alignment")}
                   className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent bg-[rgb(var(--color-input))]"
                   aria-describedby="alignment-help alignment-error"
                 >
@@ -1008,8 +1047,19 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       max={100}
                       value={Math.round(localVolume * 100)}
                       onChange={(e) =>
-                        setLocalVolume((Number(e.target.value) || 0) / 100)
+                        setLocalVolume(Number(e.target.value) / 100)
                       }
+                      onBlur={() => {
+                        // Validate using the local value for sliders
+                        const error = validateField("volume", {
+                          ...draftValuesRef.current,
+                          volume: localVolume,
+                        });
+                        setValidationErrors((prev) => ({
+                          ...prev,
+                          volume: error,
+                        }));
+                      }}
                       className="flex-1 h-2 bg-[rgb(var(--color-border))] rounded-lg appearance-none cursor-pointer"
                       aria-label="Volume slider"
                       aria-describedby="volume-help volume-error"
@@ -1022,6 +1072,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       onChange={(e) =>
                         setField("volume", (Number(e.target.value) || 0) / 100)
                       }
+                      onBlur={() => handleBlur("volume")}
                       className="w-20 px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
                       aria-describedby="volume-help volume-error"
                     />

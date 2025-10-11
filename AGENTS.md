@@ -247,7 +247,8 @@ Before implementing any React component or reducer:
 
 ## Validation and UX
 
-- Live validation (examples): Volume 0–100; Dimensions > 0; Position ≥ 0; Scale ≥ 0.
+- Blur-based validation (examples): Volume 0–100; Dimensions > 0; Position ≥ 0; Scale ≥ 0.
+- Validation occurs when fields lose focus (onBlur) and before save.
 - Inline errors; Save disabled while invalid; confirm dialogs for destructive or data-loss actions.
 
 ## Utilities invariants
