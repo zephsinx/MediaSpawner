@@ -256,6 +256,10 @@
         "muted": {
           "type": "boolean"
         },
+        "monitorType": {
+          "type": "string",
+          "enum": ["none", "monitor-only", "monitor-and-output"]
+        },
         "rotation": {
           "type": "number",
           "minimum": 0,
