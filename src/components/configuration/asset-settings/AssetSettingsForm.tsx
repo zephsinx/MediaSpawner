@@ -22,6 +22,10 @@ import {
 import { usePanelState } from "../../../hooks/useLayout";
 import { useDebounce } from "../../../hooks/useDebounce";
 import { useAssetValidation } from "../../../hooks/useAssetValidation";
+import { Button } from "../../ui/Button";
+import { cn } from "../../../utils/cn";
+import { inputVariants } from "../../ui/variants";
+import { CheckCircle, AlertCircle } from "lucide-react";
 
 export interface AssetSettingsFormProps {
   spawnId: string;
@@ -66,6 +70,14 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
   // Local state for immediate slider feedback
   const [localVolume, setLocalVolume] = useState<number>(0.5);
   const [localRotation, setLocalRotation] = useState<number>(0);
+
+  // Helper for consistent input styling
+  const getInputClassName = (field?: FieldKey) =>
+    cn(
+      inputVariants({
+        variant: field && validationErrors[field] ? "error" : "default",
+      }),
+    );
 
   useEffect(() => {
     let active = true;
@@ -393,58 +405,57 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
+            <Button
+              variant="outline"
+              size="sm"
               onClick={onBack}
-              className="px-3 py-1.5 rounded-md border border-[rgb(var(--color-input-border))] text-[rgb(var(--color-fg))] bg-[rgb(var(--color-surface-1))] hover:bg-[rgb(var(--color-surface-2))]"
               aria-label="Back to spawn settings"
             >
               Back
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleCancel}
-              className="px-3 py-1.5 rounded-md border border-[rgb(var(--color-input-border))] text-[rgb(var(--color-fg))] bg-[rgb(var(--color-surface-1))] hover:bg-[rgb(var(--color-surface-2))]"
               aria-label="Cancel edits"
             >
               Cancel
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
               onClick={handleSave}
-              disabled={isSaving || hasValidationErrors}
-              className={`px-3 py-1.5 rounded-md text-white ${
-                isSaving || hasValidationErrors
-                  ? "bg-[rgb(var(--color-accent))]/50 cursor-not-allowed"
-                  : "bg-[rgb(var(--color-accent))] hover:bg-[rgb(var(--color-accent-hover))]"
-              }`}
+              disabled={hasValidationErrors}
+              loading={isSaving}
               aria-label="Save asset settings"
             >
-              {isSaving ? "Saving..." : "Save"}
-            </button>
+              Save
+            </Button>
           </div>
         </div>
         {error && (
           <div
-            className="mt-3 p-3 bg-[rgb(var(--color-error-bg))] border border-[rgb(var(--color-error-border))] text-sm text-[rgb(var(--color-error))] rounded"
+            className="mt-3 p-3 bg-[rgb(var(--color-error-bg))] border border-[rgb(var(--color-error-border))] text-sm text-[rgb(var(--color-error))] rounded flex items-center gap-2"
             role="alert"
           >
-            {error}
+            <AlertCircle className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+            <span>{error}</span>
           </div>
         )}
         {success && (
           <div
-            className="mt-3 p-3 bg-[rgb(var(--color-success-bg))] border border-[rgb(var(--color-success-border))] text-sm text-[rgb(var(--color-success))] rounded"
+            className="mt-3 p-3 bg-[rgb(var(--color-success-bg))] border border-[rgb(var(--color-success-border))] text-sm text-[rgb(var(--color-success))] rounded flex items-center gap-2"
             role="status"
           >
-            {success}
+            <CheckCircle className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+            <span>{success}</span>
           </div>
         )}
       </div>
 
       <div className="flex-1 p-4">
         <div className="max-w-2xl space-y-6">
-          <section className="bg-[rgb(var(--color-surface-1))] border border-[rgb(var(--color-border))] rounded-lg p-4">
+          <section className="bg-[rgb(var(--color-surface-1))] border border-[rgb(var(--color-border))] rounded-lg shadow-md p-4">
             <h3 className="text-base font-semibold text-[rgb(var(--color-fg))] mb-3">
               Duration
             </h3>
@@ -462,13 +473,13 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     setDurationDraftMs(val);
                     setUnsavedChanges(true);
                   }}
-                  className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
+                  className={getInputClassName()}
                 />
               </div>
             </div>
           </section>
           {isVisual && (
-            <section className="bg-[rgb(var(--color-surface-1))] border border-[rgb(var(--color-border))] rounded-lg p-4">
+            <section className="bg-[rgb(var(--color-surface-1))] border border-[rgb(var(--color-border))] rounded-lg shadow-md p-4">
               <h3 className="text-base font-semibold text-[rgb(var(--color-fg))] mb-3">
                 Visual Properties
               </h3>
@@ -488,7 +499,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       })
                     }
                     onBlur={() => handleBlur("dimensions")}
-                    className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
+                    className={getInputClassName("dimensions")}
                     aria-describedby="dimensions-help dimensions-error"
                   />
                   {validationErrors.dimensions && (
@@ -515,7 +526,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       })
                     }
                     onBlur={() => handleBlur("dimensions")}
-                    className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
+                    className={getInputClassName("dimensions")}
                     aria-describedby="dimensions-help"
                   />
                   <p
@@ -541,7 +552,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       })
                     }
                     onBlur={() => handleBlur("position")}
-                    className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
+                    className={getInputClassName("position")}
                     aria-describedby="position-help position-error"
                   />
                   {validationErrors.position && (
@@ -568,7 +579,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       })
                     }
                     onBlur={() => handleBlur("position")}
-                    className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
+                    className={getInputClassName("position")}
                     aria-describedby="position-help"
                   />
                   <p
@@ -660,7 +671,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                                 });
                               }}
                               onBlur={() => handleBlur("scale")}
-                              className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
+                              className={getInputClassName("scale")}
                               aria-describedby="scale-help scale-error"
                             />
                           </div>
@@ -690,7 +701,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                                 });
                               }}
                               onBlur={() => handleBlur("scale")}
-                              className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
+                              className={getInputClassName("scale")}
                               aria-describedby="scale-help scale-error"
                             />
                           </div>
@@ -718,7 +729,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                             });
                           }}
                           onBlur={() => handleBlur("scale")}
-                          className="w-24 px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
+                          className={cn(getInputClassName("scale"), "w-24")}
                           aria-describedby="scale-help scale-error"
                         />
                       )}
@@ -754,7 +765,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       e.target.value as MediaAssetProperties["positionMode"],
                     )
                   }
-                  className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent bg-[rgb(var(--color-input))]"
+                  className={getInputClassName()}
                 >
                   <option value="absolute">Absolute (px)</option>
                   <option value="relative">Relative (%)</option>
@@ -788,7 +799,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                         rotation: error,
                       }));
                     }}
-                    className="w-full h-2 bg-[rgb(var(--color-border))] rounded-lg appearance-none cursor-pointer slider"
+                    className="w-full h-2 bg-[rgb(var(--color-border))] rounded-lg appearance-none cursor-pointer focus-visible:outline-none"
                     aria-label="Rotation slider"
                     aria-describedby="rotation-help rotation-error"
                   />
@@ -805,7 +816,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       )
                     }
                     onBlur={() => handleBlur("rotation")}
-                    className="w-20 px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent mt-2"
+                    className={cn(getInputClassName("rotation"), "w-20 mt-2")}
                     id="rotation-input"
                     aria-label="Rotation input"
                     aria-describedby="rotation-help rotation-error"
@@ -850,7 +861,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                         })
                       }
                       onBlur={() => handleBlur("crop")}
-                      className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
+                      className={getInputClassName("crop")}
                       aria-describedby="crop-help crop-error"
                     />
                   </div>
@@ -872,7 +883,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                         })
                       }
                       onBlur={() => handleBlur("crop")}
-                      className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
+                      className={getInputClassName("crop")}
                       aria-describedby="crop-help crop-error"
                     />
                   </div>
@@ -894,7 +905,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                         })
                       }
                       onBlur={() => handleBlur("crop")}
-                      className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
+                      className={getInputClassName("crop")}
                       aria-describedby="crop-help crop-error"
                     />
                   </div>
@@ -916,7 +927,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                         })
                       }
                       onBlur={() => handleBlur("crop")}
-                      className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
+                      className={getInputClassName("crop")}
                       aria-describedby="crop-help crop-error"
                     />
                   </div>
@@ -952,7 +963,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     )
                   }
                   onBlur={() => handleBlur("boundsType")}
-                  className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent bg-[rgb(var(--color-input))]"
+                  className={getInputClassName("boundsType")}
                   aria-describedby="bounds-type-help bounds-type-error"
                 >
                   <option value="">Select bounds type...</option>
@@ -999,7 +1010,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     )
                   }
                   onBlur={() => handleBlur("alignment")}
-                  className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent bg-[rgb(var(--color-input))]"
+                  className={getInputClassName("alignment")}
                   aria-describedby="alignment-help alignment-error"
                 >
                   <option value="">Select alignment...</option>
@@ -1032,7 +1043,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
           )}
 
           {(type === "video" || isAudio) && (
-            <section className="bg-[rgb(var(--color-surface-1))] border border-[rgb(var(--color-border))] rounded-lg p-4">
+            <section className="bg-[rgb(var(--color-surface-1))] border border-[rgb(var(--color-border))] rounded-lg shadow-md p-4">
               <h3 className="text-base font-semibold text-[rgb(var(--color-fg))] mb-3">
                 Playback Properties
               </h3>
@@ -1061,7 +1072,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                           volume: error,
                         }));
                       }}
-                      className="flex-1 h-2 bg-[rgb(var(--color-border))] rounded-lg appearance-none cursor-pointer"
+                      className="flex-1 h-2 bg-[rgb(var(--color-border))] rounded-lg appearance-none cursor-pointer focus-visible:outline-none"
                       aria-label="Volume slider"
                       aria-describedby="volume-help volume-error"
                     />
@@ -1074,7 +1085,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                         setField("volume", (Number(e.target.value) || 0) / 100)
                       }
                       onBlur={() => handleBlur("volume")}
-                      className="w-20 px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent"
+                      className={cn(getInputClassName("volume"), "w-20")}
                       aria-describedby="volume-help volume-error"
                     />
                   </div>
@@ -1104,7 +1115,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       )
                     }
                     onBlur={() => handleBlur("monitorType")}
-                    className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent bg-[rgb(var(--color-input))]"
+                    className={getInputClassName("monitorType")}
                     aria-describedby="monitor-type-help"
                   >
                     <option value="">Not set (OBS default)</option>
