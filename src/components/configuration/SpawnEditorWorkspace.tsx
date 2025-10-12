@@ -165,6 +165,7 @@ const SpawnEditorWorkspace: React.FC = () => {
     mode: "spawn-settings" | "asset-settings";
     spawnAssetId?: string;
   } | null>(null);
+  const hasUnsavedChangesRef = useRef<boolean>(false);
   const [showModeSwitchDialog, setShowModeSwitchDialog] = useState(false);
   const [showTriggerTypeDialog, setShowTriggerTypeDialog] = useState(false);
   const pendingTriggerTypeRef = useRef<TriggerType | null>(null);
@@ -222,28 +223,40 @@ const SpawnEditorWorkspace: React.FC = () => {
     };
     window.addEventListener(
       "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-      onUpdated as EventListener
+      onUpdated as EventListener,
     );
     return () => {
       isActive = false;
       window.removeEventListener(
         "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-        onUpdated as EventListener
+        onUpdated as EventListener,
       );
     };
   }, [selectedSpawnId]);
 
+  // Keep hasUnsavedChanges ref in sync
+  useEffect(() => {
+    hasUnsavedChangesRef.current = hasUnsavedChanges;
+  }, [hasUnsavedChanges]);
+
   useEffect(() => {
     const onRequestSwitch = (evt: Event) => {
       const detail = (evt as CustomEvent).detail as
-        | { mode: "spawn-settings" | "asset-settings"; spawnAssetId?: string }
+        | {
+            mode: "spawn-settings" | "asset-settings";
+            spawnAssetId?: string;
+            skipGuard?: boolean;
+          }
         | undefined;
       if (!detail) return;
-      if (hasUnsavedChanges) {
+
+      // Use ref to read latest state value, but skip guard if explicitly bypassed
+      if (hasUnsavedChangesRef.current && !detail.skipGuard) {
         switchPendingRef.current = detail;
         setShowModeSwitchDialog(true);
         return;
       }
+
       if (detail.mode === "asset-settings" && detail.spawnAssetId) {
         selectSpawnAsset(detail.spawnAssetId);
         setCenterPanelMode("asset-settings");
@@ -254,15 +267,15 @@ const SpawnEditorWorkspace: React.FC = () => {
     };
     window.addEventListener(
       "mediaspawner:request-center-switch" as unknown as keyof WindowEventMap,
-      onRequestSwitch as EventListener
+      onRequestSwitch as EventListener,
     );
     return () => {
       window.removeEventListener(
         "mediaspawner:request-center-switch" as unknown as keyof WindowEventMap,
-        onRequestSwitch as EventListener
+        onRequestSwitch as EventListener,
       );
     };
-  }, [selectSpawnAsset, setCenterPanelMode, hasUnsavedChanges]);
+  }, [selectSpawnAsset, setCenterPanelMode]);
 
   useEffect(() => {
     if (selectedSpawn) {
@@ -312,7 +325,7 @@ const SpawnEditorWorkspace: React.FC = () => {
     if (!selectedSpawn) return true;
     const lower = trimmedName.toLowerCase();
     return !allSpawnsCache.some(
-      (s) => s.id !== selectedSpawn.id && s.name.toLowerCase() === lower
+      (s) => s.id !== selectedSpawn.id && s.name.toLowerCase() === lower,
     );
   }, [allSpawnsCache, selectedSpawn, trimmedName]);
   const isNameValid = isNameNonEmpty && isNameUnique;
@@ -397,8 +410,8 @@ const SpawnEditorWorkspace: React.FC = () => {
           "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
           {
             detail: { spawnId: result.spawn.id, updatedSpawn: result.spawn },
-          } as CustomEventInit
-        )
+          } as CustomEventInit,
+        ),
       );
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Failed to save spawn");
@@ -425,8 +438,8 @@ const SpawnEditorWorkspace: React.FC = () => {
           "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
           {
             detail: { spawnId: result.spawn.id, updatedSpawn: result.spawn },
-          } as CustomEventInit
-        )
+          } as CustomEventInit,
+        ),
       );
     } catch {
       setEnabled(!next);
@@ -472,20 +485,23 @@ const SpawnEditorWorkspace: React.FC = () => {
       <AssetSettingsForm
         spawnId={selectedSpawnId}
         spawnAssetId={selectedSpawnAssetId}
-        onBack={() => {
+        onBack={(skipGuard = false) => {
           window.dispatchEvent(
             new CustomEvent(
               "mediaspawner:request-center-switch" as unknown as keyof WindowEventMap,
               {
-                detail: { mode: "spawn-settings" },
-              } as CustomEventInit
-            )
+                detail: { mode: "spawn-settings", skipGuard },
+              } as CustomEventInit,
+            ),
           );
         }}
         getCachedDraft={() => assetDraftCacheRef.current[selectedSpawnAssetId]}
         setCachedDraft={(draft) =>
           (assetDraftCacheRef.current[selectedSpawnAssetId] = draft)
         }
+        clearCachedDraft={(id) => {
+          delete assetDraftCacheRef.current[id];
+        }}
       />
     );
   }
@@ -629,7 +645,7 @@ const SpawnEditorWorkspace: React.FC = () => {
               window.dispatchEvent(
                 new CustomEvent<{ id: string }>("mediaspawner:spawn-deleted", {
                   detail: { id: selectedSpawn.id },
-                })
+                }),
               );
               setSelectedSpawn(null);
               setName("");
@@ -641,7 +657,7 @@ const SpawnEditorWorkspace: React.FC = () => {
               selectSpawn(undefined);
             } catch (e) {
               setDeleteError(
-                e instanceof Error ? e.message : "Failed to delete spawn"
+                e instanceof Error ? e.message : "Failed to delete spawn",
               );
               setShowDeleteDialog(false);
             }
@@ -720,7 +736,26 @@ const SpawnEditorWorkspace: React.FC = () => {
                         !trimmedName
                           ? "Name is required"
                           : !isNameValid
-                          ? "Name must be unique"
+                            ? "Name must be unique"
+                            : undefined
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Input
+                      id="spawn-duration"
+                      type="number"
+                      label="Duration (ms)"
+                      value={duration}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setDuration(val >= 0 ? val : 0);
+                      }}
+                      min={0}
+                      error={
+                        duration < 0
+                          ? "Duration must be non-negative"
                           : undefined
                       }
                     />
@@ -936,7 +971,7 @@ const SpawnEditorWorkspace: React.FC = () => {
                                     const newAliases = (
                                       getCommandConfig(trigger)?.aliases || [""]
                                     ).filter(
-                                      (_: string, i: number) => i !== index
+                                      (_: string, i: number) => i !== index,
                                     );
                                     setTrigger({
                                       ...trigger,
@@ -953,7 +988,7 @@ const SpawnEditorWorkspace: React.FC = () => {
                                 </button>
                               )}
                             </div>
-                          )
+                          ),
                         )}
                         <button
                           type="button"
@@ -979,7 +1014,7 @@ const SpawnEditorWorkspace: React.FC = () => {
                         const config = getCommandConfig(trigger);
                         const aliases = config?.aliases || [];
                         const hasEmptyAlias = aliases.some(
-                          (a: string) => !a.trim()
+                          (a: string) => !a.trim(),
                         );
                         if (!aliases.length || hasEmptyAlias) {
                           return (
@@ -1111,7 +1146,7 @@ const SpawnEditorWorkspace: React.FC = () => {
                         placeholder="Enter reward name or ID (e.g., Alert, Scene1, 12345)"
                         error={
                           !getChannelPointConfig(
-                            trigger
+                            trigger,
                           )?.rewardIdentifier?.trim()
                             ? "Reward identifier is required"
                             : undefined
@@ -1166,12 +1201,12 @@ const SpawnEditorWorkspace: React.FC = () => {
                               ).includes(status)}
                               onCheckedChange={(checked) => {
                                 const currentStatuses = getChannelPointConfig(
-                                  trigger
+                                  trigger,
                                 )?.statuses || ["fulfilled"];
                                 const newStatuses = checked
                                   ? [...currentStatuses, status]
                                   : currentStatuses.filter(
-                                      (s: string) => s !== status
+                                      (s: string) => s !== status,
                                     );
                                 setTrigger({
                                   ...trigger,
@@ -1559,7 +1594,7 @@ const SpawnEditorWorkspace: React.FC = () => {
                             onChange={(e) => {
                               const val = Math.max(
                                 1,
-                                Math.min(31, Number(e.target.value) || 1)
+                                Math.min(31, Number(e.target.value) || 1),
                               );
                               const base =
                                 getMonthlyOnConfig(trigger) ||
@@ -1797,7 +1832,7 @@ const SpawnEditorWorkspace: React.FC = () => {
                               onChange={(e) => {
                                 const val = Math.max(
                                   1,
-                                  Number(e.target.value) || 1
+                                  Number(e.target.value) || 1,
                                 );
                                 const base =
                                   getEveryNMinutesConfig(trigger) ||
@@ -2046,7 +2081,7 @@ const SpawnEditorWorkspace: React.FC = () => {
                             onChange={(e) => {
                               const val = Math.max(
                                 0,
-                                Math.min(59, Number(e.target.value) || 0)
+                                Math.min(59, Number(e.target.value) || 0),
                               );
                               const base =
                                 getMinuteOfHourConfig(trigger) ||

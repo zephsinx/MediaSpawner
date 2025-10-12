@@ -23,7 +23,7 @@ describe("Spawn Types", () => {
     vi.useFakeTimers();
     vi.setSystemTime(1234567890000);
     vi.spyOn(globalThis.crypto, "randomUUID").mockImplementation(
-      () => "00000000-0000-0000-0000-000000000000"
+      () => "00000000-0000-0000-0000-000000000000",
     );
   });
 
@@ -59,7 +59,7 @@ describe("Spawn Types", () => {
       expect(spawn.name).toBe("Test Spawn");
       expect(spawn.description).toBe("desc");
       expect(spawn.enabled).toBe(true);
-      expect(spawn.duration).toBe(0);
+      expect(spawn.duration).toBe(5000);
       expect(spawn.trigger.type).toBe("manual");
       expect(spawn.assets).toEqual([]);
       expect(spawn.lastModified).toBe(1234567890000);
@@ -113,7 +113,7 @@ describe("Spawn Types", () => {
         isActive: false,
       } as Partial<import("../spawn").SpawnProfile>;
       const result = validateSpawnProfile(
-        profile as import("../spawn").SpawnProfile
+        profile as import("../spawn").SpawnProfile,
       );
       expect(result.isValid).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);

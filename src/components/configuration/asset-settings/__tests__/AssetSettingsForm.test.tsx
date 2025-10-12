@@ -137,6 +137,7 @@ describe("AssetSettingsForm", () => {
   const mockOnBack = vi.fn();
   const mockGetCachedDraft = vi.fn();
   const mockSetCachedDraft = vi.fn();
+  const mockClearCachedDraft = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -247,10 +248,7 @@ describe("AssetSettingsForm", () => {
       );
 
       expect(
-        await screen.findByRole("button", { name: "Back to spawn settings" }),
-      ).toBeInTheDocument();
-      expect(
-        await screen.findByRole("button", { name: "Cancel edits" }),
+        await screen.findByRole("button", { name: "Close asset settings" }),
       ).toBeInTheDocument();
       expect(
         await screen.findByRole("button", { name: "Save asset settings" }),
@@ -681,8 +679,25 @@ describe("AssetSettingsForm", () => {
     });
   });
 
-  describe("Cancel and Reset", () => {
-    it("resets form to original values when cancel is clicked", async () => {
+  describe("Close Behavior", () => {
+    it("navigates immediately when no unsaved changes", async () => {
+      vi.mocked(usePanelState).mockReturnValue({
+        selectedSpawnId: undefined,
+        activeProfileId: undefined,
+        liveProfileId: undefined,
+        selectedSpawnAssetId: undefined,
+        centerPanelMode: "spawn-settings",
+        hasUnsavedChanges: false,
+        profileSpawnSelections: {},
+        setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
+        selectSpawn: vi.fn(),
+        setCenterPanelMode: vi.fn(),
+        selectSpawnAsset: vi.fn(),
+        clearContext: vi.fn(),
+        setUnsavedChanges: mockSetUnsavedChanges,
+      } as ReturnType<typeof usePanelState>);
+
       render(
         <AssetSettingsForm
           spawnId="spawn1"
@@ -691,35 +706,243 @@ describe("AssetSettingsForm", () => {
         />,
       );
 
-      // Wait for the component to finish loading
       await waitFor(() => {
         expect(screen.getByText("Test Video · video")).toBeInTheDocument();
       });
 
-      // Find width input by role and aria-describedby attribute
-      const numberInputs = screen.getAllByRole("spinbutton");
-      const widthInput = numberInputs.find((input) =>
-        input.getAttribute("aria-describedby")?.includes("dimensions-error"),
-      );
-      if (!widthInput) throw new Error("Width input not found");
-
-      // Input should be enabled for direct editing
-      expect(widthInput).not.toBeDisabled();
-
-      await act(async () => {
-        fireEvent.change(widthInput, { target: { value: "200" } });
+      const closeButton = await screen.findByRole("button", {
+        name: "Close asset settings",
       });
 
+      await act(async () => {
+        fireEvent.click(closeButton);
+      });
+
+      // Should navigate immediately without showing dialog
+      expect(mockOnBack).toHaveBeenCalled();
+      expect(screen.queryByText("Discard Changes?")).not.toBeInTheDocument();
+    });
+
+    it("shows confirmation dialog when there are unsaved changes", async () => {
+      vi.mocked(usePanelState).mockReturnValue({
+        selectedSpawnId: undefined,
+        activeProfileId: undefined,
+        liveProfileId: undefined,
+        selectedSpawnAssetId: undefined,
+        centerPanelMode: "spawn-settings",
+        hasUnsavedChanges: true,
+        profileSpawnSelections: {},
+        setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
+        selectSpawn: vi.fn(),
+        setCenterPanelMode: vi.fn(),
+        selectSpawnAsset: vi.fn(),
+        clearContext: vi.fn(),
+        setUnsavedChanges: mockSetUnsavedChanges,
+      } as ReturnType<typeof usePanelState>);
+
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Video · video")).toBeInTheDocument();
+      });
+
+      const closeButton = await screen.findByRole("button", {
+        name: "Close asset settings",
+      });
+
+      await act(async () => {
+        fireEvent.click(closeButton);
+      });
+
+      // Should show confirmation dialog
+      expect(await screen.findByText("Discard Changes?")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Your unsaved changes will be lost. This cannot be undone.",
+        ),
+      ).toBeInTheDocument();
+      expect(mockOnBack).not.toHaveBeenCalled();
+    });
+
+    it("resets values and navigates when discard is confirmed", async () => {
+      vi.mocked(usePanelState).mockReturnValue({
+        selectedSpawnId: undefined,
+        activeProfileId: undefined,
+        liveProfileId: undefined,
+        selectedSpawnAssetId: undefined,
+        centerPanelMode: "spawn-settings",
+        hasUnsavedChanges: true,
+        profileSpawnSelections: {},
+        setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
+        selectSpawn: vi.fn(),
+        setCenterPanelMode: vi.fn(),
+        selectSpawnAsset: vi.fn(),
+        clearContext: vi.fn(),
+        setUnsavedChanges: mockSetUnsavedChanges,
+      } as ReturnType<typeof usePanelState>);
+
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+          clearCachedDraft={mockClearCachedDraft}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Video · video")).toBeInTheDocument();
+      });
+
+      const closeButton = await screen.findByRole("button", {
+        name: "Close asset settings",
+      });
+
+      await act(async () => {
+        fireEvent.click(closeButton);
+      });
+
+      // Confirm discard
+      const discardButton = await screen.findByRole("button", {
+        name: "Discard",
+      });
+      await act(async () => {
+        fireEvent.click(discardButton);
+      });
+
+      // Should clear cached draft, reset unsaved changes, and navigate
+      expect(mockClearCachedDraft).toHaveBeenCalledWith("asset1");
+      expect(mockSetUnsavedChanges).toHaveBeenCalledWith(false);
+      expect(mockOnBack).toHaveBeenCalled();
+    });
+
+    it("stays on form when discard is cancelled", async () => {
+      vi.mocked(usePanelState).mockReturnValue({
+        selectedSpawnId: undefined,
+        activeProfileId: undefined,
+        liveProfileId: undefined,
+        selectedSpawnAssetId: undefined,
+        centerPanelMode: "spawn-settings",
+        hasUnsavedChanges: true,
+        profileSpawnSelections: {},
+        setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
+        selectSpawn: vi.fn(),
+        setCenterPanelMode: vi.fn(),
+        selectSpawnAsset: vi.fn(),
+        clearContext: vi.fn(),
+        setUnsavedChanges: mockSetUnsavedChanges,
+      } as ReturnType<typeof usePanelState>);
+
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Video · video")).toBeInTheDocument();
+      });
+
+      const closeButton = await screen.findByRole("button", {
+        name: "Close asset settings",
+      });
+
+      await act(async () => {
+        fireEvent.click(closeButton);
+      });
+
+      // Cancel discard
       const cancelButton = await screen.findByRole("button", {
-        name: "Cancel edits",
+        name: "Keep Editing",
       });
       await act(async () => {
         fireEvent.click(cancelButton);
       });
 
-      // After cancel, the input should be reset to its original value
-      expect(widthInput).toHaveValue(100); // Default value from test data
-      expect(mockSetUnsavedChanges).toHaveBeenCalledWith(false);
+      // Should not navigate
+      expect(mockOnBack).not.toHaveBeenCalled();
+      expect(screen.queryByText("Discard Changes?")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Unsaved Changes Indicator", () => {
+    it("shows unsaved changes indicator when form is dirty", async () => {
+      vi.mocked(usePanelState).mockReturnValue({
+        selectedSpawnId: undefined,
+        activeProfileId: undefined,
+        liveProfileId: undefined,
+        selectedSpawnAssetId: undefined,
+        centerPanelMode: "spawn-settings",
+        hasUnsavedChanges: true,
+        profileSpawnSelections: {},
+        setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
+        selectSpawn: vi.fn(),
+        setCenterPanelMode: vi.fn(),
+        selectSpawnAsset: vi.fn(),
+        clearContext: vi.fn(),
+        setUnsavedChanges: mockSetUnsavedChanges,
+      } as ReturnType<typeof usePanelState>);
+
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Video · video")).toBeInTheDocument();
+      });
+
+      // Should show unsaved changes indicator
+      expect(screen.getByText("• Unsaved changes")).toBeInTheDocument();
+    });
+
+    it("does not show unsaved changes indicator when form is clean", async () => {
+      vi.mocked(usePanelState).mockReturnValue({
+        selectedSpawnId: undefined,
+        activeProfileId: undefined,
+        liveProfileId: undefined,
+        selectedSpawnAssetId: undefined,
+        centerPanelMode: "spawn-settings",
+        hasUnsavedChanges: false,
+        profileSpawnSelections: {},
+        setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
+        selectSpawn: vi.fn(),
+        setCenterPanelMode: vi.fn(),
+        selectSpawnAsset: vi.fn(),
+        clearContext: vi.fn(),
+        setUnsavedChanges: mockSetUnsavedChanges,
+      } as ReturnType<typeof usePanelState>);
+
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Video · video")).toBeInTheDocument();
+      });
+
+      // Should not show unsaved changes indicator
+      expect(screen.queryByText("• Unsaved changes")).not.toBeInTheDocument();
     });
   });
 

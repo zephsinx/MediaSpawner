@@ -30,6 +30,23 @@
 - Extract complex logic into custom hooks (e.g., `useAssetValidation`).
 - Prefer functional state updates to avoid stale closures.
 - Debounced inputs use refs and functional updates to avoid circular dependencies.
+- Example: Event listeners that check state should use refs:
+
+  ```tsx
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+  useEffect(() => {
+    const handler = () => {
+      if (stateRef.current) {
+        /* use latest value */
+      }
+    };
+    window.addEventListener("event", handler);
+    return () => window.removeEventListener("event", handler);
+  }, []); // ← state not in deps
+  ```
 
 ## Services and events
 

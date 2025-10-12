@@ -27,11 +27,12 @@ import { cn } from "../../../utils/cn";
 import { inputVariants } from "../../ui/variants";
 import { CheckCircle, AlertCircle, Info } from "lucide-react";
 import * as Tooltip from "@radix-ui/react-tooltip";
+import { ConfirmDialog } from "../../common/ConfirmDialog";
 
 export interface AssetSettingsFormProps {
   spawnId: string;
   spawnAssetId: string;
-  onBack: () => void;
+  onBack: (skipGuard?: boolean) => void;
   getCachedDraft?: () =>
     | {
         draftValues: Partial<MediaAssetProperties>;
@@ -40,6 +41,7 @@ export interface AssetSettingsFormProps {
   setCachedDraft?: (draft: {
     draftValues: Partial<MediaAssetProperties>;
   }) => void;
+  clearCachedDraft?: (spawnAssetId: string) => void;
 }
 
 type FieldKey = keyof MediaAssetProperties;
@@ -78,20 +80,25 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
   onBack,
   getCachedDraft,
   setCachedDraft,
+  clearCachedDraft,
 }) => {
-  const { setUnsavedChanges } = usePanelState();
+  const { setUnsavedChanges, hasUnsavedChanges } = usePanelState();
   const [spawn, setSpawn] = useState<Spawn | null>(null);
   const [spawnAsset, setSpawnAsset] = useState<SpawnAsset | null>(null);
   const [baseAsset, setBaseAsset] = useState<MediaAsset | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 
   // Local draft state: values only
   const [durationDraftMs, setDurationDraftMs] = useState<number>(0);
+  const [initialDurationMs, setInitialDurationMs] = useState<number>(0);
   const [draftValues, setDraftValues] = useState<Partial<MediaAssetProperties>>(
     {},
   );
+  const [initialValues, setInitialValues] =
+    useState<Partial<MediaAssetProperties> | null>(null);
   const [validationErrors, setValidationErrors] = useState<
     Partial<Record<FieldKey, string>>
   >({});
@@ -159,20 +166,27 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
     if (initKeyRef.current === key) return;
     initKeyRef.current = key;
     setSuccess(null);
+
     const cached = getCachedDraft?.();
-    if (cached) {
-      setDraftValues(cached.draftValues);
-    } else {
-      setDraftValues(effective.effective);
-    }
+    const valuesToUse = cached ? cached.draftValues : effective.effective;
+
+    // Store initial values with display defaults
+    const initialDisplay: Partial<MediaAssetProperties> = {
+      ...valuesToUse,
+      volume: valuesToUse.volume ?? 0.5,
+      rotation: valuesToUse.rotation ?? 0,
+    };
+    setInitialValues(initialDisplay);
+    setDraftValues(valuesToUse);
 
     const hasDurationOverride =
       typeof spawnAsset.overrides?.duration === "number";
-    setDurationDraftMs(
-      hasDurationOverride
-        ? Math.max(0, Number(spawnAsset.overrides?.duration))
-        : Math.max(0, Number(spawn.duration)),
-    );
+    const initialDuration = hasDurationOverride
+      ? Math.max(0, Number(spawnAsset.overrides?.duration))
+      : Math.max(0, Number(spawn.duration));
+
+    setInitialDurationMs(initialDuration);
+    setDurationDraftMs(initialDuration);
     setUnsavedChanges(false);
   }, [effective, spawn, spawnAsset, setUnsavedChanges, getCachedDraft]);
 
@@ -288,13 +302,46 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
     };
   }, [spawnId, spawnAssetId]);
 
-  const handleCancel = () => {
-    if (!effective) return;
-    setDraftValues(effective.effective);
+  const handleClose = useCallback(() => {
+    if (hasUnsavedChanges) {
+      setShowDiscardDialog(true);
+    } else {
+      onBack();
+    }
+  }, [hasUnsavedChanges, onBack]);
+
+  const handleConfirmDiscard = useCallback(() => {
+    // Reset to initial values
+    if (initialValues) {
+      setDraftValues(initialValues);
+
+      // Reset slider states to initial values
+      setLocalVolume(initialValues.volume ?? 0.5);
+      setLocalRotation(initialValues.rotation ?? 0);
+    }
+
+    // Reset duration to initial value
+    setDurationDraftMs(initialDurationMs);
+
+    // Clear cached draft
+    if (clearCachedDraft) {
+      clearCachedDraft(spawnAssetId);
+    }
+
+    // Clear unsaved changes flag and close dialog
     setUnsavedChanges(false);
-    setSuccess(null);
-    setError(null);
-  };
+    setShowDiscardDialog(false);
+
+    // Navigate back with skipGuard=true since we've already confirmed discard
+    onBack(true);
+  }, [
+    initialValues,
+    initialDurationMs,
+    clearCachedDraft,
+    spawnAssetId,
+    setUnsavedChanges,
+    onBack,
+  ]);
 
   const handleSave = async () => {
     if (!spawn || !spawnAsset) return;
@@ -426,9 +473,16 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
       <div className="p-4 border-b border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-2))]">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-[rgb(var(--color-fg))]">
-              Asset Settings
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-[rgb(var(--color-fg))]">
+                Asset Settings
+              </h2>
+              {hasUnsavedChanges && (
+                <span className="text-amber-600 dark:text-amber-500 text-sm font-medium">
+                  • Unsaved changes
+                </span>
+              )}
+            </div>
             <p className="text-sm text-[rgb(var(--color-muted-foreground))]">
               {baseAsset.name} · {type}
             </p>
@@ -437,18 +491,10 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
             <Button
               variant="outline"
               size="sm"
-              onClick={onBack}
-              aria-label="Back to spawn settings"
+              onClick={handleClose}
+              aria-label="Close asset settings"
             >
-              Back
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCancel}
-              aria-label="Cancel edits"
-            >
-              Cancel
+              Close
             </Button>
             <Button
               variant="primary"
@@ -1151,6 +1197,17 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showDiscardDialog}
+        title="Discard Changes?"
+        message="Your unsaved changes will be lost. This cannot be undone."
+        confirmText="Discard"
+        cancelText="Keep Editing"
+        variant="warning"
+        onConfirm={handleConfirmDiscard}
+        onCancel={() => setShowDiscardDialog(false)}
+      />
     </div>
   );
 };

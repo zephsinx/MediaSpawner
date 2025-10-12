@@ -52,7 +52,7 @@ describe("SpawnService", () => {
       type: "manual",
       config: {},
     },
-    duration: 0,
+    duration: 5000,
     assets: [],
     lastModified: 1234567890000,
     order: 0,
@@ -96,7 +96,7 @@ describe("SpawnService", () => {
 
     // Mock crypto.randomUUID
     vi.spyOn(globalThis.crypto, "randomUUID").mockImplementation(
-      () => "00000000-0000-0000-0000-000000000000"
+      () => "00000000-0000-0000-0000-000000000000",
     );
 
     // Reset all mocks
@@ -115,7 +115,7 @@ describe("SpawnService", () => {
         type: "manual",
         config: {},
       },
-      duration: 0,
+      duration: 5000,
       assets: [],
       lastModified: 1234567890000,
       order: 0,
@@ -136,7 +136,7 @@ describe("SpawnService", () => {
 
       const result = await SpawnService.createSpawn(
         "New Spawn",
-        "New description"
+        "New description",
       );
 
       expect(result.success).toBe(true);
@@ -145,12 +145,12 @@ describe("SpawnService", () => {
       expect(result.spawn?.description).toBe("New description");
       expect(mockCreateSpawn).toHaveBeenCalledWith(
         "New Spawn",
-        "New description"
+        "New description",
       );
       expect(mockValidateSpawn).toHaveBeenCalled();
       expect(localStorage.setItem).toHaveBeenCalled();
       expect(mockCacheService.invalidate).toHaveBeenCalledWith(
-        CACHE_KEYS.PROFILES
+        CACHE_KEYS.PROFILES,
       );
     });
 
@@ -171,7 +171,7 @@ describe("SpawnService", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe(
-        "No active profile found. Please create or select a profile first."
+        "No active profile found. Please create or select a profile first.",
       );
     });
 
@@ -194,7 +194,7 @@ describe("SpawnService", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe(
-        'Spawn with name "Test Spawn" already exists in this profile'
+        'Spawn with name "Test Spawn" already exists in this profile',
       );
     });
 
@@ -277,7 +277,7 @@ describe("SpawnService", () => {
       expect(result).toBeNull();
       expect(console.error).toHaveBeenCalledWith(
         "Failed to get spawn:",
-        expect.any(Error)
+        expect.any(Error),
       );
     });
   });
@@ -346,7 +346,7 @@ describe("SpawnService", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe(
-        "No active profile found. Please create or select a profile first."
+        "No active profile found. Please create or select a profile first.",
       );
     });
 
@@ -357,7 +357,7 @@ describe("SpawnService", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe(
-        'Spawn with ID "non-existent" not found in active profile'
+        'Spawn with ID "non-existent" not found in active profile',
       );
     });
 
@@ -375,7 +375,7 @@ describe("SpawnService", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe(
-        'Spawn with name "Second Spawn" already exists in this profile'
+        'Spawn with name "Second Spawn" already exists in this profile',
       );
     });
 
@@ -443,7 +443,7 @@ describe("SpawnService", () => {
       expect(result.spawn).toEqual(mockSpawn);
       expect(localStorage.setItem).toHaveBeenCalled();
       expect(mockCacheService.invalidate).toHaveBeenCalledWith(
-        CACHE_KEYS.PROFILES
+        CACHE_KEYS.PROFILES,
       );
     });
 
@@ -484,7 +484,7 @@ describe("SpawnService", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe(
-        "No active profile found. Please create or select a profile first."
+        "No active profile found. Please create or select a profile first.",
       );
     });
 
@@ -493,7 +493,7 @@ describe("SpawnService", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe(
-        'Spawn with ID "non-existent" not found in active profile'
+        'Spawn with ID "non-existent" not found in active profile',
       );
     });
 
@@ -553,7 +553,7 @@ describe("SpawnService", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe(
-        "No active profile found. Please create or select a profile first."
+        "No active profile found. Please create or select a profile first.",
       );
     });
 
@@ -562,7 +562,7 @@ describe("SpawnService", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe(
-        'Spawn with ID "non-existent" not found in active profile'
+        'Spawn with ID "non-existent" not found in active profile',
       );
     });
 
@@ -628,7 +628,7 @@ describe("SpawnService", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe(
-        "No active profile found. Please create or select a profile first."
+        "No active profile found. Please create or select a profile first.",
       );
     });
 
@@ -637,7 +637,7 @@ describe("SpawnService", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe(
-        'Spawn with ID "non-existent" not found in active profile'
+        'Spawn with ID "non-existent" not found in active profile',
       );
     });
 
@@ -682,7 +682,7 @@ describe("SpawnService", () => {
 
     it("returns empty array when active profile has no spawns", async () => {
       mockSpawnProfileService.getActiveProfile.mockReturnValue(
-        mockEmptyProfile
+        mockEmptyProfile,
       );
 
       const result = await SpawnService.getAllSpawns();
@@ -700,7 +700,7 @@ describe("SpawnService", () => {
       expect(result).toEqual([]);
       expect(console.error).toHaveBeenCalledWith(
         "Failed to get all spawns:",
-        expect.any(Error)
+        expect.any(Error),
       );
     });
   });
@@ -754,7 +754,7 @@ describe("SpawnService", () => {
       expect(result).toEqual([]);
       expect(console.error).toHaveBeenCalledWith(
         "Failed to get enabled spawns:",
-        expect.any(Error)
+        expect.any(Error),
       );
     });
   });
@@ -784,7 +784,7 @@ describe("SpawnService", () => {
 
     it("returns correct statistics for empty profile", async () => {
       mockSpawnProfileService.getActiveProfile.mockReturnValue(
-        mockEmptyProfile
+        mockEmptyProfile,
       );
 
       const result = await SpawnService.getSpawnStats();
@@ -825,7 +825,7 @@ describe("SpawnService", () => {
       });
       expect(console.error).toHaveBeenCalledWith(
         "Failed to get spawn stats:",
-        expect.any(Error)
+        expect.any(Error),
       );
     });
   });

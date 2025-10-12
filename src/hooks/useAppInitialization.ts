@@ -25,8 +25,11 @@ export function useAppInitialization() {
 
         // Check if profiles have been initialized before
         const hasInitialized = localStorage.getItem(INITIALIZATION_FLAG_KEY);
+        const activeProfile = SpawnProfileService.getActiveProfile();
 
-        if (!hasInitialized) {
+        // Initialize if never initialized OR if there's no active profile
+        // This auto-heals cases where the initialization flag exists but the active profile was lost
+        if (!hasInitialized || !activeProfile) {
           const result = SpawnProfileService.ensureDefaultProfile();
           if (result.success) {
             localStorage.setItem(INITIALIZATION_FLAG_KEY, "true");

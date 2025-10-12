@@ -33,7 +33,7 @@ const makeSpawn = (): Spawn => {
     description: "",
     enabled: true,
     trigger: getDefaultTrigger("manual"),
-    duration: 0,
+    duration: 5000,
     assets: [sa1, sa2],
     lastModified: Date.now(),
     order: 0,

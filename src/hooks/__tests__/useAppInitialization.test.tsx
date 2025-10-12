@@ -8,6 +8,7 @@ import type { SpawnProfile } from "../../types/spawn";
 vi.mock("../../services/spawnProfileService", () => ({
   SpawnProfileService: {
     ensureDefaultProfile: vi.fn(),
+    getActiveProfile: vi.fn(),
   },
 }));
 
@@ -49,6 +50,19 @@ describe("useAppInitialization", () => {
   it("should complete initialization successfully", async () => {
     // Mock that profiles have been initialized before (no work needed)
     localStorageMock.getItem.mockReturnValue("true");
+
+    // Mock that there's an active profile
+    const mockGetActiveProfile = vi.mocked(
+      SpawnProfileService.getActiveProfile,
+    );
+    mockGetActiveProfile.mockReturnValue({
+      id: "default",
+      name: "Default Profile",
+      description: "Default spawn profile",
+      spawns: [],
+      lastModified: Date.now(),
+      isActive: true,
+    } as SpawnProfile);
 
     const { result } = renderHook(() => useAppInitialization());
 
@@ -98,6 +112,19 @@ describe("useAppInitialization", () => {
     // Mock that profiles have been initialized before
     localStorageMock.getItem.mockReturnValue("true");
 
+    // Mock that there's an active profile
+    const mockGetActiveProfile = vi.mocked(
+      SpawnProfileService.getActiveProfile,
+    );
+    mockGetActiveProfile.mockReturnValue({
+      id: "default",
+      name: "Default Profile",
+      description: "Default spawn profile",
+      spawns: [],
+      lastModified: Date.now(),
+      isActive: true,
+    } as SpawnProfile);
+
     const mockEnsureDefaultProfile = vi.mocked(
       SpawnProfileService.ensureDefaultProfile,
     );
@@ -109,6 +136,47 @@ describe("useAppInitialization", () => {
     });
 
     expect(mockEnsureDefaultProfile).not.toHaveBeenCalled();
+    expect(result.current.error).toBe(null);
+  });
+
+  it("should auto-heal when initialization flag exists but no active profile", async () => {
+    // Mock that profiles have been initialized before
+    localStorageMock.getItem.mockReturnValue("true");
+
+    // Mock that there's NO active profile (this is the auto-heal scenario)
+    const mockGetActiveProfile = vi.mocked(
+      SpawnProfileService.getActiveProfile,
+    );
+    mockGetActiveProfile.mockReturnValue(null);
+
+    // Mock successful profile creation/restoration
+    const mockEnsureDefaultProfile = vi.mocked(
+      SpawnProfileService.ensureDefaultProfile,
+    );
+    mockEnsureDefaultProfile.mockReturnValue({
+      success: true,
+      profile: {
+        id: "default",
+        name: "Default Profile",
+        description: "Default spawn profile",
+        spawns: [],
+        lastModified: Date.now(),
+        isActive: true,
+      } as SpawnProfile,
+    });
+
+    const { result } = renderHook(() => useAppInitialization());
+
+    await waitFor(() => {
+      expect(result.current.isInitializing).toBe(false);
+    });
+
+    // Should call ensureDefaultProfile to auto-heal the state
+    expect(mockEnsureDefaultProfile).toHaveBeenCalledOnce();
+    expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      "mediaspawner_profiles_initialized",
+      "true",
+    );
     expect(result.current.error).toBe(null);
   });
 
