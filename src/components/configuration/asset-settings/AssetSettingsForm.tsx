@@ -25,7 +25,8 @@ import { useAssetValidation } from "../../../hooks/useAssetValidation";
 import { Button } from "../../ui/Button";
 import { cn } from "../../../utils/cn";
 import { inputVariants } from "../../ui/variants";
-import { CheckCircle, AlertCircle } from "lucide-react";
+import { CheckCircle, AlertCircle, Info } from "lucide-react";
+import * as Tooltip from "@radix-ui/react-tooltip";
 
 export interface AssetSettingsFormProps {
   spawnId: string;
@@ -42,6 +43,34 @@ export interface AssetSettingsFormProps {
 }
 
 type FieldKey = keyof MediaAssetProperties;
+
+/**
+ * Reusable tooltip component for form field help text
+ */
+function FieldTooltip({ content }: { content: string }) {
+  return (
+    <Tooltip.Root>
+      <Tooltip.Trigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center justify-center ml-1.5 text-[rgb(var(--color-muted))] hover:text-[rgb(var(--color-fg))] transition-colors"
+          aria-label="More information"
+        >
+          <Info className="h-4 w-4" aria-hidden="true" />
+        </button>
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Content
+          sideOffset={6}
+          className="z-50 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-3 py-2 text-sm text-[rgb(var(--color-fg))] shadow-md max-w-xs"
+        >
+          {content}
+          <Tooltip.Arrow className="fill-[rgb(var(--color-bg))]" />
+        </Tooltip.Content>
+      </Tooltip.Portal>
+    </Tooltip.Root>
+  );
+}
 
 const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
   spawnId,
@@ -485,8 +514,9 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
+                  <label className="inline-flex items-center text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                     Width (px)
+                    <FieldTooltip content="Positive numbers only." />
                   </label>
                   <input
                     type="number"
@@ -500,7 +530,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     }
                     onBlur={() => handleBlur("dimensions")}
                     className={getInputClassName("dimensions")}
-                    aria-describedby="dimensions-help dimensions-error"
+                    aria-describedby="dimensions-error"
                   />
                   {validationErrors.dimensions && (
                     <p
@@ -512,8 +542,9 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
+                  <label className="inline-flex items-center text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                     Height (px)
+                    <FieldTooltip content="Positive numbers only." />
                   </label>
                   <input
                     type="number"
@@ -527,19 +558,13 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     }
                     onBlur={() => handleBlur("dimensions")}
                     className={getInputClassName("dimensions")}
-                    aria-describedby="dimensions-help"
                   />
-                  <p
-                    id="dimensions-help"
-                    className="text-xs text-[rgb(var(--color-muted))] mt-1"
-                  >
-                    Positive numbers only.
-                  </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
+                  <label className="inline-flex items-center text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                     X Position (px)
+                    <FieldTooltip content="Use non-negative values. Relative/centered behavior depends on mode." />
                   </label>
                   <input
                     type="number"
@@ -553,7 +578,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     }
                     onBlur={() => handleBlur("position")}
                     className={getInputClassName("position")}
-                    aria-describedby="position-help position-error"
+                    aria-describedby="position-error"
                   />
                   {validationErrors.position && (
                     <p
@@ -565,8 +590,9 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
+                  <label className="inline-flex items-center text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                     Y Position (px)
+                    <FieldTooltip content="Use non-negative values. Relative/centered behavior depends on mode." />
                   </label>
                   <input
                     type="number"
@@ -580,20 +606,13 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     }
                     onBlur={() => handleBlur("position")}
                     className={getInputClassName("position")}
-                    aria-describedby="position-help"
                   />
-                  <p
-                    id="position-help"
-                    className="text-xs text-[rgb(var(--color-muted))] mt-1"
-                  >
-                    Use non-negative values. Relative/centered behavior depends
-                    on mode.
-                  </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
+                  <label className="inline-flex items-center text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                     Scale
+                    <FieldTooltip content='Enter a non-negative factor (1.0 = 100%). Toggle "Unlinked" to scale X and Y independently.' />
                   </label>
                   <div className="flex-1">
                     {/* Linked/Unlinked Toggle */}
@@ -672,7 +691,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                               }}
                               onBlur={() => handleBlur("scale")}
                               className={getInputClassName("scale")}
-                              aria-describedby="scale-help scale-error"
+                              aria-describedby="scale-error"
                             />
                           </div>
                           <div className="flex-1">
@@ -702,7 +721,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                               }}
                               onBlur={() => handleBlur("scale")}
                               className={getInputClassName("scale")}
-                              aria-describedby="scale-help scale-error"
+                              aria-describedby="scale-error"
                             />
                           </div>
                         </>
@@ -730,27 +749,20 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                           }}
                           onBlur={() => handleBlur("scale")}
                           className={cn(getInputClassName("scale"), "w-24")}
-                          aria-describedby="scale-help scale-error"
+                          aria-describedby="scale-error"
                         />
                       )}
                     </div>
+                    {validationErrors.scale && (
+                      <p
+                        id="scale-error"
+                        className="text-xs text-[rgb(var(--color-error))] mt-1"
+                      >
+                        {validationErrors.scale}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <p
-                  id="scale-help"
-                  className="text-xs text-[rgb(var(--color-muted))] mt-1"
-                >
-                  Enter a non-negative factor (1.0 = 100%). Toggle "Unlinked" to
-                  scale X and Y independently.
-                </p>
-                {validationErrors.scale && (
-                  <p
-                    id="scale-error"
-                    className="text-xs text-[rgb(var(--color-error))] mt-1"
-                  >
-                    {validationErrors.scale}
-                  </p>
-                )}
               </div>
 
               <div>
@@ -775,10 +787,11 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
 
               <div>
                 <label
-                  className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1"
+                  className="inline-flex items-center text-sm font-medium text-[rgb(var(--color-fg))] mb-1"
                   htmlFor="rotation-input"
                 >
                   Rotation (°)
+                  <FieldTooltip content="Angle in degrees." />
                 </label>
                 <div className="flex-1">
                   <input
@@ -801,7 +814,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     }}
                     className="w-full h-2 bg-[rgb(var(--color-border))] rounded-lg appearance-none cursor-pointer focus-visible:outline-none"
                     aria-label="Rotation slider"
-                    aria-describedby="rotation-help rotation-error"
+                    aria-describedby="rotation-error"
                   />
                   <input
                     type="number"
@@ -819,28 +832,23 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     className={cn(getInputClassName("rotation"), "w-20 mt-2")}
                     id="rotation-input"
                     aria-label="Rotation input"
-                    aria-describedby="rotation-help rotation-error"
+                    aria-describedby="rotation-error"
                   />
+                  {validationErrors.rotation && (
+                    <p
+                      id="rotation-error"
+                      className="text-xs text-[rgb(var(--color-error))] mt-1"
+                    >
+                      {validationErrors.rotation}
+                    </p>
+                  )}
                 </div>
-                <p
-                  id="rotation-help"
-                  className="text-xs text-[rgb(var(--color-muted))] mt-1"
-                >
-                  Rotate the asset from 0° to 360°.
-                </p>
-                {validationErrors.rotation && (
-                  <p
-                    id="rotation-error"
-                    className="text-xs text-[rgb(var(--color-error))] mt-1"
-                  >
-                    {validationErrors.rotation}
-                  </p>
-                )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
+                <label className="inline-flex items-center text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                   Crop (px)
+                  <FieldTooltip content="Crop the source (0 means no crop). Applied before scaling." />
                 </label>
                 <div className="flex-1 grid grid-cols-2 gap-2">
                   <div>
@@ -862,7 +870,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       }
                       onBlur={() => handleBlur("crop")}
                       className={getInputClassName("crop")}
-                      aria-describedby="crop-help crop-error"
+                      aria-describedby="crop-error"
                     />
                   </div>
                   <div>
@@ -884,7 +892,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       }
                       onBlur={() => handleBlur("crop")}
                       className={getInputClassName("crop")}
-                      aria-describedby="crop-help crop-error"
+                      aria-describedby="crop-error"
                     />
                   </div>
                   <div>
@@ -906,7 +914,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       }
                       onBlur={() => handleBlur("crop")}
                       className={getInputClassName("crop")}
-                      aria-describedby="crop-help crop-error"
+                      aria-describedby="crop-error"
                     />
                   </div>
                   <div>
@@ -928,20 +936,14 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       }
                       onBlur={() => handleBlur("crop")}
                       className={getInputClassName("crop")}
-                      aria-describedby="crop-help crop-error"
+                      aria-describedby="crop-error"
                     />
                   </div>
                 </div>
-                <p
-                  id="crop-help"
-                  className="text-xs text-[rgb(var(--color-muted))] mt-1"
-                >
-                  Crop the asset by removing pixels from the edges.
-                </p>
                 {validationErrors.crop && (
                   <p
                     id="crop-error"
-                    className="text-xs text-[rgb(var(--color-error))] mt-1"
+                    className="text-xs text-[rgb(var(--color-error))] mt-1 col-span-2"
                   >
                     {validationErrors.crop}
                   </p>
@@ -949,8 +951,9 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
+                <label className="inline-flex items-center text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                   Bounds Type
+                  <FieldTooltip content="OBS bounds setting. 'None' uses source size; others fit/fill within dimensions." />
                 </label>
                 <select
                   value={draftValues.boundsType ?? ""}
@@ -964,7 +967,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   }
                   onBlur={() => handleBlur("boundsType")}
                   className={getInputClassName("boundsType")}
-                  aria-describedby="bounds-type-help bounds-type-error"
+                  aria-describedby="bounds-type-error"
                 >
                   <option value="">Select bounds type...</option>
                   <option value="OBS_BOUNDS_NONE">None</option>
@@ -979,12 +982,6 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   </option>
                   <option value="OBS_BOUNDS_MAX_ONLY">Max Only</option>
                 </select>
-                <p
-                  id="bounds-type-help"
-                  className="text-xs text-[rgb(var(--color-muted))] mt-1"
-                >
-                  Select how the asset should be scaled within its bounds.
-                </p>
                 {validationErrors.boundsType && (
                   <p
                     id="bounds-type-error"
@@ -996,8 +993,9 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
+                <label className="inline-flex items-center text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                   Alignment
+                  <FieldTooltip content="Alignment within the bounds." />
                 </label>
                 <select
                   value={draftValues.alignment ?? ""}
@@ -1011,7 +1009,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   }
                   onBlur={() => handleBlur("alignment")}
                   className={getInputClassName("alignment")}
-                  aria-describedby="alignment-help alignment-error"
+                  aria-describedby="alignment-error"
                 >
                   <option value="">Select alignment...</option>
                   <option value="0">Top Left</option>
@@ -1024,12 +1022,6 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                   <option value="9">Bottom Center</option>
                   <option value="10">Bottom Right</option>
                 </select>
-                <p
-                  id="alignment-help"
-                  className="text-xs text-[rgb(var(--color-muted))] mt-1"
-                >
-                  Select the alignment position for the asset within its bounds.
-                </p>
                 {validationErrors.alignment && (
                   <p
                     id="alignment-error"
@@ -1101,8 +1093,9 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
+                  <label className="inline-flex items-center text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                     Monitor Type
+                    <FieldTooltip content="Monitor Only: Hear through headphones, not in stream. Monitor and Output: Both headphones and stream." />
                   </label>
                   <select
                     value={draftValues.monitorType ?? ""}
@@ -1116,7 +1109,6 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                     }
                     onBlur={() => handleBlur("monitorType")}
                     className={getInputClassName("monitorType")}
-                    aria-describedby="monitor-type-help"
                   >
                     <option value="">Not set (OBS default)</option>
                     <option value="monitor-only">Monitor Only</option>
@@ -1124,13 +1116,6 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       Monitor and Output
                     </option>
                   </select>
-                  <p
-                    id="monitor-type-help"
-                    className="text-xs text-[rgb(var(--color-muted))] mt-1"
-                  >
-                    Monitor Only: Hear through headphones, not in stream.
-                    Monitor and Output: Both headphones and stream.
-                  </p>
                 </div>
 
                 <div className="flex items-center gap-4">

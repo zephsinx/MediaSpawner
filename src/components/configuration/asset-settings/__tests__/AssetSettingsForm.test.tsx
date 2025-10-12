@@ -29,6 +29,25 @@ vi.mock("../../../../hooks/useLayout", () => ({
   usePanelState: vi.fn(),
 }));
 
+// Mock Radix UI Tooltip
+vi.mock("@radix-ui/react-tooltip", () => ({
+  Root: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Trigger: ({
+    children,
+    asChild,
+  }: {
+    children: React.ReactNode;
+    asChild?: boolean;
+  }) => (asChild ? <>{children}</> : <div>{children}</div>),
+  Portal: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+  Content: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+  Arrow: () => <div />,
+}));
+
 // Mock utility functions
 vi.mock("../../../../utils/assetSettingsResolver", () => ({
   resolveEffectiveProperties: vi.fn(),
