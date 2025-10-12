@@ -40,7 +40,7 @@ function render(ui: React.ReactNode) {
   return rtlRender(
     <Tooltip.Provider delayDuration={0} skipDelayDuration={0}>
       {ui}
-    </Tooltip.Provider>
+    </Tooltip.Provider>,
   );
 }
 
@@ -68,11 +68,13 @@ describe("AssetManagementPanel (Advanced Features)", () => {
     vi.mocked(usePanelState).mockReturnValue({
       selectedSpawnId: undefined,
       activeProfileId: undefined,
+      liveProfileId: undefined,
       selectedSpawnAssetId: undefined,
       centerPanelMode: "spawn-settings",
       hasUnsavedChanges: false,
       profileSpawnSelections: {},
       setActiveProfile: vi.fn(),
+      setLiveProfile: vi.fn(),
       selectSpawn: vi.fn(),
       selectSpawnAsset: vi.fn(),
       setCenterPanelMode: vi.fn(),
@@ -82,7 +84,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
 
     // Default resolver for getAssetById to prevent crashes in SpawnAssetsSection
     vi.mocked(AssetService.getAssetById).mockImplementation((id: string) =>
-      makeAsset({ id })
+      makeAsset({ id }),
     );
   });
 
@@ -102,11 +104,13 @@ describe("AssetManagementPanel (Advanced Features)", () => {
       vi.mocked(usePanelState).mockReturnValue({
         selectedSpawnId: "s1",
         activeProfileId: undefined,
+        liveProfileId: undefined,
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
         selectSpawn: vi.fn(),
         selectSpawnAsset: vi.fn(),
         setCenterPanelMode: vi.fn(),
@@ -132,11 +136,13 @@ describe("AssetManagementPanel (Advanced Features)", () => {
       vi.mocked(usePanelState).mockReturnValue({
         selectedSpawnId: "s1",
         activeProfileId: undefined,
+        liveProfileId: undefined,
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
         selectSpawn: vi.fn(),
         selectSpawnAsset: vi.fn(),
         setCenterPanelMode: vi.fn(),
@@ -154,7 +160,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
         async (id: string) => {
           if (id === "s1") return { ...currentSpawn };
           return makeSpawn(id, []);
-        }
+        },
       );
       vi.mocked(SpawnService.updateSpawn).mockImplementation(
         async (_id: string, updates: Partial<Pick<Spawn, "assets">>) => {
@@ -163,7 +169,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
             assets: updates.assets || currentSpawn.assets,
           };
           return { success: true, spawn: { ...currentSpawn } };
-        }
+        },
       );
 
       render(<AssetManagementPanel />);
@@ -185,11 +191,13 @@ describe("AssetManagementPanel (Advanced Features)", () => {
       vi.mocked(usePanelState).mockReturnValue({
         selectedSpawnId: "s1",
         activeProfileId: undefined,
+        liveProfileId: undefined,
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
         selectSpawn: vi.fn(),
         selectSpawnAsset: vi.fn(),
         setCenterPanelMode: vi.fn(),
@@ -228,11 +236,13 @@ describe("AssetManagementPanel (Advanced Features)", () => {
       vi.mocked(usePanelState).mockReturnValue({
         selectedSpawnId: "s1",
         activeProfileId: undefined,
+        liveProfileId: undefined,
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
         selectSpawn: vi.fn(),
         selectSpawnAsset: vi.fn(),
         setCenterPanelMode: vi.fn(),
@@ -253,7 +263,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
             assets: updates.assets || currentSpawn.assets,
           };
           return { success: true, spawn: { ...currentSpawn } };
-        }
+        },
       );
 
       render(<AssetManagementPanel />);
@@ -281,11 +291,13 @@ describe("AssetManagementPanel (Advanced Features)", () => {
       vi.mocked(usePanelState).mockReturnValue({
         selectedSpawnId: "s1",
         activeProfileId: undefined,
+        liveProfileId: undefined,
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
         selectSpawn: vi.fn(),
         selectSpawnAsset: vi.fn(),
         setCenterPanelMode: vi.fn(),
@@ -308,7 +320,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
             assets: (updates.assets as SpawnAsset[]) ?? current.assets,
           };
           return { success: true, spawn: { ...current } };
-        }
+        },
       );
 
       render(<AssetManagementPanel />);
@@ -347,11 +359,13 @@ describe("AssetManagementPanel (Advanced Features)", () => {
       vi.mocked(usePanelState).mockReturnValue({
         selectedSpawnId: "s1",
         activeProfileId: undefined,
+        liveProfileId: undefined,
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
         selectSpawn: vi.fn(),
         selectSpawnAsset: vi.fn(),
         setCenterPanelMode: vi.fn(),
@@ -375,7 +389,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
             assets: (updates.assets as SpawnAsset[]) ?? current.assets,
           };
           return { success: true, spawn: { ...current } };
-        }
+        },
       );
 
       render(<AssetManagementPanel />);
@@ -407,11 +421,13 @@ describe("AssetManagementPanel (Advanced Features)", () => {
       vi.mocked(usePanelState).mockReturnValue({
         selectedSpawnId: "s1",
         activeProfileId: undefined,
+        liveProfileId: undefined,
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
         selectSpawn: vi.fn(),
         selectSpawnAsset: vi.fn(),
         setCenterPanelMode: vi.fn(),
@@ -456,11 +472,13 @@ describe("AssetManagementPanel (Advanced Features)", () => {
       vi.mocked(usePanelState).mockReturnValue({
         selectedSpawnId: "sp1",
         activeProfileId: undefined,
+        liveProfileId: undefined,
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
         selectSpawn: vi.fn(),
         selectSpawnAsset: vi.fn(),
         setCenterPanelMode: vi.fn(),

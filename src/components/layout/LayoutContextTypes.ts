@@ -7,6 +7,9 @@ export interface LayoutState {
   /** Currently active profile ID */
   activeProfileId: string | undefined;
 
+  /** Currently live profile ID for Streamer.bot execution */
+  liveProfileId: string | undefined;
+
   /** Currently selected spawn ID */
   selectedSpawnId: string | undefined;
 
@@ -28,6 +31,7 @@ export interface LayoutState {
  */
 export type LayoutAction =
   | { type: "SET_ACTIVE_PROFILE"; payload: { profileId: string | undefined } }
+  | { type: "SET_LIVE_PROFILE"; payload: { profileId: string | undefined } }
   | { type: "SELECT_SPAWN"; payload: { spawnId: string | undefined } }
   | {
       type: "SELECT_SPAWN_ASSET";

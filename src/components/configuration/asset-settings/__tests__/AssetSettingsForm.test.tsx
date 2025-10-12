@@ -74,7 +74,7 @@ function makeSpawn(id: string, assets: SpawnAsset[]): Spawn {
 function makeSpawnAsset(
   assetId: string,
   order: number,
-  overrides?: Partial<MediaAssetProperties>
+  overrides?: Partial<MediaAssetProperties>,
 ): SpawnAsset {
   return createSpawnAsset(
     assetId,
@@ -82,7 +82,7 @@ function makeSpawnAsset(
     {
       properties: overrides,
     },
-    assetId
+    assetId,
   ); // Pass assetId as the id parameter
 }
 
@@ -95,7 +95,7 @@ const makeAsset = (overrides: Partial<MediaAsset> = {}): MediaAsset => ({
 });
 
 const makeProperties = (
-  overrides: Partial<MediaAssetProperties> = {}
+  overrides: Partial<MediaAssetProperties> = {},
 ): MediaAssetProperties => ({
   dimensions: overrides.dimensions || { width: 100, height: 100 },
   position: overrides.position || { x: 0, y: 0 },
@@ -105,6 +105,11 @@ const makeProperties = (
   loop: overrides.loop ?? false,
   autoplay: overrides.autoplay ?? false,
   muted: overrides.muted ?? false,
+  rotation: overrides.rotation ?? 0,
+  crop: overrides.crop,
+  boundsType: overrides.boundsType,
+  boundsAlignment: overrides.boundsAlignment,
+  alignment: overrides.alignment,
 });
 
 describe("AssetSettingsForm", () => {
@@ -119,11 +124,13 @@ describe("AssetSettingsForm", () => {
     vi.mocked(usePanelState).mockReturnValue({
       selectedSpawnId: undefined,
       activeProfileId: undefined,
+      liveProfileId: undefined,
       selectedSpawnAssetId: undefined,
       centerPanelMode: "spawn-settings",
       hasUnsavedChanges: false,
       profileSpawnSelections: {},
       setActiveProfile: vi.fn(),
+      setLiveProfile: vi.fn(),
       selectSpawn: vi.fn(),
       selectSpawnAsset: vi.fn(),
       setCenterPanelMode: vi.fn(),
@@ -141,6 +148,36 @@ describe("AssetSettingsForm", () => {
     vi.mocked(validateAlignment).mockReturnValue({ isValid: true });
     vi.mocked(validateBoundsType).mockReturnValue({ isValid: true });
     vi.mocked(validateBoundsAlignment).mockReturnValue({ isValid: true });
+
+    // Essential mocks for component rendering
+    const defaultAsset = makeAsset({
+      id: "asset1",
+      type: "video",
+      name: "Test Video",
+    });
+    const defaultSpawnAsset = makeSpawnAsset("asset1", 0);
+    const defaultSpawn = makeSpawn("spawn1", [defaultSpawnAsset]);
+
+    vi.mocked(SpawnService.getSpawn).mockResolvedValue(defaultSpawn);
+    vi.mocked(AssetService.getAssetById).mockReturnValue(defaultAsset);
+    vi.mocked(resolveEffectiveProperties).mockReturnValue({
+      effective: makeProperties(),
+      sourceMap: {
+        dimensions: "none",
+        position: "none",
+        scale: "none",
+        positionMode: "none",
+        volume: "none",
+        loop: "none",
+        autoplay: "none",
+        muted: "none",
+        rotation: "none",
+        crop: "none",
+        boundsType: "none",
+        boundsAlignment: "none",
+        alignment: "none",
+      },
+    });
   });
 
   describe("Loading States", () => {
@@ -153,50 +190,24 @@ describe("AssetSettingsForm", () => {
             spawnId="spawn1"
             spawnAssetId="asset1"
             onBack={mockOnBack}
-          />
+          />,
         );
       });
 
       expect(
-        await screen.findByText("Loading asset settings…")
+        await screen.findByText("Loading asset settings…"),
       ).toBeInTheDocument();
     });
   });
 
   describe("Basic Rendering", () => {
-    beforeEach(() => {
-      const asset = makeAsset({
-        id: "asset1",
-        type: "video",
-        name: "Test Video",
-      });
-      const spawnAsset = makeSpawnAsset("asset1", 0);
-      const spawn = makeSpawn("spawn1", [spawnAsset]);
-
-      vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
-      vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
-      vi.mocked(resolveEffectiveProperties).mockReturnValue({
-        effective: makeProperties(),
-        sourceMap: {
-          dimensions: "none",
-          position: "none",
-          scale: "none",
-          positionMode: "none",
-          volume: "none",
-          loop: "none",
-          autoplay: "none",
-          muted: "none",
-        },
-      });
-    });
-
     it("renders header with asset name and type", async () => {
       render(
         <AssetSettingsForm
           spawnId="spawn1"
           spawnAssetId="asset1"
           onBack={mockOnBack}
-        />
+        />,
       );
 
       // Wait for the component to finish loading by looking for content that only appears after loading
@@ -212,17 +223,17 @@ describe("AssetSettingsForm", () => {
           spawnId="spawn1"
           spawnAssetId="asset1"
           onBack={mockOnBack}
-        />
+        />,
       );
 
       expect(
-        await screen.findByRole("button", { name: "Back to spawn settings" })
+        await screen.findByRole("button", { name: "Back to spawn settings" }),
       ).toBeInTheDocument();
       expect(
-        await screen.findByRole("button", { name: "Cancel edits" })
+        await screen.findByRole("button", { name: "Cancel edits" }),
       ).toBeInTheDocument();
       expect(
-        await screen.findByRole("button", { name: "Save asset settings" })
+        await screen.findByRole("button", { name: "Save asset settings" }),
       ).toBeInTheDocument();
     });
 
@@ -232,7 +243,7 @@ describe("AssetSettingsForm", () => {
           spawnId="spawn1"
           spawnAssetId="asset1"
           onBack={mockOnBack}
-        />
+        />,
       );
 
       expect(await screen.findByText("Visual Properties")).toBeInTheDocument();
@@ -257,11 +268,11 @@ describe("AssetSettingsForm", () => {
           spawnId="spawn1"
           spawnAssetId="asset1"
           onBack={mockOnBack}
-        />
+        />,
       );
 
       expect(
-        await screen.findByText("Playback Properties")
+        await screen.findByText("Playback Properties"),
       ).toBeInTheDocument();
       expect(await screen.findByText("Volume (%)")).toBeInTheDocument();
       expect(await screen.findByText("Loop")).toBeInTheDocument();
@@ -282,11 +293,11 @@ describe("AssetSettingsForm", () => {
           spawnId="spawn1"
           spawnAssetId="asset1"
           onBack={mockOnBack}
-        />
+        />,
       );
 
       expect(
-        await screen.findByText("Playback Properties")
+        await screen.findByText("Playback Properties"),
       ).toBeInTheDocument();
       expect(await screen.findByText("Volume (%)")).toBeInTheDocument();
       expect(await screen.findByText("Loop")).toBeInTheDocument();
@@ -296,39 +307,13 @@ describe("AssetSettingsForm", () => {
   });
 
   describe("Property Value Editing", () => {
-    beforeEach(() => {
-      const asset = makeAsset({
-        id: "asset1",
-        type: "video",
-        name: "Test Video",
-      });
-      const spawnAsset = makeSpawnAsset("asset1", 0);
-      const spawn = makeSpawn("spawn1", [spawnAsset]);
-
-      vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
-      vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
-      vi.mocked(resolveEffectiveProperties).mockReturnValue({
-        effective: makeProperties(),
-        sourceMap: {
-          dimensions: "none",
-          position: "none",
-          scale: "none",
-          positionMode: "none",
-          volume: "none",
-          loop: "none",
-          autoplay: "none",
-          muted: "none",
-        },
-      });
-    });
-
     it("updates width value with direct editing", async () => {
       render(
         <AssetSettingsForm
           spawnId="spawn1"
           spawnAssetId="asset1"
           onBack={mockOnBack}
-        />
+        />,
       );
 
       // Wait for the component to finish loading
@@ -339,7 +324,7 @@ describe("AssetSettingsForm", () => {
       // Find width input by role and aria-describedby marker
       const numberInputs = screen.getAllByRole("spinbutton");
       const widthInput = numberInputs.find((input) =>
-        input.getAttribute("aria-describedby")?.includes("dimensions-error")
+        input.getAttribute("aria-describedby")?.includes("dimensions-error"),
       );
       if (!widthInput) throw new Error("Width input not found");
 
@@ -360,7 +345,7 @@ describe("AssetSettingsForm", () => {
           spawnId="spawn1"
           spawnAssetId="asset1"
           onBack={mockOnBack}
-        />
+        />,
       );
 
       // Wait for the component to finish loading
@@ -385,7 +370,7 @@ describe("AssetSettingsForm", () => {
           spawnId="spawn1"
           spawnAssetId="asset1"
           onBack={mockOnBack}
-        />
+        />,
       );
 
       // Wait for the component to finish loading
@@ -393,9 +378,8 @@ describe("AssetSettingsForm", () => {
         expect(screen.getByText("Test Video · video")).toBeInTheDocument();
       });
 
-      const positionModeSelect = await screen.findByDisplayValue(
-        "Absolute (px)"
-      );
+      const positionModeSelect =
+        await screen.findByDisplayValue("Absolute (px)");
       // Select should be enabled for direct editing
       expect(positionModeSelect).not.toBeDisabled();
 
@@ -412,7 +396,7 @@ describe("AssetSettingsForm", () => {
           spawnId="spawn1"
           spawnAssetId="asset1"
           onBack={mockOnBack}
-        />
+        />,
       );
 
       // Wait for the component to finish loading
@@ -437,7 +421,7 @@ describe("AssetSettingsForm", () => {
           spawnId="spawn1"
           spawnAssetId="asset1"
           onBack={mockOnBack}
-        />
+        />,
       );
 
       // Wait for the component to finish loading
@@ -460,32 +444,6 @@ describe("AssetSettingsForm", () => {
   });
 
   describe("Validation", () => {
-    beforeEach(() => {
-      const asset = makeAsset({
-        id: "asset1",
-        type: "video",
-        name: "Test Video",
-      });
-      const spawnAsset = makeSpawnAsset("asset1", 0);
-      const spawn = makeSpawn("spawn1", [spawnAsset]);
-
-      vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
-      vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
-      vi.mocked(resolveEffectiveProperties).mockReturnValue({
-        effective: makeProperties(),
-        sourceMap: {
-          dimensions: "none",
-          position: "none",
-          scale: "none",
-          positionMode: "none",
-          volume: "none",
-          loop: "none",
-          autoplay: "none",
-          muted: "none",
-        },
-      });
-    });
-
     it("shows validation error for invalid dimensions", async () => {
       vi.mocked(validateDimensionsValues).mockReturnValue({
         isValid: false,
@@ -497,7 +455,7 @@ describe("AssetSettingsForm", () => {
           spawnId="spawn1"
           spawnAssetId="asset1"
           onBack={mockOnBack}
-        />
+        />,
       );
 
       // Wait for the component to finish loading
@@ -508,7 +466,7 @@ describe("AssetSettingsForm", () => {
       // Find width input by role and aria-describedby marker
       const numberInputs = screen.getAllByRole("spinbutton");
       const widthInput = numberInputs.find((input) =>
-        input.getAttribute("aria-describedby")?.includes("dimensions-error")
+        input.getAttribute("aria-describedby")?.includes("dimensions-error"),
       );
       if (!widthInput) throw new Error("Width input not found");
 
@@ -517,10 +475,11 @@ describe("AssetSettingsForm", () => {
 
       await act(async () => {
         fireEvent.change(widthInput, { target: { value: "0" } });
+        fireEvent.blur(widthInput);
       });
 
       expect(
-        await screen.findByText("Width/Height must be > 0")
+        await screen.findByText("Width/Height must be > 0"),
       ).toBeInTheDocument();
     });
 
@@ -535,7 +494,7 @@ describe("AssetSettingsForm", () => {
           spawnId="spawn1"
           spawnAssetId="asset1"
           onBack={mockOnBack}
-        />
+        />,
       );
 
       // Wait for the component to finish loading
@@ -549,6 +508,7 @@ describe("AssetSettingsForm", () => {
 
       await act(async () => {
         fireEvent.change(volumeSlider, { target: { value: "150" } });
+        fireEvent.blur(volumeSlider);
       });
 
       expect(await screen.findByText("Enter 0–100")).toBeInTheDocument();
@@ -565,7 +525,7 @@ describe("AssetSettingsForm", () => {
           spawnId="spawn1"
           spawnAssetId="asset1"
           onBack={mockOnBack}
-        />
+        />,
       );
 
       // Wait for the component to finish loading
@@ -576,7 +536,7 @@ describe("AssetSettingsForm", () => {
       // Find width input by role and aria-describedby marker
       const numberInputs = screen.getAllByRole("spinbutton");
       const widthInput = numberInputs.find((input) =>
-        input.getAttribute("aria-describedby")?.includes("dimensions-error")
+        input.getAttribute("aria-describedby")?.includes("dimensions-error"),
       );
       if (!widthInput) throw new Error("Width input not found");
 
@@ -585,6 +545,7 @@ describe("AssetSettingsForm", () => {
 
       await act(async () => {
         fireEvent.change(widthInput, { target: { value: "0" } });
+        fireEvent.blur(widthInput);
       });
 
       const saveButton = await screen.findByRole("button", {
@@ -596,29 +557,6 @@ describe("AssetSettingsForm", () => {
 
   describe("Save Functionality", () => {
     beforeEach(() => {
-      const asset = makeAsset({
-        id: "asset1",
-        type: "video",
-        name: "Test Video",
-      });
-      const spawnAsset = makeSpawnAsset("asset1", 0);
-      const spawn = makeSpawn("spawn1", [spawnAsset]);
-
-      vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
-      vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
-      vi.mocked(resolveEffectiveProperties).mockReturnValue({
-        effective: makeProperties(),
-        sourceMap: {
-          dimensions: "none",
-          position: "none",
-          scale: "none",
-          positionMode: "none",
-          volume: "none",
-          loop: "none",
-          autoplay: "none",
-          muted: "none",
-        },
-      });
       vi.mocked(buildOverridesDiff).mockReturnValue({
         dimensions: { width: 200, height: 150 },
       });
@@ -635,7 +573,7 @@ describe("AssetSettingsForm", () => {
           spawnId="spawn1"
           spawnAssetId="asset1"
           onBack={mockOnBack}
-        />
+        />,
       );
 
       // Wait for the component to finish loading
@@ -646,7 +584,7 @@ describe("AssetSettingsForm", () => {
       // Find width input by role and aria-describedby marker
       const numberInputs = screen.getAllByRole("spinbutton");
       const widthInput = numberInputs.find((input) =>
-        input.getAttribute("aria-describedby")?.includes("dimensions-error")
+        input.getAttribute("aria-describedby")?.includes("dimensions-error"),
       );
       if (!widthInput) throw new Error("Width input not found");
 
@@ -679,7 +617,7 @@ describe("AssetSettingsForm", () => {
           spawnId="spawn1"
           spawnAssetId="asset1"
           onBack={mockOnBack}
-        />
+        />,
       );
 
       const saveButton = await screen.findByRole("button", {
@@ -704,7 +642,7 @@ describe("AssetSettingsForm", () => {
           spawnId="spawn1"
           spawnAssetId="asset1"
           onBack={mockOnBack}
-        />
+        />,
       );
 
       const saveButton = await screen.findByRole("button", {
@@ -718,45 +656,19 @@ describe("AssetSettingsForm", () => {
         expect.objectContaining({
           type: "mediaspawner:spawn-updated",
           detail: { spawnId: "spawn1" },
-        })
+        }),
       );
     });
   });
 
   describe("Cancel and Reset", () => {
-    beforeEach(() => {
-      const asset = makeAsset({
-        id: "asset1",
-        type: "video",
-        name: "Test Video",
-      });
-      const spawnAsset = makeSpawnAsset("asset1", 0);
-      const spawn = makeSpawn("spawn1", [spawnAsset]);
-
-      vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
-      vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
-      vi.mocked(resolveEffectiveProperties).mockReturnValue({
-        effective: makeProperties(),
-        sourceMap: {
-          dimensions: "none",
-          position: "none",
-          scale: "none",
-          positionMode: "none",
-          volume: "none",
-          loop: "none",
-          autoplay: "none",
-          muted: "none",
-        },
-      });
-    });
-
     it("resets form to original values when cancel is clicked", async () => {
       render(
         <AssetSettingsForm
           spawnId="spawn1"
           spawnAssetId="asset1"
           onBack={mockOnBack}
-        />
+        />,
       );
 
       // Wait for the component to finish loading
@@ -767,7 +679,7 @@ describe("AssetSettingsForm", () => {
       // Find width input by role and aria-describedby attribute
       const numberInputs = screen.getAllByRole("spinbutton");
       const widthInput = numberInputs.find((input) =>
-        input.getAttribute("aria-describedby")?.includes("dimensions-error")
+        input.getAttribute("aria-describedby")?.includes("dimensions-error"),
       );
       if (!widthInput) throw new Error("Width input not found");
 
@@ -793,30 +705,6 @@ describe("AssetSettingsForm", () => {
 
   describe("Cached Draft", () => {
     it("restores cached draft when available", async () => {
-      const asset = makeAsset({
-        id: "asset1",
-        type: "video",
-        name: "Test Video",
-      });
-      const spawnAsset = makeSpawnAsset("asset1", 0);
-      const spawn = makeSpawn("spawn1", [spawnAsset]);
-
-      vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
-      vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
-      vi.mocked(resolveEffectiveProperties).mockReturnValue({
-        effective: makeProperties(),
-        sourceMap: {
-          dimensions: "none",
-          position: "none",
-          scale: "none",
-          positionMode: "none",
-          volume: "none",
-          loop: "none",
-          autoplay: "none",
-          muted: "none",
-        },
-      });
-
       const cachedDraft = {
         draftValues: { dimensions: { width: 200, height: 150 }, scale: 2.0 },
       };
@@ -829,7 +717,7 @@ describe("AssetSettingsForm", () => {
           onBack={mockOnBack}
           getCachedDraft={mockGetCachedDraft}
           setCachedDraft={mockSetCachedDraft}
-        />
+        />,
       );
       // Ensure base content loaded before asserting values
       await screen.findByText("Test Video · video");
@@ -842,37 +730,13 @@ describe("AssetSettingsForm", () => {
     });
 
     it("saves draft when component unmounts", async () => {
-      const asset = makeAsset({
-        id: "asset1",
-        type: "video",
-        name: "Test Video",
-      });
-      const spawnAsset = makeSpawnAsset("asset1", 0);
-      const spawn = makeSpawn("spawn1", [spawnAsset]);
-
-      vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
-      vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
-      vi.mocked(resolveEffectiveProperties).mockReturnValue({
-        effective: makeProperties(),
-        sourceMap: {
-          dimensions: "none",
-          position: "none",
-          scale: "none",
-          positionMode: "none",
-          volume: "none",
-          loop: "none",
-          autoplay: "none",
-          muted: "none",
-        },
-      });
-
       const { unmount } = render(
         <AssetSettingsForm
           spawnId="spawn1"
           spawnAssetId="asset1"
           onBack={mockOnBack}
           setCachedDraft={mockSetCachedDraft}
-        />
+        />,
       );
 
       await act(async () => {
@@ -894,7 +758,7 @@ describe("AssetSettingsForm", () => {
             spawnAssetId="asset1"
             onBack={mockOnBack}
             setCachedDraft={mockSetCachedDraft}
-          />
+          />,
         );
 
         await waitFor(() => {
@@ -918,7 +782,7 @@ describe("AssetSettingsForm", () => {
             spawnAssetId="asset1"
             onBack={mockOnBack}
             setCachedDraft={mockSetCachedDraft}
-          />
+          />,
         );
 
         // Wait for the component to finish loading
@@ -944,7 +808,7 @@ describe("AssetSettingsForm", () => {
             spawnAssetId="asset1"
             onBack={mockOnBack}
             setCachedDraft={mockSetCachedDraft}
-          />
+          />,
         );
 
         // Wait for the component to finish loading
@@ -975,7 +839,7 @@ describe("AssetSettingsForm", () => {
             spawnAssetId="asset1"
             onBack={mockOnBack}
             setCachedDraft={mockSetCachedDraft}
-          />
+          />,
         );
 
         // Wait for the component to finish loading
@@ -989,6 +853,7 @@ describe("AssetSettingsForm", () => {
 
         await act(async () => {
           fireEvent.change(rotationSlider, { target: { value: "400" } });
+          fireEvent.blur(rotationSlider);
         });
 
         expect(await screen.findByText("Enter 0–360°")).toBeInTheDocument();
@@ -1003,7 +868,7 @@ describe("AssetSettingsForm", () => {
             spawnAssetId="asset1"
             onBack={mockOnBack}
             setCachedDraft={mockSetCachedDraft}
-          />
+          />,
         );
 
         await waitFor(() => {
@@ -1023,7 +888,7 @@ describe("AssetSettingsForm", () => {
             spawnAssetId="asset1"
             onBack={mockOnBack}
             setCachedDraft={mockSetCachedDraft}
-          />
+          />,
         );
 
         // Wait for the component to finish loading
@@ -1052,7 +917,7 @@ describe("AssetSettingsForm", () => {
             spawnAssetId="asset1"
             onBack={mockOnBack}
             setCachedDraft={mockSetCachedDraft}
-          />
+          />,
         );
 
         // Wait for the component to finish loading
@@ -1079,7 +944,7 @@ describe("AssetSettingsForm", () => {
             spawnAssetId="asset1"
             onBack={mockOnBack}
             setCachedDraft={mockSetCachedDraft}
-          />
+          />,
         );
 
         // Wait for the component to finish loading
@@ -1090,7 +955,7 @@ describe("AssetSettingsForm", () => {
         // First, find the scale input by role and aria-describedby attribute
         const numberInputs = screen.getAllByRole("spinbutton");
         const scaleInput = numberInputs.find((input) =>
-          input.getAttribute("aria-describedby")?.includes("scale-error")
+          input.getAttribute("aria-describedby")?.includes("scale-error"),
         );
         if (!scaleInput) throw new Error("Scale input not found");
 
@@ -1125,7 +990,7 @@ describe("AssetSettingsForm", () => {
             spawnAssetId="asset1"
             onBack={mockOnBack}
             setCachedDraft={mockSetCachedDraft}
-          />
+          />,
         );
 
         await waitFor(() => {
@@ -1133,7 +998,7 @@ describe("AssetSettingsForm", () => {
         });
 
         const boundsTypeSelect = screen.getByDisplayValue(
-          "Select bounds type..."
+          "Select bounds type...",
         );
         expect(boundsTypeSelect).toBeInTheDocument();
       });
@@ -1145,7 +1010,7 @@ describe("AssetSettingsForm", () => {
             spawnAssetId="asset1"
             onBack={mockOnBack}
             setCachedDraft={mockSetCachedDraft}
-          />
+          />,
         );
 
         // Wait for the component to finish loading
@@ -1154,7 +1019,7 @@ describe("AssetSettingsForm", () => {
         });
 
         const boundsTypeSelect = screen.getByDisplayValue(
-          "Select bounds type..."
+          "Select bounds type...",
         );
         // Select should be enabled for direct editing
         expect(boundsTypeSelect).not.toBeDisabled();
@@ -1180,7 +1045,7 @@ describe("AssetSettingsForm", () => {
             spawnAssetId="asset1"
             onBack={mockOnBack}
             setCachedDraft={mockSetCachedDraft}
-          />
+          />,
         );
 
         // Wait for the component to finish loading
@@ -1189,7 +1054,7 @@ describe("AssetSettingsForm", () => {
         });
 
         const boundsTypeSelect = screen.getByDisplayValue(
-          "Select bounds type..."
+          "Select bounds type...",
         );
         // Select should be enabled for direct editing
         expect(boundsTypeSelect).not.toBeDisabled();
@@ -1198,10 +1063,11 @@ describe("AssetSettingsForm", () => {
           fireEvent.change(boundsTypeSelect, {
             target: { value: "INVALID_TYPE" },
           });
+          fireEvent.blur(boundsTypeSelect);
         });
 
         expect(
-          await screen.findByText("Invalid bounds type")
+          await screen.findByText("Invalid bounds type"),
         ).toBeInTheDocument();
       });
     });
@@ -1214,7 +1080,7 @@ describe("AssetSettingsForm", () => {
             spawnAssetId="asset1"
             onBack={mockOnBack}
             setCachedDraft={mockSetCachedDraft}
-          />
+          />,
         );
 
         await waitFor(() => {
@@ -1232,7 +1098,7 @@ describe("AssetSettingsForm", () => {
             spawnAssetId="asset1"
             onBack={mockOnBack}
             setCachedDraft={mockSetCachedDraft}
-          />
+          />,
         );
 
         // Wait for the component to finish loading
@@ -1263,7 +1129,7 @@ describe("AssetSettingsForm", () => {
             spawnAssetId="asset1"
             onBack={mockOnBack}
             setCachedDraft={mockSetCachedDraft}
-          />
+          />,
         );
 
         // Wait for the component to finish loading
@@ -1277,10 +1143,11 @@ describe("AssetSettingsForm", () => {
 
         await act(async () => {
           fireEvent.change(alignmentSelect, { target: { value: "99" } });
+          fireEvent.blur(alignmentSelect);
         });
 
         expect(
-          await screen.findByText("Invalid alignment value")
+          await screen.findByText("Invalid alignment value"),
         ).toBeInTheDocument();
       });
     });

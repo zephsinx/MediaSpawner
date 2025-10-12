@@ -8,6 +8,7 @@ import type { LayoutState, LayoutAction } from "./LayoutContextTypes";
  */
 const initialState: LayoutState = {
   activeProfileId: undefined,
+  liveProfileId: undefined,
   selectedSpawnId: undefined,
   selectedSpawnAssetId: undefined,
   centerPanelMode: "spawn-settings",
@@ -22,7 +23,6 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
   switch (action.type) {
     case "SET_ACTIVE_PROFILE": {
       const { profileId } = action.payload;
-      const previousProfileId = state.activeProfileId;
 
       // If switching to a different profile, reset spawn selection
       const newSelectedSpawnId =
@@ -38,23 +38,16 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
         hasUnsavedChanges: false, // Clear unsaved changes when switching profiles
       };
 
-      // Dispatch profile change event if profile actually changed
-      if (profileId !== previousProfileId) {
-        try {
-          window.dispatchEvent(
-            new CustomEvent(
-              "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
-              {
-                detail: { profileId, previousProfileId },
-              } as CustomEventInit
-            )
-          );
-        } catch {
-          // Best-effort notification
-        }
-      }
-
       return newState;
+    }
+
+    case "SET_LIVE_PROFILE": {
+      const { profileId } = action.payload;
+
+      return {
+        ...state,
+        liveProfileId: profileId,
+      };
     }
 
     case "SELECT_SPAWN": {
@@ -112,7 +105,7 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
     case "LOAD_STATE_FROM_STORAGE": {
       try {
         const storedSelections = localStorage.getItem(
-          "mediaspawner_profile_spawn_selections"
+          "mediaspawner_profile_spawn_selections",
         );
         const profileSpawnSelections = storedSelections
           ? JSON.parse(storedSelections)
@@ -146,6 +139,7 @@ export interface LayoutProviderProps {
 export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(layoutReducer, initialState);
   const hasLoadedProfile = useRef(false);
+  const previousProfileIdRef = useRef<string | undefined>(undefined);
 
   // Load state from storage on mount
   useEffect(() => {
@@ -157,7 +151,7 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
     try {
       localStorage.setItem(
         "mediaspawner_profile_spawn_selections",
-        JSON.stringify(state.profileSpawnSelections)
+        JSON.stringify(state.profileSpawnSelections),
       );
     } catch (error) {
       console.error("Failed to persist state to storage:", error);
@@ -181,6 +175,31 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
         console.error("Failed to load active profile:", error);
       }
     }
+  }, [state.activeProfileId]);
+
+  // Dispatch profile change event when activeProfileId changes
+  useEffect(() => {
+    const currentProfileId = state.activeProfileId;
+    const previousProfileId = previousProfileIdRef.current;
+
+    // Only dispatch if profile actually changed and we're not in initial load
+    if (currentProfileId !== previousProfileId && hasLoadedProfile.current) {
+      try {
+        window.dispatchEvent(
+          new CustomEvent(
+            "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
+            {
+              detail: { profileId: currentProfileId, previousProfileId },
+            } as CustomEventInit,
+          ),
+        );
+      } catch {
+        // Best-effort notification
+      }
+    }
+
+    // Update ref for next comparison
+    previousProfileIdRef.current = currentProfileId;
   }, [state.activeProfileId]);
 
   return (

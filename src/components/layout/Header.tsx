@@ -11,6 +11,7 @@ import {
   SettingsButton,
   ProfileFormDialog,
   ProfileDeletionDialog,
+  LiveProfileIndicator,
 } from "../common";
 import { StreamerbotService } from "../../services/streamerbotService";
 import type { SyncStatusInfo } from "../../types/sync";
@@ -29,7 +30,8 @@ export interface HeaderProps {
  */
 const Header: React.FC<HeaderProps> = ({ className = "" }) => {
   const [profiles, setProfiles] = useState<SpawnProfile[]>([]);
-  const { activeProfileId, setActiveProfile } = usePanelState();
+  const { activeProfileId, liveProfileId, setActiveProfile, setLiveProfile } =
+    usePanelState();
   const streamerbot = useStreamerbotStatus();
   const [syncStatus, setSyncStatus] = useState<SyncStatusInfo>({
     status: "unknown",
@@ -41,7 +43,7 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [profileToEdit, setProfileToEdit] = useState<SpawnProfile | null>(null);
   const [profileToDelete, setProfileToDelete] = useState<SpawnProfile | null>(
-    null
+    null,
   );
 
   // Load profiles on mount
@@ -118,12 +120,55 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
     return unsubscribe;
   }, [streamerbot.state, streamerbot.errorMessage]);
 
+  // Load live profile on mount and when Streamer.bot connects
+  useEffect(() => {
+    const loadLiveProfile = async () => {
+      if (streamerbot.state === "connected") {
+        try {
+          const liveProfileId = await SpawnProfileService.getLiveProfileId();
+          setLiveProfile(liveProfileId);
+        } catch (error) {
+          console.error("Failed to load live profile:", error);
+        }
+      }
+    };
+
+    loadLiveProfile();
+  }, [streamerbot.state, setLiveProfile]);
+
   const handleProfileChange = (profileId: string) => {
     const result = SpawnProfileService.setActiveProfile(profileId);
     if (result.success) {
       setActiveProfile(profileId);
     } else {
       console.error("Failed to set active profile:", result.error);
+    }
+  };
+
+  const handleSetLive = async () => {
+    if (!activeProfileId) {
+      toast.error("No active profile to set as live");
+      return;
+    }
+
+    try {
+      const result = await SpawnProfileService.setLiveProfile(activeProfileId);
+      if (result.success) {
+        setLiveProfile(activeProfileId);
+        toast.success("Profile set as live", {
+          description: `"${profiles.find((p) => p.id === activeProfileId)?.name}" is now live`,
+        });
+      } else {
+        toast.error("Failed to set profile as live", {
+          description: result.error || "Unknown error occurred",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to set live profile:", error);
+      toast.error("Failed to set profile as live", {
+        description:
+          error instanceof Error ? error.message : "Unknown error occurred",
+      });
     }
   };
 
@@ -228,6 +273,14 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
                 </option>
               ))}
             </select>
+
+            {/* Live Profile Indicator */}
+            <LiveProfileIndicator
+              isLive={activeProfileId === liveProfileId}
+              onSetLive={handleSetLive}
+              disabled={!activeProfileId || streamerbot.state !== "connected"}
+              size="sm"
+            />
           </div>
 
           {/* Navigation and Profile Actions */}
@@ -266,8 +319,8 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
                   (streamerbot.state === "connected"
                     ? "bg-green-500"
                     : streamerbot.state === "connecting"
-                    ? "bg-yellow-500 animate-pulse"
-                    : "bg-red-500")
+                      ? "bg-yellow-500 animate-pulse"
+                      : "bg-red-500")
                 }
               />
               SB

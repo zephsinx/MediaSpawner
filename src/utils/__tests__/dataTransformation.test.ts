@@ -28,13 +28,12 @@ describe("dataTransformation", () => {
         isActive: false,
       };
 
-      const result = transformProfileToSchema(profile, "/test/path");
+      const result = transformProfileToSchema(profile);
 
       expect(result).toEqual({
         id: "profile-1",
         name: "Test Profile",
         description: "Test Description",
-        workingDirectory: "/test/path",
         spawns: [],
         lastModified: "2022-01-01T00:00:00.000Z",
       });
@@ -49,7 +48,7 @@ describe("dataTransformation", () => {
         isActive: false,
       };
 
-      const result = transformProfileToSchema(profile, "/test/path");
+      const result = transformProfileToSchema(profile);
 
       expect(result.description).toBeUndefined();
     });
@@ -83,7 +82,6 @@ describe("dataTransformation", () => {
         id: "profile-1",
         name: "Test Profile",
         description: "Test Description",
-        workingDirectory: "/test/path",
         spawns: [],
         lastModified: "2022-01-01T00:00:00.000Z",
       };
@@ -130,7 +128,7 @@ describe("dataTransformation", () => {
 
     it("should normalize mixed separators", () => {
       expect(normalizeWorkingDirectory("test\\\\path//sub")).toBe(
-        "/test/path/sub"
+        "/test/path/sub",
       );
     });
 

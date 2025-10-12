@@ -22,35 +22,42 @@ export const usePanelState = () => {
     (profileId: string | undefined) => {
       dispatch({ type: "SET_ACTIVE_PROFILE", payload: { profileId } });
     },
-    [dispatch]
+    [dispatch],
   );
 
   const selectSpawn = useCallback(
     (spawnId: string | undefined) => {
       dispatch({ type: "SELECT_SPAWN", payload: { spawnId } });
     },
-    [dispatch]
+    [dispatch],
   );
 
   const selectSpawnAsset = useCallback(
     (spawnAssetId: string | undefined) => {
       dispatch({ type: "SELECT_SPAWN_ASSET", payload: { spawnAssetId } });
     },
-    [dispatch]
+    [dispatch],
   );
 
   const setCenterPanelMode = useCallback(
     (mode: "spawn-settings" | "asset-settings") => {
       dispatch({ type: "SET_CENTER_PANEL_MODE", payload: { mode } });
     },
-    [dispatch]
+    [dispatch],
   );
 
   const setUnsavedChanges = useCallback(
     (hasChanges: boolean) => {
       dispatch({ type: "SET_UNSAVED_CHANGES", payload: { hasChanges } });
     },
-    [dispatch]
+    [dispatch],
+  );
+
+  const setLiveProfile = useCallback(
+    (profileId: string | undefined) => {
+      dispatch({ type: "SET_LIVE_PROFILE", payload: { profileId } });
+    },
+    [dispatch],
   );
 
   const clearContext = useCallback(() => {
@@ -60,6 +67,7 @@ export const usePanelState = () => {
   return {
     // State
     activeProfileId: state.activeProfileId,
+    liveProfileId: state.liveProfileId,
     selectedSpawnId: state.selectedSpawnId,
     selectedSpawnAssetId: state.selectedSpawnAssetId,
     centerPanelMode: state.centerPanelMode,
@@ -68,6 +76,7 @@ export const usePanelState = () => {
 
     // Actions
     setActiveProfile,
+    setLiveProfile,
     selectSpawn,
     selectSpawnAsset,
     setCenterPanelMode,

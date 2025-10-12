@@ -23,7 +23,6 @@ describe("importExportValidation", () => {
           id: "profile-1",
           name: "Test Profile",
           description: "Test Description",
-          workingDirectory: "/test/path",
           spawns: [
             {
               id: "spawn-1",
@@ -72,7 +71,6 @@ describe("importExportValidation", () => {
         {
           id: "",
           name: "",
-          workingDirectory: "",
           spawns: [],
           lastModified: "invalid-date",
         },
@@ -86,7 +84,7 @@ describe("importExportValidation", () => {
       expect(Object.keys(result.profileErrors).length).toBeGreaterThan(0);
       expect(result.profileErrors[0]).toContain("Profile must have a valid ID");
       expect(result.profileErrors[0]).toContain(
-        "Profile must have a non-empty name"
+        "Profile must have a non-empty name",
       );
     });
 
@@ -108,7 +106,7 @@ describe("importExportValidation", () => {
       expect(Object.keys(result.assetErrors).length).toBeGreaterThan(0);
       expect(result.assetErrors[0]).toContain("Asset must have a valid ID");
       expect(result.assetErrors[0]).toContain(
-        "Asset must have a non-empty name"
+        "Asset must have a non-empty name",
       );
     });
 
@@ -117,14 +115,12 @@ describe("importExportValidation", () => {
         {
           id: "duplicate-id",
           name: "Profile 1",
-          workingDirectory: "/test",
           spawns: [],
           lastModified: "2022-01-01T00:00:00.000Z",
         },
         {
           id: "duplicate-id",
           name: "Profile 2",
-          workingDirectory: "/test",
           spawns: [],
           lastModified: "2022-01-01T00:00:00.000Z",
         },
@@ -136,7 +132,7 @@ describe("importExportValidation", () => {
 
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain(
-        "Duplicate profile IDs found: duplicate-id"
+        "Duplicate profile IDs found: duplicate-id",
       );
     });
 
@@ -145,7 +141,6 @@ describe("importExportValidation", () => {
         {
           id: "profile-1",
           name: "Test Profile",
-          workingDirectory: "/test",
           spawns: [
             {
               id: "spawn-1",
@@ -173,7 +168,7 @@ describe("importExportValidation", () => {
 
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain(
-        "Profile 0, Spawn 0: Asset missing-asset is referenced but not found in assets array"
+        "Profile 0, Spawn 0: Asset missing-asset is referenced but not found in assets array",
       );
     });
   });
@@ -262,7 +257,7 @@ describe("importExportValidation", () => {
 
       expect(result.isValid).toBe(false);
       expect(result.relationshipErrors).toContain(
-        "Profile 0, Spawn 0: Asset missing-asset is referenced but not found in assets array"
+        "Profile 0, Spawn 0: Asset missing-asset is referenced but not found in assets array",
       );
     });
   });
@@ -280,7 +275,7 @@ describe("importExportValidation", () => {
 
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain(
-        "Working directory contains invalid characters"
+        "Working directory contains invalid characters",
       );
     });
 
@@ -321,7 +316,7 @@ describe("importExportValidation", () => {
 
       expect(result.isValid).toBe(true);
       expect(result.warnings).toContain(
-        "Cannot verify local file accessibility in browser environment"
+        "Cannot verify local file accessibility in browser environment",
       );
     });
 

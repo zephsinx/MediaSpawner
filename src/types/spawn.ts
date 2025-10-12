@@ -131,7 +131,7 @@ export const getDefaultTrigger = (type: TriggerType): Trigger => {
         config: {
           aliases: [""],
           caseSensitive: false,
-          ignoreInternal: true,
+          ignoreInternal: false,
           ignoreBotAccount: true,
         },
       };
@@ -314,7 +314,7 @@ export const createSpawnTrigger = (type: TriggerType = "manual"): Trigger => {
  * Get default trigger configuration based on trigger type
  */
 export const getDefaultTriggerConfig = (
-  type: TriggerType
+  type: TriggerType,
 ): Trigger["config"] => {
   return getDefaultTrigger(type).config;
 };
@@ -326,7 +326,7 @@ export const createSpawnAsset = (
   assetId: string,
   order: number,
   overrides?: Partial<SpawnAssetOverrides>,
-  id?: string
+  id?: string,
 ): SpawnAsset => {
   return {
     id: id || crypto.randomUUID(),
@@ -344,7 +344,7 @@ export const createSpawn = (
   name: string,
   description?: string,
   assets: SpawnAsset[] = [],
-  id?: string
+  id?: string,
 ): Spawn => {
   return {
     id: id || crypto.randomUUID(),
@@ -366,7 +366,7 @@ export const createSpawnProfile = (
   name: string,
   description?: string,
   spawns: Spawn[] = [],
-  id?: string
+  id?: string,
 ): SpawnProfile => {
   return {
     id: id || crypto.randomUUID(),
@@ -434,7 +434,7 @@ export const updateSpawnTimestamp = (spawn: Spawn): Spawn => {
  * Update the last modified timestamp of a spawn profile
  */
 export const updateSpawnProfileTimestamp = (
-  profile: SpawnProfile
+  profile: SpawnProfile,
 ): SpawnProfile => {
   return {
     ...profile,
@@ -448,7 +448,7 @@ export const updateSpawnProfileTimestamp = (
  * Validate spawn data integrity
  */
 export const validateSpawn = (
-  spawn: Spawn
+  spawn: Spawn,
 ): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
 
@@ -482,7 +482,7 @@ export const validateSpawn = (
  * Validate spawn profile data integrity
  */
 export const validateSpawnProfile = (
-  profile: SpawnProfile
+  profile: SpawnProfile,
 ): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
 

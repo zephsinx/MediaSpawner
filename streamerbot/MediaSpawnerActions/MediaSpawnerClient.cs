@@ -38,6 +38,11 @@ public class CPHInline
     private const int ConfigCacheTtlMinutes = 60;
 
     /// <summary>
+    /// Currently live profile ID for execution (source of truth)
+    /// </summary>
+    private string liveProfileId;
+
+    /// <summary>
     /// Maximum number of retries for OBS operations (0 = no retries)
     /// </summary>
     private const int MaxRetries = 0;
@@ -95,6 +100,21 @@ public class CPHInline
     /// Single lock object for thread-safe access to all shared state
     /// </summary>
     private readonly object lockObject = new object();
+
+    /// <summary>
+    /// File path cache mapping filename (lowercase) to full resolved path
+    /// </summary>
+    private readonly Dictionary<string, string> filePathCache = new Dictionary<string, string>();
+
+    /// <summary>
+    /// Timestamp when file path cache was built
+    /// </summary>
+    private DateTime filePathCacheTimestamp = DateTime.MinValue;
+
+    /// <summary>
+    /// Tracks which files have duplicates (for logging once)
+    /// </summary>
+    private readonly HashSet<string> duplicateFileWarnings = new HashSet<string>();
 
     /// <summary>
     /// Flag to track if timers have been initialized
@@ -471,7 +491,6 @@ public class CPHInline
             CPH.TryGetArg("userId", out string userId);
             CPH.TryGetArg("userName", out string userName);
             CPH.TryGetArg("rawInput", out string rawInput);
-            CPH.TryGetArg("isInternal", out bool isInternal);
             CPH.TryGetArg("isBotAccount", out bool isBotAccount);
 
             LogExecution(LogLevel.Info, $"HandleCommandTrigger: Command '{command}' from user '{userName}' (ID: {userId})");
@@ -486,7 +505,7 @@ public class CPHInline
             }
 
             // Filter spawns based on command configuration
-            List<Spawn> validSpawns = FilterSpawnsByCommandConfig(matchingSpawns, command, userName, rawInput, isInternal, isBotAccount);
+            List<Spawn> validSpawns = FilterSpawnsByCommandConfig(matchingSpawns, command, userName, rawInput, isBotAccount);
 
             if (validSpawns.Count == 0)
             {
@@ -523,7 +542,6 @@ public class CPHInline
                 ["userName"] = userName,
                 ["rawInput"] = rawInput,
                 ["source"] = source,
-                ["isInternal"] = isInternal,
                 ["isBotAccount"] = isBotAccount,
                 ["executionTime"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
             });
@@ -714,6 +732,7 @@ public class CPHInline
 
     /// <summary>
     /// Initialize all timers based on current MediaSpawnerConfig
+    /// Uses live profile when set, otherwise falls back to all profiles
     /// </summary>
     private void InitializeTimers()
     {
@@ -730,28 +749,46 @@ public class CPHInline
                     return;
                 }
 
-                int timerCount = 0;
+                // Refresh live profile ID in case it changed
+                RefreshLiveProfileId();
 
-                // Find all time-triggered spawns and create timers for them
-                foreach (SpawnProfile profile in this.cachedConfig.Profiles)
+                int timerCount = 0;
+                string profileSource;
+
+                // Use live profile if set, otherwise fall back to all profiles
+                if (!string.IsNullOrWhiteSpace(this.liveProfileId))
                 {
-                    if (profile.Spawns != null)
+                    // Validate that the live profile exists
+                    SpawnProfile liveProfile = this.cachedConfig.Profiles?.FirstOrDefault(p => p.Id == this.liveProfileId);
+                    if (liveProfile == null)
                     {
-                        foreach (Spawn spawn in profile.Spawns)
+                        LogExecution(LogLevel.Warning, $"InitializeTimers: Live profile '{this.liveProfileId}' not found in configuration, falling back to all profiles");
+                        timerCount = CreateTimersForProfiles(this.cachedConfig.Profiles);
+                        profileSource = "all profiles (fallback - invalid live profile)";
+                    }
+                    else
+                    {
+                        timerCount = CreateTimersForProfiles(new List<SpawnProfile> { liveProfile });
+                        profileSource = $"live profile '{this.liveProfileId}'";
+
+                        if (timerCount == 0)
                         {
-                            if (spawn.Enabled && spawn.Trigger?.Type?.StartsWith("time.") == true)
-                            {
-                                if (CreateTimerForSpawn(spawn))
-                                {
-                                    timerCount++;
-                                }
-                            }
+                            LogExecution(LogLevel.Warning, $"InitializeTimers: No time-triggered spawns found in live profile '{this.liveProfileId}', falling back to all profiles");
+                            // Fall back to all profiles
+                            timerCount = CreateTimersForProfiles(this.cachedConfig.Profiles);
+                            profileSource = "all profiles (fallback - no time spawns in live profile)";
                         }
                     }
                 }
+                else
+                {
+                    LogExecution(LogLevel.Info, "InitializeTimers: No live profile set, using all profiles");
+                    timerCount = CreateTimersForProfiles(this.cachedConfig.Profiles);
+                    profileSource = "all profiles";
+                }
 
                 this.timersInitialized = true;
-                LogExecution(LogLevel.Info, $"InitializeTimers: Successfully initialized {timerCount} timers");
+                LogExecution(LogLevel.Info, $"InitializeTimers: Successfully initialized {timerCount} timers from {profileSource}");
 
                 // Log timer status for monitoring
                 Dictionary<string, object> status = GetTimerStatus();
@@ -762,6 +799,35 @@ public class CPHInline
         {
             LogExecution(LogLevel.Error, $"InitializeTimers: Error during timer initialization: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Create timers for spawns in the specified profiles
+    /// </summary>
+    /// <param name="profiles">The profiles to create timers for</param>
+    /// <returns>Number of timers created</returns>
+    private int CreateTimersForProfiles(List<SpawnProfile> profiles)
+    {
+        int timerCount = 0;
+
+        foreach (SpawnProfile profile in profiles)
+        {
+            if (profile.Spawns != null)
+            {
+                foreach (Spawn spawn in profile.Spawns)
+                {
+                    if (spawn.Enabled && spawn.Trigger?.Type?.StartsWith("time.") == true)
+                    {
+                        if (CreateTimerForSpawn(spawn))
+                        {
+                            timerCount++;
+                        }
+                    }
+                }
+            }
+        }
+
+        return timerCount;
     }
 
     /// <summary>
@@ -3203,10 +3269,9 @@ public class CPHInline
     /// <param name="command">The command that triggered</param>
     /// <param name="userName">The user who triggered the command</param>
     /// <param name="rawInput">The raw command input</param>
-    /// <param name="isInternal">Whether the command is internal</param>
     /// <param name="isBotAccount">Whether the command is from a bot account</param>
     /// <returns>List of spawns that match the command configuration</returns>
-    private List<Spawn> FilterSpawnsByCommandConfig(List<Spawn> spawns, string command, string userName, string rawInput, bool isInternal, bool isBotAccount)
+    private List<Spawn> FilterSpawnsByCommandConfig(List<Spawn> spawns, string command, string userName, string rawInput, bool isBotAccount)
     {
         List<Spawn> validSpawns = new List<Spawn>();
 
@@ -3221,21 +3286,41 @@ public class CPHInline
 
             // Check if command matches aliases
             bool commandMatches = false;
-            if (config.ContainsKey("aliases") && config["aliases"] is List<object> aliases)
+            if (config.ContainsKey("aliases"))
             {
-                foreach (object alias in aliases)
+                var aliasesValue = config["aliases"];
+                List<object> aliases = null;
+
+                // Handle different types of aliases collections
+                if (aliasesValue is List<object> listAliases)
                 {
-                    if (!(alias is string aliasStr) || string.IsNullOrWhiteSpace(aliasStr))
-                        continue;
+                    aliases = listAliases;
+                }
+                else if (aliasesValue is Newtonsoft.Json.Linq.JArray jArrayAliases)
+                {
+                    aliases = jArrayAliases.ToObject<List<object>>();
+                }
+                else if (aliasesValue is System.Collections.IEnumerable enumerableAliases)
+                {
+                    aliases = enumerableAliases.Cast<object>().ToList();
+                }
 
-                    bool caseSensitive = config.ContainsKey("caseSensitive") &&
-                                         config["caseSensitive"] is bool cs && cs;
+                if (aliases != null)
+                {
+                    foreach (object alias in aliases)
+                    {
+                        if (!(alias is string aliasStr) || string.IsNullOrWhiteSpace(aliasStr))
+                            continue;
 
-                    if (caseSensitive ? command != aliasStr : !command.Equals(aliasStr, StringComparison.OrdinalIgnoreCase))
-                        continue;
+                        bool caseSensitive = config.ContainsKey("caseSensitive") &&
+                                             config["caseSensitive"] is bool cs && cs;
 
-                    commandMatches = true;
-                    break;
+                        if (caseSensitive ? command == aliasStr : command.Equals(aliasStr, StringComparison.OrdinalIgnoreCase))
+                        {
+                            commandMatches = true;
+                            break;
+                        }
+                    }
                 }
             }
 
@@ -3249,11 +3334,6 @@ public class CPHInline
 
             if (!commandMatches)
                 continue;
-            // Check internal command filter
-            if (config.ContainsKey("ignoreInternal") && config["ignoreInternal"] is bool ignoreInternal && ignoreInternal && isInternal)
-            {
-                continue; // Skip internal commands if configured to ignore them
-            }
 
             // Check bot account filter
             if (config.ContainsKey("ignoreBotAccount") && config["ignoreBotAccount"] is bool ignoreBotAccount && ignoreBotAccount && isBotAccount)
@@ -4753,9 +4833,9 @@ public class CPHInline
                         }
 
                         // Include error code if available
-                        if (status.TryGetValue("code", out object statu))
+                        if (status.TryGetValue("code", out object stat))
                         {
-                            errorMessage += $" (Code: {statu})";
+                            errorMessage += $" (Code: {stat})";
                         }
 
                         LogExecution(LogLevel.Error, $"CreateOBSSource: Failed to create OBS source '{sourceName}': {errorMessage}");
@@ -5092,9 +5172,9 @@ public class CPHInline
                         }
 
                         // Include error code if available
-                        if (status.TryGetValue("code", out object statu))
+                        if (status.TryGetValue("code", out object stat))
                         {
-                            errorMessage += $" (Code: {statu})";
+                            errorMessage += $" (Code: {stat})";
                         }
 
                         LogExecution(LogLevel.Error, $"DeleteOBSSource: Failed to delete OBS source '{sourceName}': {errorMessage}");
@@ -5170,16 +5250,23 @@ public class CPHInline
         }
         else
         {
-            // Local files use appropriate parameter based on source type
+            // Local files - resolve path using working directory
+            string resolvedPath = asset.Path;
+            if (this.cachedConfig != null && !string.IsNullOrWhiteSpace(this.cachedConfig.WorkingDirectory))
+            {
+                resolvedPath = ResolveLocalFilePath(asset.Path, this.cachedConfig.WorkingDirectory);
+            }
+
+            // Use appropriate parameter based on source type
             if (asset.Type?.ToLowerInvariant() == "image")
             {
                 // image_source uses "file" parameter
-                settings["file"] = asset.Path;
+                settings["file"] = resolvedPath;
             }
             else
             {
                 // ffmpeg_source uses "local_file" parameter
-                settings["local_file"] = asset.Path;
+                settings["local_file"] = resolvedPath;
             }
         }
 
@@ -5791,6 +5878,23 @@ public class CPHInline
                 this.cachedConfigSha = currentSha;
                 this.configCacheTimestamp = DateTime.UtcNow;
 
+                // Build file path cache if working directory is set
+                if (!string.IsNullOrWhiteSpace(config.WorkingDirectory))
+                {
+                    BuildFilePathCache(config.WorkingDirectory);
+                }
+
+                // Load live profile ID from global variables
+                this.liveProfileId = CPH.GetGlobalVar<string>("MediaSpawner_LiveProfileId");
+                if (string.IsNullOrWhiteSpace(this.liveProfileId))
+                {
+                    LogExecution(LogLevel.Info, "LoadMediaSpawnerConfig: No live profile set, will use active profile as fallback");
+                }
+                else
+                {
+                    LogExecution(LogLevel.Info, $"LoadMediaSpawnerConfig: Live profile set to '{this.liveProfileId}'");
+                }
+
                 LogExecution(LogLevel.Info, $"LoadMediaSpawnerConfig: Successfully loaded configuration with {config.Profiles.Count} profiles and {config.Assets.Count} assets");
                 return true;
             }
@@ -5845,6 +5949,54 @@ public class CPHInline
     }
 
     /// <summary>
+    /// Set the live profile for execution
+    /// </summary>
+    /// <returns>True if live profile was set successfully, false otherwise</returns>
+    public bool SetLiveProfile()
+    {
+        try
+        {
+            if (!CPH.TryGetArg("liveProfileId", out string liveProfileId) || string.IsNullOrWhiteSpace(liveProfileId))
+            {
+                LogExecution(LogLevel.Error, "SetLiveProfile: Missing required argument 'liveProfileId'");
+                return false;
+            }
+
+            if (this.cachedConfig == null)
+            {
+                LogExecution(LogLevel.Error, "SetLiveProfile: No configuration loaded. Call LoadMediaSpawnerConfig first.");
+                return false;
+            }
+
+            // Validate that the profile exists in the cached configuration
+            SpawnProfile profile = this.cachedConfig.FindProfileById(liveProfileId);
+            if (profile == null)
+            {
+                LogExecution(LogLevel.Error, $"SetLiveProfile: Profile with ID '{liveProfileId}' not found in configuration");
+                return false;
+            }
+
+            // Set the live profile ID in global variable with persistence
+            CPH.SetGlobalVar("MediaSpawner_LiveProfileId", liveProfileId, persisted: true);
+
+            // Handle configuration update to rebuild timers and config for live profile
+            if (!HandleConfigurationUpdate())
+            {
+                LogExecution(LogLevel.Error, "SetLiveProfile: Failed to handle configuration update");
+                return false;
+            }
+
+            LogExecution(LogLevel.Info, $"SetLiveProfile: Successfully set live profile to '{profile.Name}' (ID: {liveProfileId})");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LogExecution(LogLevel.Error, $"SetLiveProfile: Unexpected error: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Get an asset by ID
     /// </summary>
     /// <returns>True if asset found and set in global variable, false otherwise</returns>
@@ -5889,7 +6041,42 @@ public class CPHInline
     }
 
     /// <summary>
-    /// Get all enabled spawns from the loaded configuration
+    /// Refresh the live profile ID from global variables
+    /// </summary>
+    /// <returns>True if live profile ID was updated, false otherwise</returns>
+    public bool RefreshLiveProfileId()
+    {
+        try
+        {
+            string newLiveProfileId = CPH.GetGlobalVar<string>("MediaSpawner_LiveProfileId");
+            if (this.liveProfileId != newLiveProfileId)
+            {
+                this.liveProfileId = newLiveProfileId;
+                if (string.IsNullOrWhiteSpace(this.liveProfileId))
+                {
+                    LogExecution(LogLevel.Info, "RefreshLiveProfileId: Live profile cleared, will use active profile");
+                }
+                else
+                {
+                    LogExecution(LogLevel.Info, $"RefreshLiveProfileId: Live profile updated to '{this.liveProfileId}'");
+                }
+
+                // Invalidate file path cache when live profile changes
+                InvalidateFilePathCache();
+
+                return true;
+            }
+            return false;
+        }
+        catch (Exception ex)
+        {
+            LogExecution(LogLevel.Error, $"RefreshLiveProfileId: Unexpected error: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Get all enabled spawns from the loaded configuration using live profile
     /// </summary>
     /// <returns>True if spawns found and set in global variable, false otherwise</returns>
     public bool GetEnabledSpawns()
@@ -5902,10 +6089,47 @@ public class CPHInline
                 return false;
             }
 
-            List<Spawn> enabledSpawns = this.cachedConfig.GetEnabledSpawns();
+            // Refresh live profile ID in case it changed
+            RefreshLiveProfileId();
+
+            List<Spawn> enabledSpawns;
+            string profileSource;
+
+            // Use live profile if set, otherwise fall back to active profile
+            if (!string.IsNullOrWhiteSpace(this.liveProfileId))
+            {
+                // Validate that the live profile exists
+                SpawnProfile liveProfile = this.cachedConfig.Profiles?.FirstOrDefault(p => p.Id == this.liveProfileId);
+                if (liveProfile == null)
+                {
+                    LogExecution(LogLevel.Warning, $"GetEnabledSpawns: Live profile '{this.liveProfileId}' not found in configuration, falling back to active profile");
+                    enabledSpawns = this.cachedConfig.GetEnabledSpawns();
+                    profileSource = "active profile (fallback - invalid live profile)";
+                }
+                else
+                {
+                    enabledSpawns = this.cachedConfig.GetEnabledSpawns(this.liveProfileId);
+                    profileSource = $"live profile '{this.liveProfileId}'";
+
+                    if (enabledSpawns.Count == 0)
+                    {
+                        LogExecution(LogLevel.Warning, $"GetEnabledSpawns: No enabled spawns found in live profile '{this.liveProfileId}', falling back to active profile");
+                        // Fall back to active profile
+                        enabledSpawns = this.cachedConfig.GetEnabledSpawns();
+                        profileSource = "active profile (fallback - no spawns in live profile)";
+                    }
+                }
+            }
+            else
+            {
+                LogExecution(LogLevel.Info, "GetEnabledSpawns: No live profile set, using active profile");
+                enabledSpawns = this.cachedConfig.GetEnabledSpawns();
+                profileSource = "active profile";
+            }
+
             if (enabledSpawns.Count == 0)
             {
-                LogExecution(LogLevel.Warning, "GetEnabledSpawns: No enabled spawns found in configuration");
+                LogExecution(LogLevel.Warning, $"GetEnabledSpawns: No enabled spawns found in {profileSource}");
                 CPH.SetGlobalVar("MediaSpawner_EnabledSpawns", "[]", persisted: false);
                 CPH.SetGlobalVar("MediaSpawner_EnabledSpawnsCount", "0", persisted: false);
                 return true;
@@ -5915,7 +6139,7 @@ public class CPHInline
             CPH.SetGlobalVar("MediaSpawner_EnabledSpawns", JsonConvert.SerializeObject(enabledSpawns), persisted: false);
             CPH.SetGlobalVar("MediaSpawner_EnabledSpawnsCount", enabledSpawns.Count.ToString(), persisted: false);
 
-            LogExecution(LogLevel.Info, $"GetEnabledSpawns: Found {enabledSpawns.Count} enabled spawns");
+            LogExecution(LogLevel.Info, $"GetEnabledSpawns: Found {enabledSpawns.Count} enabled spawns from {profileSource}");
             return true;
         }
         catch (Exception ex)
@@ -6163,6 +6387,9 @@ public class CPHInline
         [JsonProperty("version")]
         public string Version { get; set; } = string.Empty;
 
+        [JsonProperty("workingDirectory")]
+        public string WorkingDirectory { get; set; } = string.Empty;
+
         [JsonProperty("profiles")]
         public List<SpawnProfile> Profiles { get; set; } = new List<SpawnProfile>();
 
@@ -6338,6 +6565,23 @@ public class CPHInline
         }
 
         /// <summary>
+        /// Get enabled spawns from a specific profile
+        /// </summary>
+        /// <param name="profileId">The profile ID to get spawns from</param>
+        /// <returns>List of enabled spawns from the specified profile</returns>
+        public List<Spawn> GetEnabledSpawns(string profileId)
+        {
+            if (string.IsNullOrWhiteSpace(profileId) || Profiles == null)
+                return new List<Spawn>();
+
+            SpawnProfile profile = Profiles.FirstOrDefault(p => p.Id == profileId);
+            if (profile == null)
+                return new List<Spawn>();
+
+            return profile.GetEnabledSpawns();
+        }
+
+        /// <summary>
         /// Get a profile by its ID
         /// </summary>
         /// <param name="profileId">The profile ID to search for</param>
@@ -6352,7 +6596,7 @@ public class CPHInline
     }
 
     /// <summary>
-    /// Spawn profile containing multiple spawns and working directory
+    /// Spawn profile containing multiple spawns
     /// </summary>
     public class SpawnProfile
     {
@@ -6364,9 +6608,6 @@ public class CPHInline
 
         [JsonProperty("description")]
         public string Description { get; set; }
-
-        [JsonProperty("workingDirectory")]
-        public string WorkingDirectory { get; set; } = string.Empty;
 
         [JsonProperty("spawns")]
         public List<Spawn> Spawns { get; set; } = new List<Spawn>();
@@ -7248,6 +7489,7 @@ public class CPHInline
             this.cachedConfig = null;
             this.cachedConfigSha = null;
             this.configCacheTimestamp = DateTime.MinValue;
+            InvalidateFilePathCache();
             LogExecution(LogLevel.Info, "StateManagement: Configuration cache invalidated");
         }
     }
@@ -7648,6 +7890,151 @@ public class CPHInline
             case LogLevel.Error:
                 CPH.LogError(logMessage);
                 break;
+        }
+    }
+
+    #endregion
+
+    #region File Path Cache Methods
+
+    /// <summary>
+    /// Build file path cache by recursively scanning the working directory
+    /// </summary>
+    /// <param name="workingDirectory">The working directory to scan</param>
+    private void BuildFilePathCache(string workingDirectory)
+    {
+        lock (this.lockObject)
+        {
+            // Clear existing cache
+            this.filePathCache.Clear();
+            this.duplicateFileWarnings.Clear();
+            this.filePathCacheTimestamp = DateTime.UtcNow;
+
+            if (string.IsNullOrWhiteSpace(workingDirectory))
+            {
+                LogExecution(LogLevel.Info, "BuildFilePathCache: No working directory set, skipping file scan");
+                return;
+            }
+
+            if (!Directory.Exists(workingDirectory))
+            {
+                LogExecution(LogLevel.Warning, $"BuildFilePathCache: Working directory does not exist: {workingDirectory}");
+                return;
+            }
+
+            try
+            {
+                // Supported media file extensions
+                string[] supportedExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg",
+                                               ".mp4", ".webm", ".mov", ".avi", ".mkv", ".wmv",
+                                               ".mp3", ".wav", ".ogg", ".m4a", ".aac", ".flac" };
+
+                // Get all files recursively
+                string[] allFiles = Directory.GetFiles(workingDirectory, "*", SearchOption.AllDirectories);
+                int totalFiles = 0;
+                int duplicateCount = 0;
+
+                foreach (string filePath in allFiles)
+                {
+                    string extension = Path.GetExtension(filePath).ToLowerInvariant();
+                    if (!supportedExtensions.Contains(extension))
+                        continue;
+
+                    string filename = Path.GetFileName(filePath).ToLowerInvariant();
+                    totalFiles++;
+
+                    if (this.filePathCache.ContainsKey(filename))
+                    {
+                        // Duplicate filename found
+                        duplicateCount++;
+                        if (!this.duplicateFileWarnings.Contains(filename))
+                        {
+                            LogExecution(LogLevel.Info, $"BuildFilePathCache: Duplicate filename '{filename}' found in multiple locations. Using first match.");
+                            this.duplicateFileWarnings.Add(filename);
+                        }
+                    }
+                    else
+                    {
+                        // First occurrence of this filename
+                        this.filePathCache[filename] = filePath;
+                    }
+                }
+
+                LogExecution(LogLevel.Info, $"BuildFilePathCache: Scanned {totalFiles} media files, found {this.filePathCache.Count} unique filenames, {duplicateCount} duplicates");
+            }
+            catch (Exception ex)
+            {
+                LogExecution(LogLevel.Error, $"BuildFilePathCache: Error scanning working directory: {ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Resolve local file path using cache or filesystem scan
+    /// </summary>
+    /// <param name="filename">The filename to resolve</param>
+    /// <param name="workingDirectory">The working directory</param>
+    /// <returns>Full resolved path or original filename if not found</returns>
+    private string ResolveLocalFilePath(string filename, string workingDirectory)
+    {
+        if (string.IsNullOrWhiteSpace(filename) || string.IsNullOrWhiteSpace(workingDirectory))
+        {
+            return filename;
+        }
+
+        string filenameLower = filename.ToLowerInvariant();
+
+        lock (this.lockObject)
+        {
+            // Check cache first
+            if (this.filePathCache.TryGetValue(filenameLower, out string cachedPath))
+            {
+                return cachedPath;
+            }
+
+            // Cache miss - scan filesystem for this specific file
+            try
+            {
+                if (Directory.Exists(workingDirectory))
+                {
+                    string[] foundFiles = Directory.GetFiles(workingDirectory, filename, SearchOption.AllDirectories);
+                    if (foundFiles.Length > 0)
+                    {
+                        // Use first match (alphabetical order by default)
+                        string resolvedPath = foundFiles[0];
+                        this.filePathCache[filenameLower] = resolvedPath;
+
+                        if (foundFiles.Length > 1)
+                        {
+                            LogExecution(LogLevel.Info, $"ResolveLocalFilePath: Found {foundFiles.Length} files matching '{filename}', using first match");
+                        }
+
+                        return resolvedPath;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogExecution(LogLevel.Warning, $"ResolveLocalFilePath: Error scanning for '{filename}': {ex.Message}");
+            }
+
+            // File not found, return original filename
+            LogExecution(LogLevel.Warning, $"ResolveLocalFilePath: File '{filename}' not found in working directory '{workingDirectory}'");
+            return filename;
+        }
+    }
+
+    /// <summary>
+    /// Invalidate the file path cache
+    /// </summary>
+    private void InvalidateFilePathCache()
+    {
+        lock (this.lockObject)
+        {
+            this.filePathCache.Clear();
+            this.duplicateFileWarnings.Clear();
+            this.filePathCacheTimestamp = DateTime.MinValue;
+            LogExecution(LogLevel.Info, "InvalidateFilePathCache: File path cache cleared");
         }
     }
 

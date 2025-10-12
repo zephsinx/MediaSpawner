@@ -52,7 +52,7 @@ export interface ImportValidationResult extends ImportExportValidationResult {
  */
 export function validateExportData(
   profiles: ExportedSpawnProfile[],
-  assets: ExportedAsset[]
+  assets: ExportedAsset[],
 ): ExportValidationResult {
   const result: ExportValidationResult = {
     isValid: true,
@@ -94,13 +94,6 @@ export function validateExportData(
       profileErrors.push("Profile must have a spawns array");
       result.fieldErrors[`profiles[${index}].spawns`] = [
         "Profile must have a spawns array",
-      ];
-    }
-
-    if (typeof profile.workingDirectory !== "string") {
-      profileErrors.push("Profile must have a valid working directory");
-      result.fieldErrors[`profiles[${index}].workingDirectory`] = [
-        "Profile must have a valid working directory",
       ];
     }
 
@@ -171,7 +164,7 @@ export function validateExportData(
 
             if (typeof asset.order !== "number" || asset.order < 0) {
               assetErrors.push(
-                "Spawn asset order must be a non-negative number"
+                "Spawn asset order must be a non-negative number",
               );
             }
 
@@ -182,13 +175,13 @@ export function validateExportData(
                   asset.overrides.duration < 0)
               ) {
                 assetErrors.push(
-                  "Spawn asset duration override must be a non-negative number"
+                  "Spawn asset duration override must be a non-negative number",
                 );
               }
 
               if (asset.overrides.properties) {
                 const propertiesValidation = validateExportedAssetSettings(
-                  asset.overrides.properties
+                  asset.overrides.properties,
                 );
                 if (!propertiesValidation.isValid) {
                   assetErrors.push(...propertiesValidation.errors);
@@ -198,7 +191,7 @@ export function validateExportData(
 
             if (assetErrors.length > 0) {
               spawnErrors.push(
-                `Asset ${assetIndex}: ${assetErrors.join(", ")}`
+                `Asset ${assetIndex}: ${assetErrors.join(", ")}`,
               );
             }
           });
@@ -207,7 +200,7 @@ export function validateExportData(
         if (spawn.randomizationBuckets) {
           const bucketValidation = validateExportedRandomizationBuckets(
             spawn.randomizationBuckets,
-            spawn.assets
+            spawn.assets,
           );
           if (!bucketValidation.isValid) {
             spawnErrors.push(...bucketValidation.errors);
@@ -299,21 +292,21 @@ export function validateExportData(
   // Check for duplicate IDs
   const profileIds = profiles.map((p) => p.id);
   const duplicateProfileIds = profileIds.filter(
-    (id, index) => profileIds.indexOf(id) !== index
+    (id, index) => profileIds.indexOf(id) !== index,
   );
   if (duplicateProfileIds.length > 0) {
     result.errors.push(
-      `Duplicate profile IDs found: ${duplicateProfileIds.join(", ")}`
+      `Duplicate profile IDs found: ${duplicateProfileIds.join(", ")}`,
     );
   }
 
   const assetIds = assets.map((a) => a.id);
   const duplicateAssetIds = assetIds.filter(
-    (id, index) => assetIds.indexOf(id) !== index
+    (id, index) => assetIds.indexOf(id) !== index,
   );
   if (duplicateAssetIds.length > 0) {
     result.errors.push(
-      `Duplicate asset IDs found: ${duplicateAssetIds.join(", ")}`
+      `Duplicate asset IDs found: ${duplicateAssetIds.join(", ")}`,
     );
   }
 
@@ -326,7 +319,7 @@ export function validateExportData(
           spawn.assets.forEach((spawnAsset) => {
             if (!allAssetIds.has(spawnAsset.assetId)) {
               result.errors.push(
-                `Profile ${profileIndex}, Spawn ${spawnIndex}: Asset ${spawnAsset.assetId} is referenced but not found in assets array`
+                `Profile ${profileIndex}, Spawn ${spawnIndex}: Asset ${spawnAsset.assetId} is referenced but not found in assets array`,
               );
             }
           });
@@ -350,7 +343,7 @@ export function validateExportData(
  */
 export function validateImportData(
   profiles: SpawnProfile[],
-  assets: MediaAsset[]
+  assets: MediaAsset[],
 ): ImportValidationResult {
   const result: ImportValidationResult = {
     isValid: true,
@@ -464,7 +457,7 @@ export function validateImportData(
       spawn.assets.forEach((spawnAsset) => {
         if (!allAssetIds.has(spawnAsset.assetId)) {
           result.relationshipErrors.push(
-            `Profile ${profileIndex}, Spawn ${spawnIndex}: Asset ${spawnAsset.assetId} is referenced but not found in assets array`
+            `Profile ${profileIndex}, Spawn ${spawnIndex}: Asset ${spawnAsset.assetId} is referenced but not found in assets array`,
           );
         }
       });
@@ -486,7 +479,7 @@ export function validateImportData(
  * Validate exported trigger
  */
 function validateExportedTrigger(
-  trigger: ExportedTrigger
+  trigger: ExportedTrigger,
 ): ImportExportValidationResult {
   const result: ImportExportValidationResult = {
     isValid: true,
@@ -521,7 +514,7 @@ function validateExportedTrigger(
  */
 function validateExportedRandomizationBuckets(
   buckets: ExportedRandomizationBucket[],
-  spawnAssets: ExportedSpawnAsset[]
+  spawnAssets: ExportedSpawnAsset[],
 ): ImportExportValidationResult {
   const result: ImportExportValidationResult = {
     isValid: true,
@@ -551,7 +544,7 @@ function validateExportedRandomizationBuckets(
     if (!bucket.selection || !["one", "n"].includes(bucket.selection)) {
       result.isValid = false;
       result.errors.push(
-        `Bucket ${bucketIndex} must have a valid selection type`
+        `Bucket ${bucketIndex} must have a valid selection type`,
       );
     }
 
@@ -564,7 +557,7 @@ function validateExportedRandomizationBuckets(
       ) {
         result.isValid = false;
         result.errors.push(
-          `Bucket ${bucketIndex} must have a valid n value for selection='n'`
+          `Bucket ${bucketIndex} must have a valid n value for selection='n'`,
         );
       }
     }
@@ -577,12 +570,12 @@ function validateExportedRandomizationBuckets(
         if (!member.spawnAssetId || typeof member.spawnAssetId !== "string") {
           result.isValid = false;
           result.errors.push(
-            `Bucket ${bucketIndex}, Member ${memberIndex} must have a valid spawnAssetId`
+            `Bucket ${bucketIndex}, Member ${memberIndex} must have a valid spawnAssetId`,
           );
         } else if (!spawnAssetIds.has(member.spawnAssetId)) {
           result.isValid = false;
           result.errors.push(
-            `Bucket ${bucketIndex}, Member ${memberIndex} references non-existent spawn asset ${member.spawnAssetId}`
+            `Bucket ${bucketIndex}, Member ${memberIndex} references non-existent spawn asset ${member.spawnAssetId}`,
           );
         }
 
@@ -592,7 +585,7 @@ function validateExportedRandomizationBuckets(
         ) {
           result.isValid = false;
           result.errors.push(
-            `Bucket ${bucketIndex}, Member ${memberIndex} must have a positive weight`
+            `Bucket ${bucketIndex}, Member ${memberIndex} must have a positive weight`,
           );
         }
 
@@ -602,7 +595,7 @@ function validateExportedRandomizationBuckets(
         ) {
           result.isValid = false;
           result.errors.push(
-            `Spawn asset ${member.spawnAssetId} appears in multiple buckets`
+            `Spawn asset ${member.spawnAssetId} appears in multiple buckets`,
           );
         } else {
           memberToBucket[member.spawnAssetId] = bucket.id;
@@ -618,7 +611,7 @@ function validateExportedRandomizationBuckets(
  * Validate exported asset settings
  */
 function validateExportedAssetSettings(
-  settings: ExportedAssetSettings
+  settings: ExportedAssetSettings,
 ): ImportExportValidationResult {
   const result: ImportExportValidationResult = {
     isValid: true,
@@ -691,7 +684,7 @@ function validateExportedAssetSettings(
  * Validate working directory path
  */
 export function validateWorkingDirectory(
-  path: string
+  path: string,
 ): ImportExportValidationResult {
   const result: ImportExportValidationResult = {
     isValid: true,
@@ -727,7 +720,7 @@ export function validateWorkingDirectory(
  * Validate asset accessibility (for local files)
  */
 export function validateAssetAccessibility(
-  asset: MediaAsset
+  asset: MediaAsset,
 ): ImportExportValidationResult {
   const result: ImportExportValidationResult = {
     isValid: true,
@@ -746,7 +739,7 @@ export function validateAssetAccessibility(
       result.fieldErrors.path = [pathValidation.error || "Invalid file path"];
     } else {
       result.warnings.push(
-        "Cannot verify local file accessibility in browser environment"
+        "Cannot verify local file accessibility in browser environment",
       );
     }
   }

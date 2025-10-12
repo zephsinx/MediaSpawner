@@ -22,24 +22,24 @@ Object.defineProperty(window, "localStorage", {
   value: localStorageMock,
 });
 
-// Mock window.matchMedia
-Object.defineProperty(window, "matchMedia", {
-  writable: true,
-  value: vi.fn().mockImplementation((query) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-});
-
 describe("useAppInitialization", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Mock window.matchMedia - needs to be recreated after clearAllMocks
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockImplementation((query) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
   });
 
   afterEach(() => {
@@ -66,7 +66,7 @@ describe("useAppInitialization", () => {
 
     // Mock successful profile creation
     const mockEnsureDefaultProfile = vi.mocked(
-      SpawnProfileService.ensureDefaultProfile
+      SpawnProfileService.ensureDefaultProfile,
     );
     mockEnsureDefaultProfile.mockReturnValue({
       success: true,
@@ -89,7 +89,7 @@ describe("useAppInitialization", () => {
     expect(mockEnsureDefaultProfile).toHaveBeenCalledOnce();
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
       "mediaspawner_profiles_initialized",
-      "true"
+      "true",
     );
     expect(result.current.error).toBe(null);
   });
@@ -99,7 +99,7 @@ describe("useAppInitialization", () => {
     localStorageMock.getItem.mockReturnValue("true");
 
     const mockEnsureDefaultProfile = vi.mocked(
-      SpawnProfileService.ensureDefaultProfile
+      SpawnProfileService.ensureDefaultProfile,
     );
 
     const { result } = renderHook(() => useAppInitialization());
@@ -118,7 +118,7 @@ describe("useAppInitialization", () => {
 
     // Mock failed profile creation
     const mockEnsureDefaultProfile = vi.mocked(
-      SpawnProfileService.ensureDefaultProfile
+      SpawnProfileService.ensureDefaultProfile,
     );
     mockEnsureDefaultProfile.mockReturnValue({
       success: false,
@@ -141,7 +141,7 @@ describe("useAppInitialization", () => {
 
     // Mock exception during profile creation
     const mockEnsureDefaultProfile = vi.mocked(
-      SpawnProfileService.ensureDefaultProfile
+      SpawnProfileService.ensureDefaultProfile,
     );
     mockEnsureDefaultProfile.mockImplementation(() => {
       throw new Error("Unexpected error");

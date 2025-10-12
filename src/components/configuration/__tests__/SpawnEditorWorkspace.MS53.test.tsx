@@ -39,6 +39,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
     // Default mock implementation
     mockUsePanelState.mockReturnValue({
       activeProfileId: "profile-1",
+      liveProfileId: undefined,
       selectedSpawnId: "spawn-1",
       selectedSpawnAssetId: undefined,
       centerPanelMode: "spawn-settings",
@@ -46,6 +47,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
       hasUnsavedChanges: false,
       profileSpawnSelections: {},
       setActiveProfile: vi.fn(),
+      setLiveProfile: vi.fn(),
       selectSpawn: vi.fn(),
       setCenterPanelMode: vi.fn(),
       selectSpawnAsset: vi.fn(),
@@ -65,7 +67,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
 
       await waitFor(() => {
         expect(
-          screen.getByText("Channel Point Reward Configuration")
+          screen.getByText("Channel Point Reward Configuration"),
         ).toBeInTheDocument();
       });
     });
@@ -79,7 +81,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
 
       await waitFor(() => {
         expect(
-          screen.queryByText("Channel Point Reward Configuration")
+          screen.queryByText("Channel Point Reward Configuration"),
         ).not.toBeInTheDocument();
       });
     });
@@ -97,7 +99,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
 
       await waitFor(() => {
         expect(
-          screen.queryByText("Channel Point Reward Configuration")
+          screen.queryByText("Channel Point Reward Configuration"),
         ).not.toBeInTheDocument();
       });
     });
@@ -113,7 +115,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
 
       await waitFor(() => {
         expect(
-          screen.getByText("Channel Point Reward Configuration")
+          screen.getByText("Channel Point Reward Configuration"),
         ).toBeInTheDocument();
       });
     });
@@ -160,7 +162,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
 
       await waitFor(() => {
         expect(
-          screen.getByText("Channel Point Reward Configuration")
+          screen.getByText("Channel Point Reward Configuration"),
         ).toBeInTheDocument();
       });
     });
@@ -178,7 +180,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
     it("shows error when reward identifier is empty", () => {
       // Default state should show error since field is empty
       expect(
-        screen.getByText("Reward identifier is required")
+        screen.getByText("Reward identifier is required"),
       ).toBeInTheDocument();
     });
 
@@ -190,7 +192,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
       });
 
       expect(
-        screen.queryByText("Reward identifier is required")
+        screen.queryByText("Reward identifier is required"),
       ).not.toBeInTheDocument();
     });
 
@@ -204,8 +206,8 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
 
       expect(
         screen.getByText(
-          "Enter the name or ID of the channel point reward from your Twitch channel"
-        )
+          "Enter the name or ID of the channel point reward from your Twitch channel",
+        ),
       ).toBeInTheDocument();
     });
   });
@@ -220,7 +222,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
 
       await waitFor(() => {
         expect(
-          screen.getByText("Channel Point Reward Configuration")
+          screen.getByText("Channel Point Reward Configuration"),
         ).toBeInTheDocument();
       });
     });
@@ -240,8 +242,8 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
     it("displays help text explaining viewer input functionality", () => {
       expect(
         screen.getByText(
-          "When enabled, the viewer's message will be available for use in spawn settings"
-        )
+          "When enabled, the viewer's message will be available for use in spawn settings",
+        ),
       ).toBeInTheDocument();
     });
   });
@@ -256,7 +258,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
 
       await waitFor(() => {
         expect(
-          screen.getByText("Channel Point Reward Configuration")
+          screen.getByText("Channel Point Reward Configuration"),
         ).toBeInTheDocument();
       });
     });
@@ -314,7 +316,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
       });
 
       expect(
-        screen.getByText("At least one redemption status must be selected")
+        screen.getByText("At least one redemption status must be selected"),
       ).toBeInTheDocument();
     });
 
@@ -333,15 +335,15 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
       });
 
       expect(
-        screen.queryByText("At least one redemption status must be selected")
+        screen.queryByText("At least one redemption status must be selected"),
       ).not.toBeInTheDocument();
     });
 
     it("displays help text explaining redemption status selection", () => {
       expect(
         screen.getByText(
-          "Select which redemption statuses should trigger this spawn"
-        )
+          "Select which redemption statuses should trigger this spawn",
+        ),
       ).toBeInTheDocument();
     });
   });
@@ -356,7 +358,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
 
       await waitFor(() => {
         expect(
-          screen.getByText("Channel Point Reward Configuration")
+          screen.getByText("Channel Point Reward Configuration"),
         ).toBeInTheDocument();
       });
     });
@@ -364,21 +366,21 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
     it("displays note about Twitch handling reward logic", () => {
       expect(
         screen.getByText(
-          "Twitch handles all reward logic including cooldowns, usage limits, and point costs. MediaSpawner only configures when spawns trigger based on redemption events."
-        )
+          "Twitch handles all reward logic including cooldowns, usage limits, and point costs. MediaSpawner only configures when spawns trigger based on redemption events.",
+        ),
       ).toBeInTheDocument();
     });
 
     it("help text is styled appropriately in blue info box", () => {
       const helpBox = screen
         .getByText(
-          "Twitch handles all reward logic including cooldowns, usage limits, and point costs. MediaSpawner only configures when spawns trigger based on redemption events."
+          "Twitch handles all reward logic including cooldowns, usage limits, and point costs. MediaSpawner only configures when spawns trigger based on redemption events.",
         )
         .closest("div");
 
       expect(helpBox).toHaveClass(
         "bg-[rgb(var(--color-accent))]/10",
-        "border-[rgb(var(--color-accent))]/20"
+        "border-[rgb(var(--color-accent))]/20",
       );
     });
   });
@@ -393,7 +395,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
 
       await waitFor(() => {
         expect(
-          screen.getByText("Channel Point Reward Configuration")
+          screen.getByText("Channel Point Reward Configuration"),
         ).toBeInTheDocument();
       });
     });
@@ -401,7 +403,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
     it("keeps Save disabled while reward identifier is invalid", () => {
       // Default state: empty reward identifier -> error visible
       expect(
-        screen.getByText("Reward identifier is required")
+        screen.getByText("Reward identifier is required"),
       ).toBeInTheDocument();
 
       const saveButton = screen.getByRole("button", { name: "Save spawn" });
@@ -446,7 +448,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
       });
 
       expect(
-        screen.getByText("Reward identifier is required")
+        screen.getByText("Reward identifier is required"),
       ).toBeInTheDocument();
       expect(saveButton).toBeDisabled();
     });
@@ -467,7 +469,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
       });
 
       expect(
-        screen.getByText("At least one redemption status must be selected")
+        screen.getByText("At least one redemption status must be selected"),
       ).toBeInTheDocument();
 
       const saveButton = screen.getByRole("button", { name: "Save spawn" });
@@ -485,7 +487,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
 
       await waitFor(() => {
         expect(
-          screen.getByText("Channel Point Reward Configuration")
+          screen.getByText("Channel Point Reward Configuration"),
         ).toBeInTheDocument();
       });
     });
@@ -547,7 +549,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
               statuses: ["fulfilled", "pending"],
             },
           }),
-        })
+        }),
       );
     });
   });
@@ -562,7 +564,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
 
       await waitFor(() => {
         expect(
-          screen.getByText("Channel Point Reward Configuration")
+          screen.getByText("Channel Point Reward Configuration"),
         ).toBeInTheDocument();
       });
     });
@@ -577,7 +579,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
 
       expect(rewardInput).toHaveValue(longIdentifier);
       expect(
-        screen.queryByText("Reward identifier is required")
+        screen.queryByText("Reward identifier is required"),
       ).not.toBeInTheDocument();
     });
 
@@ -591,7 +593,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
 
       expect(rewardInput).toHaveValue(specialIdentifier);
       expect(
-        screen.queryByText("Reward identifier is required")
+        screen.queryByText("Reward identifier is required"),
       ).not.toBeInTheDocument();
     });
 
@@ -603,7 +605,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
       });
 
       expect(
-        screen.getByText("Reward identifier is required")
+        screen.getByText("Reward identifier is required"),
       ).toBeInTheDocument();
     });
   });

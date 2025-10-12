@@ -1,6 +1,12 @@
 import React from "react";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  renderHook,
+  act,
+} from "@testing-library/react";
 import { LayoutProvider } from "../LayoutContext";
 import { usePanelState, useLayoutContext } from "../../../hooks";
 
@@ -147,15 +153,15 @@ describe("LayoutContext", () => {
       render(
         <LayoutProvider>
           <TestComponent />
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
       expect(screen.getByTestId("active-profile")).toHaveTextContent(
-        "profile-1"
+        "profile-1",
       );
       expect(screen.getByTestId("selected-spawn")).toHaveTextContent("none");
       expect(screen.getByTestId("center-mode")).toHaveTextContent(
-        "spawn-settings"
+        "spawn-settings",
       );
       expect(screen.getByTestId("unsaved-changes")).toHaveTextContent("false");
       expect(screen.getByTestId("profile-selections")).toHaveTextContent("{}");
@@ -163,17 +169,17 @@ describe("LayoutContext", () => {
 
     it("loads state from localStorage on mount", () => {
       localStorageMock.getItem.mockReturnValue(
-        JSON.stringify({ "profile-1": "spawn-1", "profile-2": "spawn-2" })
+        JSON.stringify({ "profile-1": "spawn-1", "profile-2": "spawn-2" }),
       );
 
       render(
         <LayoutProvider>
           <TestComponent />
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
       expect(localStorageMock.getItem).toHaveBeenCalledWith(
-        "mediaspawner_profile_spawn_selections"
+        "mediaspawner_profile_spawn_selections",
       );
     });
 
@@ -186,8 +192,8 @@ describe("LayoutContext", () => {
         render(
           <LayoutProvider>
             <TestComponent />
-          </LayoutProvider>
-        )
+          </LayoutProvider>,
+        ),
       ).not.toThrow();
     });
   });
@@ -197,13 +203,13 @@ describe("LayoutContext", () => {
       render(
         <LayoutProvider>
           <TestComponent />
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
       fireEvent.click(screen.getByTestId("set-profile-2"));
 
       expect(screen.getByTestId("active-profile")).toHaveTextContent(
-        "profile-2"
+        "profile-2",
       );
     });
 
@@ -211,7 +217,7 @@ describe("LayoutContext", () => {
       render(
         <LayoutProvider>
           <TestComponent />
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
       // Set some state
@@ -224,7 +230,7 @@ describe("LayoutContext", () => {
 
       // Should reset to spawn-settings mode and clear unsaved changes
       expect(screen.getByTestId("center-mode")).toHaveTextContent(
-        "spawn-settings"
+        "spawn-settings",
       );
       expect(screen.getByTestId("unsaved-changes")).toHaveTextContent("false");
     });
@@ -233,7 +239,7 @@ describe("LayoutContext", () => {
       render(
         <LayoutProvider>
           <TestComponent />
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
       // Select spawn in profile 1
@@ -253,7 +259,7 @@ describe("LayoutContext", () => {
       render(
         <LayoutProvider>
           <TestComponent />
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
       // Select spawn in profile 1
@@ -271,7 +277,7 @@ describe("LayoutContext", () => {
       render(
         <LayoutProvider>
           <TestComponent />
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
       fireEvent.click(screen.getByTestId("select-spawn-1"));
@@ -283,7 +289,7 @@ describe("LayoutContext", () => {
       render(
         <LayoutProvider>
           <TestComponent />
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
       // Select spawn in profile 1
@@ -292,7 +298,7 @@ describe("LayoutContext", () => {
       // Check that localStorage was updated
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
         "mediaspawner_profile_spawn_selections",
-        JSON.stringify({ "profile-1": "spawn-1" })
+        JSON.stringify({ "profile-1": "spawn-1" }),
       );
     });
 
@@ -300,13 +306,13 @@ describe("LayoutContext", () => {
       render(
         <LayoutProvider>
           <TestComponent />
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
       // Set to asset mode
       fireEvent.click(screen.getByTestId("set-asset-mode"));
       expect(screen.getByTestId("center-mode")).toHaveTextContent(
-        "asset-settings"
+        "asset-settings",
       );
 
       // Select spawn
@@ -314,7 +320,7 @@ describe("LayoutContext", () => {
 
       // Should reset to spawn-settings mode
       expect(screen.getByTestId("center-mode")).toHaveTextContent(
-        "spawn-settings"
+        "spawn-settings",
       );
     });
 
@@ -322,7 +328,7 @@ describe("LayoutContext", () => {
       render(
         <LayoutProvider>
           <TestComponent />
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
       // Set no active profile
@@ -343,17 +349,17 @@ describe("LayoutContext", () => {
       render(
         <LayoutProvider>
           <TestComponent />
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
       fireEvent.click(screen.getByTestId("set-asset-mode"));
       expect(screen.getByTestId("center-mode")).toHaveTextContent(
-        "asset-settings"
+        "asset-settings",
       );
 
       fireEvent.click(screen.getByTestId("set-spawn-mode"));
       expect(screen.getByTestId("center-mode")).toHaveTextContent(
-        "spawn-settings"
+        "spawn-settings",
       );
     });
   });
@@ -363,7 +369,7 @@ describe("LayoutContext", () => {
       render(
         <LayoutProvider>
           <TestComponent />
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
       expect(screen.getByTestId("unsaved-changes")).toHaveTextContent("false");
@@ -381,7 +387,7 @@ describe("LayoutContext", () => {
       render(
         <LayoutProvider>
           <TestComponent />
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
       // Set some state
@@ -395,11 +401,11 @@ describe("LayoutContext", () => {
       // Should reset to initial state but preserve profile selections
       expect(screen.getByTestId("selected-spawn")).toHaveTextContent("none");
       expect(screen.getByTestId("center-mode")).toHaveTextContent(
-        "spawn-settings"
+        "spawn-settings",
       );
       expect(screen.getByTestId("unsaved-changes")).toHaveTextContent("false");
       expect(screen.getByTestId("active-profile")).toHaveTextContent(
-        "profile-1"
+        "profile-1",
       );
     });
   });
@@ -414,8 +420,8 @@ describe("LayoutContext", () => {
         render(
           <LayoutProvider>
             <TestComponent />
-          </LayoutProvider>
-        )
+          </LayoutProvider>,
+        ),
       ).not.toThrow();
     });
 
@@ -423,15 +429,15 @@ describe("LayoutContext", () => {
       mockSpawnProfileService.getProfilesWithActiveInfo.mockImplementation(
         () => {
           throw new Error("Service error");
-        }
+        },
       );
 
       expect(() =>
         render(
           <LayoutProvider>
             <TestComponent />
-          </LayoutProvider>
-        )
+          </LayoutProvider>,
+        ),
       ).not.toThrow();
     });
 
@@ -457,7 +463,7 @@ describe("LayoutContext", () => {
       render(
         <LayoutProvider>
           <TestUnknownActionComponent />
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
       // State should remain unchanged (still "none" from initial state)
@@ -468,7 +474,7 @@ describe("LayoutContext", () => {
   describe("Hook Usage", () => {
     it("throws error when used outside LayoutProvider", () => {
       expect(() => render(<TestComponent />)).toThrow(
-        "useLayoutContext must be used within a LayoutProvider"
+        "useLayoutContext must be used within a LayoutProvider",
       );
     });
   });
@@ -478,7 +484,7 @@ describe("LayoutContext", () => {
       render(
         <LayoutProvider>
           <TestComponent />
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
       // Initially no unsaved changes
@@ -497,7 +503,7 @@ describe("LayoutContext", () => {
       render(
         <LayoutProvider>
           <TestComponent />
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
       // Set unsaved changes
@@ -507,7 +513,7 @@ describe("LayoutContext", () => {
       // Switch center panel mode
       fireEvent.click(screen.getByTestId("set-asset-mode"));
       expect(screen.getByTestId("center-mode")).toHaveTextContent(
-        "asset-settings"
+        "asset-settings",
       );
 
       // Unsaved changes should persist
@@ -516,7 +522,7 @@ describe("LayoutContext", () => {
       // Switch back to spawn settings mode
       fireEvent.click(screen.getByTestId("set-spawn-mode"));
       expect(screen.getByTestId("center-mode")).toHaveTextContent(
-        "spawn-settings"
+        "spawn-settings",
       );
 
       // Unsaved changes should still persist
@@ -527,7 +533,7 @@ describe("LayoutContext", () => {
       render(
         <LayoutProvider>
           <TestComponent />
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
       // Initially no unsaved changes
@@ -543,7 +549,7 @@ describe("LayoutContext", () => {
 
       // In this implementation, spawn selection resets center panel mode but preserves unsaved changes
       expect(screen.getByTestId("center-mode")).toHaveTextContent(
-        "spawn-settings"
+        "spawn-settings",
       );
       expect(screen.getByTestId("unsaved-changes")).toHaveTextContent("true");
     });
@@ -552,7 +558,7 @@ describe("LayoutContext", () => {
       render(
         <LayoutProvider>
           <TestComponent />
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
       // Set unsaved changes
@@ -565,8 +571,163 @@ describe("LayoutContext", () => {
       // Context is cleared but unsaved changes should be handled by forms, not by context clearing
       expect(screen.getByTestId("selected-spawn")).toHaveTextContent("none");
       expect(screen.getByTestId("center-mode")).toHaveTextContent(
-        "spawn-settings"
+        "spawn-settings",
       );
+    });
+  });
+
+  describe("Live Profile State Management", () => {
+    beforeEach(() => {
+      // Clear localStorage before each test
+      localStorage.clear();
+
+      // Reset mocks to return no active profile for these tests
+      vi.clearAllMocks();
+      mockSpawnProfileService.getProfilesWithActiveInfo.mockReturnValue({
+        profiles: [],
+        activeProfileId: undefined,
+      });
+    });
+
+    afterEach(() => {
+      // Clean up any mounted components
+      vi.clearAllMocks();
+    });
+
+    const TestComponentWithLiveProfile = () => {
+      const {
+        activeProfileId,
+        liveProfileId,
+        setActiveProfile,
+        setLiveProfile,
+      } = usePanelState();
+
+      return (
+        <div>
+          <div data-testid="active-profile">{activeProfileId || "none"}</div>
+          <div data-testid="live-profile">{liveProfileId || "none"}</div>
+          <button
+            onClick={() => setActiveProfile("profile-1")}
+            data-testid="set-active-profile-1"
+          >
+            Set Active Profile 1
+          </button>
+          <button
+            onClick={() => setActiveProfile("profile-2")}
+            data-testid="set-active-profile-2"
+          >
+            Set Active Profile 2
+          </button>
+          <button
+            onClick={() => setLiveProfile("profile-1")}
+            data-testid="set-live-profile-1"
+          >
+            Set Live Profile 1
+          </button>
+          <button
+            onClick={() => setLiveProfile("profile-2")}
+            data-testid="set-live-profile-2"
+          >
+            Set Live Profile 2
+          </button>
+          <button
+            onClick={() => setLiveProfile(undefined)}
+            data-testid="clear-live-profile"
+          >
+            Clear Live Profile
+          </button>
+        </div>
+      );
+    };
+
+    it("manages live profile state independently of active profile", () => {
+      render(
+        <LayoutProvider>
+          <TestComponentWithLiveProfile />
+        </LayoutProvider>,
+      );
+
+      // Initially both are undefined
+      expect(screen.getByTestId("active-profile")).toHaveTextContent("none");
+      expect(screen.getByTestId("live-profile")).toHaveTextContent("none");
+
+      // Set active profile
+      fireEvent.click(screen.getByTestId("set-active-profile-1"));
+      expect(screen.getByTestId("active-profile")).toHaveTextContent(
+        "profile-1",
+      );
+      expect(screen.getByTestId("live-profile")).toHaveTextContent("none");
+
+      // Set live profile independently
+      fireEvent.click(screen.getByTestId("set-live-profile-2"));
+      expect(screen.getByTestId("active-profile")).toHaveTextContent(
+        "profile-1",
+      );
+      expect(screen.getByTestId("live-profile")).toHaveTextContent("profile-2");
+
+      // Change active profile without affecting live profile
+      fireEvent.click(screen.getByTestId("set-active-profile-2"));
+      expect(screen.getByTestId("active-profile")).toHaveTextContent(
+        "profile-2",
+      );
+      expect(screen.getByTestId("live-profile")).toHaveTextContent("profile-2");
+
+      // Change live profile without affecting active profile
+      fireEvent.click(screen.getByTestId("set-live-profile-1"));
+      expect(screen.getByTestId("active-profile")).toHaveTextContent(
+        "profile-2",
+      );
+      expect(screen.getByTestId("live-profile")).toHaveTextContent("profile-1");
+    });
+
+    it("allows clearing live profile independently", () => {
+      render(
+        <LayoutProvider>
+          <TestComponentWithLiveProfile />
+        </LayoutProvider>,
+      );
+
+      // Set both profiles
+      fireEvent.click(screen.getByTestId("set-active-profile-1"));
+      fireEvent.click(screen.getByTestId("set-live-profile-2"));
+      expect(screen.getByTestId("active-profile")).toHaveTextContent(
+        "profile-1",
+      );
+      expect(screen.getByTestId("live-profile")).toHaveTextContent("profile-2");
+
+      // Clear live profile only
+      fireEvent.click(screen.getByTestId("clear-live-profile"));
+      expect(screen.getByTestId("active-profile")).toHaveTextContent(
+        "profile-1",
+      );
+      expect(screen.getByTestId("live-profile")).toHaveTextContent("none");
+    });
+
+    it("handles live profile state in reducer correctly", () => {
+      const { result } = renderHook(() => usePanelState(), {
+        wrapper: ({ children }) => <LayoutProvider>{children}</LayoutProvider>,
+      });
+
+      // Initially undefined
+      expect(result.current.liveProfileId).toBeUndefined();
+
+      // Set live profile
+      act(() => {
+        result.current.setLiveProfile("profile-1");
+      });
+      expect(result.current.liveProfileId).toBe("profile-1");
+
+      // Change live profile
+      act(() => {
+        result.current.setLiveProfile("profile-2");
+      });
+      expect(result.current.liveProfileId).toBe("profile-2");
+
+      // Clear live profile
+      act(() => {
+        result.current.setLiveProfile(undefined);
+      });
+      expect(result.current.liveProfileId).toBeUndefined();
     });
   });
 });

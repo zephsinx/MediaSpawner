@@ -10,19 +10,126 @@ import {
 import { SpawnProfileService } from "../spawnProfileService";
 import { AssetService } from "../assetService";
 import { SettingsService } from "../settingsService";
+import * as dataTransformation from "../../utils/dataTransformation";
+import * as importExportValidation from "../../utils/importExportValidation";
 
 // Mock the services
 vi.mock("../spawnProfileService");
 vi.mock("../assetService");
 vi.mock("../settingsService");
+vi.mock("../../utils/dataTransformation");
+vi.mock("../../utils/importExportValidation");
 
 const mockSpawnProfileService = vi.mocked(SpawnProfileService);
 const mockAssetService = vi.mocked(AssetService);
 const mockSettingsService = vi.mocked(SettingsService);
+const mockDataTransformation = vi.mocked(dataTransformation);
+const mockImportExportValidation = vi.mocked(importExportValidation);
 
 describe("ImportExportService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Setup transform function mocks
+    mockDataTransformation.transformProfileToSchema.mockImplementation(
+      (profile) =>
+        ({
+          id: profile.id,
+          name: profile.name,
+          description: profile.description || "",
+          spawns: profile.spawns.map((spawn) => ({
+            id: spawn.id,
+            name: spawn.name,
+            enabled: spawn.enabled,
+            trigger: {
+              type: spawn.trigger.type,
+              enabled: spawn.trigger.enabled ?? true,
+              config: spawn.trigger.config as Record<string, unknown>,
+            },
+            duration: spawn.duration,
+            assets: spawn.assets.map((asset) => ({
+              assetId: asset.assetId,
+              id: asset.id,
+              enabled: asset.enabled,
+              order: asset.order,
+              overrides: asset.overrides || {},
+            })),
+            randomizationBuckets: spawn.randomizationBuckets || [],
+          })),
+        }) as ReturnType<typeof dataTransformation.transformProfileToSchema>,
+    );
+
+    mockDataTransformation.transformAssetToSchema.mockImplementation(
+      (asset) => ({
+        id: asset.id,
+        name: asset.name,
+        path: asset.path,
+        isUrl: asset.isUrl,
+        type: asset.type,
+      }),
+    );
+
+    mockDataTransformation.transformProfileFromSchema.mockImplementation(
+      (profile) =>
+        ({
+          id: profile.id,
+          name: profile.name,
+          description: profile.description,
+          spawns: profile.spawns.map((spawn, index) => ({
+            id: spawn.id,
+            name: spawn.name,
+            enabled: spawn.enabled,
+            trigger: spawn.trigger as ReturnType<
+              typeof dataTransformation.transformProfileFromSchema
+            >["spawns"][number]["trigger"],
+            duration: spawn.duration,
+            assets: spawn.assets.map((asset) => ({
+              assetId: asset.assetId,
+              id: asset.id,
+              enabled: asset.enabled,
+              order: asset.order,
+              overrides: asset.overrides || {},
+            })),
+            randomizationBuckets: spawn.randomizationBuckets || [],
+            lastModified: Date.now(),
+            order: index,
+          })),
+          lastModified: Date.now(),
+          isActive: false,
+        }) as ReturnType<typeof dataTransformation.transformProfileFromSchema>,
+    );
+
+    mockDataTransformation.transformAssetFromSchema.mockImplementation(
+      (asset) => ({
+        id: asset.id,
+        name: asset.name,
+        path: asset.path,
+        isUrl: asset.isUrl,
+        type: asset.type,
+      }),
+    );
+
+    // Setup validation function mocks
+    mockImportExportValidation.validateExportData.mockReturnValue({
+      isValid: true,
+      errors: [],
+      warnings: [],
+      fieldErrors: {},
+      profileErrors: {},
+      assetErrors: {},
+      spawnErrors: {},
+    });
+
+    mockImportExportValidation.validateImportData.mockReturnValue({
+      isValid: true,
+      errors: [],
+      warnings: [],
+      fieldErrors: {},
+      profileErrors: {},
+      assetErrors: {},
+      spawnErrors: {},
+      relationshipErrors: [],
+    });
   });
 
   describe("exportConfiguration", () => {
@@ -74,9 +181,9 @@ describe("ImportExportService", () => {
       // Verify JSON structure
       const exportedData = JSON.parse(result.data!);
       expect(exportedData.version).toBe("1.0.0");
+      expect(exportedData.workingDirectory).toBe("/test/path");
       expect(exportedData.profiles).toHaveLength(1);
       expect(exportedData.assets).toHaveLength(1);
-      expect(exportedData.profiles[0].workingDirectory).toBe("/test/path");
     });
 
     it("should return error when no data is available to export", async () => {
@@ -138,12 +245,12 @@ describe("ImportExportService", () => {
       // Mock imported data
       const importedJson = JSON.stringify({
         version: "1.0.0",
+        workingDirectory: "/imported/path",
         profiles: [
           {
             id: "imported-profile",
             name: "Imported Profile",
             description: "Imported Description",
-            workingDirectory: "/imported/path",
             spawns: [
               {
                 id: "imported-spawn",
@@ -197,9 +304,8 @@ describe("ImportExportService", () => {
       });
 
       // Execute
-      const result = await ImportExportService.importConfiguration(
-        importedJson
-      );
+      const result =
+        await ImportExportService.importConfiguration(importedJson);
 
       // Verify
       expect(result.success).toBe(true);
@@ -212,9 +318,6 @@ describe("ImportExportService", () => {
       // Verify services were called
       expect(mockSpawnProfileService.replaceProfiles).toHaveBeenCalled();
       expect(mockAssetService.saveAssets).toHaveBeenCalled();
-      expect(mockSettingsService.updateWorkingDirectory).toHaveBeenCalledWith(
-        "/imported/path"
-      );
     });
 
     it("should handle import errors gracefully", async () => {
@@ -227,6 +330,105 @@ describe("ImportExportService", () => {
       expect(result.error).toContain("Unexpected token");
     });
 
+    it("should update working directory when updateWorkingDirectory option is enabled", async () => {
+      // Mock imported data with working directory
+      const importedJson = JSON.stringify({
+        version: "1.0.0",
+        workingDirectory: "/imported/path",
+        profiles: [
+          {
+            id: "test-profile",
+            name: "Test Profile",
+            description: "Test Description",
+            spawns: [],
+          },
+        ],
+        assets: [
+          {
+            id: "test-asset",
+            name: "Test Asset",
+            path: "test.jpg",
+            isUrl: false,
+            type: "image",
+          },
+        ],
+      });
+
+      // Mock successful working directory update
+      mockSettingsService.updateWorkingDirectory.mockReturnValue({
+        success: true,
+        settings: {
+          workingDirectory: "/imported/path",
+          themeMode: "light",
+        },
+      });
+
+      // Mock existing data for merge
+      mockSpawnProfileService.getAllProfiles.mockReturnValue([]);
+      mockAssetService.getAssets.mockReturnValue([]);
+
+      // Execute with updateWorkingDirectory enabled
+      const result = await ImportExportService.importConfiguration(
+        importedJson,
+        {
+          updateWorkingDirectory: true,
+          profileConflictStrategy: "skip",
+          assetConflictStrategy: "skip",
+          validateAssetReferences: true,
+        },
+      );
+
+      // Verify
+      expect(result.success).toBe(true);
+      expect(mockSettingsService.updateWorkingDirectory).toHaveBeenCalledWith(
+        "/imported/path",
+      );
+    });
+
+    it("should not update working directory when updateWorkingDirectory option is disabled", async () => {
+      // Mock imported data with working directory
+      const importedJson = JSON.stringify({
+        version: "1.0.0",
+        workingDirectory: "/imported/path",
+        profiles: [
+          {
+            id: "test-profile",
+            name: "Test Profile",
+            description: "Test Description",
+            spawns: [],
+          },
+        ],
+        assets: [
+          {
+            id: "test-asset",
+            name: "Test Asset",
+            path: "test.jpg",
+            isUrl: false,
+            type: "image",
+          },
+        ],
+      });
+
+      // Mock existing data for merge
+      mockSpawnProfileService.getAllProfiles.mockReturnValue([]);
+      mockAssetService.getAssets.mockReturnValue([]);
+
+      // Execute with updateWorkingDirectory disabled
+      const result = await ImportExportService.importConfiguration(
+        importedJson,
+        {
+          updateWorkingDirectory: false,
+          profileConflictStrategy: "skip",
+          assetConflictStrategy: "skip",
+          validateAssetReferences: true,
+        },
+      );
+
+      // Verify
+      expect(result.success).toBe(true);
+      expect(mockSettingsService.updateWorkingDirectory).not.toHaveBeenCalled();
+    });
+
     it("should handle validation errors", async () => {
       // Invalid configuration structure
       const invalidConfig = JSON.stringify({
@@ -234,9 +436,8 @@ describe("ImportExportService", () => {
         // Missing profiles and assets
       });
 
-      const result = await ImportExportService.importConfiguration(
-        invalidConfig
-      );
+      const result =
+        await ImportExportService.importConfiguration(invalidConfig);
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Invalid configuration");
@@ -271,7 +472,6 @@ describe("ImportExportService", () => {
           {
             id: "conflict-profile",
             name: "Conflict Profile",
-            workingDirectory: "/conflict/path",
             spawns: [],
             lastModified: "2023-01-01T00:00:00.000Z",
           },
@@ -311,7 +511,7 @@ describe("ImportExportService", () => {
           ...DEFAULT_IMPORT_OPTIONS,
           profileConflictStrategy: "rename",
           assetConflictStrategy: "rename",
-        }
+        },
       );
 
       // Verify
@@ -346,10 +546,10 @@ describe("ImportExportService", () => {
 
       expect(result.isValid).toBe(false);
       expect(result.errors).toContain(
-        "Configuration must have a profiles array"
+        "Configuration must have a profiles array",
       );
       expect(result.errors).toContain(
-        "Configuration must have an assets array"
+        "Configuration must have an assets array",
       );
     });
 
@@ -361,12 +561,12 @@ describe("ImportExportService", () => {
       };
 
       const result = ImportExportService.validateImportedConfig(
-        configWithVersionMismatch
+        configWithVersionMismatch,
       );
 
       expect(result.isValid).toBe(true);
       expect(result.warnings).toContain(
-        "Version mismatch: expected 1.0.0, got 2.0.0"
+        "Version mismatch: expected 1.0.0, got 2.0.0",
       );
     });
   });

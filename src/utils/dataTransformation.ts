@@ -23,7 +23,6 @@ export interface ExportedSpawnProfile {
   id: string;
   name: string;
   description?: string;
-  workingDirectory: string;
   spawns: ExportedSpawn[];
   lastModified: string;
 }
@@ -95,13 +94,11 @@ export interface ExportedAssetSettings {
  */
 export function transformProfileToSchema(
   profile: SpawnProfile,
-  workingDirectory: string
 ): ExportedSpawnProfile {
   return {
     id: profile.id,
     name: profile.name,
     description: profile.description || undefined,
-    workingDirectory,
     spawns: profile.spawns.map((spawn) => transformSpawnToSchema(spawn)),
     lastModified: new Date(profile.lastModified).toISOString(),
   };
@@ -120,7 +117,7 @@ export function transformSpawnToSchema(spawn: Spawn): ExportedSpawn {
     duration: spawn.duration,
     assets: spawn.assets.map((asset) => transformSpawnAssetToSchema(asset)),
     randomizationBuckets: spawn.randomizationBuckets?.map((bucket) =>
-      transformRandomizationBucketToSchema(bucket)
+      transformRandomizationBucketToSchema(bucket),
     ),
   };
 }
@@ -129,7 +126,7 @@ export function transformSpawnToSchema(spawn: Spawn): ExportedSpawn {
  * Transform internal spawn asset to exported format
  */
 export function transformSpawnAssetToSchema(
-  asset: SpawnAsset
+  asset: SpawnAsset,
 ): ExportedSpawnAsset {
   return {
     assetId: asset.assetId,
@@ -176,7 +173,7 @@ export function transformTriggerToSchema(trigger: Trigger): ExportedTrigger {
  * Transform internal randomization bucket to exported format
  */
 export function transformRandomizationBucketToSchema(
-  bucket: RandomizationBucket
+  bucket: RandomizationBucket,
 ): ExportedRandomizationBucket {
   return {
     id: bucket.id,
@@ -196,7 +193,7 @@ export function transformRandomizationBucketToSchema(
  * Transform internal asset settings to exported format
  */
 export function transformAssetSettingsToSchema(
-  settings: Partial<MediaAssetProperties>
+  settings: Partial<MediaAssetProperties>,
 ): ExportedAssetSettings {
   // Handle scale conversion for backward compatibility
   let scaleValue: number | undefined;
@@ -225,7 +222,7 @@ export function transformAssetSettingsToSchema(
  * Transform imported profile back to internal format
  */
 export function transformProfileFromSchema(
-  profile: ExportedSpawnProfile
+  profile: ExportedSpawnProfile,
 ): SpawnProfile {
   return {
     id: profile.id,
@@ -256,7 +253,7 @@ export function transformSpawnFromSchema(spawn: ExportedSpawn): Spawn {
     duration: spawn.duration,
     assets: spawn.assets.map((asset) => transformSpawnAssetFromSchema(asset)),
     randomizationBuckets: spawn.randomizationBuckets?.map((bucket) =>
-      transformRandomizationBucketFromSchema(bucket)
+      transformRandomizationBucketFromSchema(bucket),
     ),
     lastModified: Date.now(),
     order: 0, // Will be set by the service when adding to profile
@@ -267,7 +264,7 @@ export function transformSpawnFromSchema(spawn: ExportedSpawn): Spawn {
  * Transform imported spawn asset back to internal format
  */
 export function transformSpawnAssetFromSchema(
-  asset: ExportedSpawnAsset
+  asset: ExportedSpawnAsset,
 ): SpawnAsset {
   return {
     assetId: asset.assetId,
@@ -313,7 +310,7 @@ export function transformTriggerFromSchema(trigger: ExportedTrigger): Trigger {
  * Transform imported randomization bucket back to internal format
  */
 export function transformRandomizationBucketFromSchema(
-  bucket: ExportedRandomizationBucket
+  bucket: ExportedRandomizationBucket,
 ): RandomizationBucket {
   return {
     id: bucket.id,
@@ -333,7 +330,7 @@ export function transformRandomizationBucketFromSchema(
  * Transform imported asset settings back to internal format
  */
 export function transformAssetSettingsFromSchema(
-  settings: ExportedAssetSettings
+  settings: ExportedAssetSettings,
 ): Partial<MediaAssetProperties> {
   const result: Partial<MediaAssetProperties> = {};
 

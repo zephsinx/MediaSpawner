@@ -43,7 +43,7 @@ function render(ui: React.ReactNode) {
   return rtlRender(
     <Tooltip.Provider delayDuration={0} skipDelayDuration={0}>
       {ui}
-    </Tooltip.Provider>
+    </Tooltip.Provider>,
   );
 }
 
@@ -71,11 +71,13 @@ describe("AssetManagementPanel (Core Functionality)", () => {
     vi.mocked(usePanelState).mockReturnValue({
       selectedSpawnId: undefined,
       activeProfileId: undefined,
+      liveProfileId: undefined,
       selectedSpawnAssetId: undefined,
       centerPanelMode: "spawn-settings",
       hasUnsavedChanges: false,
       profileSpawnSelections: {},
       setActiveProfile: vi.fn(),
+      setLiveProfile: vi.fn(),
       selectSpawn: vi.fn(),
       selectSpawnAsset: vi.fn(),
       setCenterPanelMode: vi.fn(),
@@ -85,14 +87,15 @@ describe("AssetManagementPanel (Core Functionality)", () => {
 
     // Default resolver for getAssetById to prevent crashes in SpawnAssetsSection
     vi.mocked(AssetService.getAssetById).mockImplementation((id: string) =>
-      makeAsset({ id })
+      makeAsset({ id }),
     );
+
+    // Essential mock for AssetLibraryCount component
+    vi.mocked(AssetService.getAssets).mockReturnValue([]);
   });
 
   describe("Basic Rendering & Layout (MS-32)", () => {
     it("renders two sections with correct headers", () => {
-      vi.mocked(AssetService.getAssets).mockReturnValue([]);
-
       render(<AssetManagementPanel />);
 
       expect(screen.getByText("Assets in Current Spawn")).toBeInTheDocument();
@@ -100,46 +103,40 @@ describe("AssetManagementPanel (Core Functionality)", () => {
     });
 
     it("applies flex column layout and overflow handling to container", () => {
-      vi.mocked(AssetService.getAssets).mockReturnValue([]);
-
       const { container } = render(<AssetManagementPanel />);
       const root = container.firstChild as HTMLElement;
       expect(root).toHaveClass("h-full", "flex", "flex-col");
     });
 
     it("applies min-heights and border separation to sections", () => {
-      vi.mocked(AssetService.getAssets).mockReturnValue([]);
-
       const { container } = render(<AssetManagementPanel />);
       const sections = container.querySelectorAll("section");
       expect(sections).toHaveLength(2);
 
       const topBorderWrapper = sections[0].querySelector(
-        ".flex-shrink-0.flex.flex-col.overflow-hidden"
+        ".flex-shrink-0.flex.flex-col.overflow-hidden",
       ) as HTMLElement | null;
       expect(topBorderWrapper).toBeTruthy();
       expect(topBorderWrapper!).toHaveClass(
         "flex-shrink-0",
         "border-b",
-        "border-[rgb(var(--color-border))]"
+        "border-[rgb(var(--color-border))]",
       );
 
       const topPanel = sections[0].querySelector(
-        "[id^='headlessui-disclosure-panel']"
+        "[id^='headlessui-disclosure-panel']",
       ) as HTMLElement | null;
       expect(topPanel).toBeTruthy();
       expect(topPanel!).toHaveClass("min-h-[80px]");
 
       const bottomPanel = sections[1].querySelector(
-        "[id^='headlessui-disclosure-panel']"
+        "[id^='headlessui-disclosure-panel']",
       ) as HTMLElement | null;
       expect(bottomPanel).toBeTruthy();
       expect(bottomPanel!).toHaveClass("flex-1", "min-h-0");
     });
 
     it("uses sticky-like headers and scrollable content areas", () => {
-      vi.mocked(AssetService.getAssets).mockReturnValue([]);
-
       const { container } = render(<AssetManagementPanel />);
       // Two Disclosure headers (buttons): target by their accessible names
       const disclosureButtons = [
@@ -175,7 +172,7 @@ describe("AssetManagementPanel (Core Functionality)", () => {
 
       expect(screen.getByText("Assets in Current Spawn")).toBeInTheDocument();
       expect(
-        screen.getByText("Select a spawn to see its assets")
+        screen.getByText("Select a spawn to see its assets"),
       ).toBeInTheDocument();
     });
 
@@ -183,11 +180,13 @@ describe("AssetManagementPanel (Core Functionality)", () => {
       vi.mocked(usePanelState).mockReturnValue({
         selectedSpawnId: "s1",
         activeProfileId: undefined,
+        liveProfileId: undefined,
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
         selectSpawn: vi.fn(),
         selectSpawnAsset: vi.fn(),
         setCenterPanelMode: vi.fn(),
@@ -197,7 +196,7 @@ describe("AssetManagementPanel (Core Functionality)", () => {
 
       vi.mocked(SpawnService.getSpawn).mockImplementation(
         // Never resolve to keep loading state
-        () => new Promise(() => {})
+        () => new Promise(() => {}),
       );
 
       render(<AssetManagementPanel />);
@@ -208,11 +207,13 @@ describe("AssetManagementPanel (Core Functionality)", () => {
       vi.mocked(usePanelState).mockReturnValue({
         selectedSpawnId: "s1",
         activeProfileId: undefined,
+        liveProfileId: undefined,
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
         selectSpawn: vi.fn(),
         selectSpawnAsset: vi.fn(),
         setCenterPanelMode: vi.fn(),
@@ -235,7 +236,9 @@ describe("AssetManagementPanel (Core Functionality)", () => {
         name: "Assets in Current Spawn",
       });
       expect(
-        await within(spawnRegion).findByText("No assets assigned to this spawn")
+        await within(spawnRegion).findByText(
+          "No assets assigned to this spawn",
+        ),
       ).toBeInTheDocument();
     });
   });
@@ -245,11 +248,13 @@ describe("AssetManagementPanel (Core Functionality)", () => {
       vi.mocked(usePanelState).mockReturnValue({
         selectedSpawnId: "s1",
         activeProfileId: undefined,
+        liveProfileId: undefined,
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
         selectSpawn: vi.fn(),
         selectSpawnAsset: vi.fn(),
         setCenterPanelMode: vi.fn(),
@@ -263,7 +268,7 @@ describe("AssetManagementPanel (Core Functionality)", () => {
         makeSpawnAsset("a2", 1),
       ];
       vi.mocked(SpawnService.getSpawn).mockResolvedValue(
-        makeSpawn("s1", assets)
+        makeSpawn("s1", assets),
       );
       vi.mocked(AssetService.getAssetById).mockImplementation((id: string) => {
         if (id === "a1")
@@ -283,7 +288,7 @@ describe("AssetManagementPanel (Core Functionality)", () => {
       });
       const items = await within(spawnRegion).findAllByRole("listitem");
       const names = items.map((li) =>
-        li.querySelector(".text-sm.font-medium")?.textContent?.trim()
+        li.querySelector(".text-sm.font-medium")?.textContent?.trim(),
       );
       expect(names).toEqual(["First", "Second", "Third"]);
 
@@ -291,7 +296,7 @@ describe("AssetManagementPanel (Core Functionality)", () => {
       expect(
         within(spawnRegion)
           .getAllByText(/image|video|audio/)
-          .some((el) => el.textContent === "image")
+          .some((el) => el.textContent === "image"),
       ).toBe(true);
     });
 
@@ -303,20 +308,22 @@ describe("AssetManagementPanel (Core Functionality)", () => {
           if (id === "A") return makeSpawn("A", aAssets);
           if (id === "B") return makeSpawn("B", bAssets);
           return makeSpawn(id, []);
-        }
+        },
       );
       vi.mocked(AssetService.getAssetById).mockReturnValue(
-        makeAsset({ id: "x", type: "image" })
+        makeAsset({ id: "x", type: "image" }),
       );
 
       vi.mocked(usePanelState).mockReturnValue({
         selectedSpawnId: "A",
         activeProfileId: undefined,
+        liveProfileId: undefined,
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
         selectSpawn: vi.fn(),
         selectSpawnAsset: vi.fn(),
         setCenterPanelMode: vi.fn(),
@@ -330,11 +337,13 @@ describe("AssetManagementPanel (Core Functionality)", () => {
       vi.mocked(usePanelState).mockReturnValue({
         selectedSpawnId: "B",
         activeProfileId: undefined,
+        liveProfileId: undefined,
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
         selectSpawn: vi.fn(),
         selectSpawnAsset: vi.fn(),
         setCenterPanelMode: vi.fn(),
@@ -346,7 +355,7 @@ describe("AssetManagementPanel (Core Functionality)", () => {
         view.rerender(
           <Tooltip.Provider delayDuration={0} skipDelayDuration={0}>
             <AssetManagementPanel />
-          </Tooltip.Provider>
+          </Tooltip.Provider>,
         );
       });
       expect(await screen.findByText("(2)")).toBeInTheDocument();
@@ -355,8 +364,6 @@ describe("AssetManagementPanel (Core Functionality)", () => {
 
   describe("Asset Library Basics (MS-34)", () => {
     it("renders header count and empty state", () => {
-      vi.mocked(AssetService.getAssets).mockReturnValue([]);
-
       render(<AssetManagementPanel />);
 
       expect(screen.getByText("Asset Library")).toBeInTheDocument();
@@ -410,8 +417,6 @@ describe("AssetManagementPanel (Core Functionality)", () => {
     });
 
     it("shows empty state when no assets in library", () => {
-      vi.mocked(AssetService.getAssets).mockReturnValue([]);
-
       render(<AssetManagementPanel />);
 
       expect(screen.getByText("No assets in library")).toBeInTheDocument();
@@ -426,7 +431,7 @@ describe("AssetManagementPanel (Core Functionality)", () => {
           const created = createMediaAsset(type, name, path, "n1");
           library.push(created);
           return created;
-        }
+        },
       );
 
       render(<AssetManagementPanel />);
@@ -466,7 +471,7 @@ describe("AssetManagementPanel (Core Functionality)", () => {
     it("refreshes when mediaspawner:assets-updated is dispatched", async () => {
       vi.mocked(AssetService.getAssets)
         .mockReturnValueOnce([])
-        .mockReturnValueOnce([makeAsset({ id: "x1" })]);
+        .mockReturnValue([makeAsset({ id: "x1" })]);
 
       render(<AssetManagementPanel />);
       const libraryBtn = screen.getByRole("button", { name: /Asset Library/i });
@@ -475,8 +480,8 @@ describe("AssetManagementPanel (Core Functionality)", () => {
       await act(async () => {
         window.dispatchEvent(
           new Event(
-            "mediaspawner:assets-updated" as unknown as keyof WindowEventMap
-          )
+            "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
+          ),
         );
       });
 

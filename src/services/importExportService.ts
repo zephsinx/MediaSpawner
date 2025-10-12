@@ -14,14 +14,12 @@ import {
   transformAssetToSchema,
   transformProfileFromSchema,
   transformAssetFromSchema,
-  normalizeWorkingDirectory,
   type ExportedSpawnProfile,
   type ExportedAsset,
 } from "../utils/dataTransformation";
 import {
   validateExportData,
   validateImportData,
-  validateWorkingDirectory,
 } from "../utils/importExportValidation";
 
 /**
@@ -117,6 +115,7 @@ export interface ImportMetadata {
  */
 export interface MediaSpawnerConfig {
   version: string;
+  workingDirectory: string;
   profiles: ExportedSpawnProfile[];
   assets: ExportedAsset[];
 }
@@ -135,6 +134,7 @@ export class ImportExportService {
       // Get data from services
       const profiles = SpawnProfileService.getAllProfiles();
       const assets = AssetService.getAssets();
+      const settings = SettingsService.getSettings();
 
       // Validate that we have data to export
       if (profiles.length === 0 && assets.length === 0) {
@@ -146,12 +146,11 @@ export class ImportExportService {
       }
 
       // Transform data to exported format
-      const settings = SettingsService.getSettings();
       const exportedProfiles = profiles.map((profile) =>
-        transformProfileToSchema(profile, settings.workingDirectory || "")
+        transformProfileToSchema(profile),
       );
       const exportedAssets = assets.map((asset) =>
-        transformAssetToSchema(asset)
+        transformAssetToSchema(asset),
       );
 
       // Validate transformed data
@@ -166,6 +165,7 @@ export class ImportExportService {
       // Create configuration object
       const config: MediaSpawnerConfig = {
         version: this.CONFIG_VERSION,
+        workingDirectory: settings.workingDirectory,
         profiles: exportedProfiles,
         assets: exportedAssets,
       };
@@ -191,7 +191,7 @@ export class ImportExportService {
         assetCount: assets.length,
         spawnCount: profiles.reduce(
           (total, profile) => total + profile.spawns.length,
-          0
+          0,
         ),
       };
 
@@ -214,7 +214,7 @@ export class ImportExportService {
    */
   static async importConfiguration(
     jsonData: string,
-    options: ImportOptions = DEFAULT_IMPORT_OPTIONS
+    options: ImportOptions = DEFAULT_IMPORT_OPTIONS,
   ): Promise<ImportResult> {
     try {
       // Parse JSON data
@@ -231,16 +231,16 @@ export class ImportExportService {
 
       // Transform imported data back to internal format
       const importedProfiles = config.profiles.map((profile) =>
-        transformProfileFromSchema(profile)
+        transformProfileFromSchema(profile),
       );
       const importedAssets = config.assets.map((asset) =>
-        transformAssetFromSchema(asset)
+        transformAssetFromSchema(asset),
       );
 
       // Validate transformed data
       const dataValidation = validateImportData(
         importedProfiles,
-        importedAssets
+        importedAssets,
       );
       if (!dataValidation.isValid) {
         return {
@@ -253,7 +253,7 @@ export class ImportExportService {
       const mergeResult = await this.mergeImportedData(
         importedProfiles,
         importedAssets,
-        options
+        options,
       );
 
       if (!mergeResult.success) {
@@ -263,31 +263,16 @@ export class ImportExportService {
         };
       }
 
-      // Update working directory if requested
-      if (options.updateWorkingDirectory && config.profiles.length > 0) {
-        const firstProfile = config.profiles[0];
-        if (firstProfile.workingDirectory) {
-          const workingDirValidation = validateWorkingDirectory(
-            firstProfile.workingDirectory
+      // Handle working directory update if option is enabled
+      if (options.updateWorkingDirectory && config.workingDirectory) {
+        const workingDirResult = SettingsService.updateWorkingDirectory(
+          config.workingDirectory,
+        );
+        if (!workingDirResult.success) {
+          console.warn(
+            `Failed to update working directory: ${workingDirResult.error}`,
           );
-          if (!workingDirValidation.isValid) {
-            console.warn(
-              "Invalid working directory in imported data:",
-              workingDirValidation.errors.join(", ")
-            );
-          }
-
-          const normalizedPath = normalizeWorkingDirectory(
-            firstProfile.workingDirectory
-          );
-          const settingsResult =
-            SettingsService.updateWorkingDirectory(normalizedPath);
-          if (!settingsResult.success) {
-            console.warn(
-              "Failed to update working directory:",
-              settingsResult.error
-            );
-          }
+          // Don't fail the import, just log the warning
         }
       }
 
@@ -299,7 +284,7 @@ export class ImportExportService {
         assetCount: mergeResult.assets.length,
         spawnCount: mergeResult.profiles.reduce(
           (total, profile) => total + profile.spawns.length,
-          0
+          0,
         ),
         validationWarnings: [
           ...validation.warnings,
@@ -327,7 +312,7 @@ export class ImportExportService {
    * Validate imported configuration data
    */
   static validateImportedConfig(
-    config: unknown
+    config: unknown,
   ): ImportExportServiceValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -355,7 +340,7 @@ export class ImportExportService {
     // Validate version compatibility
     if (configObj.version && configObj.version !== this.CONFIG_VERSION) {
       warnings.push(
-        `Version mismatch: expected ${this.CONFIG_VERSION}, got ${configObj.version}`
+        `Version mismatch: expected ${this.CONFIG_VERSION}, got ${configObj.version}`,
       );
     }
 
@@ -372,7 +357,7 @@ export class ImportExportService {
   private static async mergeImportedData(
     importedProfiles: SpawnProfile[],
     importedAssets: MediaAsset[],
-    options: ImportOptions
+    options: ImportOptions,
   ): Promise<{
     success: boolean;
     profiles: SpawnProfile[];
@@ -398,7 +383,7 @@ export class ImportExportService {
 
       for (const importedAsset of importedAssets) {
         const existingAsset = existingAssets.find(
-          (asset) => asset.id === importedAsset.id
+          (asset) => asset.id === importedAsset.id,
         );
 
         if (existingAsset) {
@@ -413,7 +398,7 @@ export class ImportExportService {
             case "overwrite": {
               // Replace existing asset
               const assetIndex = mergedAssets.findIndex(
-                (asset) => asset.id === importedAsset.id
+                (asset) => asset.id === importedAsset.id,
               );
               if (assetIndex !== -1) {
                 mergedAssets[assetIndex] = importedAsset;
@@ -441,7 +426,7 @@ export class ImportExportService {
 
       for (const importedProfile of importedProfiles) {
         const existingProfile = existingProfiles.find(
-          (profile) => profile.id === importedProfile.id
+          (profile) => profile.id === importedProfile.id,
         );
 
         if (existingProfile) {
@@ -455,7 +440,7 @@ export class ImportExportService {
             case "overwrite": {
               // Replace existing profile
               const profileIndex = mergedProfiles.findIndex(
-                (profile) => profile.id === importedProfile.id
+                (profile) => profile.id === importedProfile.id,
               );
               if (profileIndex !== -1) {
                 mergedProfiles[profileIndex] = importedProfile;
@@ -507,11 +492,11 @@ export class ImportExportService {
           for (const spawn of profile.spawns) {
             for (const spawnAsset of spawn.assets) {
               const assetExists = mergedAssets.some(
-                (asset) => asset.id === spawnAsset.assetId
+                (asset) => asset.id === spawnAsset.assetId,
               );
               if (!assetExists) {
                 conflicts.invalidAssetReferences.push(
-                  `Profile "${profile.name}", Spawn "${spawn.name}": Asset "${spawnAsset.assetId}" not found`
+                  `Profile "${profile.name}", Spawn "${spawn.name}": Asset "${spawnAsset.assetId}" not found`,
                 );
               }
             }

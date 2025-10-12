@@ -20,6 +20,15 @@ vi.mock("../settingsService", () => ({
   },
 }));
 
+vi.mock("../streamerbotService", () => ({
+  StreamerbotService: {
+    getStatus: vi.fn(),
+    getGlobalVariable: vi.fn(),
+    setGlobalVariable: vi.fn(),
+    executeAction: vi.fn(),
+  },
+}));
+
 vi.mock("../../types/spawn", () => ({
   createSpawnProfile: vi.fn(),
   validateSpawnProfile: vi.fn(),
@@ -29,10 +38,12 @@ vi.mock("../../types/spawn", () => ({
 import { SpawnProfileService } from "../spawnProfileService";
 import { CacheService, CACHE_KEYS } from "../cacheService";
 import { SettingsService } from "../settingsService";
+import { StreamerbotService } from "../streamerbotService";
 import { createSpawnProfile, validateSpawnProfile } from "../../types/spawn";
 
 const mockCacheService = vi.mocked(CacheService);
 const mockSettingsService = vi.mocked(SettingsService);
+const mockStreamerbotService = vi.mocked(StreamerbotService);
 const mockCreateSpawnProfile = vi.mocked(createSpawnProfile);
 const mockValidateSpawnProfile = vi.mocked(validateSpawnProfile);
 
@@ -83,7 +94,7 @@ describe("SpawnProfileService", () => {
 
     // Mock crypto.randomUUID
     vi.spyOn(globalThis.crypto, "randomUUID").mockImplementation(
-      () => "00000000-0000-0000-0000-000000000000"
+      () => "00000000-0000-0000-0000-000000000000",
     );
 
     // Reset all mocks
@@ -122,7 +133,7 @@ describe("SpawnProfileService", () => {
 
       expect(result).toEqual([]);
       expect(localStorage.getItem).toHaveBeenCalledWith(
-        "mediaspawner_spawn_profiles"
+        "mediaspawner_spawn_profiles",
       );
     });
 
@@ -139,7 +150,7 @@ describe("SpawnProfileService", () => {
     it("filters out invalid profiles and logs warnings", () => {
       const localStorage = getLocalStorageMock();
       localStorage.getItem.mockReturnValue(
-        JSON.stringify([validProfile, invalidProfile])
+        JSON.stringify([validProfile, invalidProfile]),
       );
 
       mockValidateSpawnProfile
@@ -150,7 +161,7 @@ describe("SpawnProfileService", () => {
 
       expect(result).toEqual([validProfile]);
       expect(console.warn).toHaveBeenCalledWith(
-        "Invalid profile found, skipping: Invalid ID"
+        "Invalid profile found, skipping: Invalid ID",
       );
     });
 
@@ -162,10 +173,10 @@ describe("SpawnProfileService", () => {
 
       expect(result).toEqual([]);
       expect(console.warn).toHaveBeenCalledWith(
-        "Invalid profiles data found in localStorage, clearing"
+        "Invalid profiles data found in localStorage, clearing",
       );
       expect(localStorage.removeItem).toHaveBeenCalledWith(
-        "mediaspawner_spawn_profiles"
+        "mediaspawner_spawn_profiles",
       );
     });
 
@@ -178,10 +189,10 @@ describe("SpawnProfileService", () => {
       expect(result).toEqual([]);
       expect(console.error).toHaveBeenCalledWith(
         "Failed to load profiles from localStorage:",
-        expect.any(Error)
+        expect.any(Error),
       );
       expect(localStorage.removeItem).toHaveBeenCalledWith(
-        "mediaspawner_spawn_profiles"
+        "mediaspawner_spawn_profiles",
       );
     });
 
@@ -196,7 +207,7 @@ describe("SpawnProfileService", () => {
       expect(result).toEqual([]);
       expect(console.error).toHaveBeenCalledWith(
         "Failed to load profiles from localStorage:",
-        expect.any(Error)
+        expect.any(Error),
       );
     });
   });
@@ -225,7 +236,7 @@ describe("SpawnProfileService", () => {
     it("returns active profile when exists", () => {
       const localStorage = getLocalStorageMock();
       localStorage.getItem.mockReturnValue(
-        JSON.stringify([validProfile, activeProfile])
+        JSON.stringify([validProfile, activeProfile]),
       );
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
@@ -300,14 +311,14 @@ describe("SpawnProfileService", () => {
 
       const result = SpawnProfileService.createProfile(
         "New Profile",
-        "Description"
+        "Description",
       );
 
       expect(result.success).toBe(true);
       expect(result.profile).toBeDefined();
       expect(mockCreateSpawnProfile).toHaveBeenCalledWith(
         "New Profile",
-        "Description"
+        "Description",
       );
       expect(localStorage.setItem).toHaveBeenCalled();
     });
@@ -322,7 +333,7 @@ describe("SpawnProfileService", () => {
       expect(result.success).toBe(true);
       expect(mockCreateSpawnProfile).toHaveBeenCalledWith(
         "New Profile",
-        undefined
+        undefined,
       );
     });
 
@@ -334,7 +345,7 @@ describe("SpawnProfileService", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe(
-        'Profile with name "Test Profile" already exists'
+        'Profile with name "Test Profile" already exists',
       );
     });
 
@@ -451,7 +462,7 @@ describe("SpawnProfileService", () => {
       const localStorage = getLocalStorageMock();
       const profile2 = { ...validProfile, id: "profile-2", name: "Profile 2" };
       localStorage.getItem.mockReturnValue(
-        JSON.stringify([validProfile, profile2])
+        JSON.stringify([validProfile, profile2]),
       );
 
       const result = SpawnProfileService.updateProfile("profile-1", {
@@ -538,7 +549,7 @@ describe("SpawnProfileService", () => {
     it("deletes non-active profile successfully", () => {
       const localStorage = getLocalStorageMock();
       localStorage.getItem.mockReturnValue(
-        JSON.stringify([validProfile, activeProfile])
+        JSON.stringify([validProfile, activeProfile]),
       );
       localStorage.setItem.mockImplementation(() => {});
 
@@ -547,7 +558,7 @@ describe("SpawnProfileService", () => {
       expect(result.success).toBe(true);
       expect(localStorage.setItem).toHaveBeenCalledWith(
         "mediaspawner_spawn_profiles",
-        JSON.stringify([activeProfile])
+        JSON.stringify([activeProfile]),
       );
     });
 
@@ -559,7 +570,7 @@ describe("SpawnProfileService", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe(
-        "Cannot delete the active profile. Please switch to a different profile first."
+        "Cannot delete the active profile. Please switch to a different profile first.",
       );
     });
 
@@ -603,7 +614,7 @@ describe("SpawnProfileService", () => {
     it("sets profile as active successfully", () => {
       const localStorage = getLocalStorageMock();
       localStorage.getItem.mockReturnValue(
-        JSON.stringify([validProfile, activeProfile])
+        JSON.stringify([validProfile, activeProfile]),
       );
       localStorage.setItem.mockImplementation(() => {});
 
@@ -619,7 +630,7 @@ describe("SpawnProfileService", () => {
     it("updates all profiles isActive flags", () => {
       const localStorage = getLocalStorageMock();
       localStorage.getItem.mockReturnValue(
-        JSON.stringify([validProfile, activeProfile])
+        JSON.stringify([validProfile, activeProfile]),
       );
       localStorage.setItem.mockImplementation(() => {});
 
@@ -654,7 +665,7 @@ describe("SpawnProfileService", () => {
       expect(result.success).toBe(true); // Profile update still succeeds
       expect(console.warn).toHaveBeenCalledWith(
         "Failed to update active profile in settings:",
-        "Settings error"
+        "Settings error",
       );
     });
 
@@ -717,7 +728,7 @@ describe("SpawnProfileService", () => {
       expect(() => SpawnProfileService.clearActiveProfile()).not.toThrow();
       expect(console.error).toHaveBeenCalledWith(
         "Failed to clear active profile:",
-        expect.any(Error)
+        expect.any(Error),
       );
     });
   });
@@ -733,7 +744,7 @@ describe("SpawnProfileService", () => {
       expect(result.success).toBe(true);
       expect(mockCreateSpawnProfile).toHaveBeenCalledWith(
         "Default Profile",
-        "Default spawn profile"
+        "Default spawn profile",
       );
     });
 
@@ -757,7 +768,7 @@ describe("SpawnProfileService", () => {
     it("returns existing active profile when available", () => {
       const localStorage = getLocalStorageMock();
       localStorage.getItem.mockReturnValue(
-        JSON.stringify([validProfile, activeProfile])
+        JSON.stringify([validProfile, activeProfile]),
       );
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
@@ -776,7 +787,7 @@ describe("SpawnProfileService", () => {
     it("returns profiles with active profile ID", () => {
       const localStorage = getLocalStorageMock();
       localStorage.getItem.mockReturnValue(
-        JSON.stringify([validProfile, activeProfile])
+        JSON.stringify([validProfile, activeProfile]),
       );
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
@@ -799,10 +810,10 @@ describe("SpawnProfileService", () => {
       SpawnProfileService.clearProfiles();
 
       expect(localStorage.removeItem).toHaveBeenCalledWith(
-        "mediaspawner_spawn_profiles"
+        "mediaspawner_spawn_profiles",
       );
       expect(mockCacheService.invalidate).toHaveBeenCalledWith(
-        CACHE_KEYS.PROFILES
+        CACHE_KEYS.PROFILES,
       );
       expect(mockSettingsService.updateSettings).toHaveBeenCalledWith({
         activeProfileId: undefined,
@@ -818,7 +829,7 @@ describe("SpawnProfileService", () => {
       expect(() => SpawnProfileService.clearProfiles()).not.toThrow();
       expect(console.error).toHaveBeenCalledWith(
         "Failed to clear profiles:",
-        expect.any(Error)
+        expect.any(Error),
       );
     });
   });
@@ -851,7 +862,7 @@ describe("SpawnProfileService", () => {
       };
       const profileWithoutSpawns = { ...validProfile, id: "profile-3" };
       localStorage.getItem.mockReturnValue(
-        JSON.stringify([profileWithSpawns, profileWithoutSpawns])
+        JSON.stringify([profileWithSpawns, profileWithoutSpawns]),
       );
       mockSettingsService.getSettings.mockReturnValue({
         workingDirectory: "",
@@ -882,6 +893,232 @@ describe("SpawnProfileService", () => {
       const result = SpawnProfileService.getProfileStats();
 
       expect(result.hasActiveProfile).toBe(false);
+    });
+  });
+
+  describe("Live Profile Methods", () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    describe("getLiveProfileId", () => {
+      it("returns live profile ID when connected to Streamer.bot", async () => {
+        mockStreamerbotService.getStatus.mockReturnValue({
+          state: "connected",
+          host: "127.0.0.1",
+          port: 8080,
+          endpoint: "/",
+        });
+        mockStreamerbotService.getGlobalVariable.mockResolvedValue(
+          "profile-123",
+        );
+
+        const result = await SpawnProfileService.getLiveProfileId();
+
+        expect(result).toBe("profile-123");
+        expect(mockStreamerbotService.getGlobalVariable).toHaveBeenCalledWith(
+          "MediaSpawner_LiveProfileId",
+        );
+      });
+
+      it("returns undefined when not connected to Streamer.bot", async () => {
+        mockStreamerbotService.getStatus.mockReturnValue({
+          state: "disconnected",
+          host: "127.0.0.1",
+          port: 8080,
+          endpoint: "/",
+        });
+
+        const result = await SpawnProfileService.getLiveProfileId();
+
+        expect(result).toBeUndefined();
+        expect(mockStreamerbotService.getGlobalVariable).not.toHaveBeenCalled();
+      });
+
+      it("returns undefined when global variable is empty", async () => {
+        mockStreamerbotService.getStatus.mockReturnValue({
+          state: "connected",
+          host: "127.0.0.1",
+          port: 8080,
+          endpoint: "/",
+        });
+        mockStreamerbotService.getGlobalVariable.mockResolvedValue("");
+
+        const result = await SpawnProfileService.getLiveProfileId();
+
+        expect(result).toBeUndefined();
+      });
+
+      it("returns undefined when Streamer.bot throws error", async () => {
+        mockStreamerbotService.getStatus.mockReturnValue({
+          state: "connected",
+          host: "127.0.0.1",
+          port: 8080,
+          endpoint: "/",
+        });
+        mockStreamerbotService.getGlobalVariable.mockRejectedValue(
+          new Error("Connection failed"),
+        );
+
+        const result = await SpawnProfileService.getLiveProfileId();
+
+        expect(result).toBeUndefined();
+        expect(console.error).toHaveBeenCalledWith(
+          "Failed to get live profile ID from Streamer.bot:",
+          expect.any(Error),
+        );
+      });
+    });
+
+    describe("getLiveProfile", () => {
+      it("returns live profile when it exists", async () => {
+        const localStorage = getLocalStorageMock();
+        localStorage.getItem.mockReturnValue(JSON.stringify([validProfile]));
+        mockCacheService.get.mockReturnValue([validProfile]);
+        mockStreamerbotService.getStatus.mockReturnValue({
+          state: "connected",
+          host: "127.0.0.1",
+          port: 8080,
+          endpoint: "/",
+        });
+        mockStreamerbotService.getGlobalVariable.mockResolvedValue(
+          validProfile.id,
+        );
+
+        const result = await SpawnProfileService.getLiveProfile();
+
+        expect(result).toEqual(validProfile);
+      });
+
+      it("returns null when no live profile ID is set", async () => {
+        mockStreamerbotService.getStatus.mockReturnValue({
+          state: "connected",
+          host: "127.0.0.1",
+          port: 8080,
+          endpoint: "/",
+        });
+        mockStreamerbotService.getGlobalVariable.mockResolvedValue(undefined);
+
+        const result = await SpawnProfileService.getLiveProfile();
+
+        expect(result).toBeNull();
+      });
+
+      it("returns null and clears live profile when profile no longer exists", async () => {
+        const localStorage = getLocalStorageMock();
+        localStorage.getItem.mockReturnValue(JSON.stringify([]));
+        mockCacheService.get.mockReturnValue([]);
+        mockStreamerbotService.getStatus.mockReturnValue({
+          state: "connected",
+          host: "127.0.0.1",
+          port: 8080,
+          endpoint: "/",
+        });
+        mockStreamerbotService.getGlobalVariable.mockResolvedValue(
+          "nonexistent-profile",
+        );
+        mockStreamerbotService.executeAction.mockResolvedValue(true);
+
+        const result = await SpawnProfileService.getLiveProfile();
+
+        expect(result).toBeNull();
+        expect(mockStreamerbotService.setGlobalVariable).toHaveBeenCalledWith(
+          "MediaSpawner_LiveProfileId",
+          "",
+        );
+      });
+    });
+
+    describe("setLiveProfile", () => {
+      it("sets live profile successfully", async () => {
+        const localStorage = getLocalStorageMock();
+        localStorage.getItem.mockReturnValue(JSON.stringify([validProfile]));
+        mockCacheService.get.mockReturnValue([validProfile]);
+        mockStreamerbotService.executeAction.mockResolvedValue(true);
+
+        const result = await SpawnProfileService.setLiveProfile(
+          validProfile.id,
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.profile).toEqual(validProfile);
+        expect(mockStreamerbotService.executeAction).toHaveBeenCalledWith(
+          "Set Live Profile",
+          { liveProfileId: validProfile.id },
+        );
+      });
+
+      it("returns error when profile not found", async () => {
+        const localStorage = getLocalStorageMock();
+        localStorage.getItem.mockReturnValue(JSON.stringify([]));
+        mockCacheService.get.mockReturnValue([]);
+
+        const result = await SpawnProfileService.setLiveProfile(
+          "nonexistent-profile",
+        );
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe(
+          'Profile with ID "nonexistent-profile" not found',
+        );
+        expect(mockStreamerbotService.executeAction).not.toHaveBeenCalled();
+      });
+
+      it("returns error when Streamer.bot fails", async () => {
+        const localStorage = getLocalStorageMock();
+        localStorage.getItem.mockReturnValue(JSON.stringify([validProfile]));
+        mockCacheService.get.mockReturnValue([validProfile]);
+        mockStreamerbotService.executeAction.mockResolvedValue(false);
+
+        const result = await SpawnProfileService.setLiveProfile(
+          validProfile.id,
+        );
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe("Failed to set live profile in Streamer.bot");
+      });
+
+      it("returns error when Streamer.bot throws exception", async () => {
+        const localStorage = getLocalStorageMock();
+        localStorage.getItem.mockReturnValue(JSON.stringify([validProfile]));
+        mockCacheService.get.mockReturnValue([validProfile]);
+        mockStreamerbotService.executeAction.mockRejectedValue(
+          new Error("Connection failed"),
+        );
+
+        const result = await SpawnProfileService.setLiveProfile(
+          validProfile.id,
+        );
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe("Connection failed");
+      });
+    });
+
+    describe("clearLiveProfile", () => {
+      it("clears live profile successfully", async () => {
+        mockStreamerbotService.setGlobalVariable.mockResolvedValue(true);
+
+        await SpawnProfileService.clearLiveProfile();
+
+        expect(mockStreamerbotService.setGlobalVariable).toHaveBeenCalledWith(
+          "MediaSpawner_LiveProfileId",
+          "",
+        );
+      });
+
+      it("handles errors gracefully", async () => {
+        mockStreamerbotService.setGlobalVariable.mockRejectedValue(
+          new Error("Connection failed"),
+        );
+
+        await SpawnProfileService.clearLiveProfile();
+
+        expect(console.error).toHaveBeenCalledWith(
+          "Failed to clear live profile:",
+          expect.any(Error),
+        );
+      });
     });
   });
 });
