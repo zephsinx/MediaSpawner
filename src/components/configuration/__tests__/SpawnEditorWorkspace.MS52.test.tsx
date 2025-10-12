@@ -21,7 +21,7 @@ const mockSpawn: Spawn = {
   description: "Test Description",
   enabled: true,
   trigger: getDefaultTrigger("manual"),
-  duration: 0,
+  duration: 5000,
   assets: [],
   lastModified: Date.now(),
   order: 0,

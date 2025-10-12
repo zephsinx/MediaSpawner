@@ -352,7 +352,7 @@ export const createSpawn = (
     description,
     enabled: true,
     trigger: createSpawnTrigger(),
-    duration: 0,
+    duration: 5000,
     assets,
     lastModified: Date.now(),
     order: 0,

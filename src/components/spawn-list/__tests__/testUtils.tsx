@@ -17,7 +17,7 @@ export const createMockSpawn = (overrides: Partial<Spawn> = {}): Spawn => ({
     type: "manual",
     config: {},
   },
-  duration: 0,
+  duration: 5000,
   assets: [],
   lastModified: Date.now(),
   order: 0,
@@ -78,7 +78,7 @@ export const mockSpawns: Spawn[] = [
  */
 export const renderSpawnList = (
   ui: React.ReactElement,
-  options?: Omit<RenderOptions, "wrapper">
+  options?: Omit<RenderOptions, "wrapper">,
 ) => {
   const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <Tooltip.Provider>{children}</Tooltip.Provider>

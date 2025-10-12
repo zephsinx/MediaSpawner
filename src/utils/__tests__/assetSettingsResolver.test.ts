@@ -14,7 +14,7 @@ const spawnFactory = (): Spawn => ({
   description: "",
   enabled: true,
   trigger: { type: "manual", config: {} },
-  duration: 0,
+  duration: 5000,
   assets: [],
   lastModified: Date.now(),
   order: 0,

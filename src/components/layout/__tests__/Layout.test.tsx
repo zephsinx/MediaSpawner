@@ -33,7 +33,7 @@ const mockSpawns: Spawn[] = [
       type: "manual",
       config: {},
     },
-    duration: 0,
+    duration: 5000,
     assets: [],
     lastModified: Date.now(),
     order: 0,
@@ -124,7 +124,7 @@ describe("Layout", () => {
       });
 
       expect(
-        await screen.findByDisplayValue("Test Spawn 1")
+        await screen.findByDisplayValue("Test Spawn 1"),
       ).toBeInTheDocument();
       // Enabled is now a switch; look for the switch and its label text
       const enabledSwitch = screen.getByRole("switch", { name: "Enabled" });
@@ -136,7 +136,7 @@ describe("Layout", () => {
       });
 
       expect(
-        await screen.findByDisplayValue("Test Spawn 2")
+        await screen.findByDisplayValue("Test Spawn 2"),
       ).toBeInTheDocument();
       const enabledSwitch2 = screen.getByRole("switch", { name: "Enabled" });
       expect(enabledSwitch2).toHaveAttribute("aria-checked", "false");
@@ -325,7 +325,7 @@ describe("Layout", () => {
 
       // Confirm dialog visible
       expect(
-        screen.getByRole("dialog", { name: "Discard Unsaved Changes?" })
+        screen.getByRole("dialog", { name: "Discard Unsaved Changes?" }),
       ).toBeInTheDocument();
       expect(screen.getByText("Keep editing")).toBeInTheDocument();
       expect(screen.getByText("Discard changes")).toBeInTheDocument();
@@ -371,7 +371,7 @@ describe("Layout", () => {
         screen.getByRole("button", { name: "Delete spawn" }).click();
       });
       expect(
-        screen.getByRole("dialog", { name: "Delete Spawn?" })
+        screen.getByRole("dialog", { name: "Delete Spawn?" }),
       ).toBeInTheDocument();
 
       // Click the dialog's Delete (second button)
@@ -385,7 +385,7 @@ describe("Layout", () => {
       expect(screen.queryByText("Test Spawn 1")).not.toBeInTheDocument();
       // Center panel should show guidance (no selection)
       expect(
-        screen.getByText("Select a spawn to edit its settings")
+        screen.getByText("Select a spawn to edit its settings"),
       ).toBeInTheDocument();
     });
 
@@ -437,8 +437,8 @@ describe("Layout", () => {
       expect(await screen.findByText("No Spawns Found")).toBeInTheDocument();
       expect(
         screen.getByText(
-          "You haven't created any spawns yet. Create your first spawn to get started."
-        )
+          "You haven't created any spawns yet. Create your first spawn to get started.",
+        ),
       ).toBeInTheDocument();
     });
 
@@ -456,7 +456,7 @@ describe("Layout", () => {
       // Center panel should show Spawn Editor prompt when no selection
       expect(screen.getByText("Spawn Editor")).toBeInTheDocument();
       expect(
-        screen.getByText("Select a spawn to edit its settings")
+        screen.getByText("Select a spawn to edit its settings"),
       ).toBeInTheDocument();
 
       // Click a spawn to select it
@@ -468,7 +468,7 @@ describe("Layout", () => {
       // Center panel should reflect selection
       expect(screen.getByText("Spawn Editor")).toBeInTheDocument();
       expect(
-        await screen.findByText(/Editing: Test Spawn 1/)
+        await screen.findByText(/Editing: Test Spawn 1/),
       ).toBeInTheDocument();
 
       // Right panel shows AssetManagementPanel structure
@@ -504,7 +504,7 @@ describe("Layout", () => {
       });
 
       expect(
-        await screen.findByText(/Editing: New Spawn 1/)
+        await screen.findByText(/Editing: New Spawn 1/),
       ).toBeInTheDocument();
     });
 
@@ -585,7 +585,7 @@ describe("Layout", () => {
       });
 
       const panels = container.querySelectorAll(
-        ".bg-\\[rgb\\(var\\(--color-surface-1\\)\\)\\]"
+        ".bg-\\[rgb\\(var\\(--color-surface-1\\)\\)\\]",
       );
       // Header + 3 panels; allow additional inner white backgrounds
       expect(panels.length).toBeGreaterThanOrEqual(4);
@@ -595,11 +595,11 @@ describe("Layout", () => {
 
       expect(leftPanel).toHaveClass(
         "border-r",
-        "border-[rgb(var(--color-border))]"
+        "border-[rgb(var(--color-border))]",
       );
       expect(centerPanel).toHaveClass(
         "border-r",
-        "border-[rgb(var(--color-border))]"
+        "border-[rgb(var(--color-border))]",
       );
     });
   });
@@ -613,7 +613,7 @@ describe("Layout", () => {
       });
 
       const gridContainer = container.querySelector(
-        ".h-\\[calc\\(100vh-80px\\)\\]"
+        ".h-\\[calc\\(100vh-80px\\)\\]",
       );
       expect(gridContainer).toBeInTheDocument();
     });
@@ -653,7 +653,7 @@ describe("Layout", () => {
       const mainContainer = container.firstChild as HTMLElement;
       expect(mainContainer).toHaveClass(
         "min-h-screen",
-        "bg-[rgb(var(--color-bg))]"
+        "bg-[rgb(var(--color-bg))]",
       );
     });
 

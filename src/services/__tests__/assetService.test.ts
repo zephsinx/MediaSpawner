@@ -42,7 +42,7 @@ describe("AssetService getResolvedAssetSettings (inline overrides)", () => {
     name: "Test Spawn",
     enabled: true,
     trigger: { type: "manual" as const, config: {} },
-    duration: 0,
+    duration: 5000,
     assets: [] as Array<{
       id: string;
       assetId: string;
@@ -92,11 +92,11 @@ describe("AssetService getResolvedAssetSettings (inline overrides)", () => {
 
     const result = await AssetService.getResolvedAssetSettings(
       "spawn-1",
-      "sa-1"
+      "sa-1",
     );
 
     expect(result).toEqual({
-      duration: 0,
+      duration: 5000,
       trigger: spawn.trigger,
       properties: {},
     });
@@ -122,7 +122,7 @@ describe("AssetService getResolvedAssetSettings (inline overrides)", () => {
 
     const result = await AssetService.getResolvedAssetSettings(
       "spawn-1",
-      "sa-1"
+      "sa-1",
     );
 
     expect(result).toEqual({
@@ -136,7 +136,7 @@ describe("AssetService getResolvedAssetSettings (inline overrides)", () => {
     mockSpawnService.getSpawn.mockResolvedValue(null);
     const result = await AssetService.getResolvedAssetSettings(
       "invalid-spawn",
-      "sa-1"
+      "sa-1",
     );
     expect(result).toBeNull();
   });
@@ -198,7 +198,7 @@ describe("AssetService integration: assets list", () => {
     expect(result).toEqual(assets);
     expect(mockCacheService.get).toHaveBeenCalledWith(
       CACHE_KEYS.ASSETS,
-      expect.any(Function)
+      expect.any(Function),
     );
   });
 });
