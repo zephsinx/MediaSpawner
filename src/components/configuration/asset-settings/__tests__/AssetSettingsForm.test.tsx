@@ -110,6 +110,7 @@ const makeProperties = (
   boundsType: overrides.boundsType,
   boundsAlignment: overrides.boundsAlignment,
   alignment: overrides.alignment,
+  monitorType: overrides.monitorType,
 });
 
 describe("AssetSettingsForm", () => {
@@ -1149,6 +1150,116 @@ describe("AssetSettingsForm", () => {
         expect(
           await screen.findByText("Invalid alignment value"),
         ).toBeInTheDocument();
+      });
+    });
+
+    describe("monitor type selection", () => {
+      it("renders monitor type dropdown for audio assets", async () => {
+        const asset = makeAsset({ type: "audio", name: "Test Audio" });
+        vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
+
+        render(
+          <AssetSettingsForm
+            spawnId="spawn1"
+            spawnAssetId="asset1"
+            onBack={mockOnBack}
+          />,
+        );
+
+        await waitFor(() => {
+          expect(screen.getByText("Monitor Type")).toBeInTheDocument();
+        });
+
+        const select = screen.getByDisplayValue("Not set (OBS default)");
+        expect(select).toBeInTheDocument();
+      });
+
+      it("renders monitor type dropdown for video assets", async () => {
+        render(
+          <AssetSettingsForm
+            spawnId="spawn1"
+            spawnAssetId="asset1"
+            onBack={mockOnBack}
+          />,
+        );
+
+        await waitFor(() => {
+          expect(screen.getByText("Monitor Type")).toBeInTheDocument();
+        });
+      });
+
+      it("updates monitor type when selection changes", async () => {
+        render(
+          <AssetSettingsForm
+            spawnId="spawn1"
+            spawnAssetId="asset1"
+            onBack={mockOnBack}
+          />,
+        );
+
+        await waitFor(() => {
+          expect(screen.getByText("Test Video · video")).toBeInTheDocument();
+        });
+
+        const select = screen.getByDisplayValue("Not set (OBS default)");
+        expect(select).not.toBeDisabled();
+
+        await act(async () => {
+          fireEvent.change(select, { target: { value: "monitor-only" } });
+        });
+
+        expect(select).toHaveValue("monitor-only");
+      });
+
+      it("does not render monitor type for image assets", async () => {
+        const asset = makeAsset({ type: "image", name: "Test Image" });
+        vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
+
+        render(
+          <AssetSettingsForm
+            spawnId="spawn1"
+            spawnAssetId="asset1"
+            onBack={mockOnBack}
+          />,
+        );
+
+        await waitFor(() => {
+          expect(screen.getByText("Test Image · image")).toBeInTheDocument();
+        });
+
+        expect(screen.queryByText("Monitor Type")).not.toBeInTheDocument();
+      });
+
+      it("preserves other properties when changing monitor type", async () => {
+        render(
+          <AssetSettingsForm
+            spawnId="spawn1"
+            spawnAssetId="asset1"
+            onBack={mockOnBack}
+          />,
+        );
+
+        await waitFor(() => {
+          expect(screen.getByText("Test Video · video")).toBeInTheDocument();
+        });
+
+        const volumeSlider = screen.getByRole("slider", { name: /volume/i });
+        const loopCheckbox = screen.getByRole("checkbox", {
+          name: "Loop",
+        }) as HTMLInputElement;
+        const initialVolume = volumeSlider.getAttribute("value");
+        const initialLoop = loopCheckbox.checked;
+
+        const select = screen.getByDisplayValue("Not set (OBS default)");
+        await act(async () => {
+          fireEvent.change(select, { target: { value: "monitor-only" } });
+        });
+
+        expect(volumeSlider.getAttribute("value")).toBe(initialVolume);
+        expect(
+          (screen.getByRole("checkbox", { name: "Loop" }) as HTMLInputElement)
+            .checked,
+        ).toBe(initialLoop);
       });
     });
   });

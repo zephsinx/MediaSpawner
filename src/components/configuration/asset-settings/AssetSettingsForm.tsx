@@ -10,6 +10,7 @@ import { SpawnService } from "../../../services/spawnService";
 import type {
   MediaAsset,
   MediaAssetProperties,
+  MonitorType,
   BoundsType,
   AlignmentOption,
 } from "../../../types/media";
@@ -1086,6 +1087,39 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       {validationErrors.volume}
                     </p>
                   )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
+                    Monitor Type
+                  </label>
+                  <select
+                    value={draftValues.monitorType ?? ""}
+                    onChange={(e) =>
+                      setField(
+                        "monitorType",
+                        e.target.value
+                          ? (e.target.value as MonitorType)
+                          : undefined,
+                      )
+                    }
+                    onBlur={() => handleBlur("monitorType")}
+                    className="w-full px-2 py-1 text-sm border border-[rgb(var(--color-input-border))] rounded focus:outline-none focus:ring-1 focus:ring-[rgb(var(--color-ring))] focus:border-transparent bg-[rgb(var(--color-input))]"
+                    aria-describedby="monitor-type-help"
+                  >
+                    <option value="">Not set (OBS default)</option>
+                    <option value="monitor-only">Monitor Only</option>
+                    <option value="monitor-and-output">
+                      Monitor and Output
+                    </option>
+                  </select>
+                  <p
+                    id="monitor-type-help"
+                    className="text-xs text-[rgb(var(--color-muted))] mt-1"
+                  >
+                    Monitor Only: Hear through headphones, not in stream.
+                    Monitor and Output: Both headphones and stream.
+                  </p>
                 </div>
 
                 <div className="flex items-center gap-4">

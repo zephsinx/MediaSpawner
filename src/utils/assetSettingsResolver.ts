@@ -18,7 +18,7 @@ export function resolveEffectiveProperties(args: {
     key: K,
     mergeFn?: (values: {
       overrideVal: MediaAssetProperties[K] | undefined;
-    }) => MediaAssetProperties[K] | undefined
+    }) => MediaAssetProperties[K] | undefined,
   ) => {
     const overrideVal: MediaAssetProperties[K] | undefined = overrides?.[key];
 
@@ -53,6 +53,7 @@ export function resolveEffectiveProperties(args: {
   consider("loop");
   consider("autoplay");
   consider("muted");
+  consider("monitorType");
 
   // Structured fields with deep merge fallback (first defined wins)
   consider("dimensions", ({ overrideVal }) => {
@@ -69,7 +70,7 @@ export function resolveEffectiveProperties(args: {
 }
 
 export function buildOverridesDiff(
-  desired: Partial<MediaAssetProperties>
+  desired: Partial<MediaAssetProperties>,
 ): Partial<MediaAssetProperties> {
   const overrides: Partial<MediaAssetProperties> = {};
 
@@ -93,6 +94,7 @@ export function buildOverridesDiff(
   assignIfDifferent("loop");
   assignIfDifferent("autoplay");
   assignIfDifferent("muted");
+  assignIfDifferent("monitorType");
 
   return overrides;
 }

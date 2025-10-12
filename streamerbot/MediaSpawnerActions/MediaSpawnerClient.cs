@@ -4593,6 +4593,7 @@ public class CPHInline
         ResolveProperty("loop", overrides, effective, sourceMap);
         ResolveProperty("autoplay", overrides, effective, sourceMap);
         ResolveProperty("muted", overrides, effective, sourceMap);
+        ResolveProperty("monitorType", overrides, effective, sourceMap);
 
         // Handle structured properties (dimensions, position)
         ResolveStructuredProperty("dimensions", overrides, effective, sourceMap);
@@ -4652,6 +4653,7 @@ public class CPHInline
         if (settings.Loop.HasValue) dict["loop"] = settings.Loop.Value;
         if (settings.Autoplay.HasValue) dict["autoplay"] = settings.Autoplay.Value;
         if (settings.Muted.HasValue) dict["muted"] = settings.Muted.Value;
+        if (!string.IsNullOrEmpty(settings.MonitorType)) dict["monitorType"] = settings.MonitorType;
 
         // Handle dimensions
         if (settings.Width.HasValue || settings.Height.HasValue)
@@ -4687,6 +4689,23 @@ public class CPHInline
 
         // Use spawn default duration
         return spawn.Duration;
+    }
+
+    /// <summary>
+    /// Convert MediaSpawner monitor type to OBS WebSocket enum value
+    /// </summary>
+    private string ConvertToOBSMonitoringType(string monitorType)
+    {
+        switch (monitorType)
+        {
+            case "monitor-only":
+                return "OBS_MONITORING_TYPE_MONITOR_ONLY";
+            case "monitor-and-output":
+                return "OBS_MONITORING_TYPE_MONITOR_AND_OUTPUT";
+            case "none":
+            default:
+                return "OBS_MONITORING_TYPE_NONE";
+        }
     }
 
     #endregion
@@ -4946,6 +4965,33 @@ public class CPHInline
                 if (!transformSuccess)
                 {
                     LogExecution(LogLevel.Warning, $"ApplyAssetPropertiesToOBS: Failed to apply scene item transform for source '{sourceName}'");
+                }
+            }
+
+            // Apply audio monitoring type if specified (only for audio/video sources)
+            if (properties.ContainsKey("monitorType") && properties["monitorType"] is string monitorType
+                && !string.IsNullOrEmpty(monitorType) && monitorType != "none"
+                && (asset.Type == "audio" || asset.Type == "video"))
+            {
+                string obsMonitorType = ConvertToOBSMonitoringType(monitorType);
+
+                bool monitorSuccess = ExecuteOBSOperationWithRetry($"SetInputAudioMonitorType-{sourceName}", () =>
+                {
+                    Dictionary<string, object> monitorRequest = new Dictionary<string, object>
+                    {
+                        ["inputName"] = sourceName,
+                        ["monitorType"] = obsMonitorType
+                    };
+
+                    string response = CPH.ObsSendRaw("SetInputAudioMonitorType", JsonConvert.SerializeObject(monitorRequest));
+                    return !string.IsNullOrEmpty(response);
+                });
+
+                if (!monitorSuccess)
+                {
+                    LogExecution(LogLevel.Warning,
+                        $"ApplyAssetPropertiesToOBS: Failed to set audio monitor type '{monitorType}' for source '{sourceName}'. " +
+                        $"This may be expected if the source doesn't support audio monitoring.");
                 }
             }
 
@@ -7203,6 +7249,9 @@ public class CPHInline
 
         [JsonProperty("boundsAlignment")]
         public int? BoundsAlignment { get; set; }
+
+        [JsonProperty("monitorType")]
+        public string MonitorType { get; set; } = string.Empty;
     }
 
     /// <summary>

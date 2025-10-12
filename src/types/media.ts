@@ -64,6 +64,9 @@ export interface MediaAssetProperties {
 
   /** Bounds alignment for scene item scaling */
   boundsAlignment?: AlignmentOption;
+
+  /** Audio monitoring type for OBS audio sources (audio/video only) */
+  monitorType?: MonitorType;
 }
 
 /**
@@ -133,6 +136,11 @@ export type AlignmentOption =
   | 8 // Bottom Left
   | 9 // Bottom Center
   | 10; // Bottom Right
+
+/**
+ * Audio monitoring types for OBS WebSocket
+ */
+export type MonitorType = "none" | "monitor-only" | "monitor-and-output";
 
 /**
  * Asset group interface representing a collection of media assets with shared configuration
@@ -290,7 +298,7 @@ export const extractFilename = (path: string): string => {
  * URLs (http/https) are stored as full URLs, local files store only the filename
  */
 export const processAssetPath = (
-  path: string
+  path: string,
 ): { storedPath: string; isUrl: boolean } => {
   const isUrl = isUrlPath(path);
 
@@ -311,7 +319,7 @@ export const createMediaAsset = (
   type: MediaAsset["type"],
   name: string,
   path: string,
-  id?: string
+  id?: string,
 ): MediaAsset => {
   const { storedPath, isUrl } = processAssetPath(path);
 
@@ -335,7 +343,7 @@ export const createMediaAsset = (
 export const createAssetGroup = (
   name: string,
   assets: MediaAsset[] = [],
-  id?: string
+  id?: string,
 ): AssetGroup => {
   return {
     id: id || crypto.randomUUID(),
@@ -385,7 +393,7 @@ export const hasAssets = (group: AssetGroup): boolean => {
  * Get all unique asset types in a group
  */
 export const getAssetTypesInGroup = (
-  group: AssetGroup
+  group: AssetGroup,
 ): MediaAsset["type"][] => {
   const types = new Set(group.assets.map((asset) => asset.type));
   return Array.from(types);
@@ -411,7 +419,7 @@ export const createConfiguration = (
   name: string,
   description?: string,
   groups: AssetGroup[] = [],
-  id?: string
+  id?: string,
 ): Configuration => {
   return {
     id: id || crypto.randomUUID(),
@@ -426,7 +434,7 @@ export const createConfiguration = (
  * Update the lastModified timestamp for a configuration
  */
 export const updateConfigurationTimestamp = (
-  config: Configuration
+  config: Configuration,
 ): Configuration => {
   return {
     ...config,
@@ -452,10 +460,10 @@ export const getTotalAssetCount = (config: Configuration): number => {
  * Get all unique asset types across all groups in a configuration
  */
 export const getAssetTypesInConfiguration = (
-  config: Configuration
+  config: Configuration,
 ): MediaAsset["type"][] => {
   const allTypes = config.groups.flatMap((group) =>
-    group.assets.map((asset) => asset.type)
+    group.assets.map((asset) => asset.type),
   );
   const uniqueTypes = new Set(allTypes);
   return Array.from(uniqueTypes);
@@ -480,7 +488,7 @@ export const getConfigurationDuration = (config: Configuration): number => {
  */
 export const cloneConfiguration = (
   config: Configuration,
-  newName?: string
+  newName?: string,
 ): Configuration => {
   return {
     ...config,
