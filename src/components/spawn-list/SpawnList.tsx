@@ -27,12 +27,8 @@ const SpawnList: React.FC<SpawnListProps> = ({
   const [spawns, setSpawns] = useState<Spawn[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [toggleError, setToggleError] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState<boolean>(false);
-  const [processingToggles, setProcessingToggles] = useState<Set<string>>(
-    new Set()
-  );
 
   useEffect(() => {
     const loadSpawns = async () => {
@@ -44,7 +40,7 @@ const SpawnList: React.FC<SpawnListProps> = ({
         setSpawns(allSpawns);
       } catch (err) {
         setLoadError(
-          err instanceof Error ? err.message : "Failed to load spawns"
+          err instanceof Error ? err.message : "Failed to load spawns",
         );
       } finally {
         setIsLoading(false);
@@ -73,7 +69,7 @@ const SpawnList: React.FC<SpawnListProps> = ({
             setSpawns(allSpawns);
           } catch (err) {
             setLoadError(
-              err instanceof Error ? err.message : "Failed to load spawns"
+              err instanceof Error ? err.message : "Failed to load spawns",
             );
           } finally {
             setIsLoading(false);
@@ -86,13 +82,13 @@ const SpawnList: React.FC<SpawnListProps> = ({
 
     window.addEventListener(
       "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
-      handleProfileChanged as EventListener
+      handleProfileChanged as EventListener,
     );
 
     return () => {
       window.removeEventListener(
         "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
-        handleProfileChanged as EventListener
+        handleProfileChanged as EventListener,
       );
     };
   }, []);
@@ -104,7 +100,7 @@ const SpawnList: React.FC<SpawnListProps> = ({
       const updatedSpawn = ce.detail?.updatedSpawn;
       if (updatedSpawn) {
         setSpawns((prev) =>
-          prev.map((s) => (s.id === updatedSpawn.id ? updatedSpawn : s))
+          prev.map((s) => (s.id === updatedSpawn.id ? updatedSpawn : s)),
         );
         return;
       }
@@ -113,12 +109,12 @@ const SpawnList: React.FC<SpawnListProps> = ({
     };
     window.addEventListener(
       "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-      handleUpdated as EventListener
+      handleUpdated as EventListener,
     );
     return () => {
       window.removeEventListener(
         "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-        handleUpdated as EventListener
+        handleUpdated as EventListener,
       );
     };
   }, []);
@@ -139,12 +135,12 @@ const SpawnList: React.FC<SpawnListProps> = ({
     };
     window.addEventListener(
       "mediaspawner:spawn-deleted" as unknown as keyof WindowEventMap,
-      handleDeleted as EventListener
+      handleDeleted as EventListener,
     );
     return () => {
       window.removeEventListener(
         "mediaspawner:spawn-deleted" as unknown as keyof WindowEventMap,
-        handleDeleted as EventListener
+        handleDeleted as EventListener,
       );
     };
   }, []);
@@ -158,64 +154,9 @@ const SpawnList: React.FC<SpawnListProps> = ({
     onSpawnClick?.(spawn);
   };
 
-  const handleToggle = async (spawn: Spawn, enabled: boolean) => {
-    // Add to processing set
-    setProcessingToggles((prev) => new Set(prev).add(spawn.id));
-
-    // Optimistic update
-    const originalSpawns = [...spawns];
-
-    setSpawns((prev) => {
-      const updated = prev.map((s) =>
-        s.id === spawn.id ? { ...s, enabled } : s
-      );
-      return updated;
-    });
-
-    try {
-      const result = enabled
-        ? await SpawnService.enableSpawn(spawn.id)
-        : await SpawnService.disableSpawn(spawn.id);
-
-      if (!result.success) {
-        // Revert optimistic update on error
-        setSpawns(originalSpawns);
-        setToggleError(
-          result.error || `Failed to ${enabled ? "enable" : "disable"} spawn`
-        );
-      } else {
-        // Update with the actual result from service
-        setSpawns((prev) => {
-          const updated = prev.map((s) =>
-            s.id === spawn.id ? result.spawn! : s
-          );
-          return updated;
-        });
-        setToggleError(null);
-        // Notify other panels (editor, right panel) to refresh if they show this spawn
-        window.dispatchEvent(
-          new CustomEvent(
-            "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-            { detail: { spawnId: spawn.id } } as CustomEventInit
-          )
-        );
-      }
-    } catch (err) {
-      // Revert optimistic update on exception
-      setSpawns(originalSpawns);
-      setToggleError(
-        err instanceof Error
-          ? err.message
-          : `Failed to ${enabled ? "enable" : "disable"} spawn`
-      );
-    } finally {
-      // Remove from processing set
-      setProcessingToggles((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(spawn.id);
-        return newSet;
-      });
-    }
+  const handleToggle = (spawn: Spawn) => {
+    // Select the spawn to open it in the editor where enabled can be changed
+    handleSpawnClick(spawn);
   };
 
   const generateDefaultName = (existing: string[]): string => {
@@ -261,7 +202,7 @@ const SpawnList: React.FC<SpawnListProps> = ({
       setCreateError("Failed to generate a unique name for the new spawn");
     } catch (err) {
       setCreateError(
-        err instanceof Error ? err.message : "Failed to create spawn"
+        err instanceof Error ? err.message : "Failed to create spawn",
       );
     } finally {
       setIsCreating(false);
@@ -312,7 +253,7 @@ const SpawnList: React.FC<SpawnListProps> = ({
       const current = focusedIndexRef.current;
       const next = Math.max(
         0,
-        current === -1 ? spawns.length - 1 : current - 1
+        current === -1 ? spawns.length - 1 : current - 1,
       );
       focusedIndexRef.current = next;
       setFocusedIndex(next);
@@ -366,18 +307,11 @@ const SpawnList: React.FC<SpawnListProps> = ({
           </div>
         </div>
 
-        {(toggleError || createError) && (
+        {createError && (
           <div className="p-3 bg-[rgb(var(--color-error-bg))] border-b border-[rgb(var(--color-error-border))]">
-            {toggleError && (
-              <p className="text-sm text-[rgb(var(--color-error))]">
-                {toggleError}
-              </p>
-            )}
-            {createError && (
-              <p className="text-sm text-[rgb(var(--color-error))]">
-                {createError}
-              </p>
-            )}
+            <p className="text-sm text-[rgb(var(--color-error))]">
+              {createError}
+            </p>
           </div>
         )}
 
@@ -426,18 +360,11 @@ const SpawnList: React.FC<SpawnListProps> = ({
       </div>
 
       {/* Error banners */}
-      {(toggleError || createError) && (
+      {createError && (
         <div className="p-3 bg-[rgb(var(--color-error-bg))] border-b border-[rgb(var(--color-error-border))]">
-          {toggleError && (
-            <p className="text-sm text-[rgb(var(--color-error))]">
-              {toggleError}
-            </p>
-          )}
-          {createError && (
-            <p className="text-sm text-[rgb(var(--color-error))]">
-              {createError}
-            </p>
-          )}
+          <p className="text-sm text-[rgb(var(--color-error))]">
+            {createError}
+          </p>
         </div>
       )}
 
@@ -466,7 +393,6 @@ const SpawnList: React.FC<SpawnListProps> = ({
             isSelected={spawn.id === selectedSpawnId}
             onClick={handleSpawnClick}
             onToggle={handleToggle}
-            isToggleProcessing={processingToggles.has(spawn.id)}
             itemRef={(el) => {
               itemRefs.current[index] = el;
             }}

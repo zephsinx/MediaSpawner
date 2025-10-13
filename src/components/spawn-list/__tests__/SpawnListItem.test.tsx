@@ -51,7 +51,7 @@ describe("SpawnListItem", () => {
         renderSpawnList(<SpawnListItem spawn={spawnWithoutDescription} />);
       });
       expect(
-        screen.queryByText("A test spawn description")
+        screen.queryByText("A test spawn description"),
       ).not.toBeInTheDocument();
     });
 
@@ -148,16 +148,6 @@ describe("SpawnListItem", () => {
       expect(switchElement).toHaveAttribute("aria-checked", "false");
     });
 
-    it("disables Switch when processing", async () => {
-      await act(async () => {
-        renderSpawnList(
-          <SpawnListItem spawn={mockSpawn} isToggleProcessing={true} />
-        );
-      });
-      const switchElement = screen.getByRole("switch");
-      expect(switchElement).toBeDisabled();
-    });
-
     it("applies correct Switch size", async () => {
       await act(async () => {
         renderSpawnList(<SpawnListItem spawn={mockSpawn} />);
@@ -199,7 +189,7 @@ describe("SpawnListItem", () => {
       const optionElement = screen.getByRole("option");
       expect(optionElement).toHaveAttribute(
         "aria-label",
-        "Spawn: Test Spawn. Enabled. 2 assets. Manual trigger."
+        "Spawn: Test Spawn. Enabled. 2 assets. Manual trigger.",
       );
     });
 
@@ -210,7 +200,7 @@ describe("SpawnListItem", () => {
       const optionElement = screen.getByRole("option");
       expect(optionElement).toHaveAttribute(
         "aria-describedby",
-        "spawn-spawn-1-description"
+        "spawn-spawn-1-description",
       );
     });
 
@@ -234,7 +224,9 @@ describe("SpawnListItem", () => {
       await act(async () => {
         renderSpawnList(<SpawnListItem spawn={mockSpawn} />);
       });
-      const toggleWrapper = screen.getByLabelText("Disable Test Spawn");
+      const toggleWrapper = screen.getByLabelText(
+        "Toggle enabled state for Test Spawn (opens editor)",
+      );
       expect(toggleWrapper).toBeInTheDocument();
     });
 
@@ -242,10 +234,12 @@ describe("SpawnListItem", () => {
       await act(async () => {
         renderSpawnList(<SpawnListItem spawn={mockSpawn} />);
       });
-      const toggleWrapper = screen.getByLabelText("Disable Test Spawn");
+      const toggleWrapper = screen.getByLabelText(
+        "Toggle enabled state for Test Spawn (opens editor)",
+      );
       expect(toggleWrapper).toHaveAttribute(
         "aria-describedby",
-        "spawn-spawn-1-toggle-description"
+        "spawn-spawn-1-toggle-description",
       );
     });
   });
@@ -255,7 +249,7 @@ describe("SpawnListItem", () => {
       const mockOnClick = vi.fn();
       await act(async () => {
         renderSpawnList(
-          <SpawnListItem spawn={mockSpawn} onClick={mockOnClick} />
+          <SpawnListItem spawn={mockSpawn} onClick={mockOnClick} />,
         );
       });
       const optionElement = screen.getByRole("option");
@@ -269,21 +263,23 @@ describe("SpawnListItem", () => {
       const mockOnToggle = vi.fn();
       await act(async () => {
         renderSpawnList(
-          <SpawnListItem spawn={mockSpawn} onToggle={mockOnToggle} />
+          <SpawnListItem spawn={mockSpawn} onToggle={mockOnToggle} />,
         );
       });
-      const toggleWrapper = screen.getByLabelText("Disable Test Spawn");
+      const toggleWrapper = screen.getByLabelText(
+        "Toggle enabled state for Test Spawn (opens editor)",
+      );
       await act(async () => {
         fireEvent.click(toggleWrapper);
       });
-      expect(mockOnToggle).toHaveBeenCalledWith(mockSpawn, false);
+      expect(mockOnToggle).toHaveBeenCalledWith(mockSpawn);
     });
 
     it("handles keyboard interaction on main container", async () => {
       const mockOnClick = vi.fn();
       await act(async () => {
         renderSpawnList(
-          <SpawnListItem spawn={mockSpawn} onClick={mockOnClick} />
+          <SpawnListItem spawn={mockSpawn} onClick={mockOnClick} />,
         );
       });
       const optionElement = screen.getByRole("option");
@@ -297,7 +293,7 @@ describe("SpawnListItem", () => {
       const mockOnClick = vi.fn();
       await act(async () => {
         renderSpawnList(
-          <SpawnListItem spawn={mockSpawn} onClick={mockOnClick} />
+          <SpawnListItem spawn={mockSpawn} onClick={mockOnClick} />,
         );
       });
       const optionElement = screen.getByRole("option");
@@ -311,28 +307,32 @@ describe("SpawnListItem", () => {
       const mockOnToggle = vi.fn();
       await act(async () => {
         renderSpawnList(
-          <SpawnListItem spawn={mockSpawn} onToggle={mockOnToggle} />
+          <SpawnListItem spawn={mockSpawn} onToggle={mockOnToggle} />,
         );
       });
-      const toggleWrapper = screen.getByLabelText("Disable Test Spawn");
+      const toggleWrapper = screen.getByLabelText(
+        "Toggle enabled state for Test Spawn (opens editor)",
+      );
       await act(async () => {
         fireEvent.keyDown(toggleWrapper, { key: "Enter" });
       });
-      expect(mockOnToggle).toHaveBeenCalledWith(mockSpawn, false);
+      expect(mockOnToggle).toHaveBeenCalledWith(mockSpawn);
     });
 
     it("handles space key on toggle wrapper", async () => {
       const mockOnToggle = vi.fn();
       await act(async () => {
         renderSpawnList(
-          <SpawnListItem spawn={mockSpawn} onToggle={mockOnToggle} />
+          <SpawnListItem spawn={mockSpawn} onToggle={mockOnToggle} />,
         );
       });
-      const toggleWrapper = screen.getByLabelText("Disable Test Spawn");
+      const toggleWrapper = screen.getByLabelText(
+        "Toggle enabled state for Test Spawn (opens editor)",
+      );
       await act(async () => {
         fireEvent.keyDown(toggleWrapper, { key: " " });
       });
-      expect(mockOnToggle).toHaveBeenCalledWith(mockSpawn, false);
+      expect(mockOnToggle).toHaveBeenCalledWith(mockSpawn);
     });
 
     it("prevents event propagation when toggle is clicked", async () => {
@@ -344,33 +344,17 @@ describe("SpawnListItem", () => {
             spawn={mockSpawn}
             onClick={mockOnClick}
             onToggle={mockOnToggle}
-          />
+          />,
         );
       });
-      const toggleWrapper = screen.getByLabelText("Disable Test Spawn");
+      const toggleWrapper = screen.getByLabelText(
+        "Toggle enabled state for Test Spawn (opens editor)",
+      );
       await act(async () => {
         fireEvent.click(toggleWrapper);
       });
-      expect(mockOnToggle).toHaveBeenCalledWith(mockSpawn, false);
+      expect(mockOnToggle).toHaveBeenCalledWith(mockSpawn);
       expect(mockOnClick).not.toHaveBeenCalled();
-    });
-
-    it("does not call onToggle when processing", async () => {
-      const mockOnToggle = vi.fn();
-      await act(async () => {
-        renderSpawnList(
-          <SpawnListItem
-            spawn={mockSpawn}
-            onToggle={mockOnToggle}
-            isToggleProcessing={true}
-          />
-        );
-      });
-      const toggleWrapper = screen.getByLabelText("Disable Test Spawn");
-      await act(async () => {
-        fireEvent.click(toggleWrapper);
-      });
-      expect(mockOnToggle).not.toHaveBeenCalled();
     });
   });
 
@@ -387,7 +371,7 @@ describe("SpawnListItem", () => {
         "p-3",
         "border-b",
         "cursor-pointer",
-        "transition-colors"
+        "transition-colors",
       );
     });
 
@@ -395,7 +379,7 @@ describe("SpawnListItem", () => {
       let container: HTMLElement;
       await act(async () => {
         const r = renderSpawnList(
-          <SpawnListItem spawn={mockSpawn} isSelected={true} />
+          <SpawnListItem spawn={mockSpawn} isSelected={true} />,
         );
         container = r.container;
       });
@@ -403,7 +387,7 @@ describe("SpawnListItem", () => {
       const listItem = container.firstChild as HTMLElement;
       expect(listItem).toHaveClass(
         "bg-[rgb(var(--color-accent))]/5",
-        "border-[rgb(var(--color-accent))]"
+        "border-[rgb(var(--color-accent))]",
       );
     });
 
@@ -421,19 +405,6 @@ describe("SpawnListItem", () => {
       expect(listItem).toHaveClass("opacity-60");
     });
 
-    it("applies processing styling when toggle is processing", async () => {
-      let container: HTMLElement;
-      await act(async () => {
-        const r = renderSpawnList(
-          <SpawnListItem spawn={mockSpawn} isToggleProcessing={true} />
-        );
-        container = r.container;
-      });
-      // @ts-expect-error container is assigned
-      const toggleWrapper = container.querySelector('[aria-label*="Disable"]');
-      expect(toggleWrapper).toHaveClass("opacity-50", "cursor-not-allowed");
-    });
-
     it("applies CSS variables for theming", async () => {
       let container: HTMLElement;
       await act(async () => {
@@ -445,7 +416,7 @@ describe("SpawnListItem", () => {
       expect(listItem).toHaveClass(
         "border-[rgb(var(--color-border))]",
         "hover:bg-[rgb(var(--color-muted))]/5",
-        "focus-visible:ring-[rgb(var(--color-ring))]"
+        "focus-visible:ring-[rgb(var(--color-ring))]",
       );
     });
   });
@@ -456,7 +427,7 @@ describe("SpawnListItem", () => {
         renderSpawnList(<SpawnListItem spawn={mockSpawn} />);
       });
       const description = screen.getByText(
-        "Description: A test spawn description. Trigger: Manual — Manual. Status: Active."
+        "Description: A test spawn description. Trigger: Manual — Manual. Status: Active.",
       );
       expect(description).toBeInTheDocument();
       expect(description).toHaveClass("sr-only");
@@ -467,27 +438,10 @@ describe("SpawnListItem", () => {
         renderSpawnList(<SpawnListItem spawn={mockSpawn} />);
       });
       const toggleDescription = screen.getByText(
-        "Toggle to disable this spawn."
+        "Toggle to disable this spawn.",
       );
       expect(toggleDescription).toBeInTheDocument();
       expect(toggleDescription).toHaveClass("sr-only");
-    });
-
-    it("renders processing state in toggle description", async () => {
-      await act(async () => {
-        renderSpawnList(
-          <SpawnListItem spawn={mockSpawn} isToggleProcessing={true} />
-        );
-      });
-      const toggleDescription = document.getElementById(
-        "spawn-spawn-1-toggle-description"
-      );
-      expect(toggleDescription).toBeInTheDocument();
-      expect(toggleDescription).toHaveClass("sr-only");
-      expect(toggleDescription?.textContent).toContain(
-        "Toggle to disable this spawn"
-      );
-      expect(toggleDescription?.textContent).toContain("Processing request...");
     });
   });
 });

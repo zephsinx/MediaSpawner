@@ -97,8 +97,8 @@ describe("SpawnList", () => {
     expect(await screen.findByText("No Spawns Found")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "You haven't created any spawns yet. Create your first spawn to get started."
-      )
+        "You haven't created any spawns yet. Create your first spawn to get started.",
+      ),
     ).toBeInTheDocument();
     expect(screen.getByText("📋")).toBeInTheDocument();
 
@@ -124,7 +124,7 @@ describe("SpawnList", () => {
 
     // Verify error state is displayed
     expect(
-      await screen.findByText("Failed to load spawns")
+      await screen.findByText("Failed to load spawns"),
     ).toBeInTheDocument();
     expect(await screen.findByText("Network error")).toBeInTheDocument();
     expect(screen.getByText("⚠️")).toBeInTheDocument();
@@ -132,148 +132,6 @@ describe("SpawnList", () => {
     // Verify the spawn list is not displayed
     expect(screen.queryByText("Spawns")).not.toBeInTheDocument();
     expect(screen.queryByText("No Spawns Found")).not.toBeInTheDocument();
-  });
-
-  it("successfully enables a disabled spawn", async () => {
-    // Create test data
-    const disabledSpawn = createMockSpawn({
-      id: "spawn-disabled",
-      name: "Disabled Spawn",
-      enabled: false,
-      assets: [],
-    });
-
-    // Create fresh mocks for this test
-    const mockGetAllSpawns = vi.fn().mockResolvedValue([disabledSpawn]);
-    const mockEnableSpawn = vi.fn().mockResolvedValue({
-      success: true,
-      spawn: { ...disabledSpawn, enabled: true },
-    });
-
-    vi.mocked(SpawnService.getAllSpawns).mockImplementation(mockGetAllSpawns);
-    vi.mocked(SpawnService.enableSpawn).mockImplementation(mockEnableSpawn);
-
-    // Render the component
-    await act(async () => {
-      renderSpawnList(<SpawnList />);
-    });
-
-    // Verify initial state
-    const loading3 = screen.queryByText("Loading spawns...");
-    if (loading3) {
-      await waitForElementToBeRemoved(loading3);
-    }
-    expect(await screen.findByText("Disabled Spawn")).toBeInTheDocument();
-    expect(await screen.findByText("Inactive")).toBeInTheDocument();
-
-    // Find and click the toggle button
-    const toggleButton = screen.getByLabelText("Enable Disabled Spawn");
-    await act(async () => {
-      fireEvent.click(toggleButton);
-    });
-
-    // Verify service was called
-    expect(mockEnableSpawn).toHaveBeenCalledWith("spawn-disabled");
-
-    // Verify optimistic update (spawn should appear enabled immediately)
-    expect(screen.getByText("Active")).toBeInTheDocument();
-  });
-
-  it("successfully disables an enabled spawn", async () => {
-    // Create test data
-    const enabledSpawn = createMockSpawn({
-      id: "spawn-enabled",
-      name: "Enabled Spawn",
-      enabled: true,
-      assets: [],
-    });
-
-    // Create fresh mocks for this test
-    const mockGetAllSpawns = vi.fn().mockResolvedValue([enabledSpawn]);
-    const mockDisableSpawn = vi.fn().mockResolvedValue({
-      success: true,
-      spawn: { ...enabledSpawn, enabled: false },
-    });
-
-    vi.mocked(SpawnService.getAllSpawns).mockImplementation(mockGetAllSpawns);
-    vi.mocked(SpawnService.disableSpawn).mockImplementation(mockDisableSpawn);
-
-    // Render the component
-    renderSpawnList(<SpawnList />);
-
-    // Verify initial state
-    await waitForElementToBeRemoved(() =>
-      screen.getByText("Loading spawns...")
-    );
-    expect(await screen.findByText("Enabled Spawn")).toBeInTheDocument();
-    const enabledRow = screen
-      .getByText("Enabled Spawn")
-      .closest('[role="option"]') as HTMLElement;
-    expect(within(enabledRow).getByText("Active")).toBeInTheDocument();
-
-    // Find and click the toggle button
-    const toggleButton = screen.getByLabelText("Disable Enabled Spawn");
-    await act(async () => {
-      fireEvent.click(toggleButton);
-    });
-
-    // Verify service was called
-    expect(mockDisableSpawn).toHaveBeenCalledWith("spawn-enabled");
-
-    // Verify optimistic update (spawn should appear disabled immediately)
-    expect(screen.getByText("Inactive")).toBeInTheDocument();
-  });
-
-  it("handles enable toggle failure and reverts optimistic update", async () => {
-    // Create test data
-    const disabledSpawn = createMockSpawn({
-      id: "spawn-disabled",
-      name: "Disabled Spawn",
-      enabled: false,
-      assets: [],
-    });
-
-    // Import fresh service inside isolated module
-    const { SpawnService } = await import("../../../services/spawnService");
-
-    // Create completely fresh mocks
-    const mockGetAllSpawns = vi.fn().mockResolvedValue([disabledSpawn]);
-    const mockEnableSpawn = vi.fn().mockResolvedValue({
-      success: false,
-      error: "Failed to enable spawn",
-    });
-
-    // Apply mocks to fresh service
-    SpawnService.getAllSpawns = mockGetAllSpawns;
-    SpawnService.enableSpawn = mockEnableSpawn;
-
-    // Render with fresh service
-    renderSpawnList(<SpawnList />);
-
-    // Verify initial state
-    await waitForElementToBeRemoved(() =>
-      screen.getByText("Loading spawns...")
-    );
-    expect(await screen.findByText("Disabled Spawn")).toBeInTheDocument();
-    expect(await screen.findByText("Inactive")).toBeInTheDocument();
-
-    // Find and click the toggle button
-    const toggleButton = screen.getByLabelText("Enable Disabled Spawn");
-
-    await act(async () => {
-      fireEvent.click(toggleButton);
-    });
-
-    // Verify service was called
-    expect(mockEnableSpawn).toHaveBeenCalledWith("spawn-disabled");
-
-    // Verify error message is displayed in the error section (async render)
-    expect(
-      await screen.findByText("Failed to enable spawn")
-    ).toBeInTheDocument();
-
-    // Verify spawn remains disabled (optimistic update reverted)
-    expect(await screen.findByText("Inactive")).toBeInTheDocument();
   });
 
   it("invokes onSpawnClick when a spawn item is clicked", async () => {
@@ -312,68 +170,8 @@ describe("SpawnList", () => {
 
     expect(onSpawnClick).toHaveBeenCalledTimes(1);
     expect(onSpawnClick).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "spawn-1" })
+      expect.objectContaining({ id: "spawn-1" }),
     );
-  });
-
-  it("shows error message when enable throws an Error and reverts state", async () => {
-    const disabledSpawn = createMockSpawn({
-      id: "s1",
-      name: "Err Spawn",
-      enabled: false,
-      assets: [],
-    });
-
-    vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([disabledSpawn]);
-    vi.mocked(SpawnService.enableSpawn).mockRejectedValue(new Error("Boom"));
-
-    await act(async () => {
-      renderSpawnList(<SpawnList />);
-    });
-    const loading = screen.queryByText("Loading spawns...");
-    if (loading) {
-      await waitForElementToBeRemoved(loading);
-    }
-
-    const toggleButton = screen.getByLabelText("Enable Err Spawn");
-    await act(async () => {
-      fireEvent.click(toggleButton);
-    });
-
-    expect(await screen.findByText("Boom")).toBeInTheDocument();
-    // Reverted back to inactive
-    expect(screen.getByText("Inactive")).toBeInTheDocument();
-  });
-
-  it("uses fallback error message when disable rejects with non-Error and reverts state", async () => {
-    const enabledSpawn = createMockSpawn({
-      id: "s2",
-      name: "Weird Spawn",
-      enabled: true,
-      assets: [],
-    });
-
-    vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([enabledSpawn]);
-    vi.mocked(SpawnService.disableSpawn).mockRejectedValue("weird");
-
-    await act(async () => {
-      renderSpawnList(<SpawnList />);
-    });
-    const loading = screen.queryByText("Loading spawns...");
-    if (loading) {
-      await waitForElementToBeRemoved(loading);
-    }
-
-    const toggleButton = screen.getByLabelText("Disable Weird Spawn");
-    await act(async () => {
-      fireEvent.click(toggleButton);
-    });
-
-    expect(
-      await screen.findByText("Failed to disable spawn")
-    ).toBeInTheDocument();
-    // Reverted back to active
-    expect(screen.getByText("Active")).toBeInTheDocument();
   });
 
   it("shows singular count '1 spawn' when only one spawn exists", async () => {
@@ -434,12 +232,12 @@ describe("SpawnList", () => {
     const selectedRow = screen.getByText("B").closest('[role="option"]')!;
     expect(selectedRow).toHaveClass(
       "bg-[rgb(var(--color-accent))]/5",
-      "border-[rgb(var(--color-accent))]"
+      "border-[rgb(var(--color-accent))]",
     );
     const otherRow = screen.getByText("A").closest('[role="option"]')!;
     expect(otherRow).not.toHaveClass(
       "bg-[rgb(var(--color-accent))]/5",
-      "border-[rgb(var(--color-accent))]"
+      "border-[rgb(var(--color-accent))]",
     );
   });
 
@@ -472,7 +270,7 @@ describe("SpawnList", () => {
 
     expect(onSpawnClick).toHaveBeenCalledTimes(1);
     expect(onSpawnClick).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "s2" })
+      expect.objectContaining({ id: "s2" }),
     );
   });
 
@@ -518,7 +316,7 @@ describe("SpawnList", () => {
     expect(await screen.findByText("New Spawn 1")).toBeInTheDocument();
     // Selection callback invoked
     expect(onSpawnClick).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "s2" })
+      expect.objectContaining({ id: "s2" }),
     );
   });
 
@@ -543,107 +341,6 @@ describe("SpawnList", () => {
     });
 
     expect(await screen.findByText("No active profile")).toBeInTheDocument();
-  });
-
-  it("shows toggle error banner on failure and clears after a successful toggle", async () => {
-    const s = createMockSpawn({
-      id: "s1",
-      name: "Toggle",
-      enabled: false,
-      assets: [],
-    });
-    vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([s]);
-    vi.mocked(SpawnService.enableSpawn).mockResolvedValue({
-      success: false,
-      error: "Nope",
-    });
-
-    await act(async () => {
-      renderSpawnList(<SpawnList />);
-    });
-
-    const loading = screen.queryByText("Loading spawns...");
-    if (loading) {
-      await waitForElementToBeRemoved(loading);
-    }
-
-    await act(async () => {
-      fireEvent.click(screen.getByLabelText("Enable Toggle"));
-    });
-    expect(await screen.findByText("Nope")).toBeInTheDocument();
-
-    vi.mocked(SpawnService.enableSpawn).mockResolvedValue({
-      success: true,
-      spawn: { ...s, enabled: true },
-    });
-
-    await act(async () => {
-      fireEvent.click(screen.getByLabelText("Enable Toggle"));
-    });
-
-    // Only one row in this test; verify it shows Active before the click
-    const row = screen
-      .getByText("Toggle")
-      .closest('[role="option"]') as HTMLElement;
-    expect(within(row).getByText("Active")).toBeInTheDocument();
-    expect(screen.queryByText("Nope")).not.toBeInTheDocument();
-  });
-
-  it("reverts optimistic update when disable returns success: false", async () => {
-    const s = createMockSpawn({
-      id: "s1",
-      name: "Toggle",
-      enabled: true,
-      assets: [],
-    });
-    vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([s]);
-    vi.mocked(SpawnService.disableSpawn).mockResolvedValue({
-      success: false,
-      error: "Cannot disable",
-    });
-
-    await act(async () => {
-      renderSpawnList(<SpawnList />);
-    });
-    const loading = screen.queryByText("Loading spawns...");
-    if (loading) {
-      await waitForElementToBeRemoved(loading);
-    }
-
-    await act(async () => {
-      fireEvent.click(screen.getByLabelText("Disable Toggle"));
-    });
-
-    expect(await screen.findByText("Cannot disable")).toBeInTheDocument();
-    expect(await screen.findByText("Active")).toBeInTheDocument();
-  });
-
-  it("uses fallback error message when enable rejects with non-Error and reverts state", async () => {
-    const s = createMockSpawn({
-      id: "s1",
-      name: "Weird Enable",
-      enabled: false,
-      assets: [],
-    });
-    vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([s]);
-    vi.mocked(SpawnService.enableSpawn).mockRejectedValue("weird");
-
-    await act(async () => {
-      renderSpawnList(<SpawnList />);
-    });
-    const loading = screen.queryByText("Loading spawns...");
-    if (loading) {
-      await waitForElementToBeRemoved(loading);
-    }
-
-    await act(async () => {
-      fireEvent.click(screen.getByLabelText("Enable Weird Enable"));
-    });
-
-    expect(
-      await screen.findByText("Failed to enable spawn")
-    ).toBeInTheDocument();
-    expect(screen.getByText("Inactive")).toBeInTheDocument();
   });
 
   describe("Additional coverage", () => {
@@ -695,20 +392,20 @@ describe("SpawnList", () => {
 
       await act(async () => {
         fireEvent.click(
-          screen.getByRole("button", { name: "Create New Spawn" })
+          screen.getByRole("button", { name: "Create New Spawn" }),
         );
       });
 
       expect(await screen.findByText("New Spawn 2")).toBeInTheDocument();
       expect(onSpawnClick).toHaveBeenCalledWith(
-        expect.objectContaining({ name: "New Spawn 2" })
+        expect.objectContaining({ name: "New Spawn 2" }),
       );
     });
 
     it("shows creation error when createSpawn throws", async () => {
       vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([]);
       vi.mocked(SpawnService.createSpawn).mockRejectedValue(
-        new Error("boom create")
+        new Error("boom create"),
       );
 
       await act(async () => {
@@ -721,7 +418,7 @@ describe("SpawnList", () => {
 
       await act(async () => {
         fireEvent.click(
-          screen.getByRole("button", { name: "Create New Spawn" })
+          screen.getByRole("button", { name: "Create New Spawn" }),
         );
       });
 
@@ -758,11 +455,11 @@ describe("SpawnList", () => {
       });
 
       expect(onSpawnClick).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "s3" })
+        expect.objectContaining({ id: "s3" }),
       );
     });
 
-    it("renders both toggle and create error banners together", async () => {
+    it("renders create error banner", async () => {
       const base = createMockSpawn({
         id: "sid",
         name: "Row",
@@ -771,10 +468,6 @@ describe("SpawnList", () => {
       });
       vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([base]);
 
-      vi.mocked(SpawnService.disableSpawn).mockResolvedValue({
-        success: false,
-        error: "toggle fail",
-      });
       vi.mocked(SpawnService.createSpawn).mockResolvedValue({
         success: false,
         error: "create fail",
@@ -788,19 +481,13 @@ describe("SpawnList", () => {
         await waitForElementToBeRemoved(loading);
       }
 
-      // Trigger toggle error
-      await act(async () => {
-        fireEvent.click(screen.getByLabelText("Disable Row"));
-      });
-
       // Trigger create error
       await act(async () => {
         fireEvent.click(
-          screen.getByRole("button", { name: "Create New Spawn" })
+          screen.getByRole("button", { name: "Create New Spawn" }),
         );
       });
 
-      expect(await screen.findByText("toggle fail")).toBeInTheDocument();
       expect(await screen.findByText("create fail")).toBeInTheDocument();
     });
 
@@ -828,7 +515,7 @@ describe("SpawnList", () => {
       };
       const d = deferred();
       vi.mocked(SpawnService.createSpawn).mockImplementation(
-        async () => d.promise
+        async () => d.promise,
       );
 
       const onSpawnClick = vi.fn();
@@ -863,7 +550,7 @@ describe("SpawnList", () => {
 
       expect(await screen.findByText("New Spawn 1")).toBeInTheDocument();
       expect(onSpawnClick).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "s2" })
+        expect.objectContaining({ id: "s2" }),
       );
     });
 
@@ -893,13 +580,13 @@ describe("SpawnList", () => {
 
       await act(async () => {
         fireEvent.click(
-          screen.getByRole("button", { name: "Create New Spawn" })
+          screen.getByRole("button", { name: "Create New Spawn" }),
         );
       });
 
       expect(await screen.findByText("New Spawn 1")).toBeInTheDocument();
       expect(onSpawnClick).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "s1" })
+        expect.objectContaining({ id: "s1" }),
       );
     });
 
@@ -926,7 +613,7 @@ describe("SpawnList", () => {
       // Dispatch event without detail.id to trigger fallback reload
       await act(async () => {
         window.dispatchEvent(
-          new CustomEvent("mediaspawner:spawn-deleted" as unknown as string)
+          new CustomEvent("mediaspawner:spawn-deleted" as unknown as string),
         );
       });
 
@@ -953,138 +640,10 @@ describe("SpawnList", () => {
       });
 
       expect(
-        await screen.findByText("Failed to create spawn")
+        await screen.findByText("Failed to create spawn"),
       ).toBeInTheDocument();
       // Button should be re-enabled after failure
       expect(btn).not.toBeDisabled();
-    });
-  });
-
-  it("uses fallback error message when toggle returns success: false without error", async () => {
-    const s = createMockSpawn({
-      id: "s1",
-      name: "No Error",
-      enabled: true,
-      assets: [],
-    });
-    vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([s]);
-    vi.mocked(SpawnService.disableSpawn).mockResolvedValue({ success: false });
-
-    await act(async () => {
-      renderSpawnList(<SpawnList />);
-    });
-    const loading = screen.queryByText("Loading spawns...");
-    if (loading) {
-      await waitForElementToBeRemoved(loading);
-    }
-
-    await act(async () => {
-      fireEvent.click(screen.getByLabelText("Disable No Error"));
-    });
-
-    expect(
-      await screen.findByText("Failed to disable spawn")
-    ).toBeInTheDocument();
-    expect(screen.getByText("Active")).toBeInTheDocument();
-  });
-
-  it("replaces spawn with service response object (e.g., name changes)", async () => {
-    const s = createMockSpawn({
-      id: "s1",
-      name: "Old Name",
-      enabled: false,
-      assets: [],
-    });
-    vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([s]);
-    vi.mocked(SpawnService.enableSpawn).mockResolvedValue({
-      success: true,
-      spawn: { ...s, enabled: true, name: "New Name" },
-    });
-
-    await act(async () => {
-      renderSpawnList(<SpawnList />);
-    });
-    const loading = screen.queryByText("Loading spawns...");
-    if (loading) {
-      await waitForElementToBeRemoved(loading);
-    }
-
-    expect(await screen.findByText("Old Name")).toBeInTheDocument();
-
-    await act(async () => {
-      fireEvent.click(screen.getByLabelText("Enable Old Name"));
-    });
-
-    expect(await screen.findByText("New Name")).toBeInTheDocument();
-  });
-
-  it("disables only the toggled item while processing and leaves others interactive", async () => {
-    const s1 = createMockSpawn({
-      id: "s1",
-      name: "First",
-      enabled: false,
-      assets: [],
-    });
-    const s2 = createMockSpawn({
-      id: "s2",
-      name: "Second",
-      enabled: false,
-      assets: [],
-    });
-    vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([s1, s2]);
-
-    type ToggleResult = { success: boolean; spawn?: Spawn; error?: string };
-    const deferred = () => {
-      let resolve!: (value: ToggleResult) => void;
-      let reject!: (reason?: unknown) => void;
-      const promise: Promise<ToggleResult> = new Promise((res, rej) => {
-        resolve = res;
-        reject = rej;
-      });
-      return { promise, resolve, reject };
-    };
-    const d = deferred();
-
-    vi.mocked(SpawnService.enableSpawn).mockImplementation(
-      async (id: string) => {
-        if (id === "s1") return d.promise;
-        return { success: true, spawn: { ...s2, enabled: true } };
-      }
-    );
-
-    await act(async () => {
-      renderSpawnList(<SpawnList />);
-    });
-    const loading = screen.queryByText("Loading spawns...");
-    if (loading) {
-      await waitForElementToBeRemoved(loading);
-    }
-
-    const btn1 = screen.getByLabelText("Enable First");
-    const btn2 = screen.getByLabelText("Enable Second");
-
-    await act(async () => {
-      fireEvent.click(btn1);
-    });
-
-    // First is disabled
-    const switchElement1 = btn1.querySelector('[role="switch"]') as HTMLElement;
-    expect(switchElement1).toBeDisabled();
-
-    // Second remains interactive
-    const switchElement2 = btn2.querySelector('[role="switch"]') as HTMLElement;
-    expect(switchElement2).not.toBeDisabled();
-    await act(async () => {
-      fireEvent.click(btn2);
-    });
-    const secondRow = screen
-      .getByText("Second")
-      .closest('[role="option"]') as HTMLElement;
-    expect(await within(secondRow).findByText("Active")).toBeInTheDocument();
-
-    // Resolve first toggle to avoid dangling promises
-    await act(async () => {
-      d.resolve({ success: true, spawn: { ...s1, enabled: true } });
     });
   });
 });

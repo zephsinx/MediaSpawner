@@ -21,8 +21,8 @@ export interface SpawnListItemProps {
   /** Callback when spawn is clicked */
   onClick?: (spawn: Spawn) => void;
   /** Callback when spawn toggle is clicked */
-  onToggle?: (spawn: Spawn, enabled: boolean) => void;
-  /** Whether the toggle is currently processing */
+  onToggle?: (spawn: Spawn) => void;
+  /** Whether the toggle is currently processing (deprecated - kept for compatibility) */
   isToggleProcessing?: boolean;
   /** Optional className for additional styling */
   className?: string;
@@ -48,9 +48,7 @@ const SpawnListItem: React.FC<SpawnListItemProps> = ({
 
   const handleToggle = (e: React.MouseEvent | React.KeyboardEvent) => {
     e.stopPropagation();
-    if (!isToggleProcessing) {
-      onToggle?.(spawn, !spawn.enabled);
-    }
+    onToggle?.(spawn);
   };
 
   const handleToggleKeyDown = (e: React.KeyboardEvent) => {
@@ -109,22 +107,12 @@ const SpawnListItem: React.FC<SpawnListItemProps> = ({
               <div
                 onClick={handleToggle}
                 onKeyDown={handleToggleKeyDown}
-                className={`${
-                  isToggleProcessing
-                    ? "opacity-50 cursor-not-allowed"
-                    : "cursor-pointer"
-                }`}
+                className="cursor-pointer"
                 tabIndex={0}
-                aria-label={`${spawn.enabled ? "Disable" : "Enable"} ${
-                  spawn.name
-                }`}
+                aria-label={`Toggle enabled state for ${spawn.name} (opens editor)`}
                 aria-describedby={`spawn-${spawn.id}-toggle-description`}
               >
-                <Switch
-                  checked={spawn.enabled}
-                  disabled={isToggleProcessing}
-                  size="md"
-                />
+                <Switch checked={spawn.enabled} disabled={false} size="md" />
               </div>
             </Tooltip.Trigger>
             <Tooltip.Portal>
@@ -132,9 +120,7 @@ const SpawnListItem: React.FC<SpawnListItemProps> = ({
                 sideOffset={6}
                 className="z-50 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-3 py-2 text-sm text-[rgb(var(--color-fg))] shadow-md"
               >
-                <div>{`${spawn.enabled ? "Disable" : "Enable"} ${
-                  spawn.name
-                }`}</div>
+                <div>Click to edit enabled state for {spawn.name}</div>
                 <Tooltip.Arrow className="fill-[rgb(var(--color-bg))]" />
               </Tooltip.Content>
             </Tooltip.Portal>
