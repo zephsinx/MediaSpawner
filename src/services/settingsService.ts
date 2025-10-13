@@ -116,6 +116,58 @@ export class SettingsService {
   }
 
   /**
+   * Update OBS canvas size
+   */
+  static updateOBSCanvasSize(
+    width: number,
+    height: number,
+  ): SettingsOperationResult {
+    const validation = this.validateOBSCanvasSize(width, height);
+    if (!validation.isValid) {
+      return {
+        success: false,
+        error: validation.error || "Invalid OBS canvas size",
+      };
+    }
+
+    return this.updateSettings({
+      obsCanvasWidth: width,
+      obsCanvasHeight: height,
+    });
+  }
+
+  /**
+   * Validate OBS canvas size
+   */
+  static validateOBSCanvasSize(
+    width: number,
+    height: number,
+  ): SettingsValidationResult {
+    if (!Number.isInteger(width) || width <= 0) {
+      return {
+        isValid: false,
+        error: "Canvas width must be a positive integer",
+      };
+    }
+
+    if (!Number.isInteger(height) || height <= 0) {
+      return {
+        isValid: false,
+        error: "Canvas height must be a positive integer",
+      };
+    }
+
+    if (width > 15360 || height > 8640) {
+      return {
+        isValid: false,
+        error: "Canvas dimensions exceed maximum supported size (15360x8640)",
+      };
+    }
+
+    return { isValid: true };
+  }
+
+  /**
    * Reset settings to defaults and invalidate cache
    */
   static resetSettings(): Settings {

@@ -293,5 +293,55 @@ describe("assetSettingsResolver", () => {
         muted: true,
       });
     });
+
+    describe("randomCoordinates", () => {
+      it("resolves randomCoordinates from overrides", () => {
+        const spawn = spawnFactory();
+        const { effective, sourceMap } = resolveEffectiveProperties({
+          spawn,
+          overrides: { randomCoordinates: true },
+        });
+        expect(effective.randomCoordinates).toBe(true);
+        expect(sourceMap.randomCoordinates).toBe("override");
+      });
+
+      it("marks randomCoordinates as none when not set", () => {
+        const spawn = spawnFactory();
+        const { effective, sourceMap } = resolveEffectiveProperties({
+          spawn,
+          overrides: {},
+        });
+        expect(effective.randomCoordinates).toBeUndefined();
+        expect(sourceMap.randomCoordinates).toBe("none");
+      });
+
+      it("resolves randomCoordinates false from overrides", () => {
+        const spawn = spawnFactory();
+        const { effective, sourceMap } = resolveEffectiveProperties({
+          spawn,
+          overrides: { randomCoordinates: false },
+        });
+        expect(effective.randomCoordinates).toBe(false);
+        expect(sourceMap.randomCoordinates).toBe("override");
+      });
+
+      it("includes randomCoordinates in buildOverridesDiff when true", () => {
+        const desired: Partial<MediaAssetProperties> = {
+          randomCoordinates: true,
+          volume: 0.8,
+        };
+        const diff = buildOverridesDiff(desired);
+        expect(diff.randomCoordinates).toBe(true);
+        expect(diff.volume).toBe(0.8);
+      });
+
+      it("includes randomCoordinates in buildOverridesDiff when false", () => {
+        const desired: Partial<MediaAssetProperties> = {
+          randomCoordinates: false,
+        };
+        const diff = buildOverridesDiff(desired);
+        expect(diff.randomCoordinates).toBe(false);
+      });
+    });
   });
 });

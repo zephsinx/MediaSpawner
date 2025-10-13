@@ -558,7 +558,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
               <h3 className="text-base font-semibold text-[rgb(var(--color-fg))] mb-3">
                 Visual Properties
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="inline-flex items-center text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                     Width (px)
@@ -812,6 +812,44 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
               </div>
 
               <div>
+                <label className="inline-flex items-center text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
+                  Random Coordinates
+                  <FieldTooltip content="Generates random position each spawn execution." />
+                </label>
+                <div className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={draftValues.randomCoordinates ?? false}
+                    onChange={(e) => {
+                      const isEnabled = e.target.checked;
+                      setField("randomCoordinates", isEnabled);
+                      // Automatically set to absolute positioning when enabled
+                      if (
+                        isEnabled &&
+                        draftValues.positionMode !== "absolute"
+                      ) {
+                        setField("positionMode", "absolute");
+                      }
+                    }}
+                    className="mt-0.5 rounded focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
+                  />
+                  <span className="text-sm text-[rgb(var(--color-muted-foreground))]">
+                    Enable random positioning
+                  </span>
+                </div>
+                {draftValues.randomCoordinates &&
+                  !draftValues.dimensions?.width &&
+                  !draftValues.dimensions?.height && (
+                    <div className="mt-2 flex items-start gap-2 p-2 bg-[rgb(var(--color-warning))]/10 border border-[rgb(var(--color-warning))]/20 rounded-md">
+                      <Info className="w-4 h-4 text-[rgb(var(--color-warning))] flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-[rgb(var(--color-warning))]">
+                        Asset may spawn off-screen without width/height set
+                      </p>
+                    </div>
+                  )}
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                   Position Mode
                 </label>
@@ -832,14 +870,10 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
               </div>
 
               <div>
-                <label
-                  className="inline-flex items-center text-sm font-medium text-[rgb(var(--color-fg))] mb-1"
-                  htmlFor="rotation-input"
-                >
+                <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                   Rotation (°)
-                  <FieldTooltip content="Angle in degrees." />
                 </label>
-                <div className="flex-1">
+                <div className="flex items-center gap-2">
                   <input
                     type="range"
                     min={0}
@@ -858,7 +892,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                         rotation: error,
                       }));
                     }}
-                    className="w-full h-2 bg-[rgb(var(--color-border))] rounded-lg appearance-none cursor-pointer focus-visible:outline-none"
+                    className="flex-1 h-2 bg-[rgb(var(--color-border))] rounded-lg appearance-none cursor-pointer focus-visible:outline-none"
                     aria-label="Rotation slider"
                     aria-describedby="rotation-error"
                   />
@@ -875,20 +909,21 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = ({
                       )
                     }
                     onBlur={() => handleBlur("rotation")}
-                    className={cn(getInputClassName("rotation"), "w-20 mt-2")}
+                    className={cn(getInputClassName("rotation"), "w-20")}
                     id="rotation-input"
                     aria-label="Rotation input"
                     aria-describedby="rotation-error"
                   />
-                  {validationErrors.rotation && (
-                    <p
-                      id="rotation-error"
-                      className="text-xs text-[rgb(var(--color-error))] mt-1"
-                    >
-                      {validationErrors.rotation}
-                    </p>
-                  )}
                 </div>
+
+                {validationErrors.rotation && (
+                  <p
+                    id="rotation-error"
+                    className="text-xs text-[rgb(var(--color-error))] mt-1"
+                  >
+                    {validationErrors.rotation}
+                  </p>
+                )}
               </div>
 
               <div>

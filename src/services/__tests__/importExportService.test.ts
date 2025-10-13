@@ -186,6 +186,51 @@ describe("ImportExportService", () => {
       expect(exportedData.assets).toHaveLength(1);
     });
 
+    it("should include canvas size in export", async () => {
+      // Mock data
+      const mockProfiles = [
+        {
+          id: "profile-1",
+          name: "Test Profile",
+          spawns: [],
+          lastModified: Date.now(),
+          isActive: false,
+        },
+      ];
+
+      const mockAssets = [
+        {
+          id: "asset-1",
+          name: "Test Asset",
+          path: "test.jpg",
+          isUrl: false,
+          type: "image" as const,
+        },
+      ];
+
+      const mockSettings = {
+        workingDirectory: "/test/path",
+        activeProfileId: "profile-1",
+        themeMode: "light" as const,
+        obsCanvasWidth: 2560,
+        obsCanvasHeight: 1440,
+      };
+
+      // Setup mocks
+      mockSpawnProfileService.getAllProfiles.mockReturnValue(mockProfiles);
+      mockAssetService.getAssets.mockReturnValue(mockAssets);
+      mockSettingsService.getSettings.mockReturnValue(mockSettings);
+
+      // Execute
+      const result = await ImportExportService.exportConfiguration();
+
+      // Verify
+      expect(result.success).toBe(true);
+      const exportedData = JSON.parse(result.data!);
+      expect(exportedData.obsCanvasWidth).toBe(2560);
+      expect(exportedData.obsCanvasHeight).toBe(1440);
+    });
+
     it("should return error when no data is available to export", async () => {
       // Setup mocks with empty data
       mockSpawnProfileService.getAllProfiles.mockReturnValue([]);
@@ -318,6 +363,128 @@ describe("ImportExportService", () => {
       // Verify services were called
       expect(mockSpawnProfileService.replaceProfiles).toHaveBeenCalled();
       expect(mockAssetService.saveAssets).toHaveBeenCalled();
+    });
+
+    it("should import canvas size from configuration", async () => {
+      // Mock imported data with canvas size
+      const importedJson = JSON.stringify({
+        version: "1.0.0",
+        workingDirectory: "/test/path",
+        obsCanvasWidth: 3840,
+        obsCanvasHeight: 2160,
+        profiles: [],
+        assets: [],
+      });
+
+      // Setup mocks
+      mockSpawnProfileService.getAllProfiles.mockReturnValue([]);
+      mockSpawnProfileService.replaceProfiles.mockReturnValue({
+        success: true,
+        profiles: [],
+      });
+      mockAssetService.getAssets.mockReturnValue([]);
+      mockAssetService.saveAssets.mockImplementation(() => {});
+      mockSettingsService.updateWorkingDirectory.mockReturnValue({
+        success: true,
+        settings: {
+          workingDirectory: "/test/path",
+          themeMode: "light" as const,
+        },
+      });
+      mockSettingsService.updateOBSCanvasSize.mockReturnValue({
+        success: true,
+        settings: {
+          workingDirectory: "/test/path",
+          themeMode: "light" as const,
+          obsCanvasWidth: 3840,
+          obsCanvasHeight: 2160,
+        },
+      });
+
+      // Execute
+      const result =
+        await ImportExportService.importConfiguration(importedJson);
+
+      // Verify
+      expect(result.success).toBe(true);
+      expect(mockSettingsService.updateOBSCanvasSize).toHaveBeenCalledWith(
+        3840,
+        2160,
+      );
+    });
+
+    it("should handle missing canvas size gracefully (backward compatibility)", async () => {
+      // Mock imported data without canvas size
+      const importedJson = JSON.stringify({
+        version: "1.0.0",
+        workingDirectory: "/test/path",
+        // No canvas size
+        profiles: [],
+        assets: [],
+      });
+
+      // Setup mocks
+      mockSpawnProfileService.getAllProfiles.mockReturnValue([]);
+      mockSpawnProfileService.replaceProfiles.mockReturnValue({
+        success: true,
+        profiles: [],
+      });
+      mockAssetService.getAssets.mockReturnValue([]);
+      mockAssetService.saveAssets.mockImplementation(() => {});
+      mockSettingsService.updateWorkingDirectory.mockReturnValue({
+        success: true,
+        settings: {
+          workingDirectory: "/test/path",
+          themeMode: "light" as const,
+        },
+      });
+
+      // Execute
+      const result =
+        await ImportExportService.importConfiguration(importedJson);
+
+      // Verify import succeeds even without canvas size
+      expect(result.success).toBe(true);
+      expect(mockSettingsService.updateOBSCanvasSize).not.toHaveBeenCalled();
+    });
+
+    it("should not fail import if canvas size update fails", async () => {
+      // Mock imported data with canvas size
+      const importedJson = JSON.stringify({
+        version: "1.0.0",
+        workingDirectory: "/test/path",
+        obsCanvasWidth: 3840,
+        obsCanvasHeight: 2160,
+        profiles: [],
+        assets: [],
+      });
+
+      // Setup mocks - canvas size update fails but import should still succeed
+      mockSpawnProfileService.getAllProfiles.mockReturnValue([]);
+      mockSpawnProfileService.replaceProfiles.mockReturnValue({
+        success: true,
+        profiles: [],
+      });
+      mockAssetService.getAssets.mockReturnValue([]);
+      mockAssetService.saveAssets.mockImplementation(() => {});
+      mockSettingsService.updateWorkingDirectory.mockReturnValue({
+        success: true,
+        settings: {
+          workingDirectory: "/test/path",
+          themeMode: "light" as const,
+        },
+      });
+      mockSettingsService.updateOBSCanvasSize.mockReturnValue({
+        success: false,
+        error: "Canvas size validation failed",
+      });
+
+      // Execute
+      const result =
+        await ImportExportService.importConfiguration(importedJson);
+
+      // Verify import still succeeds
+      expect(result.success).toBe(true);
     });
 
     it("should handle import errors gracefully", async () => {
