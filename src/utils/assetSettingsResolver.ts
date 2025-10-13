@@ -54,6 +54,7 @@ export function resolveEffectiveProperties(args: {
   consider("autoplay");
   consider("muted");
   consider("monitorType");
+  consider("randomCoordinates");
 
   // Structured fields with deep merge fallback (first defined wins)
   consider("dimensions", ({ overrideVal }) => {
@@ -95,6 +96,7 @@ export function buildOverridesDiff(
   assignIfDifferent("autoplay");
   assignIfDifferent("muted");
   assignIfDifferent("monitorType");
+  assignIfDifferent("randomCoordinates");
 
   return overrides;
 }

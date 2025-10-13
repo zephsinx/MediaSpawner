@@ -54,33 +54,134 @@ This guide defines visual and interaction standards for a lightweight, minimal, 
 
 ## Theming and dark mode
 
-- Strategy: Tailwind `dark` class on `<html>` or `<body>`.
-- Tokenization: define CSS variables for core colors; override under `.dark`.
+### Strategy
 
-Example tokens (reference):
+- Tailwind `dark` class applied to `<html>` or `<body>`.
+- All colors defined as CSS variables in `src/index.css`.
+- Variables override under `.dark` selector for dark mode.
+- Source of truth: `src/index.css` for complete token definitions.
 
-```css
-:root {
-  --color-accent: 99 102 241; /* indigo-500 */
-  --color-accent-foreground: 255 255 255;
-  --color-ring: 99 102 241; /* indigo-500 */
-  --color-bg: 255 255 255; /* white */
-  --color-fg: 17 24 39; /* gray-900 */
-  --color-muted: 107 114 128; /* gray-500 */
-  --color-border: 229 231 235; /* gray-200 */
-  --radius: 0.375rem; /* rounded-md */
-}
-.dark {
-  --color-accent: 99 102 241; /* indigo-500 */
-  --color-accent-foreground: 255 255 255;
-  --color-ring: 99 102 241;
-  --color-bg: 17 24 39; /* gray-900 */
-  --color-fg: 243 244 246; /* gray-100 */
-  --color-muted: 209 213 219; /* gray-300 */
-  --color-border: 55 65 81; /* gray-700 */
-}
-/* Usage with Tailwind's arbitrary values: bg-[rgb(var(--color-bg))] */
+### Token System
+
+**Accent Colors** (Brand - Indigo)
+
+- `--color-accent`: Primary accent color
+- `--color-accent-foreground`: Text on accent backgrounds
+- `--color-accent-hover`: Hover state
+- `--color-accent-active`: Active/pressed state
+- `--color-ring`: Focus ring indicator
+
+**Neutral Colors** (Grays)
+
+- `--color-bg`: Page background
+- `--color-fg`: Primary text
+- `--color-muted`: Secondary/muted elements
+- `--color-muted-foreground`: Muted text
+- `--color-border`: Default borders
+- `--color-border-strong`: Emphasized borders
+- `--color-input`: Input backgrounds
+- `--color-input-border`: Input borders
+
+**Surface Layers** (Stacked backgrounds)
+
+- `--color-surface-1`: Highest surface (cards, modals)
+- `--color-surface-2`: Medium surface (panels)
+- `--color-surface-3`: Lowest surface (backgrounds)
+
+**Semantic Colors**
+
+- `--color-success`: Success states (emerald)
+- `--color-success-foreground`: Text on success backgrounds
+- `--color-success-hover`: Success hover state
+- `--color-warning`: Warning states (amber)
+- `--color-warning-foreground`: Text on warning backgrounds
+- `--color-warning-hover`: Warning hover state
+- `--color-error`: Error states (red)
+- `--color-error-foreground`: Text on error backgrounds
+- `--color-error-hover`: Error hover state
+- `--color-error-bg`: Error background containers
+- `--color-error-border`: Error borders
+- `--color-success-bg`: Success background containers
+- `--color-success-border`: Success borders
+
+### Token Usage Best Practices
+
+**Always use CSS variables:**
+
+```tsx
+// ✅ CORRECT - Uses token system
+className = "bg-[rgb(var(--color-surface-1))] text-[rgb(var(--color-fg))]";
+className = "border-[rgb(var(--color-border))]";
+className = "text-[rgb(var(--color-warning))]";
+
+// ❌ WRONG - Hardcoded Tailwind colors
+className = "bg-white text-gray-900";
+className = "border-gray-200";
+className = "text-amber-600";
 ```
+
+**Opacity modifiers for backgrounds:**
+
+```tsx
+// ✅ CORRECT - Token with opacity
+className =
+  "bg-[rgb(var(--color-warning))]/10 border-[rgb(var(--color-warning))]/20";
+
+// ❌ WRONG - Hardcoded color with opacity
+className = "bg-amber-500/10 border-amber-500/20";
+```
+
+**Focus states:**
+
+```tsx
+// ✅ CORRECT - Uses --color-ring token
+className =
+  "focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2";
+
+// ❌ WRONG - Hardcoded focus color
+className = "focus:ring-2 focus:ring-indigo-500";
+```
+
+### Testing Dark Mode
+
+1. **Toggle dark mode** and verify all UI elements adapt correctly
+2. **Check contrast ratios** - Ensure WCAG AA compliance (4.5:1 for text, 3:1 for UI components) in both modes
+3. **Test focus states** - Verify focus rings are visible on all interactive elements
+4. **Verify semantic colors** - Warning, error, and success states should be clearly visible
+5. **Check surface layers** - Ensure proper hierarchy with surface-1/2/3 tokens
+6. **Test input fields** - Verify input backgrounds and borders are visible
+
+### Common Pitfalls
+
+❌ **Don't hardcode Tailwind colors**
+
+- Never use `gray-200`, `amber-600`, `indigo-500` directly
+- Always use CSS variable tokens
+
+❌ **Don't assume colors work in both modes**
+
+- Test all new UI in both light and dark mode
+- Colors that work in light mode may have poor contrast in dark mode
+
+❌ **Don't mix token and hardcoded approaches**
+
+- Be consistent - if one element uses tokens, all should
+
+✅ **Do use semantic tokens**
+
+- Use `--color-warning` for warnings, not `amber-600`
+- Use `--color-error` for errors, not `red-600`
+- Use `--color-success` for success states, not `emerald-600`
+
+✅ **Do use opacity modifiers with tokens**
+
+- `bg-[rgb(var(--color-warning))]/10` for subtle warning backgrounds
+- `/20` for borders, `/10` for backgrounds
+
+✅ **Do test keyboard navigation**
+
+- Focus rings must be visible in both light and dark mode
+- Use `--color-ring` token for consistency
 
 ## Typography
 

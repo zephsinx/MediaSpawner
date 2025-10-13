@@ -78,7 +78,7 @@ describe("SettingsService", () => {
         JSON.stringify({
           workingDirectory: "",
           themeMode: "system",
-        })
+        }),
       );
 
       const themeMode = SettingsService.getThemeMode();
@@ -115,7 +115,7 @@ describe("SettingsService", () => {
 
       expect(mockHtmlElement.classList.remove).toHaveBeenCalledWith(
         "light",
-        "dark"
+        "dark",
       );
       expect(mockHtmlElement.classList.add).toHaveBeenCalledWith("light");
     });
@@ -139,7 +139,7 @@ describe("SettingsService", () => {
         JSON.stringify({
           workingDirectory: "",
           themeMode: "system",
-        })
+        }),
       );
 
       // Apply theme mode (should migrate system to light)
@@ -147,7 +147,7 @@ describe("SettingsService", () => {
 
       expect(mockHtmlElement.classList.remove).toHaveBeenCalledWith(
         "light",
-        "dark"
+        "dark",
       );
       expect(mockHtmlElement.classList.add).toHaveBeenCalledWith("light");
     });
@@ -159,7 +159,7 @@ describe("SettingsService", () => {
         JSON.stringify({
           workingDirectory: "",
           themeMode: "invalid",
-        })
+        }),
       );
 
       // Mock CacheService to return invalid settings
@@ -245,6 +245,127 @@ describe("SettingsService", () => {
 
       const themeMode = SettingsService.getThemeMode();
       expect(themeMode).toBe("light");
+    });
+  });
+
+  describe("OBS Canvas Size Management", () => {
+    describe("validateOBSCanvasSize", () => {
+      it("should reject non-integer width", () => {
+        const result = SettingsService.validateOBSCanvasSize(1920.5, 1080);
+        expect(result.isValid).toBe(false);
+        expect(result.error).toContain("positive integer");
+      });
+
+      it("should reject non-integer height", () => {
+        const result = SettingsService.validateOBSCanvasSize(1920, 1080.5);
+        expect(result.isValid).toBe(false);
+        expect(result.error).toContain("positive integer");
+      });
+
+      it("should reject zero width", () => {
+        const result = SettingsService.validateOBSCanvasSize(0, 1080);
+        expect(result.isValid).toBe(false);
+        expect(result.error).toContain("positive integer");
+      });
+
+      it("should reject zero height", () => {
+        const result = SettingsService.validateOBSCanvasSize(1920, 0);
+        expect(result.isValid).toBe(false);
+        expect(result.error).toContain("positive integer");
+      });
+
+      it("should reject negative width", () => {
+        const result = SettingsService.validateOBSCanvasSize(-100, 1080);
+        expect(result.isValid).toBe(false);
+        expect(result.error).toContain("positive integer");
+      });
+
+      it("should reject negative height", () => {
+        const result = SettingsService.validateOBSCanvasSize(1920, -100);
+        expect(result.isValid).toBe(false);
+        expect(result.error).toContain("positive integer");
+      });
+
+      it("should reject canvas size exceeding maximum width", () => {
+        const result = SettingsService.validateOBSCanvasSize(20000, 1080);
+        expect(result.isValid).toBe(false);
+        expect(result.error).toContain("maximum supported size");
+      });
+
+      it("should reject canvas size exceeding maximum height", () => {
+        const result = SettingsService.validateOBSCanvasSize(1920, 10000);
+        expect(result.isValid).toBe(false);
+        expect(result.error).toContain("maximum supported size");
+      });
+
+      it("should accept valid canvas size 1920x1080", () => {
+        const result = SettingsService.validateOBSCanvasSize(1920, 1080);
+        expect(result.isValid).toBe(true);
+        expect(result.error).toBeUndefined();
+      });
+
+      it("should accept valid canvas size 2560x1440", () => {
+        const result = SettingsService.validateOBSCanvasSize(2560, 1440);
+        expect(result.isValid).toBe(true);
+        expect(result.error).toBeUndefined();
+      });
+
+      it("should accept maximum canvas size", () => {
+        const result = SettingsService.validateOBSCanvasSize(15360, 8640);
+        expect(result.isValid).toBe(true);
+        expect(result.error).toBeUndefined();
+      });
+    });
+
+    describe("updateOBSCanvasSize", () => {
+      it("should update canvas size successfully", () => {
+        const result = SettingsService.updateOBSCanvasSize(2560, 1440);
+        expect(result.success).toBe(true);
+        expect(result.settings?.obsCanvasWidth).toBe(2560);
+        expect(result.settings?.obsCanvasHeight).toBe(1440);
+      });
+
+      it("should reject invalid canvas width", () => {
+        const result = SettingsService.updateOBSCanvasSize(-100, 1080);
+        expect(result.success).toBe(false);
+        expect(result.error).toBeDefined();
+      });
+
+      it("should reject invalid canvas height", () => {
+        const result = SettingsService.updateOBSCanvasSize(1920, -100);
+        expect(result.success).toBe(false);
+        expect(result.error).toBeDefined();
+      });
+
+      it("should persist canvas size to localStorage", () => {
+        SettingsService.updateOBSCanvasSize(3840, 2160);
+        const stored = localStorage.getItem("mediaspawner_settings");
+        expect(stored).toBeDefined();
+        const parsed = JSON.parse(stored!);
+        expect(parsed.obsCanvasWidth).toBe(3840);
+        expect(parsed.obsCanvasHeight).toBe(2160);
+      });
+    });
+
+    describe("getSettings with canvas size", () => {
+      it("should apply default canvas size for new settings", () => {
+        const settings = SettingsService.getSettings();
+        expect(settings.obsCanvasWidth).toBe(1920);
+        expect(settings.obsCanvasHeight).toBe(1080);
+      });
+
+      it("should preserve custom canvas size", () => {
+        SettingsService.updateOBSCanvasSize(2560, 1440);
+        mockCacheService.get.mockImplementation((key, fallback) => {
+          if (key === "SETTINGS") {
+            return fallback();
+          }
+          return undefined;
+        });
+        const settings = SettingsService.getSettings();
+        expect(settings.obsCanvasWidth).toBe(2560);
+        expect(settings.obsCanvasHeight).toBe(1440);
+      });
     });
   });
 });

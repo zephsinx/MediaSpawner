@@ -67,6 +67,9 @@ export interface MediaAssetProperties {
 
   /** Audio monitoring type for OBS audio sources (audio/video only) */
   monitorType?: MonitorType;
+
+  /** Generate random coordinates on each spawn execution (images/videos only). When enabled, uses absolute positioning and respects dimensions to keep asset on-screen. */
+  randomCoordinates?: boolean;
 }
 
 /**

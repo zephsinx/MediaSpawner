@@ -228,6 +228,32 @@ Before implementing any React component or reducer:
   - "Edit Members" modal shows [checkbox] Name + type chip + order chip; tooltip shows full path.
   - Assets already in a bucket are shown with a bucket chip in the right panel (Assets in Current Spawn).
 
+## Random coordinates for visual assets
+
+- Per-asset property: `MediaAssetProperties.randomCoordinates?: boolean`
+  - Available for visual assets (images/videos) only.
+  - When enabled, generates fresh random (x, y) coordinates on each spawn execution.
+  - Automatically uses absolute positioning mode; overrides any other position mode setting.
+- Canvas bounds configured in Settings:
+  - `Settings.obsCanvasWidth?: number` (default: 1920)
+  - `Settings.obsCanvasHeight?: number` (default: 1080)
+  - Used by Streamer.bot to calculate coordinate bounds.
+  - Exported/imported with configuration JSON.
+- Coordinate calculation:
+  - If asset dimensions are set: `maxX = canvasWidth - assetWidth`, `maxY = canvasHeight - assetHeight`
+  - Random coordinates: `x = random(0, maxX)`, `y = random(0, maxY)`
+  - No padding; assets may spawn at screen edges.
+  - If dimensions not set, asset may spawn partially or fully off-screen.
+- UI behavior:
+  - Toggle in Asset Settings Form under "Visual Properties" section.
+  - Warning shown when enabled without dimensions set: "Asset may spawn off-screen without width/height set"
+  - Tooltip: "Generates random position each spawn execution (uses absolute positioning)"
+- Streamer.bot implementation:
+  - `MediaSpawnerClient.cs` includes `GenerateRandomCoordinates()` method.
+  - Called after property resolution in `ExecuteSpawnAsset()`.
+  - Uses `MediaSpawnerConfig.ObsCanvasWidth` and `ObsCanvasHeight` for bounds.
+  - Updates `position` property with random x,y values before OBS source creation.
+
 ## Services and events
 
 - Services:

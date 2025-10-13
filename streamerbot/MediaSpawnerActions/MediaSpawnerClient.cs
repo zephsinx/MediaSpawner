@@ -4475,6 +4475,14 @@ public class CPHInline
             // Resolve effective properties
             EffectivePropertiesResult effectiveProperties = ResolveEffectiveProperties(spawn, spawnAsset);
 
+            // Apply random coordinate generation if enabled
+            if (effectiveProperties.Effective.ContainsKey("randomCoordinates") &&
+                Convert.ToBoolean(effectiveProperties.Effective["randomCoordinates"]))
+            {
+                effectiveProperties.Effective = GenerateRandomCoordinates(effectiveProperties.Effective, cachedConfig);
+                effectiveProperties.Effective["positionMode"] = "absolute"; // Force absolute positioning
+            }
+
             // Create OBS source for the asset with retry logic
             bool sourceCreated = CreateOBSSource(baseAsset, effectiveProperties.Effective, generatedSourceGuid, out int sceneItemId);
             if (!sourceCreated)
@@ -4594,6 +4602,7 @@ public class CPHInline
         ResolveProperty("autoplay", overrides, effective, sourceMap);
         ResolveProperty("muted", overrides, effective, sourceMap);
         ResolveProperty("monitorType", overrides, effective, sourceMap);
+        ResolveProperty("randomCoordinates", overrides, effective, sourceMap);
 
         // Handle structured properties (dimensions, position)
         ResolveStructuredProperty("dimensions", overrides, effective, sourceMap);
@@ -4641,6 +4650,68 @@ public class CPHInline
     }
 
     /// <summary>
+    /// Generate random coordinates for an asset based on canvas size and asset dimensions
+    /// </summary>
+    /// <param name="properties">The effective properties dictionary</param>
+    /// <param name="config">The MediaSpawner configuration containing canvas size</param>
+    /// <returns>Updated properties dictionary with random x,y coordinates</returns>
+    private Dictionary<string, object> GenerateRandomCoordinates(Dictionary<string, object> properties, MediaSpawnerConfig config)
+    {
+        Random random = new Random();
+        int canvasWidth = config.ObsCanvasWidth ?? 1920;
+        int canvasHeight = config.ObsCanvasHeight ?? 1080;
+
+        double assetWidth = 0;
+        double assetHeight = 0;
+
+        // Extract dimensions if present (could be in position dictionary or as separate width/height)
+        if (properties.ContainsKey("dimensions"))
+        {
+            var dimensions = properties["dimensions"] as Dictionary<string, object>;
+            if (dimensions != null)
+            {
+                if (dimensions.ContainsKey("width"))
+                    assetWidth = Convert.ToDouble(dimensions["width"]);
+                if (dimensions.ContainsKey("height"))
+                    assetHeight = Convert.ToDouble(dimensions["height"]);
+            }
+        }
+
+        // Also check for separate width/height properties
+        if (properties.ContainsKey("width"))
+            assetWidth = Convert.ToDouble(properties["width"]);
+        if (properties.ContainsKey("height"))
+            assetHeight = Convert.ToDouble(properties["height"]);
+
+        // Calculate max X and Y to keep asset on-screen
+        int maxX = (int)(canvasWidth - assetWidth);
+        int maxY = (int)(canvasHeight - assetHeight);
+
+        // Ensure non-negative bounds
+        maxX = Math.Max(0, maxX);
+        maxY = Math.Max(0, maxY);
+
+        // Generate random coordinates
+        int randomX = random.Next(0, maxX + 1);
+        int randomY = random.Next(0, maxY + 1);
+
+        // Update or create position property
+        if (!properties.ContainsKey("position"))
+        {
+            properties["position"] = new Dictionary<string, object>();
+        }
+
+        var position = properties["position"] as Dictionary<string, object>;
+        if (position != null)
+        {
+            position["x"] = randomX;
+            position["y"] = randomY;
+        }
+
+        return properties;
+    }
+
+    /// <summary>
     /// Convert AssetSettings to a dictionary for property resolution
     /// </summary>
     private Dictionary<string, object> ConvertAssetSettingsToDictionary(AssetSettings settings)
@@ -4654,6 +4725,7 @@ public class CPHInline
         if (settings.Autoplay.HasValue) dict["autoplay"] = settings.Autoplay.Value;
         if (settings.Muted.HasValue) dict["muted"] = settings.Muted.Value;
         if (!string.IsNullOrEmpty(settings.MonitorType)) dict["monitorType"] = settings.MonitorType;
+        if (settings.RandomCoordinates.HasValue) dict["randomCoordinates"] = settings.RandomCoordinates.Value;
 
         // Handle dimensions
         if (settings.Width.HasValue || settings.Height.HasValue)
@@ -6436,6 +6508,12 @@ public class CPHInline
         [JsonProperty("workingDirectory")]
         public string WorkingDirectory { get; set; } = string.Empty;
 
+        [JsonProperty("obsCanvasWidth")]
+        public int? ObsCanvasWidth { get; set; }
+
+        [JsonProperty("obsCanvasHeight")]
+        public int? ObsCanvasHeight { get; set; }
+
         [JsonProperty("profiles")]
         public List<SpawnProfile> Profiles { get; set; } = new List<SpawnProfile>();
 
@@ -7252,6 +7330,9 @@ public class CPHInline
 
         [JsonProperty("monitorType")]
         public string MonitorType { get; set; } = string.Empty;
+
+        [JsonProperty("randomCoordinates")]
+        public bool? RandomCoordinates { get; set; }
     }
 
     /// <summary>

@@ -116,6 +116,8 @@ export interface ImportMetadata {
 export interface MediaSpawnerConfig {
   version: string;
   workingDirectory: string;
+  obsCanvasWidth?: number;
+  obsCanvasHeight?: number;
   profiles: ExportedSpawnProfile[];
   assets: ExportedAsset[];
 }
@@ -166,6 +168,8 @@ export class ImportExportService {
       const config: MediaSpawnerConfig = {
         version: this.CONFIG_VERSION,
         workingDirectory: settings.workingDirectory,
+        obsCanvasWidth: settings.obsCanvasWidth,
+        obsCanvasHeight: settings.obsCanvasHeight,
         profiles: exportedProfiles,
         assets: exportedAssets,
       };
@@ -271,6 +275,20 @@ export class ImportExportService {
         if (!workingDirResult.success) {
           console.warn(
             `Failed to update working directory: ${workingDirResult.error}`,
+          );
+          // Don't fail the import, just log the warning
+        }
+      }
+
+      // Handle canvas size update if present in config
+      if (config.obsCanvasWidth && config.obsCanvasHeight) {
+        const canvasSizeResult = SettingsService.updateOBSCanvasSize(
+          config.obsCanvasWidth,
+          config.obsCanvasHeight,
+        );
+        if (!canvasSizeResult.success) {
+          console.warn(
+            `Failed to update OBS canvas size: ${canvasSizeResult.error}`,
           );
           // Don't fail the import, just log the warning
         }

@@ -14,6 +14,10 @@ export interface Settings {
   liveProfileId?: string;
   /** Theme mode preference */
   themeMode: "light" | "dark";
+  /** OBS canvas width in pixels (for random coordinate bounds) */
+  obsCanvasWidth?: number;
+  /** OBS canvas height in pixels (for random coordinate bounds) */
+  obsCanvasHeight?: number;
 }
 
 /**
@@ -24,6 +28,8 @@ export const DEFAULT_SETTINGS: Settings = {
   activeProfileId: undefined,
   liveProfileId: undefined,
   themeMode: "light",
+  obsCanvasWidth: 1920,
+  obsCanvasHeight: 1080,
 };
 
 /**
