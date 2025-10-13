@@ -299,6 +299,7 @@ const SpawnEditorWorkspace: React.FC = () => {
     if (!selectedSpawn) return false;
     const baselineName = selectedSpawn.name;
     const baselineDesc = selectedSpawn.description || "";
+    const baselineEnabled = !!selectedSpawn.enabled;
     const triggerChanged =
       JSON.stringify(trigger) !== JSON.stringify(selectedSpawn.trigger || null);
     const durationChanged = duration !== selectedSpawn.duration;
@@ -308,11 +309,20 @@ const SpawnEditorWorkspace: React.FC = () => {
     return (
       name !== baselineName ||
       description !== baselineDesc ||
+      enabled !== baselineEnabled ||
       durationChanged ||
       triggerChanged ||
       bucketsChanged
     );
-  }, [name, description, selectedSpawn, duration, trigger, bucketsDraft]);
+  }, [
+    name,
+    description,
+    enabled,
+    selectedSpawn,
+    duration,
+    trigger,
+    bucketsDraft,
+  ]);
 
   useEffect(() => {
     // Only update when dirty state changes to avoid unnecessary context re-renders
@@ -365,6 +375,7 @@ const SpawnEditorWorkspace: React.FC = () => {
     }
     setName(selectedSpawn.name);
     setDescription(selectedSpawn.description || "");
+    setEnabled(!!selectedSpawn.enabled);
     setTrigger(selectedSpawn.trigger || getDefaultTrigger("manual"));
     setDuration(selectedSpawn.duration);
     setSaveError(null);
@@ -390,6 +401,7 @@ const SpawnEditorWorkspace: React.FC = () => {
       const result = await SpawnService.updateSpawn(selectedSpawn.id, {
         name: trimmedName,
         description: description.trim() || undefined,
+        enabled,
         trigger: trigger || undefined,
         duration,
         randomizationBuckets: bucketsDraft,
@@ -401,6 +413,7 @@ const SpawnEditorWorkspace: React.FC = () => {
       // Sync form fields immediately so dirty resets without waiting for effects
       setName(result.spawn.name);
       setDescription(result.spawn.description || "");
+      setEnabled(!!result.spawn.enabled);
       setTrigger(result.spawn.trigger || getDefaultTrigger("manual"));
       setSelectedSpawn(result.spawn);
       setSaveSuccess("Changes saved");
@@ -417,32 +430,6 @@ const SpawnEditorWorkspace: React.FC = () => {
       setSaveError(e instanceof Error ? e.message : "Failed to save spawn");
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  // Immediate enabled toggle behavior
-  const handleEnabledImmediate = async (next: boolean) => {
-    if (!selectedSpawn) return;
-    setEnabled(next);
-    try {
-      const result = next
-        ? await SpawnService.enableSpawn(selectedSpawn.id)
-        : await SpawnService.disableSpawn(selectedSpawn.id);
-      if (!result.success || !result.spawn) {
-        setEnabled(!next);
-        return;
-      }
-      setSelectedSpawn(result.spawn);
-      window.dispatchEvent(
-        new CustomEvent(
-          "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-          {
-            detail: { spawnId: result.spawn.id, updatedSpawn: result.spawn },
-          } as CustomEventInit,
-        ),
-      );
-    } catch {
-      setEnabled(!next);
     }
   };
 
@@ -571,6 +558,7 @@ const SpawnEditorWorkspace: React.FC = () => {
             }
             setName(selectedSpawn.name);
             setDescription(selectedSpawn.description || "");
+            setEnabled(!!selectedSpawn.enabled);
             setDuration(selectedSpawn.duration);
             setSaveError(null);
             setSaveSuccess(null);
@@ -691,7 +679,7 @@ const SpawnEditorWorkspace: React.FC = () => {
                     <Switch
                       id="spawn-enabled"
                       checked={enabled}
-                      onCheckedChange={handleEnabledImmediate}
+                      onCheckedChange={setEnabled}
                       aria-label="Enabled"
                     />
                     <label

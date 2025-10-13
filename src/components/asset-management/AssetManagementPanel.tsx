@@ -12,6 +12,7 @@ import {
 import { validateUrlFormat } from "../../utils/assetValidation";
 import { createSpawnAsset } from "../../types/spawn";
 import { ConfirmDialog } from "../common/ConfirmDialog";
+import { Button } from "../ui/Button";
 import { HUICombobox } from "../common";
 import * as Popover from "@radix-ui/react-popover";
 import * as Tooltip from "@radix-ui/react-tooltip";
@@ -41,16 +42,18 @@ type ResolvedSpawnAsset = {
 
 function SpawnAssetsCount() {
   const { selectedSpawnId } = usePanelState();
-  const [count, setCount] = useState<number>(0);
+  const [savedCount, setSavedCount] = useState<number>(0);
+  const [draftCount, setDraftCount] = useState<number | null>(null);
+
   useEffect(() => {
     let active = true;
     const load = async () => {
       if (!selectedSpawnId) {
-        if (active) setCount(0);
+        if (active) setSavedCount(0);
         return;
       }
       const s = await SpawnService.getSpawn(selectedSpawnId);
-      if (active) setCount(s?.assets.length ?? 0);
+      if (active) setSavedCount(s?.assets.length ?? 0);
     };
     void load();
     const handler = (evt: Event) => {
@@ -61,19 +64,44 @@ function SpawnAssetsCount() {
     };
     window.addEventListener(
       "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-      handler as EventListener
+      handler as EventListener,
     );
     return () => {
       active = false;
       window.removeEventListener(
         "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-        handler as EventListener
+        handler as EventListener,
       );
     };
   }, [selectedSpawnId]);
+
+  // Listen for draft count changes
+  useEffect(() => {
+    const handler = (evt: Event) => {
+      const detail = (evt as CustomEvent).detail as
+        | { spawnId?: string; count: number; isDraft: boolean }
+        | undefined;
+      if (detail && detail.spawnId === selectedSpawnId) {
+        setDraftCount(detail.isDraft ? detail.count : null);
+      }
+    };
+    window.addEventListener(
+      "mediaspawner:draft-asset-count-changed" as unknown as keyof WindowEventMap,
+      handler as EventListener,
+    );
+    return () => {
+      window.removeEventListener(
+        "mediaspawner:draft-asset-count-changed" as unknown as keyof WindowEventMap,
+        handler as EventListener,
+      );
+    };
+  }, [selectedSpawnId]);
+
+  const displayCount = draftCount !== null ? draftCount : savedCount;
+
   return (
     <span className="ml-2 text-[rgb(var(--color-muted-foreground))]">
-      ({count})
+      ({displayCount})
     </span>
   );
 }
@@ -84,12 +112,12 @@ function AssetLibraryCount() {
     const handler = () => setCount(AssetService.getAssets().length);
     window.addEventListener(
       "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
-      handler as EventListener
+      handler as EventListener,
     );
     return () => {
       window.removeEventListener(
         "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
-        handler as EventListener
+        handler as EventListener,
       );
     };
   }, []);
@@ -171,7 +199,7 @@ function ThumbnailWithPreview({ asset }: { asset: MediaAsset }) {
 }
 
 function SpawnAssetsSection() {
-  const { selectedSpawnId } = usePanelState();
+  const { selectedSpawnId, setUnsavedChanges } = usePanelState();
   const [spawn, setSpawn] = useState<Spawn | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -182,18 +210,39 @@ function SpawnAssetsSection() {
   const [isRemoving, setIsRemoving] = useState<boolean>(false);
   const [skipRemoveConfirm, setSkipRemoveConfirm] = useState<boolean>(false);
 
+  // Draft state for asset operations
+  const [draftAssets, setDraftAssets] = useState<SpawnAsset[] | null>(null);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Compute if there are unsaved asset changes
+  const hasAssetChanges = useMemo(() => {
+    if (!spawn || !draftAssets) return false;
+    return JSON.stringify(draftAssets) !== JSON.stringify(spawn.assets);
+  }, [spawn, draftAssets]);
+
+  // Update context unsaved changes state
+  useEffect(() => {
+    setUnsavedChanges(hasAssetChanges);
+  }, [hasAssetChanges, setUnsavedChanges]);
+
   useEffect(() => {
     let isActive = true;
     const load = async () => {
       if (!selectedSpawnId) {
         setSpawn(null);
+        setDraftAssets(null);
         return;
       }
       setIsLoading(true);
       setLoadError(null);
+      setSaveError(null);
       try {
         const s = await SpawnService.getSpawn(selectedSpawnId);
-        if (isActive) setSpawn(s);
+        if (isActive) {
+          setSpawn(s);
+          setDraftAssets(null); // Clear draft when loading new spawn
+        }
       } catch (e) {
         if (isActive)
           setLoadError(e instanceof Error ? e.message : "Failed to load spawn");
@@ -215,14 +264,14 @@ function SpawnAssetsSection() {
 
     window.addEventListener(
       "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-      onSpawnUpdated as EventListener
+      onSpawnUpdated as EventListener,
     );
 
     return () => {
       isActive = false;
       window.removeEventListener(
         "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-        onSpawnUpdated as EventListener
+        onSpawnUpdated as EventListener,
       );
     };
   }, [selectedSpawnId]);
@@ -246,25 +295,78 @@ function SpawnAssetsSection() {
         setConfirmRemoveId(null);
         setIsRemoving(false);
         setSkipRemoveConfirm(false);
+        setDraftAssets(null);
+        setSaveError(null);
       }
     };
 
     window.addEventListener(
       "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
-      handleProfileChanged as EventListener
+      handleProfileChanged as EventListener,
     );
 
     return () => {
       window.removeEventListener(
         "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
-        handleProfileChanged as EventListener
+        handleProfileChanged as EventListener,
       );
     };
   }, []);
 
+  // Listen for requests to add assets to spawn
+  useEffect(() => {
+    const handleAddAssetRequest = (e: Event) => {
+      const ce = e as CustomEvent<{ assetId: string; assetName: string }>;
+      const { assetId, assetName } = ce.detail || {};
+      if (!assetId || !spawn) return;
+
+      const current = draftAssets ?? spawn.assets;
+
+      // Check for duplicates
+      const isDuplicate = current.some((sa) => sa.assetId === assetId);
+      if (isDuplicate) {
+        toast.error("Asset already exists in this spawn");
+        return;
+      }
+
+      // Add to draft
+      const newOrder = current.length;
+      const newSpawnAsset: SpawnAsset = createSpawnAsset(assetId, newOrder);
+      setDraftAssets([...current, newSpawnAsset]);
+      toast.success(`Added to spawn: ${assetName} (unsaved)`);
+    };
+
+    window.addEventListener(
+      "mediaspawner:request-add-asset-to-spawn" as unknown as keyof WindowEventMap,
+      handleAddAssetRequest as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "mediaspawner:request-add-asset-to-spawn" as unknown as keyof WindowEventMap,
+        handleAddAssetRequest as EventListener,
+      );
+    };
+  }, [spawn, draftAssets]);
+
+  // Use draft assets if available, otherwise use spawn assets
+  const currentAssets = useMemo(() => {
+    return draftAssets ?? spawn?.assets ?? [];
+  }, [draftAssets, spawn?.assets]);
+
+  // Emit draft count for header display
+  useEffect(() => {
+    const count = currentAssets.length;
+    const isDraft = draftAssets !== null;
+    window.dispatchEvent(
+      new CustomEvent("mediaspawner:draft-asset-count-changed", {
+        detail: { spawnId: selectedSpawnId, count, isDraft },
+      }),
+    );
+  }, [currentAssets, draftAssets, selectedSpawnId]);
+
   const resolvedAssets: ResolvedSpawnAsset[] = useMemo(() => {
-    if (!spawn) return [];
-    const items = [...spawn.assets]
+    const items = [...currentAssets]
       .sort((a, b) => a.order - b.order)
       .map((sa) => {
         const base = AssetService.getAssetById(sa.assetId);
@@ -272,7 +374,7 @@ function SpawnAssetsSection() {
       })
       .filter(Boolean) as ResolvedSpawnAsset[];
     return items;
-  }, [spawn]);
+  }, [currentAssets]);
 
   const renderEmptyState = () => {
     if (!selectedSpawnId) {
@@ -311,9 +413,9 @@ function SpawnAssetsSection() {
   const getTypeIcon = (type: MediaAsset["type"]) =>
     type === "image" ? "🖼️" : type === "video" ? "🎥" : "🎵";
 
-  const handleReorder = async (fromIndex: number, toIndex: number) => {
-    if (!spawn || fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return;
-    const current = [...spawn.assets].sort((a, b) => a.order - b.order);
+  const handleReorder = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return;
+    const current = [...currentAssets].sort((a, b) => a.order - b.order);
     if (fromIndex >= current.length || toIndex >= current.length) return;
     const moved = current.splice(fromIndex, 1)[0];
     current.splice(toIndex, 0, moved);
@@ -321,58 +423,72 @@ function SpawnAssetsSection() {
       ...sa,
       order: idx,
     }));
-    if (!selectedSpawnId) return;
-    const result = await SpawnService.updateSpawn(selectedSpawnId, {
-      assets: reindexed,
-    });
-    if (!result.success) {
-      setRemoveError(result.error || "Failed to reorder assets");
-      return;
-    }
-    window.dispatchEvent(
-      new CustomEvent(
-        "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-        { detail: { spawnId: selectedSpawnId } } as CustomEventInit
-      )
-    );
+    setDraftAssets(reindexed);
+    setRemoveError(null);
   };
 
-  const performRemove = async (removeId: string) => {
-    if (!selectedSpawnId || !spawn) return;
+  const performRemove = (removeId: string) => {
     setIsRemoving(true);
     setRemoveError(null);
     try {
-      const remaining = spawn.assets.filter((sa) => sa.id !== removeId);
+      const remaining = currentAssets.filter((sa) => sa.id !== removeId);
       const reindexed: SpawnAsset[] = remaining.map((sa, idx) => ({
         ...sa,
         order: idx,
       }));
-      const result = await SpawnService.updateSpawn(selectedSpawnId, {
-        assets: reindexed,
-      });
-      if (!result.success) {
-        setRemoveError(result.error || "Failed to remove asset from spawn");
-        return;
-      }
-      window.dispatchEvent(
-        new CustomEvent(
-          "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-          { detail: { spawnId: selectedSpawnId } } as CustomEventInit
-        )
-      );
+      setDraftAssets(reindexed);
     } catch (e) {
       setRemoveError(
-        e instanceof Error ? e.message : "Failed to remove asset from spawn"
+        e instanceof Error ? e.message : "Failed to remove asset from spawn",
       );
     } finally {
       setIsRemoving(false);
-      setConfirmRemoveId(null);
     }
   };
 
-  const handleConfirmRemove = async () => {
+  const handleConfirmRemove = () => {
     if (!confirmRemoveId) return;
-    await performRemove(confirmRemoveId);
+    performRemove(confirmRemoveId);
+    setConfirmRemoveId(null);
+  };
+
+  const handleSaveAssets = async () => {
+    if (!selectedSpawnId || !draftAssets) return;
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const result = await SpawnService.updateSpawn(selectedSpawnId, {
+        assets: draftAssets,
+      });
+      if (!result.success) {
+        setSaveError(result.error || "Failed to save asset changes");
+        toast.error(result.error || "Failed to save asset changes");
+        return;
+      }
+      // Clear draft and reload
+      setDraftAssets(null);
+      setSpawn(result.spawn || null);
+      toast.success("Asset changes saved");
+      window.dispatchEvent(
+        new CustomEvent(
+          "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+          { detail: { spawnId: selectedSpawnId } } as CustomEventInit,
+        ),
+      );
+    } catch (e) {
+      const msg =
+        e instanceof Error ? e.message : "Failed to save asset changes";
+      setSaveError(msg);
+      toast.error(msg);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelAssets = () => {
+    setDraftAssets(null);
+    setSaveError(null);
+    setRemoveError(null);
   };
 
   return (
@@ -520,8 +636,8 @@ function SpawnAssetsSection() {
                               spawn.randomizationBuckets || []
                             ).find((b) =>
                               b.members.some(
-                                (m) => m.spawnAssetId === spawnAsset.id
-                              )
+                                (m) => m.spawnAssetId === spawnAsset.id,
+                              ),
                             );
                             return bucket ? (
                               <Tooltip.Root>
@@ -569,8 +685,8 @@ function SpawnAssetsSection() {
                         window.dispatchEvent(
                           new CustomEvent(
                             "mediaspawner:request-center-switch" as unknown as keyof WindowEventMap,
-                            { detail } as CustomEventInit
-                          )
+                            { detail } as CustomEventInit,
+                          ),
                         );
                       }}
                       aria-label="Configure"
@@ -626,7 +742,7 @@ function SpawnAssetsSection() {
                             onSelect={() => {
                               const toIndex = Math.min(
                                 resolvedAssets.length - 1,
-                                index + 1
+                                index + 1,
                               );
                               if (toIndex !== index)
                                 void handleReorder(index, toIndex);
@@ -668,6 +784,56 @@ function SpawnAssetsSection() {
           </ul>
         )}
       </div>
+
+      {/* Save/Cancel buttons and status indicator */}
+      {hasAssetChanges && (
+        <div className="flex-shrink-0 border-t border-[rgb(var(--color-border))] bg-[rgb(var(--color-muted))]/5 p-3 lg:p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-xs text-[rgb(var(--color-muted-foreground))]">
+              {draftAssets &&
+              spawn &&
+              draftAssets.length !== spawn.assets.length ? (
+                <span className="text-[rgb(var(--color-warning))]">
+                  {draftAssets.length > spawn.assets.length
+                    ? `+${draftAssets.length - spawn.assets.length} asset(s)`
+                    : `${spawn.assets.length - draftAssets.length} asset(s) removed`}
+                </span>
+              ) : (
+                <span className="text-[rgb(var(--color-warning))]">
+                  Assets reordered
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCancelAssets}
+                disabled={isSaving}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleSaveAssets}
+                disabled={isSaving}
+              >
+                {isSaving ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </div>
+          {saveError && (
+            <div
+              className="mt-2 text-xs text-[rgb(var(--color-error))]"
+              role="alert"
+            >
+              {saveError}
+            </div>
+          )}
+        </div>
+      )}
+
       <ConfirmDialog
         isOpen={Boolean(confirmRemoveId)}
         title="Remove asset from spawn?"
@@ -675,13 +841,7 @@ function SpawnAssetsSection() {
         confirmText={isRemoving ? "Removing…" : "Remove"}
         cancelText="Cancel"
         variant="danger"
-        onConfirm={() => {
-          if (skipRemoveConfirm && confirmRemoveId) {
-            void performRemove(confirmRemoveId);
-          } else {
-            void handleConfirmRemove();
-          }
-        }}
+        onConfirm={handleConfirmRemove}
         onCancel={() => setConfirmRemoveId(null)}
         extraContent={
           <label className="flex items-center gap-2 text-xs text-[rgb(var(--color-fg))]">
@@ -708,7 +868,6 @@ function AssetLibrarySection() {
   const [filesError, setFilesError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const { selectedSpawnId } = usePanelState();
-  const [assigningAssetId, setAssigningAssetId] = useState<string | null>(null);
   const [spawnAssetIds, setSpawnAssetIds] = useState<Set<string>>(new Set());
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const listRef = React.useRef<HTMLUListElement | null>(null);
@@ -722,12 +881,12 @@ function AssetLibrarySection() {
     const handler = () => setAssets(AssetService.getAssets());
     window.addEventListener(
       "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
-      handler as EventListener
+      handler as EventListener,
     );
     return () => {
       window.removeEventListener(
         "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
-        handler as EventListener
+        handler as EventListener,
       );
     };
   }, []);
@@ -759,13 +918,13 @@ function AssetLibrarySection() {
     };
     window.addEventListener(
       "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-      onSpawnUpdated as EventListener
+      onSpawnUpdated as EventListener,
     );
     return () => {
       isActive = false;
       window.removeEventListener(
         "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-        onSpawnUpdated as EventListener
+        onSpawnUpdated as EventListener,
       );
     };
   }, [selectedSpawnId]);
@@ -804,8 +963,8 @@ function AssetLibrarySection() {
       setAssets(AssetService.getAssets());
       window.dispatchEvent(
         new Event(
-          "mediaspawner:assets-updated" as unknown as keyof WindowEventMap
-        )
+          "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
+        ),
       );
     } catch (e) {
       setAddError(e instanceof Error ? e.message : "Failed to add URL asset");
@@ -849,27 +1008,27 @@ function AssetLibrarySection() {
         }
         const hay = `${a.name} ${a.path}`.toLowerCase();
         return hay.includes(t);
-      })
+      }),
     );
   }, [assets, searchQuery]);
 
   useEffect(() => {
     if (activeIndex >= filteredAssets.length) {
       setActiveIndex(
-        filteredAssets.length > 0 ? filteredAssets.length - 1 : -1
+        filteredAssets.length > 0 ? filteredAssets.length - 1 : -1,
       );
     }
   }, [filteredAssets, activeIndex]);
 
   const focusRow = (index: number) => {
     const el = listRef.current?.querySelector<HTMLElement>(
-      `[data-asset-index="${index}"]`
+      `[data-asset-index="${index}"]`,
     );
     el?.focus();
   };
 
   const handleFilesSelected: React.ChangeEventHandler<HTMLInputElement> = (
-    e
+    e,
   ) => {
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0) return;
@@ -900,15 +1059,15 @@ function AssetLibrarySection() {
     setAssets(AssetService.getAssets());
     window.dispatchEvent(
       new Event(
-        "mediaspawner:assets-updated" as unknown as keyof WindowEventMap
-      )
+        "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
+      ),
     );
     // Compose error summary
     if (errors.length > 0) {
       setFilesError(
         `${errors.length} file(s) skipped: ${errors.slice(0, 3).join("; ")}${
           errors.length > 3 ? "…" : ""
-        }`
+        }`,
       );
     } else {
       setFilesError(null);
@@ -917,56 +1076,17 @@ function AssetLibrarySection() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleAddToSpawn = async (asset: MediaAsset) => {
+  const handleAddToSpawn = (asset: MediaAsset) => {
     if (!selectedSpawnId) return;
-    setAssigningAssetId(asset.id);
-    setAddError(null);
-    try {
-      const spawn = await SpawnService.getSpawn(selectedSpawnId);
-      if (!spawn) {
-        setAddError("Failed to load selected spawn");
-        toast.error("Failed to load selected spawn");
-        return;
-      }
-
-      const isDuplicate = spawn.assets.some((sa) => sa.assetId === asset.id);
-      if (isDuplicate) {
-        setAddError("Asset already exists in this spawn");
-        toast.error("Asset already exists in this spawn");
-        return;
-      }
-
-      const newOrder = spawn.assets.length;
-      const newSpawnAsset: SpawnAsset = createSpawnAsset(asset.id, newOrder);
-      const result = await SpawnService.updateSpawn(selectedSpawnId, {
-        assets: [...spawn.assets, newSpawnAsset],
-      });
-      if (!result.success) {
-        setAddError(result.error || "Failed to add asset to spawn");
-        toast.error(result.error || "Failed to add to spawn");
-        return;
-      }
-
-      setSpawnAssetIds((prev) => {
-        const next = new Set(prev);
-        next.add(asset.id);
-        return next;
-      });
-      window.dispatchEvent(
-        new CustomEvent(
-          "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-          { detail: { spawnId: selectedSpawnId } } as CustomEventInit
-        )
-      );
-      toast.success(`Added to spawn: ${asset.name}`);
-    } catch (e) {
-      const msg =
-        e instanceof Error ? e.message : "Failed to add asset to spawn";
-      setAddError(msg);
-      toast.error(msg);
-    } finally {
-      setAssigningAssetId(null);
-    }
+    // Dispatch event for SpawnAssetsSection to handle
+    window.dispatchEvent(
+      new CustomEvent(
+        "mediaspawner:request-add-asset-to-spawn" as unknown as keyof WindowEventMap,
+        {
+          detail: { assetId: asset.id, assetName: asset.name },
+        } as CustomEventInit,
+      ),
+    );
   };
 
   return (
@@ -1084,7 +1204,7 @@ function AssetLibrarySection() {
             setActiveIndex((i) => {
               const next = Math.min(
                 filteredAssets.length - 1,
-                (i < 0 ? -1 : i) + 1
+                (i < 0 ? -1 : i) + 1,
               );
               window.requestAnimationFrame(() => focusRow(next));
               return next;
@@ -1174,15 +1294,13 @@ function AssetLibrarySection() {
                       <button
                         type="button"
                         className={`p-1.5 rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] text-[rgb(var(--color-fg))] ${
-                          !selectedSpawnId || assigningAssetId === asset.id
+                          !selectedSpawnId
                             ? "opacity-50 cursor-not-allowed"
                             : "hover:bg-[rgb(var(--color-muted))]/5"
                         }`}
                         aria-label="Add to Spawn"
                         onClick={() => handleAddToSpawn(asset)}
-                        disabled={
-                          !selectedSpawnId || assigningAssetId === asset.id
-                        }
+                        disabled={!selectedSpawnId}
                       >
                         +
                       </button>
@@ -1230,7 +1348,7 @@ const AssetManagementPanel: React.FC = () => {
     try {
       localStorage.setItem(
         "ms_disclosure_asset_library",
-        libraryOpen ? "1" : "0"
+        libraryOpen ? "1" : "0",
       );
     } catch (e) {
       void e;

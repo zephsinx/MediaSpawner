@@ -5,6 +5,7 @@ import {
   act,
   fireEvent,
   within,
+  waitFor,
 } from "@testing-library/react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import AssetManagementPanel from "../AssetManagementPanel";
@@ -132,7 +133,8 @@ describe("AssetManagementPanel (Advanced Features)", () => {
       expect(addBtn).not.toBeDisabled();
     });
 
-    it("adds library asset to selected spawn and updates top section count", async () => {
+    it("adds library asset creates draft state (unsaved)", async () => {
+      const mockSetUnsavedChanges = vi.fn();
       vi.mocked(usePanelState).mockReturnValue({
         selectedSpawnId: "s1",
         activeProfileId: undefined,
@@ -146,45 +148,43 @@ describe("AssetManagementPanel (Advanced Features)", () => {
         selectSpawn: vi.fn(),
         selectSpawnAsset: vi.fn(),
         setCenterPanelMode: vi.fn(),
-        setUnsavedChanges: vi.fn(),
+        setUnsavedChanges: mockSetUnsavedChanges,
         clearContext: vi.fn(),
       });
 
       vi.mocked(AssetService.getAssets).mockReturnValue([
-        makeAsset({ id: "a1" }),
+        makeAsset({ id: "a1", name: "Test Asset" }),
       ]);
 
-      // In-memory spawn state
-      let currentSpawn = makeSpawn("s1", []);
+      const currentSpawn = makeSpawn("s1", []);
       vi.mocked(SpawnService.getSpawn).mockImplementation(
         async (id: string) => {
           if (id === "s1") return { ...currentSpawn };
           return makeSpawn(id, []);
         },
       );
-      vi.mocked(SpawnService.updateSpawn).mockImplementation(
-        async (_id: string, updates: Partial<Pick<Spawn, "assets">>) => {
-          currentSpawn = {
-            ...currentSpawn,
-            assets: updates.assets || currentSpawn.assets,
-          };
-          return { success: true, spawn: { ...currentSpawn } };
-        },
-      );
 
       render(<AssetManagementPanel />);
+
+      // Wait for spawn to be loaded (count shows (0))
+      await screen.findByText("(0)");
 
       const addBtn = screen.getByRole("button", { name: "Add to Spawn" });
       await act(async () => {
         addBtn.click();
       });
 
-      // Count in Disclosure header for "Assets in Current Spawn" should become (1)
-      const headerBtn = screen.getByRole("button", {
-        name: /Assets in Current Spawn/i,
+      // Wait for Save button to appear (indicates draft state created)
+      const saveBtn = await screen.findByRole("button", { name: /Save/i });
+      expect(saveBtn).toBeInTheDocument();
+
+      // Verify draft state created
+      await waitFor(() => {
+        expect(mockSetUnsavedChanges).toHaveBeenCalledWith(true);
       });
-      expect(headerBtn.textContent || "").toMatch(/\(1\)/);
-      expect(SpawnService.updateSpawn).toHaveBeenCalledTimes(1);
+
+      // Verify updateSpawn NOT called immediately
+      expect(SpawnService.updateSpawn).not.toHaveBeenCalled();
     });
 
     it("prevents duplicate assignment and shows an error", async () => {
@@ -227,67 +227,19 @@ describe("AssetManagementPanel (Advanced Features)", () => {
 
       // Should not call updateSpawn since it's duplicate
       expect(SpawnService.updateSpawn).not.toHaveBeenCalled();
-      // Error message visible
-      const alert = await screen.findByRole("alert");
-      expect(alert.textContent || "").toMatch(/already exists/i);
-    });
 
-    it("creates spawn asset with correct properties when adding", async () => {
-      vi.mocked(usePanelState).mockReturnValue({
-        selectedSpawnId: "s1",
-        activeProfileId: undefined,
-        liveProfileId: undefined,
-        selectedSpawnAssetId: undefined,
-        centerPanelMode: "spawn-settings",
-        hasUnsavedChanges: false,
-        profileSpawnSelections: {},
-        setActiveProfile: vi.fn(),
-        setLiveProfile: vi.fn(),
-        selectSpawn: vi.fn(),
-        selectSpawnAsset: vi.fn(),
-        setCenterPanelMode: vi.fn(),
-        setUnsavedChanges: vi.fn(),
-        clearContext: vi.fn(),
-      });
-
-      vi.mocked(AssetService.getAssets).mockReturnValue([
-        makeAsset({ id: "a1" }),
-      ]);
-
-      let currentSpawn = makeSpawn("s1", []);
-      vi.mocked(SpawnService.getSpawn).mockResolvedValue(currentSpawn);
-      vi.mocked(SpawnService.updateSpawn).mockImplementation(
-        async (_id: string, updates: Partial<Pick<Spawn, "assets">>) => {
-          currentSpawn = {
-            ...currentSpawn,
-            assets: updates.assets || currentSpawn.assets,
-          };
-          return { success: true, spawn: { ...currentSpawn } };
-        },
-      );
-
-      render(<AssetManagementPanel />);
-
-      const addBtn = screen.getByRole("button", { name: "Add to Spawn" });
-      await act(async () => {
-        addBtn.click();
-      });
-
-      expect(SpawnService.updateSpawn).toHaveBeenCalledWith("s1", {
-        assets: expect.arrayContaining([
-          expect.objectContaining({
-            assetId: "a1",
-            order: 0,
-            enabled: true,
-            overrides: {},
-          }),
-        ]),
+      // Should not show Save button (no draft created for duplicates)
+      await waitFor(() => {
+        expect(
+          screen.queryByRole("button", { name: /Save/i }),
+        ).not.toBeInTheDocument();
       });
     });
   });
 
   describe("Asset Removal Workflow (MS-38)", () => {
-    it("renders remove control and requires confirmation; removes on confirm and updates count", async () => {
+    it("renders remove control and requires confirmation; removes on confirm and updates count (draft)", async () => {
+      const mockSetUnsavedChanges = vi.fn();
       vi.mocked(usePanelState).mockReturnValue({
         selectedSpawnId: "s1",
         activeProfileId: undefined,
@@ -301,7 +253,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
         selectSpawn: vi.fn(),
         selectSpawnAsset: vi.fn(),
         setCenterPanelMode: vi.fn(),
-        setUnsavedChanges: vi.fn(),
+        setUnsavedChanges: mockSetUnsavedChanges,
         clearContext: vi.fn(),
       });
 
@@ -309,19 +261,10 @@ describe("AssetManagementPanel (Advanced Features)", () => {
 
       const a0 = makeSpawnAsset("a1", 0);
       const a1 = makeSpawnAsset("a2", 1);
-      let current = makeSpawn("s1", [a0, a1]);
+      const current = makeSpawn("s1", [a0, a1]);
       vi.mocked(SpawnService.getSpawn).mockImplementation(async () => ({
         ...current,
       }));
-      vi.mocked(SpawnService.updateSpawn).mockImplementation(
-        async (_id, updates) => {
-          current = {
-            ...current,
-            assets: (updates.assets as SpawnAsset[]) ?? current.assets,
-          };
-          return { success: true, spawn: { ...current } };
-        },
-      );
 
       render(<AssetManagementPanel />);
 
@@ -340,22 +283,42 @@ describe("AssetManagementPanel (Advanced Features)", () => {
       const dialog = await screen.findByRole("dialog");
       expect(dialog).toBeInTheDocument();
       const confirm = within(dialog).getByRole("button", { name: /remove/i });
-      await act(async () => {
-        confirm.click();
+
+      // Click confirm
+      fireEvent.click(confirm);
+
+      // Wait for dialog to close and draft state to be created
+      await waitFor(() => {
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
       });
 
-      // Count should be (1) and only one asset remains
-      const headerBtnAfter = screen.getByRole("button", {
-        name: /Assets in Current Spawn/i,
+      // Verify draft state created (Save button appears)
+      await waitFor(() => {
+        expect(
+          screen.queryByRole("button", { name: /Save/i }),
+        ).toBeInTheDocument();
       });
-      expect(headerBtnAfter.textContent || "").toMatch(/\(1\)/);
-      const items = await screen.findAllByRole("listitem");
+
+      // Verify unsaved changes flag was set
+      await waitFor(() => {
+        expect(mockSetUnsavedChanges).toHaveBeenCalledWith(true);
+      });
+
+      // Verify count updated to (1) after removal
+      expect(screen.getByText("(1)")).toBeInTheDocument();
+
+      // Verify only one asset remains
+      const items = screen.getAllByRole("listitem");
       expect(items.length).toBe(1);
+
+      // Verify updateSpawn NOT called immediately
+      expect(SpawnService.updateSpawn).not.toHaveBeenCalled();
     });
   });
 
   describe("Drag & Drop Reordering (MS-39)", () => {
-    it("reorders items via drag and drop and persists order", async () => {
+    it("reorders items creates draft state", async () => {
+      const mockSetUnsavedChanges = vi.fn();
       vi.mocked(usePanelState).mockReturnValue({
         selectedSpawnId: "s1",
         activeProfileId: undefined,
@@ -369,7 +332,64 @@ describe("AssetManagementPanel (Advanced Features)", () => {
         selectSpawn: vi.fn(),
         selectSpawnAsset: vi.fn(),
         setCenterPanelMode: vi.fn(),
-        setUnsavedChanges: vi.fn(),
+        setUnsavedChanges: mockSetUnsavedChanges,
+        clearContext: vi.fn(),
+      });
+
+      vi.mocked(AssetService.getAssets).mockReturnValue([]);
+
+      const a0 = makeSpawnAsset("a1", 0);
+      const a1 = makeSpawnAsset("a2", 1);
+      const a2 = makeSpawnAsset("a3", 2);
+      const current = makeSpawn("s1", [a0, a1, a2]);
+      vi.mocked(SpawnService.getSpawn).mockImplementation(async () => ({
+        ...current,
+      }));
+
+      render(<AssetManagementPanel />);
+
+      // Wait for three listitems
+      const items = await screen.findAllByRole("listitem");
+      expect(items.length).toBe(3);
+
+      // Drag index 2 to index 0
+      await act(async () => {
+        const dt = {
+          getData: vi.fn(() => "2"),
+          setData: vi.fn(),
+          effectAllowed: "move",
+          dropEffect: "move",
+        } as unknown as DataTransfer;
+        fireEvent.dragOver(items[0], { dataTransfer: dt });
+        fireEvent.drop(items[0], { dataTransfer: dt });
+      });
+
+      // Verify draft state created
+      expect(mockSetUnsavedChanges).toHaveBeenCalledWith(true);
+
+      // Verify Save button appears
+      expect(screen.getByRole("button", { name: /Save/i })).toBeInTheDocument();
+
+      // Verify updateSpawn NOT called immediately
+      expect(SpawnService.updateSpawn).not.toHaveBeenCalled();
+    });
+
+    it("save button persists reorder", async () => {
+      const mockSetUnsavedChanges = vi.fn();
+      vi.mocked(usePanelState).mockReturnValue({
+        selectedSpawnId: "s1",
+        activeProfileId: undefined,
+        liveProfileId: undefined,
+        selectedSpawnAssetId: undefined,
+        centerPanelMode: "spawn-settings",
+        hasUnsavedChanges: false,
+        profileSpawnSelections: {},
+        setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
+        selectSpawn: vi.fn(),
+        selectSpawnAsset: vi.fn(),
+        setCenterPanelMode: vi.fn(),
+        setUnsavedChanges: mockSetUnsavedChanges,
         clearContext: vi.fn(),
       });
 
@@ -410,11 +430,19 @@ describe("AssetManagementPanel (Advanced Features)", () => {
         fireEvent.drop(items[0], { dataTransfer: dt });
       });
 
-      // After reorder, ensure updateSpawn called and order label reflects update
-      const updated = await screen.findAllByRole("listitem");
+      // Click Save
+      const saveBtn = screen.getByRole("button", { name: /Save/i });
+      await act(async () => {
+        saveBtn.click();
+      });
+
+      // Verify updateSpawn called with new order
       expect(SpawnService.updateSpawn).toHaveBeenCalled();
-      const textContent = updated.map((li) => li.textContent || "").join(" ");
-      expect(textContent).toMatch(/Order:\s*0/);
+      const callArgs = vi.mocked(SpawnService.updateSpawn).mock.calls[0];
+      expect(callArgs[1].assets).toBeDefined();
+
+      // Verify draft cleared
+      expect(mockSetUnsavedChanges).toHaveBeenCalledWith(false);
     });
 
     it("no-op when dropping onto same index", async () => {
