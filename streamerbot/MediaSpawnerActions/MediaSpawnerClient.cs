@@ -3263,6 +3263,44 @@ public class CPHInline
     }
 
     /// <summary>
+    /// Find the profile that contains a specific spawn
+    /// </summary>
+    /// <param name="spawnId">The spawn ID to search for</param>
+    /// <returns>The profile containing the spawn, or null if not found</returns>
+    private SpawnProfile FindProfileBySpawnId(string spawnId)
+    {
+        if (this.cachedConfig?.Profiles == null || string.IsNullOrWhiteSpace(spawnId))
+            return null;
+
+        return this.cachedConfig.Profiles.FirstOrDefault(profile =>
+            profile.Spawns?.Any(s => s.Id == spawnId) == true);
+    }
+
+    /// <summary>
+    /// Get the effective working directory for a spawn, with profile override and global fallback.
+    /// Only applies to local file assets; URL/browser sources ignore working directory.
+    /// </summary>
+    /// <param name="spawn">The spawn to get working directory for</param>
+    /// <returns>Effective working directory path, or empty string if none configured</returns>
+    private string GetEffectiveWorkingDirectory(Spawn spawn)
+    {
+        if (spawn == null || this.cachedConfig == null)
+            return string.Empty;
+
+        // Find the profile containing this spawn
+        SpawnProfile profile = FindProfileBySpawnId(spawn.Id);
+
+        // Priority: Profile working directory > Global working directory
+        if (profile != null && !string.IsNullOrWhiteSpace(profile.WorkingDirectory))
+        {
+            return profile.WorkingDirectory;
+        }
+
+        // Fallback to global config
+        return this.cachedConfig.WorkingDirectory ?? string.Empty;
+    }
+
+    /// <summary>
     /// Filter spawns based on command configuration
     /// </summary>
     /// <param name="spawns">List of spawns to filter</param>
@@ -4483,8 +4521,11 @@ public class CPHInline
                 effectiveProperties.Effective["positionMode"] = "absolute"; // Force absolute positioning
             }
 
+            // Get effective working directory for this spawn's profile
+            string effectiveWorkingDir = GetEffectiveWorkingDirectory(spawn);
+
             // Create OBS source for the asset with retry logic
-            bool sourceCreated = CreateOBSSource(baseAsset, effectiveProperties.Effective, generatedSourceGuid, out int sceneItemId);
+            bool sourceCreated = CreateOBSSource(baseAsset, effectiveProperties.Effective, generatedSourceGuid, out int sceneItemId, effectiveWorkingDir);
             if (!sourceCreated)
             {
                 LogExecution(LogLevel.Warning, $"ExecuteSpawnAsset[{executionId}]: Failed to create OBS source for asset '{spawnAsset.AssetId}' - continuing without OBS source");
@@ -4791,8 +4832,9 @@ public class CPHInline
     /// <param name="properties">The effective properties to apply</param>
     /// <param name="sourceName">The name for the OBS source</param>
     /// <param name="sceneItemId">The scene item ID returned by OBS (set to -1 on failure)</param>
+    /// <param name="workingDirectory">The working directory for local file resolution (optional)</param>
     /// <returns>True if source was created successfully</returns>
-    private bool CreateOBSSource(MediaAsset asset, Dictionary<string, object> properties, string sourceName, out int sceneItemId)
+    private bool CreateOBSSource(MediaAsset asset, Dictionary<string, object> properties, string sourceName, out int sceneItemId, string workingDirectory = null)
     {
         sceneItemId = -1; // Initialize out parameter
 
@@ -4847,7 +4889,7 @@ public class CPHInline
                 }
 
                 // Build source settings
-                Dictionary<string, object> sourceSettings = BuildOBSSourceSettings(asset, properties);
+                Dictionary<string, object> sourceSettings = BuildOBSSourceSettings(asset, properties, workingDirectory);
 
                 // Create OBS WebSocket API request data for CreateInput
                 Dictionary<string, object> createInputData = new Dictionary<string, object>
@@ -5355,8 +5397,9 @@ public class CPHInline
     /// </summary>
     /// <param name="asset">The media asset</param>
     /// <param name="properties">The effective properties</param>
+    /// <param name="workingDirectory">The working directory for local file resolution (optional)</param>
     /// <returns>Dictionary of OBS source settings</returns>
-    private Dictionary<string, object> BuildOBSSourceSettings(MediaAsset asset, Dictionary<string, object> properties)
+    private Dictionary<string, object> BuildOBSSourceSettings(MediaAsset asset, Dictionary<string, object> properties, string workingDirectory = null)
     {
         Dictionary<string, object> settings = new Dictionary<string, object>();
 
@@ -5368,11 +5411,12 @@ public class CPHInline
         }
         else
         {
-            // Local files - resolve path using working directory
+            // Local files only - resolve path using provided working directory
+            // URL/browser sources bypass this entirely
             string resolvedPath = asset.Path;
-            if (this.cachedConfig != null && !string.IsNullOrWhiteSpace(this.cachedConfig.WorkingDirectory))
+            if (!string.IsNullOrWhiteSpace(workingDirectory))
             {
-                resolvedPath = ResolveLocalFilePath(asset.Path, this.cachedConfig.WorkingDirectory);
+                resolvedPath = ResolveLocalFilePath(asset.Path, workingDirectory);
             }
 
             // Use appropriate parameter based on source type
@@ -6732,6 +6776,9 @@ public class CPHInline
 
         [JsonProperty("description")]
         public string Description { get; set; }
+
+        [JsonProperty("workingDirectory")]
+        public string WorkingDirectory { get; set; }
 
         [JsonProperty("spawns")]
         public List<Spawn> Spawns { get; set; } = new List<Spawn>();
