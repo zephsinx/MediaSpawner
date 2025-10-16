@@ -35,6 +35,44 @@ This file guides coding agents working on MediaSpawner. It complements README.md
   - One test file per source file when practical.
   - Reset mocks between tests so they do not affect each other (use `beforeEach` with `vi.resetAllMocks()` or equivalent).
   - Keep the entire suite green before merging; add/update tests for changed behavior.
+  - **Always wrap component renders in `act()` when using providers that trigger state updates.**
+
+### Testing with act()
+
+When testing components that trigger React state updates (via Context providers, useEffect hooks, or async operations), wrap render calls in `act()`:
+
+```typescript
+import { act } from "@testing-library/react";
+
+// ✅ CORRECT: Wrap render in act()
+it("renders component", async () => {
+  await act(async () => {
+    renderWithAllProviders(<MyComponent />);
+  });
+  expect(screen.getByText("Hello")).toBeInTheDocument();
+});
+
+// ❌ WRONG: Missing act() wrapper
+it("renders component", () => {
+  renderWithAllProviders(<MyComponent />); // Warning: state updates not wrapped in act()
+  expect(screen.getByText("Hello")).toBeInTheDocument();
+});
+```
+
+**When to use act():**
+
+- Components wrapped with `LayoutProvider` (triggers useEffect state updates)
+- Components that dispatch events or update context on mount
+- Any test with async state updates, timers, or promises
+- User interactions like `fireEvent.click()` that trigger state changes
+
+**Common scenarios:**
+
+1. **Provider components**: Always wrap when using `renderWithLayoutProvider()` or `renderWithAllProviders()`
+2. **User events**: Wrap `fireEvent` or `userEvent` calls that trigger state updates
+3. **Async operations**: Use `await act(async () => { ... })` for promises
+
+For more details, see: <https://react.dev/link/wrap-tests-with-act>
 
 ## Testing expectations and assertions
 

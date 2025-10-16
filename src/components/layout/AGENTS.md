@@ -80,3 +80,15 @@
 - Assert mode routing respects the unsaved-changes guard.
 - Ensure header and panel placeholders render correct accessible names.
 - Test lazy loading fallbacks render correctly during component loading.
+- **Always wrap renders with `act()` when testing components that use `LayoutProvider`** because it triggers multiple useEffect hooks that update state asynchronously:
+
+  ```typescript
+  import { act } from "@testing-library/react";
+
+  it("renders layout correctly", async () => {
+    await act(async () => {
+      renderWithAllProviders(<MyLayoutComponent />);
+    });
+    // assertions...
+  });
+  ```

@@ -196,10 +196,8 @@ describe("useAppInitialization", () => {
     const { result } = renderHook(() => useAppInitialization());
 
     await waitFor(() => {
-      expect(result.current.error).toBe(null);
+      expect(result.current.error).toBe("Failed to create profile");
     });
-
-    expect(result.current.error).toBe("Failed to create profile");
   });
 
   it("should handle initialization exceptions", async () => {
@@ -218,10 +216,9 @@ describe("useAppInitialization", () => {
     const { result } = renderHook(() => useAppInitialization());
 
     await waitFor(() => {
-      expect(result.current.error).toBe(null);
+      expect(result.current.error).toBe("Initialization failed");
     });
 
-    expect(result.current.error).toBe("Initialization failed");
     errorSpy.mockRestore();
   });
 });
