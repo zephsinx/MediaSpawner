@@ -31,7 +31,7 @@ function isLikelyAnimatedImage(path: string): boolean {
   const lastDot = cleanPath.lastIndexOf(".");
   const lastSlash = Math.max(
     cleanPath.lastIndexOf("/"),
-    cleanPath.lastIndexOf("\\")
+    cleanPath.lastIndexOf("\\"),
   );
 
   if (lastDot > lastSlash && lastDot !== -1) {
@@ -125,6 +125,7 @@ export function MediaPreview({
             className={`w-full h-full ${
               fit === "contain" ? "object-contain" : "object-cover"
             }`}
+            loading="lazy"
             onLoad={handleLoad}
             onError={handleError}
           />

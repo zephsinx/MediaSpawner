@@ -1,4 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  memo,
+  useCallback,
+} from "react";
 import { useStreamerbotCommands } from "../../hooks/useStreamerbotCommands";
 import { HUICombobox } from "../common";
 import { Button } from "../ui/Button";
@@ -137,7 +144,7 @@ const getMonthlyOnConfig = (trigger: Trigger | null) =>
     ? (trigger.config as { dayOfMonth: number; time: string; timezone: string })
     : null;
 
-const SpawnEditorWorkspace: React.FC = () => {
+const SpawnEditorWorkspace: React.FC = memo(() => {
   const {
     selectedSpawnId,
     selectedSpawnAssetId,
@@ -192,6 +199,18 @@ const SpawnEditorWorkspace: React.FC = () => {
     return validateRandomizationBuckets(candidate);
   }, [selectedSpawn, bucketsDraft]);
 
+  // Create refs for latest state
+  const selectedSpawnIdRef = useRef(selectedSpawnId);
+  const setSelectedSpawnRef = useRef(setSelectedSpawn);
+  const setNameRef = useRef(setName);
+  const setDescriptionRef = useRef(setDescription);
+
+  selectedSpawnIdRef.current = selectedSpawnId;
+  setSelectedSpawnRef.current = setSelectedSpawn;
+  setNameRef.current = setName;
+  setDescriptionRef.current = setDescription;
+
+  // Stable event listener - only re-registered when IDs change
   useEffect(() => {
     let isActive = true;
     const load = async () => {
@@ -212,11 +231,11 @@ const SpawnEditorWorkspace: React.FC = () => {
         | { spawnId?: string; updatedSpawn?: Spawn }
         | undefined;
       if (!detail || !detail.spawnId) return;
-      if (detail.spawnId !== selectedSpawnId) return;
+      if (detail.spawnId !== selectedSpawnIdRef.current) return;
       if (detail.updatedSpawn) {
-        setSelectedSpawn(detail.updatedSpawn);
-        setName(detail.updatedSpawn.name);
-        setDescription(detail.updatedSpawn.description || "");
+        setSelectedSpawnRef.current(detail.updatedSpawn);
+        setNameRef.current(detail.updatedSpawn.name);
+        setDescriptionRef.current(detail.updatedSpawn.description || "");
         return;
       }
       void load();
@@ -239,6 +258,15 @@ const SpawnEditorWorkspace: React.FC = () => {
     hasUnsavedChangesRef.current = hasUnsavedChanges;
   }, [hasUnsavedChanges]);
 
+  // Create refs for latest state for mode switching
+  const selectSpawnAssetRef = useRef(selectSpawnAsset);
+  const setCenterPanelModeRef = useRef(setCenterPanelMode);
+  const setShowModeSwitchDialogRef = useRef(setShowModeSwitchDialog);
+
+  selectSpawnAssetRef.current = selectSpawnAsset;
+  setCenterPanelModeRef.current = setCenterPanelMode;
+  setShowModeSwitchDialogRef.current = setShowModeSwitchDialog;
+
   useEffect(() => {
     const onRequestSwitch = (evt: Event) => {
       const detail = (evt as CustomEvent).detail as
@@ -253,16 +281,16 @@ const SpawnEditorWorkspace: React.FC = () => {
       // Use ref to read latest state value, but skip guard if explicitly bypassed
       if (hasUnsavedChangesRef.current && !detail.skipGuard) {
         switchPendingRef.current = detail;
-        setShowModeSwitchDialog(true);
+        setShowModeSwitchDialogRef.current(true);
         return;
       }
 
       if (detail.mode === "asset-settings" && detail.spawnAssetId) {
-        selectSpawnAsset(detail.spawnAssetId);
-        setCenterPanelMode("asset-settings");
+        selectSpawnAssetRef.current(detail.spawnAssetId);
+        setCenterPanelModeRef.current("asset-settings");
       } else if (detail.mode === "spawn-settings") {
-        setCenterPanelMode("spawn-settings");
-        selectSpawnAsset(undefined);
+        setCenterPanelModeRef.current("spawn-settings");
+        selectSpawnAssetRef.current(undefined);
       }
     };
     window.addEventListener(
@@ -275,7 +303,7 @@ const SpawnEditorWorkspace: React.FC = () => {
         onRequestSwitch as EventListener,
       );
     };
-  }, [selectSpawnAsset, setCenterPanelMode]);
+  }, []); // Empty dependency array - event listener never re-registers
 
   useEffect(() => {
     if (selectedSpawn) {
@@ -367,7 +395,7 @@ const SpawnEditorWorkspace: React.FC = () => {
     validation.errors.length > 0 ||
     !bucketValidation.isValid;
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     if (!selectedSpawn) return;
     if (isDirty) {
       setShowDiscardDialog(true);
@@ -380,9 +408,20 @@ const SpawnEditorWorkspace: React.FC = () => {
     setDuration(selectedSpawn.duration);
     setSaveError(null);
     setSaveSuccess(null);
-  };
+  }, [
+    selectedSpawn,
+    isDirty,
+    setShowDiscardDialog,
+    setName,
+    setDescription,
+    setEnabled,
+    setTrigger,
+    setDuration,
+    setSaveError,
+    setSaveSuccess,
+  ]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!selectedSpawn || isSaveDisabled) return;
 
     // Additional validation for command aliases
@@ -431,7 +470,26 @@ const SpawnEditorWorkspace: React.FC = () => {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [
+    selectedSpawn,
+    isSaveDisabled,
+    trigger,
+    isCommandAliasValid,
+    isChannelPointConfigValid,
+    setIsSaving,
+    setSaveError,
+    setSaveSuccess,
+    trimmedName,
+    description,
+    enabled,
+    duration,
+    bucketsDraft,
+    setName,
+    setDescription,
+    setEnabled,
+    setTrigger,
+    setSelectedSpawn,
+  ]);
 
   const formatDate = (ms: number | undefined) => {
     if (!ms) return "-";
@@ -2186,6 +2244,8 @@ const SpawnEditorWorkspace: React.FC = () => {
       </div>
     </div>
   );
-};
+});
+
+SpawnEditorWorkspace.displayName = "SpawnEditorWorkspace";
 
 export default SpawnEditorWorkspace;

@@ -319,6 +319,9 @@ describe("SpawnProfileService", () => {
       expect(mockCreateSpawnProfile).toHaveBeenCalledWith(
         "New Profile",
         "Description",
+        [],
+        undefined,
+        undefined,
       );
       expect(localStorage.setItem).toHaveBeenCalled();
     });
@@ -333,6 +336,9 @@ describe("SpawnProfileService", () => {
       expect(result.success).toBe(true);
       expect(mockCreateSpawnProfile).toHaveBeenCalledWith(
         "New Profile",
+        undefined,
+        [],
+        undefined,
         undefined,
       );
     });
@@ -552,6 +558,11 @@ describe("SpawnProfileService", () => {
         JSON.stringify([validProfile, activeProfile]),
       );
       localStorage.setItem.mockImplementation(() => {});
+      mockSettingsService.getSettings.mockReturnValue({
+        workingDirectory: "",
+        activeProfileId: "profile-2",
+        themeMode: "light" as const,
+      });
 
       const result = SpawnProfileService.deleteProfile("profile-1");
 
@@ -562,21 +573,63 @@ describe("SpawnProfileService", () => {
       );
     });
 
-    it("fails when deleting active profile", () => {
+    it("can delete active profile if not live", () => {
       const localStorage = getLocalStorageMock();
-      localStorage.getItem.mockReturnValue(JSON.stringify([activeProfile]));
+      const inactiveProfile = {
+        ...validProfile,
+        id: "profile-3",
+        isActive: false,
+      };
+      localStorage.getItem.mockReturnValue(
+        JSON.stringify([activeProfile, inactiveProfile]),
+      );
+      localStorage.setItem.mockImplementation(() => {});
+      mockSettingsService.getSettings.mockReturnValue({
+        workingDirectory: "",
+        activeProfileId: "profile-2",
+        themeMode: "light" as const,
+      });
+
+      const result = SpawnProfileService.deleteProfile("profile-2");
+
+      expect(result.success).toBe(true);
+      expect(localStorage.setItem).toHaveBeenCalledWith(
+        "mediaspawner_spawn_profiles",
+        JSON.stringify([inactiveProfile]),
+      );
+    });
+
+    it("fails when deleting live profile", () => {
+      const localStorage = getLocalStorageMock();
+      const inactiveProfile = {
+        ...validProfile,
+        id: "profile-3",
+        isActive: false,
+      };
+      localStorage.getItem.mockReturnValue(
+        JSON.stringify([activeProfile, inactiveProfile]),
+      );
+      mockSettingsService.getSettings.mockReturnValue({
+        workingDirectory: "",
+        activeProfileId: "profile-3",
+        liveProfileId: "profile-2",
+        themeMode: "light" as const,
+      });
 
       const result = SpawnProfileService.deleteProfile("profile-2");
 
       expect(result.success).toBe(false);
       expect(result.error).toBe(
-        "Cannot delete the active profile. Please switch to a different profile first.",
+        "Cannot delete the live profile. Clear the live profile status before deleting this one.",
       );
     });
 
     it("fails when profile not found", () => {
       const localStorage = getLocalStorageMock();
-      localStorage.getItem.mockReturnValue(JSON.stringify([validProfile]));
+      const profile2 = { ...validProfile, id: "profile-2", isActive: false };
+      localStorage.getItem.mockReturnValue(
+        JSON.stringify([validProfile, profile2]),
+      );
 
       const result = SpawnProfileService.deleteProfile("non-existent");
 
@@ -586,7 +639,10 @@ describe("SpawnProfileService", () => {
 
     it("handles localStorage errors", () => {
       const localStorage = getLocalStorageMock();
-      localStorage.getItem.mockReturnValue(JSON.stringify([validProfile]));
+      const profile2 = { ...validProfile, id: "profile-2", isActive: false };
+      localStorage.getItem.mockReturnValue(
+        JSON.stringify([validProfile, profile2]),
+      );
       localStorage.setItem.mockImplementation(() => {
         throw new Error("Storage error");
       });
@@ -745,6 +801,9 @@ describe("SpawnProfileService", () => {
       expect(mockCreateSpawnProfile).toHaveBeenCalledWith(
         "Default Profile",
         "Default spawn profile",
+        [],
+        undefined,
+        undefined,
       );
     });
 

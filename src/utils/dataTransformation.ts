@@ -23,6 +23,7 @@ export interface ExportedSpawnProfile {
   id: string;
   name: string;
   description?: string;
+  workingDirectory?: string;
   spawns: ExportedSpawn[];
   lastModified: string;
 }
@@ -98,6 +99,7 @@ export function transformProfileToSchema(
   return {
     id: profile.id,
     name: profile.name,
+    workingDirectory: profile.workingDirectory,
     description: profile.description || undefined,
     spawns: profile.spawns.map((spawn) => transformSpawnToSchema(spawn)),
     lastModified: new Date(profile.lastModified).toISOString(),
@@ -228,6 +230,7 @@ export function transformProfileFromSchema(
     id: profile.id,
     name: profile.name,
     description: profile.description,
+    workingDirectory: profile.workingDirectory,
     spawns: profile.spawns.map((spawn) => transformSpawnFromSchema(spawn)),
     lastModified: new Date(profile.lastModified).getTime(),
     isActive: false, // Imported profiles are not active by default

@@ -12,6 +12,7 @@ export * from "./fileDownload";
 export * from "./fileValidation";
 export * from "./importExportValidation";
 export * from "./pathDisplay";
+export * from "./performanceMonitoring";
 export * from "./randomizationBuckets";
 export * from "./scheduling";
 export * from "./triggerDisplay";

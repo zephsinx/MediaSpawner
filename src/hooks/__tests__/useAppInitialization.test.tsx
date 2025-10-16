@@ -68,7 +68,7 @@ describe("useAppInitialization", () => {
 
     // Should complete initialization
     await waitFor(() => {
-      expect(result.current.isInitializing).toBe(false);
+      expect(result.current.error).toBe(null);
     });
 
     expect(result.current.error).toBe(null);
@@ -97,7 +97,7 @@ describe("useAppInitialization", () => {
     const { result } = renderHook(() => useAppInitialization());
 
     await waitFor(() => {
-      expect(result.current.isInitializing).toBe(false);
+      expect(result.current.error).toBe(null);
     });
 
     expect(mockEnsureDefaultProfile).toHaveBeenCalledOnce();
@@ -132,7 +132,7 @@ describe("useAppInitialization", () => {
     const { result } = renderHook(() => useAppInitialization());
 
     await waitFor(() => {
-      expect(result.current.isInitializing).toBe(false);
+      expect(result.current.error).toBe(null);
     });
 
     expect(mockEnsureDefaultProfile).not.toHaveBeenCalled();
@@ -168,7 +168,7 @@ describe("useAppInitialization", () => {
     const { result } = renderHook(() => useAppInitialization());
 
     await waitFor(() => {
-      expect(result.current.isInitializing).toBe(false);
+      expect(result.current.error).toBe(null);
     });
 
     // Should call ensureDefaultProfile to auto-heal the state
@@ -196,7 +196,7 @@ describe("useAppInitialization", () => {
     const { result } = renderHook(() => useAppInitialization());
 
     await waitFor(() => {
-      expect(result.current.isInitializing).toBe(false);
+      expect(result.current.error).toBe(null);
     });
 
     expect(result.current.error).toBe("Failed to create profile");
@@ -218,7 +218,7 @@ describe("useAppInitialization", () => {
     const { result } = renderHook(() => useAppInitialization());
 
     await waitFor(() => {
-      expect(result.current.isInitializing).toBe(false);
+      expect(result.current.error).toBe(null);
     });
 
     expect(result.current.error).toBe("Initialization failed");

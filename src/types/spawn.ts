@@ -293,6 +293,9 @@ export interface SpawnProfile {
   /** Optional description of the profile's purpose */
   description?: string;
 
+  /** Optional working directory override for this profile */
+  workingDirectory?: string;
+
   /** Array of spawns in this profile */
   spawns: Spawn[];
 
@@ -367,11 +370,13 @@ export const createSpawnProfile = (
   description?: string,
   spawns: Spawn[] = [],
   id?: string,
+  workingDirectory?: string,
 ): SpawnProfile => {
   return {
     id: id || crypto.randomUUID(),
     name,
     description,
+    workingDirectory,
     spawns,
     lastModified: Date.now(),
     isActive: false,
@@ -496,6 +501,16 @@ export const validateSpawnProfile = (
 
   if (profile.spawns.some((spawn) => !spawn.id || spawn.id.trim() === "")) {
     errors.push("All spawns in profile must have valid IDs");
+  }
+
+  // Validate working directory if provided
+  if (profile.workingDirectory && profile.workingDirectory.trim() !== "") {
+    const path = profile.workingDirectory.trim();
+    // Check for invalid characters in Windows paths
+    const invalidChars = /[<>"|?*]/;
+    if (invalidChars.test(path)) {
+      errors.push("Working directory contains invalid characters");
+    }
   }
 
   return {

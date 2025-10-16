@@ -5,13 +5,13 @@ import { SettingsService } from "../services/settingsService";
 const INITIALIZATION_FLAG_KEY = "mediaspawner_profiles_initialized";
 
 export function useAppInitialization() {
-  const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        // Initialize theme first to prevent FOUC
+        // Theme is already applied via inline script in index.html
+        // Just ensure SettingsService is in sync
         SettingsService.applyThemeMode();
 
         // Set up system preference listener
@@ -45,8 +45,6 @@ export function useAppInitialization() {
       } catch (err) {
         console.error("Initialization failed:", err);
         setError("Initialization failed");
-      } finally {
-        setIsInitializing(false);
       }
     };
 
@@ -54,5 +52,5 @@ export function useAppInitialization() {
     initializeApp();
   }, []);
 
-  return { isInitializing, error };
+  return { error };
 }
