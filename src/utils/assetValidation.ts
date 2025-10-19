@@ -63,7 +63,7 @@ export function validateVolumePercent(
 export function validateDimensionsValues(
   dim: Dimensions | undefined
 ): AssetValidationResult {
-  if (!dim) return { isValid: false, error: "Width/Height must be > 0" };
+  if (!dim) return { isValid: true };
   if (dim.width <= 0 || dim.height <= 0)
     return { isValid: false, error: "Width/Height must be > 0" };
   return { isValid: true };
@@ -72,7 +72,7 @@ export function validateDimensionsValues(
 export function validatePositionValues(
   pos: Position | undefined
 ): AssetValidationResult {
-  if (!pos) return { isValid: false, error: "Use non-negative values" };
+  if (!pos) return { isValid: true };
   if (pos.x < 0 || pos.y < 0)
     return { isValid: false, error: "Use non-negative values" };
   return { isValid: true };
@@ -121,19 +121,23 @@ export function validateCropSettings(
 
   const { left, top, right, bottom } = crop;
 
-  // Check for non-negative values
-  if (left < 0) return { isValid: false, error: "Crop left must be ≥ 0" };
-  if (top < 0) return { isValid: false, error: "Crop top must be ≥ 0" };
-  if (right < 0) return { isValid: false, error: "Crop right must be ≥ 0" };
-  if (bottom < 0) return { isValid: false, error: "Crop bottom must be ≥ 0" };
+  // Check for non-negative values (only validate fields that are defined)
+  if (left !== undefined && left < 0)
+    return { isValid: false, error: "Crop left must be ≥ 0" };
+  if (top !== undefined && top < 0)
+    return { isValid: false, error: "Crop top must be ≥ 0" };
+  if (right !== undefined && right < 0)
+    return { isValid: false, error: "Crop right must be ≥ 0" };
+  if (bottom !== undefined && bottom < 0)
+    return { isValid: false, error: "Crop bottom must be ≥ 0" };
 
-  // Check against dimensions if available
+  // Check against dimensions if available (only validate defined fields)
   if (dimensions) {
     const { width, height } = dimensions;
-    if (left + right >= width) {
+    if (left !== undefined && right !== undefined && left + right >= width) {
       return { isValid: false, error: "Crop left + right must be < width" };
     }
-    if (top + bottom >= height) {
+    if (top !== undefined && bottom !== undefined && top + bottom >= height) {
       return { isValid: false, error: "Crop top + bottom must be < height" };
     }
   }

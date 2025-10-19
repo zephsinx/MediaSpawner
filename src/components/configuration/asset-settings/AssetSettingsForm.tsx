@@ -114,7 +114,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
       cn(
         inputVariants({
           variant: field && validationErrors[field] ? "error" : "default",
-        }),
+        })
       );
 
     useEffect(() => {
@@ -202,7 +202,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
         setDraftValues((prev) => ({ ...prev, [key]: value }));
         setUnsavedChanges(true);
       },
-      [setUnsavedChanges],
+      [setUnsavedChanges]
     );
 
     const handleBlur = useCallback(
@@ -213,7 +213,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
           [key]: error,
         }));
       },
-      [validateField],
+      [validateField]
     );
 
     // Single effect to sync debounced slider values to draftValues
@@ -293,13 +293,13 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
 
       window.addEventListener(
         "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-        onSpawnUpdated as EventListener,
+        onSpawnUpdated as EventListener
       );
 
       return () => {
         window.removeEventListener(
           "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-          onSpawnUpdated as EventListener,
+          onSpawnUpdated as EventListener
         );
       };
     }, [spawnId, spawnAssetId]);
@@ -399,7 +399,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                   duration: Math.max(0, durationDraftMs),
                 },
               }
-            : sa,
+            : sa
         );
 
         const result = await SpawnService.updateSpawn(spawn.id, {
@@ -424,12 +424,12 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
         window.dispatchEvent(
           new CustomEvent(
             "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-            { detail: { spawnId: result.spawn.id } } as CustomEventInit,
-          ),
+            { detail: { spawnId: result.spawn.id } } as CustomEventInit
+          )
         );
       } catch (e) {
         setError(
-          e instanceof Error ? e.message : "Failed to save asset settings",
+          e instanceof Error ? e.message : "Failed to save asset settings"
         );
       } finally {
         setIsSaving(false);
@@ -576,12 +576,25 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                       type="number"
                       min={1}
                       value={draftValues.dimensions?.width ?? ""}
-                      onChange={(e) =>
-                        setField("dimensions", {
-                          width: Math.max(1, Number(e.target.value) || 1),
-                          height: draftValues.dimensions?.height ?? 1,
-                        })
-                      }
+                      onChange={(e) => {
+                        const widthValue =
+                          e.target.value === ""
+                            ? undefined
+                            : Number(e.target.value);
+                        const heightValue = draftValues.dimensions?.height;
+
+                        if (
+                          widthValue === undefined &&
+                          heightValue === undefined
+                        ) {
+                          setField("dimensions", undefined);
+                        } else {
+                          setField("dimensions", {
+                            width: widthValue ?? 1,
+                            height: heightValue ?? 1,
+                          });
+                        }
+                      }}
                       onBlur={() => handleBlur("dimensions")}
                       className={getInputClassName("dimensions")}
                       aria-describedby="dimensions-error"
@@ -604,12 +617,25 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                       type="number"
                       min={1}
                       value={draftValues.dimensions?.height ?? ""}
-                      onChange={(e) =>
-                        setField("dimensions", {
-                          width: draftValues.dimensions?.width ?? 1,
-                          height: Math.max(1, Number(e.target.value) || 1),
-                        })
-                      }
+                      onChange={(e) => {
+                        const heightValue =
+                          e.target.value === ""
+                            ? undefined
+                            : Number(e.target.value);
+                        const widthValue = draftValues.dimensions?.width;
+
+                        if (
+                          widthValue === undefined &&
+                          heightValue === undefined
+                        ) {
+                          setField("dimensions", undefined);
+                        } else {
+                          setField("dimensions", {
+                            width: widthValue ?? 1,
+                            height: heightValue ?? 1,
+                          });
+                        }
+                      }}
                       onBlur={() => handleBlur("dimensions")}
                       className={getInputClassName("dimensions")}
                     />
@@ -624,12 +650,22 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                       type="number"
                       min={0}
                       value={draftValues.position?.x ?? ""}
-                      onChange={(e) =>
-                        setField("position", {
-                          x: Math.max(0, Number(e.target.value) || 0),
-                          y: draftValues.position?.y ?? 0,
-                        })
-                      }
+                      onChange={(e) => {
+                        const xValue =
+                          e.target.value === ""
+                            ? undefined
+                            : Number(e.target.value);
+                        const yValue = draftValues.position?.y;
+
+                        if (xValue === undefined && yValue === undefined) {
+                          setField("position", undefined);
+                        } else {
+                          setField("position", {
+                            x: xValue ?? 0,
+                            y: yValue ?? 0,
+                          });
+                        }
+                      }}
                       onBlur={() => handleBlur("position")}
                       className={getInputClassName("position")}
                       aria-describedby="position-error"
@@ -652,12 +688,22 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                       type="number"
                       min={0}
                       value={draftValues.position?.y ?? ""}
-                      onChange={(e) =>
-                        setField("position", {
-                          x: draftValues.position?.x ?? 0,
-                          y: Math.max(0, Number(e.target.value) || 0),
-                        })
-                      }
+                      onChange={(e) => {
+                        const yValue =
+                          e.target.value === ""
+                            ? undefined
+                            : Number(e.target.value);
+                        const xValue = draftValues.position?.x;
+
+                        if (xValue === undefined && yValue === undefined) {
+                          setField("position", undefined);
+                        } else {
+                          setField("position", {
+                            x: xValue ?? 0,
+                            y: yValue ?? 0,
+                          });
+                        }
+                      }}
                       onBlur={() => handleBlur("position")}
                       className={getInputClassName("position")}
                     />
@@ -728,20 +774,29 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                                 step={0.1}
                                 value={draftValues.scale?.x ?? ""}
                                 onChange={(e) => {
-                                  const xValue = Math.max(
-                                    0,
-                                    parseFloat(e.target.value) || 0,
-                                  );
+                                  const xValue =
+                                    e.target.value === ""
+                                      ? undefined
+                                      : parseFloat(e.target.value);
                                   const currentScale = draftValues.scale;
-                                  setField("scale", {
-                                    x: xValue,
-                                    y:
-                                      typeof currentScale === "object" &&
-                                      currentScale?.y !== undefined
-                                        ? currentScale.y
-                                        : 1,
-                                    linked: false,
-                                  });
+                                  const yValue =
+                                    typeof currentScale === "object" &&
+                                    currentScale?.y !== undefined
+                                      ? currentScale.y
+                                      : undefined;
+
+                                  if (
+                                    xValue === undefined &&
+                                    yValue === undefined
+                                  ) {
+                                    setField("scale", undefined);
+                                  } else {
+                                    setField("scale", {
+                                      x: xValue ?? 1,
+                                      y: yValue ?? 1,
+                                      linked: false,
+                                    });
+                                  }
                                 }}
                                 onBlur={() => handleBlur("scale")}
                                 className={getInputClassName("scale")}
@@ -758,20 +813,29 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                                 step={0.1}
                                 value={draftValues.scale?.y ?? ""}
                                 onChange={(e) => {
-                                  const yValue = Math.max(
-                                    0,
-                                    parseFloat(e.target.value) || 0,
-                                  );
+                                  const yValue =
+                                    e.target.value === ""
+                                      ? undefined
+                                      : parseFloat(e.target.value);
                                   const currentScale = draftValues.scale;
-                                  setField("scale", {
-                                    x:
-                                      typeof currentScale === "object" &&
-                                      currentScale?.x !== undefined
-                                        ? currentScale.x
-                                        : 1,
-                                    y: yValue,
-                                    linked: false,
-                                  });
+                                  const xValue =
+                                    typeof currentScale === "object" &&
+                                    currentScale?.x !== undefined
+                                      ? currentScale.x
+                                      : undefined;
+
+                                  if (
+                                    xValue === undefined &&
+                                    yValue === undefined
+                                  ) {
+                                    setField("scale", undefined);
+                                  } else {
+                                    setField("scale", {
+                                      x: xValue ?? 1,
+                                      y: yValue ?? 1,
+                                      linked: false,
+                                    });
+                                  }
                                 }}
                                 onBlur={() => handleBlur("scale")}
                                 className={getInputClassName("scale")}
@@ -791,15 +855,19 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                                 : (draftValues.scale?.x ?? "")
                             }
                             onChange={(e) => {
-                              const scaleValue = Math.max(
-                                0,
-                                parseFloat(e.target.value) || 0,
-                              );
-                              setField("scale", {
-                                x: scaleValue,
-                                y: scaleValue,
-                                linked: true,
-                              });
+                              const scaleValue =
+                                e.target.value === ""
+                                  ? undefined
+                                  : parseFloat(e.target.value);
+                              if (scaleValue === undefined) {
+                                setField("scale", undefined);
+                              } else {
+                                setField("scale", {
+                                  x: scaleValue,
+                                  y: scaleValue,
+                                  linked: true,
+                                });
+                              }
                             }}
                             onBlur={() => handleBlur("scale")}
                             className={cn(getInputClassName("scale"), "w-24")}
@@ -866,7 +934,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                     onChange={(e) =>
                       setField(
                         "positionMode",
-                        e.target.value as MediaAssetProperties["positionMode"],
+                        e.target.value as MediaAssetProperties["positionMode"]
                       )
                     }
                     className={getInputClassName()}
@@ -910,15 +978,13 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                       max={360}
                       step={1}
                       value={draftValues.rotation ?? ""}
-                      onChange={(e) =>
-                        setField(
-                          "rotation",
-                          Math.max(
-                            0,
-                            Math.min(360, Number(e.target.value) || 0),
-                          ),
-                        )
-                      }
+                      onChange={(e) => {
+                        const rotationValue =
+                          e.target.value === ""
+                            ? undefined
+                            : Number(e.target.value);
+                        setField("rotation", rotationValue);
+                      }}
                       onBlur={() => handleBlur("rotation")}
                       className={cn(getInputClassName("rotation"), "w-20")}
                       id="rotation-input"
@@ -952,14 +1018,29 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                         min={0}
                         step={1}
                         value={draftValues.crop?.left ?? ""}
-                        onChange={(e) =>
-                          setField("crop", {
-                            left: Math.max(0, Number(e.target.value) || 0),
-                            top: draftValues.crop?.top ?? 0,
-                            right: draftValues.crop?.right ?? 0,
-                            bottom: draftValues.crop?.bottom ?? 0,
-                          })
-                        }
+                        onChange={(e) => {
+                          const leftValue =
+                            e.target.value === ""
+                              ? undefined
+                              : Number(e.target.value);
+                          const currentCrop = draftValues.crop;
+
+                          if (
+                            leftValue === undefined &&
+                            !currentCrop?.top &&
+                            !currentCrop?.right &&
+                            !currentCrop?.bottom
+                          ) {
+                            setField("crop", undefined);
+                          } else {
+                            setField("crop", {
+                              left: leftValue ?? 0,
+                              top: currentCrop?.top ?? 0,
+                              right: currentCrop?.right ?? 0,
+                              bottom: currentCrop?.bottom ?? 0,
+                            });
+                          }
+                        }}
                         onBlur={() => handleBlur("crop")}
                         className={getInputClassName("crop")}
                         aria-describedby="crop-error"
@@ -974,14 +1055,29 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                         min={0}
                         step={1}
                         value={draftValues.crop?.top ?? ""}
-                        onChange={(e) =>
-                          setField("crop", {
-                            left: draftValues.crop?.left ?? 0,
-                            top: Math.max(0, Number(e.target.value) || 0),
-                            right: draftValues.crop?.right ?? 0,
-                            bottom: draftValues.crop?.bottom ?? 0,
-                          })
-                        }
+                        onChange={(e) => {
+                          const topValue =
+                            e.target.value === ""
+                              ? undefined
+                              : Number(e.target.value);
+                          const currentCrop = draftValues.crop;
+
+                          if (
+                            topValue === undefined &&
+                            !currentCrop?.left &&
+                            !currentCrop?.right &&
+                            !currentCrop?.bottom
+                          ) {
+                            setField("crop", undefined);
+                          } else {
+                            setField("crop", {
+                              left: currentCrop?.left ?? 0,
+                              top: topValue ?? 0,
+                              right: currentCrop?.right ?? 0,
+                              bottom: currentCrop?.bottom ?? 0,
+                            });
+                          }
+                        }}
                         onBlur={() => handleBlur("crop")}
                         className={getInputClassName("crop")}
                         aria-describedby="crop-error"
@@ -996,14 +1092,29 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                         min={0}
                         step={1}
                         value={draftValues.crop?.right ?? ""}
-                        onChange={(e) =>
-                          setField("crop", {
-                            left: draftValues.crop?.left ?? 0,
-                            top: draftValues.crop?.top ?? 0,
-                            right: Math.max(0, Number(e.target.value) || 0),
-                            bottom: draftValues.crop?.bottom ?? 0,
-                          })
-                        }
+                        onChange={(e) => {
+                          const rightValue =
+                            e.target.value === ""
+                              ? undefined
+                              : Number(e.target.value);
+                          const currentCrop = draftValues.crop;
+
+                          if (
+                            rightValue === undefined &&
+                            !currentCrop?.left &&
+                            !currentCrop?.top &&
+                            !currentCrop?.bottom
+                          ) {
+                            setField("crop", undefined);
+                          } else {
+                            setField("crop", {
+                              left: currentCrop?.left ?? 0,
+                              top: currentCrop?.top ?? 0,
+                              right: rightValue ?? 0,
+                              bottom: currentCrop?.bottom ?? 0,
+                            });
+                          }
+                        }}
                         onBlur={() => handleBlur("crop")}
                         className={getInputClassName("crop")}
                         aria-describedby="crop-error"
@@ -1018,14 +1129,29 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                         min={0}
                         step={1}
                         value={draftValues.crop?.bottom ?? ""}
-                        onChange={(e) =>
-                          setField("crop", {
-                            left: draftValues.crop?.left ?? 0,
-                            top: draftValues.crop?.top ?? 0,
-                            right: draftValues.crop?.right ?? 0,
-                            bottom: Math.max(0, Number(e.target.value) || 0),
-                          })
-                        }
+                        onChange={(e) => {
+                          const bottomValue =
+                            e.target.value === ""
+                              ? undefined
+                              : Number(e.target.value);
+                          const currentCrop = draftValues.crop;
+
+                          if (
+                            bottomValue === undefined &&
+                            !currentCrop?.left &&
+                            !currentCrop?.top &&
+                            !currentCrop?.right
+                          ) {
+                            setField("crop", undefined);
+                          } else {
+                            setField("crop", {
+                              left: currentCrop?.left ?? 0,
+                              top: currentCrop?.top ?? 0,
+                              right: currentCrop?.right ?? 0,
+                              bottom: bottomValue ?? 0,
+                            });
+                          }
+                        }}
                         onBlur={() => handleBlur("crop")}
                         className={getInputClassName("crop")}
                         aria-describedby="crop-error"
@@ -1054,7 +1180,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                         "boundsType",
                         e.target.value
                           ? (e.target.value as BoundsType)
-                          : undefined,
+                          : undefined
                       )
                     }
                     onBlur={() => handleBlur("boundsType")}
@@ -1096,7 +1222,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                         "alignment",
                         e.target.value
                           ? (Number(e.target.value) as AlignmentOption)
-                          : undefined,
+                          : undefined
                       )
                     }
                     onBlur={() => handleBlur("alignment")}
@@ -1168,7 +1294,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                         onChange={(e) =>
                           setField(
                             "volume",
-                            (Number(e.target.value) || 0) / 100,
+                            (Number(e.target.value) || 0) / 100
                           )
                         }
                         onBlur={() => handleBlur("volume")}
@@ -1199,7 +1325,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                           "monitorType",
                           e.target.value
                             ? (e.target.value as MonitorType)
-                            : undefined,
+                            : undefined
                         )
                       }
                       onBlur={() => handleBlur("monitorType")}
@@ -1250,7 +1376,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
         />
       </div>
     );
-  },
+  }
 );
 
 AssetSettingsForm.displayName = "AssetSettingsForm";

@@ -6,16 +6,99 @@ import {
   validateBoundsType,
   validateBoundsAlignment,
   validateScaleValue,
+  validateDimensionsValues,
+  validatePositionValues,
 } from "../assetValidation";
 import type {
   ScaleObject,
   CropSettings,
   Dimensions,
+  Position,
   AlignmentOption,
   BoundsType,
 } from "../../types/media";
 
 describe("assetValidation", () => {
+  describe("validateDimensionsValues", () => {
+    it("returns valid for undefined", () => {
+      const result = validateDimensionsValues(undefined);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("returns valid for valid dimensions", () => {
+      const dimensions: Dimensions = { width: 100, height: 200 };
+      const result = validateDimensionsValues(dimensions);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("returns valid for minimum valid dimensions", () => {
+      const dimensions: Dimensions = { width: 1, height: 1 };
+      const result = validateDimensionsValues(dimensions);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("returns invalid for zero width", () => {
+      const dimensions: Dimensions = { width: 0, height: 100 };
+      const result = validateDimensionsValues(dimensions);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe("Width/Height must be > 0");
+    });
+
+    it("returns invalid for zero height", () => {
+      const dimensions: Dimensions = { width: 100, height: 0 };
+      const result = validateDimensionsValues(dimensions);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe("Width/Height must be > 0");
+    });
+
+    it("returns invalid for negative width", () => {
+      const dimensions: Dimensions = { width: -1, height: 100 };
+      const result = validateDimensionsValues(dimensions);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe("Width/Height must be > 0");
+    });
+
+    it("returns invalid for negative height", () => {
+      const dimensions: Dimensions = { width: 100, height: -1 };
+      const result = validateDimensionsValues(dimensions);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe("Width/Height must be > 0");
+    });
+  });
+
+  describe("validatePositionValues", () => {
+    it("returns valid for undefined", () => {
+      const result = validatePositionValues(undefined);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("returns valid for valid position", () => {
+      const position: Position = { x: 100, y: 200 };
+      const result = validatePositionValues(position);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("returns valid for zero position", () => {
+      const position: Position = { x: 0, y: 0 };
+      const result = validatePositionValues(position);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("returns invalid for negative x", () => {
+      const position: Position = { x: -1, y: 100 };
+      const result = validatePositionValues(position);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe("Use non-negative values");
+    });
+
+    it("returns invalid for negative y", () => {
+      const position: Position = { x: 100, y: -1 };
+      const result = validatePositionValues(position);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe("Use non-negative values");
+    });
+  });
+
   describe("validateRotation", () => {
     it("returns valid for undefined", () => {
       const result = validateRotation(undefined);
@@ -114,6 +197,35 @@ describe("assetValidation", () => {
       const dimensions: Dimensions = { width: 100, height: 100 };
       const result = validateCropSettings(crop, dimensions);
       expect(result.isValid).toBe(true);
+    });
+
+    it("returns valid for partial crop objects with undefined fields", () => {
+      const crop: Partial<CropSettings> = {
+        left: 10,
+        top: undefined,
+        right: 30,
+        bottom: undefined,
+      };
+      const result = validateCropSettings(crop as CropSettings);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("returns valid for partial crop objects with only some fields defined", () => {
+      const crop: Partial<CropSettings> = { left: 10, top: 20 };
+      const result = validateCropSettings(crop as CropSettings);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("returns invalid for partial crop with negative defined field", () => {
+      const crop: Partial<CropSettings> = {
+        left: -1,
+        top: undefined,
+        right: undefined,
+        bottom: undefined,
+      };
+      const result = validateCropSettings(crop as CropSettings);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe("Crop left must be ≥ 0");
     });
   });
 
