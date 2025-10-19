@@ -122,19 +122,19 @@ Test profile switching workflow with state isolation and unsaved changes guard.
 **Expected**:
 
 - Confirmation dialog appears immediately
-- Dialog title: "Unsaved Changes" or similar
-- Dialog message warns about discarding changes
+- Dialog title: "Unsaved Spawn Changes" (since we modified spawn name)
+- Dialog message: "Switching will discard spawn changes. Continue?"
 - Two options:
-  - "Cancel" or "Stay" - cancel the switch
-  - "Discard Changes" or "Continue" - proceed with switch
+  - "Stay" - cancel the switch
+  - "Switch" - proceed with switch
 
 ### 9. Cancel Profile Switch
 
 **Action**:
 
 1. Take snapshot of confirmation dialog
-2. Find "Cancel" button
-3. `click(uid: "[cancel-button-uid]")`
+2. Find "Stay" button
+3. `click(uid: "[stay-button-uid]")`
 
 **Expected**:
 
@@ -162,13 +162,13 @@ Test profile switching workflow with state isolation and unsaved changes guard.
 1. Click profile selector again
 2. Select "Secondary Profile"
 3. Wait for confirmation dialog
-4. Click "Discard Changes" button
-5. `click(uid: "[discard-button-uid]")`
+4. Click "Switch" button
+5. `click(uid: "[switch-button-uid]")`
 
 **Expected**:
 
-- Dialog appears again
-- After clicking discard:
+- Dialog appears again with "Unsaved Spawn Changes" title
+- After clicking switch:
   - Dialog closes
   - Profile switches to Secondary Profile
   - Changes to first profile discarded (not saved)
@@ -305,6 +305,8 @@ After this scenario:
 - **Wrong data after switch**: Profile isolation may be broken, check localStorage keys
 - **Dropdown not opening**: Profile selector may be styled as readonly, look for button to trigger selector
 - **Slow switching**: Large datasets may take longer to load, verify within performance targets
+- **Dialog shows wrong title**: Ensure change type is correctly tracked (spawn vs asset changes)
+- **Multiple modals appear**: This should be fixed with the new consolidated modal logic
 
 ## Notes
 
@@ -313,3 +315,6 @@ After this scenario:
 - Profile switch clears any selection state (no spawn selected after switch)
 - Asset library and spawns both profile-specific
 - Settings may be global or per-profile (check application design)
+- Modal titles now reflect change type: "Unsaved Spawn Changes" vs "Unsaved Asset Settings"
+- Only one modal should appear (consolidated logic prevents duplicate modals)
+- Change type tracking ensures appropriate messaging for different types of unsaved changes

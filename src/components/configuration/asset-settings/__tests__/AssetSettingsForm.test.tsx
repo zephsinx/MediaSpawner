@@ -148,6 +148,7 @@ describe("AssetSettingsForm", () => {
       selectedSpawnAssetId: undefined,
       centerPanelMode: "spawn-settings",
       hasUnsavedChanges: false,
+      changeType: "none",
       profileSpawnSelections: {},
       setActiveProfile: vi.fn(),
       setLiveProfile: vi.fn(),
@@ -350,7 +351,7 @@ describe("AssetSettingsForm", () => {
       });
 
       expect(widthInput).toHaveValue(200);
-      expect(mockSetUnsavedChanges).toHaveBeenCalledWith(true);
+      expect(mockSetUnsavedChanges).toHaveBeenCalledWith(true, "asset");
     });
 
     it("updates scale value with direct editing", async () => {
@@ -684,6 +685,7 @@ describe("AssetSettingsForm", () => {
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
+        changeType: "none",
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
         setLiveProfile: vi.fn(),
@@ -727,6 +729,7 @@ describe("AssetSettingsForm", () => {
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: true,
+        changeType: "asset",
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
         setLiveProfile: vi.fn(),
@@ -775,6 +778,7 @@ describe("AssetSettingsForm", () => {
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: true,
+        changeType: "asset",
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
         setLiveProfile: vi.fn(),
@@ -816,7 +820,7 @@ describe("AssetSettingsForm", () => {
 
       // Should clear cached draft, reset unsaved changes, and navigate
       expect(mockClearCachedDraft).toHaveBeenCalledWith("asset1");
-      expect(mockSetUnsavedChanges).toHaveBeenCalledWith(false);
+      expect(mockSetUnsavedChanges).toHaveBeenCalledWith(false, "none");
       expect(mockOnBack).toHaveBeenCalled();
     });
 
@@ -828,6 +832,7 @@ describe("AssetSettingsForm", () => {
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: true,
+        changeType: "asset",
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
         setLiveProfile: vi.fn(),
@@ -881,6 +886,7 @@ describe("AssetSettingsForm", () => {
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: true,
+        changeType: "asset",
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
         setLiveProfile: vi.fn(),
@@ -915,6 +921,7 @@ describe("AssetSettingsForm", () => {
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
+        changeType: "none",
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
         setLiveProfile: vi.fn(),

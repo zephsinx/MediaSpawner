@@ -189,7 +189,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
 
       setInitialDurationMs(initialDuration);
       setDurationDraftMs(initialDuration);
-      setUnsavedChanges(false);
+      setUnsavedChanges(false, "none");
     }, [effective, spawn, spawnAsset, setUnsavedChanges, getCachedDraft]);
 
     // Keep draftValuesRef in sync
@@ -200,7 +200,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
     const setField = useCallback(
       (key: FieldKey, value: MediaAssetProperties[FieldKey]) => {
         setDraftValues((prev) => ({ ...prev, [key]: value }));
-        setUnsavedChanges(true);
+        setUnsavedChanges(true, "asset");
       },
       [setUnsavedChanges],
     );
@@ -232,7 +232,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
       });
 
       // Mark as unsaved when debounced values update
-      setUnsavedChanges(true);
+      setUnsavedChanges(true, "asset");
     }, [debouncedVolume, debouncedRotation, setUnsavedChanges]);
 
     // Initialize local state when component first loads
@@ -304,6 +304,13 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
       };
     }, [spawnId, spawnAssetId]);
 
+    // Cleanup unsaved changes when component unmounts
+    useEffect(() => {
+      return () => {
+        setUnsavedChanges(false, "none");
+      };
+    }, [setUnsavedChanges]);
+
     const handleClose = useCallback(() => {
       if (hasUnsavedChanges) {
         setShowDiscardDialog(true);
@@ -331,7 +338,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
       }
 
       // Clear unsaved changes flag and close dialog
-      setUnsavedChanges(false);
+      setUnsavedChanges(false, "none");
       setShowDiscardDialog(false);
 
       // Navigate back with skipGuard=true since we've already confirmed discard
@@ -415,7 +422,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
           result.spawn.assets.find((a) => a.id === spawnAsset.id) || null;
         setSpawnAsset(updated);
         setSuccess("Changes saved");
-        setUnsavedChanges(false);
+        setUnsavedChanges(false, "none");
         if (setCachedDraft) {
           setCachedDraft({
             draftValues,
@@ -554,7 +561,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                     onChange={(e) => {
                       const val = Math.max(0, Number(e.target.value) || 0);
                       setDurationDraftMs(val);
-                      setUnsavedChanges(true);
+                      setUnsavedChanges(true, "asset");
                     }}
                     className={getInputClassName()}
                   />

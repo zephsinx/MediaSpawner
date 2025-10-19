@@ -188,7 +188,9 @@ describe("Header", () => {
       renderWithAllProviders(<Header />);
 
       expect(screen.getByText("Profile:")).toBeInTheDocument();
-      expect(screen.getByRole("combobox")).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /select profile/i }),
+      ).toBeInTheDocument();
     });
 
     it("renders profile actions dropdown component", () => {
@@ -242,24 +244,28 @@ describe("Header", () => {
     it("displays all available profiles in dropdown", () => {
       renderWithAllProviders(<Header />);
 
-      const select = screen.getByRole("combobox");
-      const options = select.querySelectorAll("option");
+      const button = screen.getByRole("button", { name: /select profile/i });
+      fireEvent.click(button);
 
-      expect(options).toHaveLength(3);
-      expect(options[0]).toHaveTextContent(
-        "Default Profile - Default spawn profile",
+      // Check that all profiles are in the dropdown menu
+      const menuItems = screen.getAllByRole("menuitemradio");
+      expect(menuItems).toHaveLength(3);
+      expect(menuItems[0]).toHaveAttribute(
+        "aria-label",
+        "Select Default Profile - Default spawn profile",
       );
-      expect(options[1]).toHaveTextContent(
-        "Gaming Profile - Profile for gaming streams",
+      expect(menuItems[1]).toHaveAttribute(
+        "aria-label",
+        "Select Gaming Profile - Profile for gaming streams",
       );
-      expect(options[2]).toHaveTextContent("Work Profile");
+      expect(menuItems[2]).toHaveAttribute("aria-label", "Select Work Profile");
     });
 
     it("shows currently active profile as selected", () => {
       renderWithAllProviders(<Header />);
 
-      const select = screen.getByRole("combobox") as HTMLSelectElement;
-      expect(select.value).toBe("profile-1");
+      const button = screen.getByRole("button", { name: /select profile/i });
+      expect(button).toHaveTextContent("Default Profile");
     });
 
     it("calls SpawnProfileService.getProfilesWithActiveInfo on mount", () => {
@@ -273,8 +279,13 @@ describe("Header", () => {
     it("handles profile switching correctly", () => {
       renderWithAllProviders(<Header />);
 
-      const select = screen.getByRole("combobox");
-      fireEvent.change(select, { target: { value: "profile-2" } });
+      const button = screen.getByRole("button", { name: /select profile/i });
+      fireEvent.click(button);
+
+      const gamingProfileItem = screen
+        .getByText("Gaming Profile")
+        .closest("[data-testid='dropdown-item']");
+      fireEvent.click(gamingProfileItem!);
 
       expect(mockSpawnProfileService.setActiveProfile).toHaveBeenCalledWith(
         "profile-2",
@@ -284,8 +295,13 @@ describe("Header", () => {
     it("updates local state when profile switching succeeds", () => {
       renderWithAllProviders(<Header />);
 
-      const select = screen.getByRole("combobox") as HTMLSelectElement;
-      fireEvent.change(select, { target: { value: "profile-2" } });
+      const button = screen.getByRole("button", { name: /select profile/i });
+      fireEvent.click(button);
+
+      const gamingProfileItem = screen
+        .getByText("Gaming Profile")
+        .closest("[data-testid='dropdown-item']");
+      fireEvent.click(gamingProfileItem!);
 
       // The component should update its internal state
       expect(mockSpawnProfileService.setActiveProfile).toHaveBeenCalledWith(
@@ -301,8 +317,13 @@ describe("Header", () => {
 
       renderWithAllProviders(<Header />);
 
-      const select = screen.getByRole("combobox");
-      fireEvent.change(select, { target: { value: "invalid-profile" } });
+      const button = screen.getByRole("button", { name: /select profile/i });
+      fireEvent.click(button);
+
+      const gamingProfileItem = screen
+        .getByText("Gaming Profile")
+        .closest("[data-testid='dropdown-item']");
+      fireEvent.click(gamingProfileItem!);
 
       expect(console.error).toHaveBeenCalledWith(
         "Failed to set active profile:",
@@ -400,9 +421,8 @@ describe("Header", () => {
 
       renderWithAllProviders(<Header />);
 
-      const select = screen.getByRole("combobox") as HTMLSelectElement;
-      expect(select.value).toBe("");
-      expect(select.querySelectorAll("option")).toHaveLength(0);
+      const button = screen.getByRole("button", { name: /select profile/i });
+      expect(button).toHaveTextContent("Select profile");
     });
 
     it("handles profiles without descriptions", () => {
@@ -423,9 +443,8 @@ describe("Header", () => {
 
       renderWithAllProviders(<Header />);
 
-      const select = screen.getByRole("combobox");
-      const options = select.querySelectorAll("option");
-      expect(options[0]).toHaveTextContent("Simple Profile");
+      const button = screen.getByRole("button", { name: /select profile/i });
+      expect(button).toHaveTextContent("Simple Profile");
     });
 
     it("handles service errors gracefully", () => {
@@ -495,7 +514,9 @@ describe("Header", () => {
       expect(
         screen.getByRole("heading", { name: "Delete Profile" }),
       ).toBeInTheDocument();
-      expect(screen.getByText("Default Profile")).toBeInTheDocument();
+      // Check that the profile name appears in the dialog content
+      const dialog = screen.getByRole("dialog");
+      expect(dialog).toHaveTextContent("Default Profile");
     });
 
     it("handles profile creation success", () => {

@@ -543,15 +543,15 @@ describe("LayoutContext", () => {
       fireEvent.click(screen.getByTestId("set-unsaved-true"));
       expect(screen.getByTestId("unsaved-changes")).toHaveTextContent("true");
 
-      // Simulate spawner selection change - should preserve unsaved changes
+      // Simulate spawner selection change - should clear unsaved changes
       fireEvent.click(screen.getByTestId("select-spawn-1"));
       expect(screen.getByTestId("selected-spawn")).toHaveTextContent("spawn-1");
 
-      // In this implementation, spawn selection resets center panel mode but preserves unsaved changes
+      // In this implementation, spawn selection resets center panel mode and clears unsaved changes
       expect(screen.getByTestId("center-mode")).toHaveTextContent(
         "spawn-settings",
       );
-      expect(screen.getByTestId("unsaved-changes")).toHaveTextContent("true");
+      expect(screen.getByTestId("unsaved-changes")).toHaveTextContent("false");
     });
 
     it("clears unsaved changes appropriately across different contexts", () => {

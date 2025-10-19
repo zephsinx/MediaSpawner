@@ -250,51 +250,72 @@ export const RandomizationBucketsSection: React.FC<
               className="w-full px-3 py-2 border border-[rgb(var(--color-border))] bg-[rgb(var(--color-input))] text-[rgb(var(--color-fg))] rounded-md"
             />
           </div>
-          <div className="flex items-center gap-3">
-            <label
-              htmlFor="bucket-selection"
-              className="text-sm text-[rgb(var(--color-muted-foreground))]"
-            >
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-[rgb(var(--color-muted-foreground))]">
               Selection
-            </label>
-            <select
-              id="bucket-selection"
-              value={createForm.selection}
-              onChange={(e) =>
-                setCreateForm((f) => ({
-                  ...f,
-                  selection: e.target.value as "one" | "n",
-                }))
-              }
-              className="px-2 py-1 text-sm border border-[rgb(var(--color-border))] bg-[rgb(var(--color-input))] text-[rgb(var(--color-fg))] rounded"
-            >
-              <option value="one">Pick one</option>
-              <option value="n">Pick N</option>
-            </select>
-            {createForm.selection === "n" && (
-              <>
-                <label
-                  htmlFor="bucket-n"
-                  className="text-sm text-[rgb(var(--color-muted-foreground))]"
-                >
-                  N
-                </label>
+            </span>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
-                  id="bucket-n"
-                  type="number"
-                  min={1}
-                  value={createForm.n ?? 1}
-                  onChange={(e) =>
+                  type="radio"
+                  name="bucket-selection"
+                  value="one"
+                  checked={createForm.selection === "one"}
+                  onChange={() =>
                     setCreateForm((f) => ({
                       ...f,
-                      n: Math.max(1, Number(e.target.value) || 1),
+                      selection: "one",
                     }))
                   }
-                  className="w-20 px-2 py-1 text-sm border border-[rgb(var(--color-border))] bg-[rgb(var(--color-input))] text-[rgb(var(--color-fg))] rounded"
+                  className="w-4 h-4 text-[rgb(var(--color-accent))] bg-[rgb(var(--color-input))] border-[rgb(var(--color-border))] focus:ring-[rgb(var(--color-ring))] focus:ring-2"
                 />
-              </>
-            )}
+                <span className="text-sm text-[rgb(var(--color-fg))]">
+                  Pick one
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="bucket-selection"
+                  value="n"
+                  checked={createForm.selection === "n"}
+                  onChange={() =>
+                    setCreateForm((f) => ({
+                      ...f,
+                      selection: "n",
+                    }))
+                  }
+                  className="w-4 h-4 text-[rgb(var(--color-accent))] bg-[rgb(var(--color-input))] border-[rgb(var(--color-border))] focus:ring-[rgb(var(--color-ring))] focus:ring-2"
+                />
+                <span className="text-sm text-[rgb(var(--color-fg))]">
+                  Pick N
+                </span>
+              </label>
+            </div>
           </div>
+          {createForm.selection === "n" && (
+            <>
+              <label
+                htmlFor="bucket-n"
+                className="text-sm text-[rgb(var(--color-muted-foreground))]"
+              >
+                N
+              </label>
+              <input
+                id="bucket-n"
+                type="number"
+                min={1}
+                value={createForm.n ?? 1}
+                onChange={(e) =>
+                  setCreateForm((f) => ({
+                    ...f,
+                    n: Math.max(1, Number(e.target.value) || 1),
+                  }))
+                }
+                className="w-20 px-2 py-1 text-sm border border-[rgb(var(--color-border))] bg-[rgb(var(--color-input))] text-[rgb(var(--color-fg))] rounded"
+              />
+            </>
+          )}
           <div className="flex items-center gap-4"></div>
           <div className="flex justify-end gap-2 pt-2">
             <button

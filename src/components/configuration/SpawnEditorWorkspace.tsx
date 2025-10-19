@@ -153,6 +153,7 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
     centerPanelMode,
     setUnsavedChanges,
     hasUnsavedChanges,
+    changeType,
     selectSpawn,
     setCenterPanelMode,
     selectSpawnAsset,
@@ -175,6 +176,7 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
     spawnAssetId?: string;
   } | null>(null);
   const hasUnsavedChangesRef = useRef<boolean>(false);
+  const changeTypeRef = useRef<"none" | "spawn" | "asset">("none");
   const [showModeSwitchDialog, setShowModeSwitchDialog] = useState(false);
   const [showTriggerTypeDialog, setShowTriggerTypeDialog] = useState(false);
   const pendingTriggerTypeRef = useRef<TriggerType | null>(null);
@@ -193,6 +195,28 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
   const [showMetadata, setShowMetadata] = useState<boolean>(true);
   const [isTesting, setIsTesting] = useState<boolean>(false);
   const validation = useMemo(() => validateTrigger(trigger), [trigger]);
+
+  // Get modal content based on change type
+  const getModalContent = useCallback(() => {
+    const currentChangeType = changeTypeRef.current;
+    switch (currentChangeType) {
+      case "spawn":
+        return {
+          title: "Unsaved Spawn Changes",
+          message: "Switching will discard asset list changes. Continue?",
+        };
+      case "asset":
+        return {
+          title: "Unsaved Asset Settings",
+          message: "Switching will discard property changes. Continue?",
+        };
+      default:
+        return {
+          title: "Unsaved Changes",
+          message: "Switching modes will not save your changes. Continue?",
+        };
+    }
+  }, []);
   const bucketValidation = useMemo(() => {
     if (!selectedSpawn) return { isValid: true, errors: [] as string[] };
     const candidate = {
@@ -256,10 +280,11 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
     };
   }, [selectedSpawnId]);
 
-  // Keep hasUnsavedChanges ref in sync
+  // Keep hasUnsavedChanges and changeType refs in sync
   useEffect(() => {
     hasUnsavedChangesRef.current = hasUnsavedChanges;
-  }, [hasUnsavedChanges]);
+    changeTypeRef.current = changeType;
+  }, [hasUnsavedChanges, changeType]);
 
   // Create refs for latest state for mode switching
   const selectSpawnAssetRef = useRef(selectSpawnAsset);
@@ -282,7 +307,11 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
       if (!detail) return;
 
       // Use ref to read latest state value, but skip guard if explicitly bypassed
-      if (hasUnsavedChangesRef.current && !detail.skipGuard) {
+      if (
+        hasUnsavedChangesRef.current &&
+        changeTypeRef.current !== "none" &&
+        !detail.skipGuard
+      ) {
         switchPendingRef.current = detail;
         setShowModeSwitchDialogRef.current(true);
         return;
@@ -683,8 +712,8 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
         />
         <ConfirmDialog
           isOpen={showModeSwitchDialog}
-          title="Unsaved Changes"
-          message="Switching modes will not save your changes. Continue?"
+          title={getModalContent().title}
+          message={getModalContent().message}
           confirmText="Switch"
           cancelText="Stay"
           variant="warning"

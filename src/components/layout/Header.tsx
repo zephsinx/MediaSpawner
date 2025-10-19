@@ -13,6 +13,7 @@ import {
   ProfileDeletionDialog,
   LiveProfileIndicator,
   Modal,
+  ProfileSelector,
 } from "../common";
 import { Button } from "../ui";
 import { StreamerbotService } from "../../services/streamerbotService";
@@ -309,19 +310,12 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
             <label className="text-sm lg:text-base xl:text-lg font-medium text-[rgb(var(--color-muted-foreground))] whitespace-nowrap">
               Profile:
             </label>
-            <select
-              value={activeProfileId || ""}
-              onChange={(e) => handleProfileChange(e.target.value)}
-              className="px-3 py-2 lg:px-4 lg:py-2.5 xl:px-5 xl:py-3 text-sm lg:text-base xl:text-lg border border-[rgb(var(--color-input-border))] bg-[rgb(var(--color-input))] text-[rgb(var(--color-fg))] rounded-md focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-ring))] min-w-[150px] lg:min-w-[180px] xl:min-w-[200px]"
-              aria-label="Select active profile"
-            >
-              {profiles.map((profile) => (
-                <option key={profile.id} value={profile.id}>
-                  {profile.name}
-                  {profile.description && ` - ${profile.description}`}
-                </option>
-              ))}
-            </select>
+            <ProfileSelector
+              profiles={profiles}
+              selectedProfileId={activeProfileId}
+              onProfileChange={handleProfileChange}
+              className="min-w-[150px] lg:min-w-[180px] xl:min-w-[200px]"
+            />
 
             {/* Live Profile Indicator */}
             <LiveProfileIndicator

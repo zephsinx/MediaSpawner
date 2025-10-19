@@ -45,6 +45,7 @@ describe("SpawnEditorWorkspace - MS-53 Channel Point Reward Configuration", () =
       centerPanelMode: "spawn-settings",
       setUnsavedChanges: vi.fn(),
       hasUnsavedChanges: false,
+      changeType: "none",
       profileSpawnSelections: {},
       setActiveProfile: vi.fn(),
       setLiveProfile: vi.fn(),

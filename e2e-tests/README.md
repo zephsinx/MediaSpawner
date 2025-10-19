@@ -133,6 +133,7 @@ See `PERFORMANCE_BASELINES.md` for current performance targets. Tests should ver
   - `06-configuration-export.md` - Export functionality
   - `07-profile-switching.md` - Profile switching workflow
   - `08-performance.md` - Performance benchmarks
+  - `09-asset-settings-unsaved-changes.md` - Asset settings unsaved changes guard
 
 ## Running Tests
 
@@ -154,3 +155,7 @@ Tests can be run individually or as a complete suite. Each scenario is designed 
 - Performance tests should run first to establish clean baseline
 - Report unexpected console errors even if test otherwise passes
 - Include screenshots for visual verification when helpful
+- **Unsaved Changes Behavior**: The application now shows specific modal titles based on change type:
+  - "Unsaved Spawn Changes" for spawn-level modifications
+  - "Unsaved Asset Settings" for asset property changes
+  - Only one modal should appear (consolidated logic prevents duplicates)

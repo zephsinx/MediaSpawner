@@ -73,6 +73,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
       selectedSpawnAssetId: undefined,
       centerPanelMode: "spawn-settings",
       hasUnsavedChanges: false,
+      changeType: "none",
       profileSpawnSelections: {},
       setActiveProfile: vi.fn(),
       setLiveProfile: vi.fn(),
@@ -109,6 +110,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
+        changeType: "none",
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
         setLiveProfile: vi.fn(),
@@ -142,6 +144,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
+        changeType: "none",
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
         setLiveProfile: vi.fn(),
@@ -180,7 +183,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
 
       // Verify draft state created
       await waitFor(() => {
-        expect(mockSetUnsavedChanges).toHaveBeenCalledWith(true);
+        expect(mockSetUnsavedChanges).toHaveBeenCalledWith(true, "spawn");
       });
 
       // Verify updateSpawn NOT called immediately
@@ -195,6 +198,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
+        changeType: "none",
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
         setLiveProfile: vi.fn(),
@@ -247,6 +251,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
+        changeType: "none",
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
         setLiveProfile: vi.fn(),
@@ -301,7 +306,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
 
       // Verify unsaved changes flag was set
       await waitFor(() => {
-        expect(mockSetUnsavedChanges).toHaveBeenCalledWith(true);
+        expect(mockSetUnsavedChanges).toHaveBeenCalledWith(true, "spawn");
       });
 
       // Verify count updated to (1) after removal
@@ -326,6 +331,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
+        changeType: "none",
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
         setLiveProfile: vi.fn(),
@@ -365,7 +371,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
       });
 
       // Verify draft state created
-      expect(mockSetUnsavedChanges).toHaveBeenCalledWith(true);
+      expect(mockSetUnsavedChanges).toHaveBeenCalledWith(true, "spawn");
 
       // Verify Save button appears
       expect(screen.getByRole("button", { name: /Save/i })).toBeInTheDocument();
@@ -383,6 +389,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
+        changeType: "none",
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
         setLiveProfile: vi.fn(),
@@ -442,7 +449,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
       expect(callArgs[1].assets).toBeDefined();
 
       // Verify draft cleared
-      expect(mockSetUnsavedChanges).toHaveBeenCalledWith(false);
+      expect(mockSetUnsavedChanges).toHaveBeenCalledWith(false, "none");
     });
 
     it("no-op when dropping onto same index", async () => {
@@ -453,6 +460,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
+        changeType: "none",
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
         setLiveProfile: vi.fn(),
@@ -504,6 +512,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
         selectedSpawnAssetId: undefined,
         centerPanelMode: "spawn-settings",
         hasUnsavedChanges: false,
+        changeType: "none",
         profileSpawnSelections: {},
         setActiveProfile: vi.fn(),
         setLiveProfile: vi.fn(),
