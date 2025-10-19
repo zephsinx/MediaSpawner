@@ -360,7 +360,7 @@ export const RandomizationBucketsSection: React.FC<
                           className="z-[60] rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] px-2 py-1 text-xs text-[rgb(var(--color-fg))] shadow-md"
                         >
                           {base?.path || sa.assetId}
-                          <Tooltip.Arrow className="fill-white" />
+                          <Tooltip.Arrow className="fill-[rgb(var(--color-bg))]" />
                         </Tooltip.Content>
                       </Tooltip.Portal>
                     </Tooltip.Root>
@@ -382,7 +382,7 @@ export const RandomizationBucketsSection: React.FC<
             <div className="flex justify-end gap-2">
               <button
                 type="button"
-                className="px-3 py-1.5 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] text-[rgb(var(--color-muted-foreground))] hover:bg-gray-50"
+                className="px-3 py-1.5 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] text-[rgb(var(--color-muted-foreground))] hover:bg-[rgb(var(--color-muted))]/10"
                 onClick={closeMembersEditor}
               >
                 Done
