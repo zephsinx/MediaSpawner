@@ -480,7 +480,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                   Asset Settings
                 </h2>
                 {hasUnsavedChanges && (
-                  <span className="text-amber-600 dark:text-amber-500 text-sm font-medium">
+                  <span className="text-[rgb(var(--color-warning))] text-sm font-medium">
                     • Unsaved changes
                   </span>
                 )}

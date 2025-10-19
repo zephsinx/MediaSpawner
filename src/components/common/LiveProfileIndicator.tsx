@@ -77,13 +77,17 @@ export function LiveProfileIndicator({
               className={cn(
                 "flex items-center justify-center rounded-full",
                 sizeStyles.container,
-                isLive ? "bg-emerald-50" : "bg-gray-50",
+                isLive
+                  ? "bg-[rgb(var(--color-success-bg))]"
+                  : "bg-[rgb(var(--color-muted))]/10",
               )}
             >
               <IconComponent
                 className={cn(
                   sizeStyles.icon,
-                  isLive ? "text-emerald-600" : "text-gray-500",
+                  isLive
+                    ? "text-[rgb(var(--color-success))]"
+                    : "text-[rgb(var(--color-muted-foreground))]",
                 )}
                 aria-hidden="true"
               />
@@ -92,7 +96,9 @@ export function LiveProfileIndicator({
               className={cn(
                 "font-medium",
                 sizeStyles.text,
-                isLive ? "text-emerald-600" : "text-gray-500",
+                isLive
+                  ? "text-[rgb(var(--color-success))]"
+                  : "text-[rgb(var(--color-muted-foreground))]",
               )}
             >
               {isLive ? "Live" : "Not Live"}

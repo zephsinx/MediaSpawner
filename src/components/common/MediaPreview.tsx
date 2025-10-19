@@ -89,11 +89,11 @@ export function MediaPreview({
       // Use react-freezeframe for animated images (GIF, WebP, APNG, etc.)
       return (
         <div
-          className={`relative bg-gray-100 rounded overflow-hidden ${getSizeClasses()} ${className}`}
+          className={`relative bg-[rgb(var(--color-muted))]/10 rounded overflow-hidden ${getSizeClasses()} ${className}`}
         >
           {imageLoading && (
             <div className="absolute inset-0 flex items-center justify-center z-10">
-              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-4 h-4 border-2 border-[rgb(var(--color-accent))] border-t-transparent rounded-full animate-spin"></div>
             </div>
           )}
           <ReactFreezeframe
@@ -112,11 +112,11 @@ export function MediaPreview({
       // Regular static image
       return (
         <div
-          className={`relative bg-gray-100 rounded overflow-hidden ${getSizeClasses()} ${className}`}
+          className={`relative bg-[rgb(var(--color-muted))]/10 rounded overflow-hidden ${getSizeClasses()} ${className}`}
         >
           {imageLoading && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-4 h-4 border-2 border-[rgb(var(--color-accent))] border-t-transparent rounded-full animate-spin"></div>
             </div>
           )}
           <img
@@ -136,7 +136,7 @@ export function MediaPreview({
     // Video with paused controls
     return (
       <div
-        className={`relative bg-gray-100 rounded overflow-hidden ${getSizeClasses()} ${className}`}
+        className={`relative bg-[rgb(var(--color-muted))]/10 rounded overflow-hidden ${getSizeClasses()} ${className}`}
       >
         <video
           src={asset.path}
@@ -150,7 +150,7 @@ export function MediaPreview({
           onError={handleError}
         />
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-8 h-8 bg-black bg-opacity-50 rounded-full flex items-center justify-center text-white text-xs">
+          <div className="w-8 h-8 bg-[rgb(var(--color-fg))]/50 rounded-full flex items-center justify-center text-[rgb(var(--color-bg))] text-xs">
             ▶
           </div>
         </div>
@@ -173,7 +173,7 @@ export function MediaPreview({
 
     return (
       <div
-        className={`bg-gray-100 rounded flex items-center justify-center ${getSizeClasses()} ${className}`}
+        className={`bg-[rgb(var(--color-muted))]/10 rounded flex items-center justify-center ${getSizeClasses()} ${className}`}
       >
         <div className="text-3xl">{getAssetTypeIcon(asset.type)}</div>
       </div>

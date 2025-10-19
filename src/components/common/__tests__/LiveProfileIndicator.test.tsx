@@ -196,9 +196,11 @@ describe("LiveProfileIndicator", () => {
     it("applies correct colors for not live state", () => {
       render(<LiveProfileIndicator {...defaultProps} />);
 
-      // Check for gray colors in not live state
+      // Check for muted colors in not live state
       const statusText = screen.getByText("Not Live");
-      expect(statusText).toHaveClass("text-gray-500");
+      expect(statusText).toHaveClass(
+        "text-[rgb(var(--color-muted-foreground))]",
+      );
     });
 
     it("applies correct colors for live state", () => {
@@ -207,7 +209,7 @@ describe("LiveProfileIndicator", () => {
       // Check for emerald colors in live state - get the first "Live" text (status text)
       const statusTexts = screen.getAllByText("Live");
       const statusText = statusTexts[0]; // First one is the status text
-      expect(statusText).toHaveClass("text-emerald-600");
+      expect(statusText).toHaveClass("text-[rgb(var(--color-success))]");
     });
   });
 

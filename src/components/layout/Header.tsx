@@ -366,10 +366,10 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
                 className={
                   "mr-1 inline-block h-2.5 w-2.5 rounded-full " +
                   (streamerbot.state === "connected"
-                    ? "bg-green-500"
+                    ? "bg-[rgb(var(--color-success))]"
                     : streamerbot.state === "connecting"
-                      ? "bg-yellow-500 animate-pulse"
-                      : "bg-red-500")
+                      ? "bg-[rgb(var(--color-warning))] animate-pulse"
+                      : "bg-[rgb(var(--color-error))]")
                 }
               />
               SB

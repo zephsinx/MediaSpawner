@@ -20,36 +20,36 @@ export interface SyncStatusIndicatorProps {
 const statusConfig = {
   synced: {
     icon: CheckCircle,
-    color: "text-emerald-600",
-    bgColor: "bg-emerald-50",
+    color: "text-[rgb(var(--color-success))]",
+    bgColor: "bg-[rgb(var(--color-success-bg))]",
     label: "Synced",
     description: "Configuration is synchronized with Streamer.bot",
   },
   "out-of-sync": {
     icon: AlertCircle,
-    color: "text-amber-600",
-    bgColor: "bg-amber-50",
+    color: "text-[rgb(var(--color-warning))]",
+    bgColor: "bg-[rgb(var(--color-warning))]/10",
     label: "Out of sync",
     description: "Local configuration differs from Streamer.bot",
   },
   error: {
     icon: XCircle,
-    color: "text-red-600",
-    bgColor: "bg-red-50",
+    color: "text-[rgb(var(--color-error))]",
+    bgColor: "bg-[rgb(var(--color-error-bg))]",
     label: "Error",
     description: "Failed to check sync status",
   },
   unknown: {
     icon: HelpCircle,
-    color: "text-gray-500",
-    bgColor: "bg-gray-50",
+    color: "text-[rgb(var(--color-muted-foreground))]",
+    bgColor: "bg-[rgb(var(--color-muted))]/10",
     label: "Unknown",
     description: "Sync status not yet determined",
   },
   offline: {
     icon: WifiOff,
-    color: "text-gray-500",
-    bgColor: "bg-gray-50",
+    color: "text-[rgb(var(--color-muted-foreground))]",
+    bgColor: "bg-[rgb(var(--color-muted))]/10",
     label: "Offline",
     description: "Not connected to Streamer.bot",
   },
@@ -110,7 +110,7 @@ export function SyncStatusIndicator({
             className={cn(
               "flex items-center justify-center rounded-full",
               sizeStyles.container,
-              config.bgColor
+              config.bgColor,
             )}
           >
             <IconComponent
