@@ -377,17 +377,16 @@ export function transformAssetSettingsFromSchema(
     result.randomCoordinates = settings.randomCoordinates;
 
   if (settings.width !== undefined || settings.height !== undefined) {
-    result.dimensions = {
-      width: settings.width ?? 100,
-      height: settings.height ?? 100,
-    };
+    result.dimensions = {};
+    if (settings.width !== undefined) result.dimensions.width = settings.width;
+    if (settings.height !== undefined)
+      result.dimensions.height = settings.height;
   }
 
   if (settings.x !== undefined || settings.y !== undefined) {
-    result.position = {
-      x: settings.x ?? 0,
-      y: settings.y ?? 0,
-    };
+    result.position = {};
+    if (settings.x !== undefined) result.position.x = settings.x;
+    if (settings.y !== undefined) result.position.y = settings.y;
   }
 
   if (
@@ -396,12 +395,13 @@ export function transformAssetSettingsFromSchema(
     settings.cropRight !== undefined ||
     settings.cropBottom !== undefined
   ) {
-    result.crop = {
-      left: settings.cropLeft ?? 0,
-      top: settings.cropTop ?? 0,
-      right: settings.cropRight ?? 0,
-      bottom: settings.cropBottom ?? 0,
-    };
+    result.crop = {};
+    if (settings.cropLeft !== undefined) result.crop.left = settings.cropLeft;
+    if (settings.cropTop !== undefined) result.crop.top = settings.cropTop;
+    if (settings.cropRight !== undefined)
+      result.crop.right = settings.cropRight;
+    if (settings.cropBottom !== undefined)
+      result.crop.bottom = settings.cropBottom;
   }
 
   return result;

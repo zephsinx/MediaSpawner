@@ -73,16 +73,16 @@ export interface MediaAssetProperties {
  * Dimensions interface for width and height
  */
 export interface Dimensions {
-  width: number;
-  height: number;
+  width?: number;
+  height?: number;
 }
 
 /**
  * Position interface for x and y coordinates
  */
 export interface Position {
-  x: number;
-  y: number;
+  x?: number;
+  y?: number;
 }
 
 /**
@@ -90,9 +90,9 @@ export interface Position {
  */
 export interface ScaleObject {
   /** X-axis scale factor */
-  x: number;
+  x?: number;
   /** Y-axis scale factor */
-  y: number;
+  y?: number;
   /** Whether X and Y scales are linked (UI hint) */
   linked?: boolean;
 }
@@ -102,13 +102,13 @@ export interface ScaleObject {
  */
 export interface CropSettings {
   /** Left crop amount in pixels */
-  left: number;
+  left?: number;
   /** Top crop amount in pixels */
-  top: number;
+  top?: number;
   /** Right crop amount in pixels */
-  right: number;
+  right?: number;
   /** Bottom crop amount in pixels */
-  bottom: number;
+  bottom?: number;
 }
 
 /**

@@ -6,16 +6,151 @@ import {
   validateBoundsType,
   validateBoundsAlignment,
   validateScaleValue,
+  validateDimensionsValues,
+  validatePositionValues,
 } from "../assetValidation";
 import type {
   ScaleObject,
   CropSettings,
   Dimensions,
+  Position,
   AlignmentOption,
   BoundsType,
 } from "../../types/media";
 
 describe("assetValidation", () => {
+  describe("validateDimensionsValues", () => {
+    it("returns valid for undefined", () => {
+      const result = validateDimensionsValues(undefined);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("returns valid for valid dimensions", () => {
+      const dimensions: Dimensions = { width: 100, height: 200 };
+      const result = validateDimensionsValues(dimensions);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("returns valid for minimum valid dimensions", () => {
+      const dimensions: Dimensions = { width: 1, height: 1 };
+      const result = validateDimensionsValues(dimensions);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("returns valid for partial dimensions with only width", () => {
+      const dimensions: Dimensions = { width: 100 };
+      const result = validateDimensionsValues(dimensions);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("returns valid for partial dimensions with only height", () => {
+      const dimensions: Dimensions = { height: 200 };
+      const result = validateDimensionsValues(dimensions);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("returns invalid for zero width", () => {
+      const dimensions: Dimensions = { width: 0, height: 100 };
+      const result = validateDimensionsValues(dimensions);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe("Width must be > 0");
+    });
+
+    it("returns invalid for zero height", () => {
+      const dimensions: Dimensions = { width: 100, height: 0 };
+      const result = validateDimensionsValues(dimensions);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe("Height must be > 0");
+    });
+
+    it("returns invalid for partial dimensions with zero width", () => {
+      const dimensions: Dimensions = { width: 0 };
+      const result = validateDimensionsValues(dimensions);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe("Width must be > 0");
+    });
+
+    it("returns invalid for partial dimensions with zero height", () => {
+      const dimensions: Dimensions = { height: 0 };
+      const result = validateDimensionsValues(dimensions);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe("Height must be > 0");
+    });
+
+    it("returns invalid for negative width", () => {
+      const dimensions: Dimensions = { width: -1, height: 100 };
+      const result = validateDimensionsValues(dimensions);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe("Width must be > 0");
+    });
+
+    it("returns invalid for negative height", () => {
+      const dimensions: Dimensions = { width: 100, height: -1 };
+      const result = validateDimensionsValues(dimensions);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe("Height must be > 0");
+    });
+  });
+
+  describe("validatePositionValues", () => {
+    it("returns valid for undefined", () => {
+      const result = validatePositionValues(undefined);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("returns valid for valid position", () => {
+      const position: Position = { x: 100, y: 200 };
+      const result = validatePositionValues(position);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("returns valid for zero position", () => {
+      const position: Position = { x: 0, y: 0 };
+      const result = validatePositionValues(position);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("returns valid for partial position with only x", () => {
+      const position: Position = { x: 100 };
+      const result = validatePositionValues(position);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("returns valid for partial position with only y", () => {
+      const position: Position = { y: 200 };
+      const result = validatePositionValues(position);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("returns invalid for negative x", () => {
+      const position: Position = { x: -1, y: 100 };
+      const result = validatePositionValues(position);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe("X position must be ≥ 0");
+    });
+
+    it("returns invalid for negative y", () => {
+      const position: Position = { x: 100, y: -1 };
+      const result = validatePositionValues(position);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe("Y position must be ≥ 0");
+    });
+
+    it("returns invalid for partial position with negative x", () => {
+      const position: Position = { x: -1 };
+      const result = validatePositionValues(position);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe("X position must be ≥ 0");
+    });
+
+    it("returns invalid for partial position with negative y", () => {
+      const position: Position = { y: -1 };
+      const result = validatePositionValues(position);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe("Y position must be ≥ 0");
+    });
+  });
+
   describe("validateRotation", () => {
     it("returns valid for undefined", () => {
       const result = validateRotation(undefined);
@@ -114,6 +249,35 @@ describe("assetValidation", () => {
       const dimensions: Dimensions = { width: 100, height: 100 };
       const result = validateCropSettings(crop, dimensions);
       expect(result.isValid).toBe(true);
+    });
+
+    it("returns valid for partial crop objects with undefined fields", () => {
+      const crop: Partial<CropSettings> = {
+        left: 10,
+        top: undefined,
+        right: 30,
+        bottom: undefined,
+      };
+      const result = validateCropSettings(crop as CropSettings);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("returns valid for partial crop objects with only some fields defined", () => {
+      const crop: Partial<CropSettings> = { left: 10, top: 20 };
+      const result = validateCropSettings(crop as CropSettings);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("returns invalid for partial crop with negative defined field", () => {
+      const crop: Partial<CropSettings> = {
+        left: -1,
+        top: undefined,
+        right: undefined,
+        bottom: undefined,
+      };
+      const result = validateCropSettings(crop as CropSettings);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe("Crop left must be ≥ 0");
     });
   });
 
@@ -233,6 +397,24 @@ describe("assetValidation", () => {
       expect(result.isValid).toBe(true);
     });
 
+    it("returns valid for partial ScaleObject with only x", () => {
+      const scaleObj: ScaleObject = { x: 1.5 };
+      const result = validateScaleValue(scaleObj);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("returns valid for partial ScaleObject with only y", () => {
+      const scaleObj: ScaleObject = { y: 2.0 };
+      const result = validateScaleValue(scaleObj);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("returns valid for partial ScaleObject with only linked", () => {
+      const scaleObj: ScaleObject = { linked: true };
+      const result = validateScaleValue(scaleObj);
+      expect(result.isValid).toBe(true);
+    });
+
     it("returns invalid for ScaleObject with negative x value", () => {
       const scaleObj: ScaleObject = { x: -1, y: 1, linked: true };
       const result = validateScaleValue(scaleObj);
@@ -256,6 +438,20 @@ describe("assetValidation", () => {
 
     it("returns invalid for ScaleObject with NaN y value", () => {
       const scaleObj: ScaleObject = { x: 1, y: NaN, linked: true };
+      const result = validateScaleValue(scaleObj);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe("Scale Y must be ≥ 0");
+    });
+
+    it("returns invalid for partial ScaleObject with negative x", () => {
+      const scaleObj: ScaleObject = { x: -1 };
+      const result = validateScaleValue(scaleObj);
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe("Scale X must be ≥ 0");
+    });
+
+    it("returns invalid for partial ScaleObject with negative y", () => {
+      const scaleObj: ScaleObject = { y: -1 };
       const result = validateScaleValue(scaleObj);
       expect(result.isValid).toBe(false);
       expect(result.error).toBe("Scale Y must be ≥ 0");

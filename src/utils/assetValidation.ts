@@ -52,7 +52,7 @@ export function detectTypeFromUrlOrPath(path: string): AssetType {
 }
 
 export function validateVolumePercent(
-  value: number | undefined
+  value: number | undefined,
 ): AssetValidationResult {
   if (value === undefined || Number.isNaN(value))
     return { isValid: false, error: "Enter 0–100" };
@@ -61,25 +61,35 @@ export function validateVolumePercent(
 }
 
 export function validateDimensionsValues(
-  dim: Dimensions | undefined
+  dim: Dimensions | undefined,
 ): AssetValidationResult {
-  if (!dim) return { isValid: false, error: "Width/Height must be > 0" };
-  if (dim.width <= 0 || dim.height <= 0)
-    return { isValid: false, error: "Width/Height must be > 0" };
+  if (!dim) return { isValid: true };
+
+  // Validate individual fields if present
+  if (dim.width !== undefined && dim.width <= 0)
+    return { isValid: false, error: "Width must be > 0" };
+  if (dim.height !== undefined && dim.height <= 0)
+    return { isValid: false, error: "Height must be > 0" };
+
   return { isValid: true };
 }
 
 export function validatePositionValues(
-  pos: Position | undefined
+  pos: Position | undefined,
 ): AssetValidationResult {
-  if (!pos) return { isValid: false, error: "Use non-negative values" };
-  if (pos.x < 0 || pos.y < 0)
-    return { isValid: false, error: "Use non-negative values" };
+  if (!pos) return { isValid: true };
+
+  // Validate individual fields if present
+  if (pos.x !== undefined && pos.x < 0)
+    return { isValid: false, error: "X position must be ≥ 0" };
+  if (pos.y !== undefined && pos.y < 0)
+    return { isValid: false, error: "Y position must be ≥ 0" };
+
   return { isValid: true };
 }
 
 export function validateScaleValue(
-  value: number | ScaleObject | undefined
+  value: number | ScaleObject | undefined,
 ): AssetValidationResult {
   if (value === undefined) return { isValid: true };
 
@@ -91,11 +101,17 @@ export function validateScaleValue(
 
   if (typeof value === "object" && value !== null) {
     const scaleObj = value as ScaleObject;
-    if (Number.isNaN(scaleObj.x) || scaleObj.x < 0) {
-      return { isValid: false, error: "Scale X must be ≥ 0" };
+
+    // Validate individual fields if present
+    if (scaleObj.x !== undefined) {
+      if (Number.isNaN(scaleObj.x) || scaleObj.x < 0) {
+        return { isValid: false, error: "Scale X must be ≥ 0" };
+      }
     }
-    if (Number.isNaN(scaleObj.y) || scaleObj.y < 0) {
-      return { isValid: false, error: "Scale Y must be ≥ 0" };
+    if (scaleObj.y !== undefined) {
+      if (Number.isNaN(scaleObj.y) || scaleObj.y < 0) {
+        return { isValid: false, error: "Scale Y must be ≥ 0" };
+      }
     }
     return { isValid: true };
   }
@@ -104,7 +120,7 @@ export function validateScaleValue(
 }
 
 export function validateRotation(
-  value: number | undefined
+  value: number | undefined,
 ): AssetValidationResult {
   if (value === undefined) return { isValid: true };
   if (Number.isNaN(value)) return { isValid: false, error: "Enter 0–360°" };
@@ -115,25 +131,39 @@ export function validateRotation(
 
 export function validateCropSettings(
   crop: CropSettings | undefined,
-  dimensions?: Dimensions
+  dimensions?: Dimensions,
 ): AssetValidationResult {
   if (!crop) return { isValid: true };
 
   const { left, top, right, bottom } = crop;
 
-  // Check for non-negative values
-  if (left < 0) return { isValid: false, error: "Crop left must be ≥ 0" };
-  if (top < 0) return { isValid: false, error: "Crop top must be ≥ 0" };
-  if (right < 0) return { isValid: false, error: "Crop right must be ≥ 0" };
-  if (bottom < 0) return { isValid: false, error: "Crop bottom must be ≥ 0" };
+  // Check for non-negative values (only validate fields that are defined)
+  if (left !== undefined && left < 0)
+    return { isValid: false, error: "Crop left must be ≥ 0" };
+  if (top !== undefined && top < 0)
+    return { isValid: false, error: "Crop top must be ≥ 0" };
+  if (right !== undefined && right < 0)
+    return { isValid: false, error: "Crop right must be ≥ 0" };
+  if (bottom !== undefined && bottom < 0)
+    return { isValid: false, error: "Crop bottom must be ≥ 0" };
 
-  // Check against dimensions if available
+  // Check against dimensions if available (only validate defined fields)
   if (dimensions) {
     const { width, height } = dimensions;
-    if (left + right >= width) {
+    if (
+      width !== undefined &&
+      left !== undefined &&
+      right !== undefined &&
+      left + right >= width
+    ) {
       return { isValid: false, error: "Crop left + right must be < width" };
     }
-    if (top + bottom >= height) {
+    if (
+      height !== undefined &&
+      top !== undefined &&
+      bottom !== undefined &&
+      top + bottom >= height
+    ) {
       return { isValid: false, error: "Crop top + bottom must be < height" };
     }
   }
@@ -142,7 +172,7 @@ export function validateCropSettings(
 }
 
 export function validateAlignment(
-  value: AlignmentOption | undefined
+  value: AlignmentOption | undefined,
 ): AssetValidationResult {
   if (value === undefined) return { isValid: true };
 
@@ -155,7 +185,7 @@ export function validateAlignment(
 }
 
 export function validateBoundsType(
-  value: BoundsType | undefined
+  value: BoundsType | undefined,
 ): AssetValidationResult {
   if (value === undefined) return { isValid: true };
 
@@ -177,7 +207,7 @@ export function validateBoundsType(
 }
 
 export function validateBoundsAlignment(
-  value: AlignmentOption | undefined
+  value: AlignmentOption | undefined,
 ): AssetValidationResult {
   if (value === undefined) return { isValid: true };
 
