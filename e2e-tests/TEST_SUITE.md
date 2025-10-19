@@ -24,8 +24,6 @@ For best results, run tests in this order:
 - Profile activation
 - Initial navigation
 
-**Duration**: ~2 minutes
-
 ---
 
 ### Scenario 02: Asset Library Operations
@@ -40,8 +38,6 @@ For best results, run tests in this order:
 - Add new asset form
 - Asset list display
 - Asset filtering
-
-**Duration**: ~3 minutes
 
 ---
 
@@ -58,8 +54,6 @@ For best results, run tests in this order:
 - Configure spawn settings
 - Save spawn changes
 
-**Duration**: ~3 minutes
-
 ---
 
 ### Scenario 04: Asset Assignment to Spawns
@@ -74,8 +68,6 @@ For best results, run tests in this order:
 - Add assets from library to spawn
 - Verify asset appears in spawn
 - Asset count updates
-
-**Duration**: ~2 minutes
 
 ---
 
@@ -93,8 +85,6 @@ For best results, run tests in this order:
 - Add members to bucket
 - Verify bucket chips on assets
 
-**Duration**: ~4 minutes
-
 ---
 
 ### Scenario 06: Configuration Export
@@ -110,8 +100,6 @@ For best results, run tests in this order:
 - Verify download occurs
 - Validate JSON structure
 
-**Duration**: ~2 minutes
-
 ---
 
 ### Scenario 07: Profile Switching
@@ -126,8 +114,6 @@ For best results, run tests in this order:
 - Switch between profiles
 - Verify state isolation
 - Unsaved changes guard
-
-**Duration**: ~3 minutes
 
 ---
 
@@ -145,13 +131,7 @@ For best results, run tests in this order:
 - Interaction responsiveness
 - Network request analysis
 
-**Duration**: ~5 minutes
-
 ---
-
-## Total Suite Duration
-
-Approximately **24 minutes** for complete suite execution.
 
 ## Success Metrics
 
