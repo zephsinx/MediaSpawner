@@ -6,7 +6,7 @@ Test spawn creation workflow and basic spawn configuration including name, descr
 
 ## Prerequisites
 
-- Application running at `http://localhost:5173`
+- Application running at `http://localhost:4173`
 - At least one profile exists and is active
 - User at main application page (spawns view)
 
@@ -14,7 +14,7 @@ Test spawn creation workflow and basic spawn configuration including name, descr
 
 ### 1. Navigate to Application
 
-**Action**: `navigate_page(url: "http://localhost:5173")`
+**Action**: `navigate_page(url: "http://localhost:4173")`
 
 **Expected**:
 

@@ -6,7 +6,7 @@ Validate the configuration export functionality including navigating to settings
 
 ## Prerequisites
 
-- Application running at `http://localhost:5173`
+- Application running at `http://localhost:4173`
 - At least one profile with spawns and assets exists (from previous scenarios)
 - Data to export:
   - 1+ profiles
@@ -18,7 +18,7 @@ Validate the configuration export functionality including navigating to settings
 
 ### 1. Navigate to Application
 
-**Action**: `navigate_page(url: "http://localhost:5173")`
+**Action**: `navigate_page(url: "http://localhost:4173")`
 
 **Expected**:
 

@@ -6,7 +6,7 @@ Verify that a new user with no existing data can successfully create their first
 
 ## Prerequisites
 
-- Development server running at `http://localhost:5173`
+- Production preview server running at `http://localhost:4173`
 - Clean localStorage (no existing MediaSpawner data)
 - Fresh browser session or cleared storage
 
@@ -14,7 +14,7 @@ Verify that a new user with no existing data can successfully create their first
 
 ### 1. Navigate to Application
 
-**Action**: `navigate_page(url: "http://localhost:5173")`
+**Action**: `navigate_page(url: "http://localhost:4173")`
 
 **Expected**:
 

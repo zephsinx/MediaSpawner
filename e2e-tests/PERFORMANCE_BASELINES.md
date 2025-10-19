@@ -228,7 +228,7 @@ evaluate_script(() => {
 1. **Run performance tests first** with clean browser state
 2. Clear cache and localStorage before testing
 3. Run tests in incognito/private mode
-4. Use consistent network conditions (local dev server, no throttling)
+4. Use consistent network conditions (local preview server, no throttling)
 
 ### Multiple Runs
 
@@ -241,7 +241,7 @@ evaluate_script(() => {
 - Same machine specs
 - Same browser version
 - No other tabs or applications interfering
-- Dev server not under load
+- Preview server not under load
 
 ### Reporting Format
 

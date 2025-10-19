@@ -6,7 +6,7 @@ Validate asset library management workflows including navigating to the asset li
 
 ## Prerequisites
 
-- Application running at `http://localhost:5173`
+- Application running at `http://localhost:4173`
 - At least one profile exists (created in Scenario 01 or manually)
 - User at main application page (spawns view)
 
@@ -14,7 +14,7 @@ Validate asset library management workflows including navigating to the asset li
 
 ### 1. Navigate to Application
 
-**Action**: `navigate_page(url: "http://localhost:5173")`
+**Action**: `navigate_page(url: "http://localhost:4173")`
 
 **Expected**:
 

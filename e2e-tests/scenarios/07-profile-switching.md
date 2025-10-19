@@ -6,7 +6,7 @@ Test profile switching workflow with state isolation and unsaved changes guard.
 
 ## Prerequisites
 
-- Application running at `http://localhost:5173`
+- Application running at `http://localhost:4173`
 - At least two profiles exist (create additional if needed)
 - First profile has spawns and assets (from previous scenarios)
 - Second profile can be empty or have different data
@@ -15,7 +15,7 @@ Test profile switching workflow with state isolation and unsaved changes guard.
 
 ### 1. Navigate to Application
 
-**Action**: `navigate_page(url: "http://localhost:5173")`
+**Action**: `navigate_page(url: "http://localhost:4173")`
 
 **Expected**:
 

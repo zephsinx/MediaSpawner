@@ -6,7 +6,7 @@ Test the randomization bucket functionality including creating buckets, configur
 
 ## Prerequisites
 
-- Application running at `http://localhost:5173`
+- Application running at `http://localhost:4173`
 - At least one profile exists and is active
 - Spawn "Test Spawn Alpha" exists with 2+ assets assigned (from Scenario 04)
 - User at main application page
@@ -17,7 +17,7 @@ Test the randomization bucket functionality including creating buckets, configur
 
 **Action**:
 
-1. `navigate_page(url: "http://localhost:5173")`
+1. `navigate_page(url: "http://localhost:4173")`
 2. `wait_for(text: "Spawns", timeout: 3000)`
 3. Take snapshot
 4. Click spawn "Test Spawn Alpha" with assets

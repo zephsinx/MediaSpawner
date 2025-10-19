@@ -6,11 +6,11 @@ Measure application performance against baseline targets and validate optimizati
 
 ## Prerequisites
 
-- Application running at `http://localhost:5173`
+- Application running at `http://localhost:4173`
 - Clean browser state (clear cache, no extensions interfering)
 - Incognito/private mode recommended
 - At least one profile with moderate data (2-3 spawns, 3-5 assets)
-- Development server not under load
+- Production preview server not under load
 - No browser throttling enabled
 
 ## Important Notes
@@ -451,7 +451,7 @@ evaluate_script(() => {
 
 **Expected**:
 
-- All requests to `http://localhost:5173`
+- All requests to `http://localhost:4173`
 - No external API calls
 - No analytics or tracking requests
 - LocalStorage-only architecture confirmed

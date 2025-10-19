@@ -6,7 +6,7 @@ Verify the workflow for assigning assets from the library to spawns and viewing 
 
 ## Prerequisites
 
-- Application running at `http://localhost:5173`
+- Application running at `http://localhost:4173`
 - At least one profile exists and is active
 - At least one spawn exists (created in Scenario 03)
 - At least three assets exist in library (created in Scenario 02)
@@ -18,7 +18,7 @@ Verify the workflow for assigning assets from the library to spawns and viewing 
 
 **Action**:
 
-1. `navigate_page(url: "http://localhost:5173")`
+1. `navigate_page(url: "http://localhost:4173")`
 2. `wait_for(text: "Spawns", timeout: 3000)`
 3. Take snapshot
 4. Click spawn "Test Spawn Alpha" (or any existing spawn)

@@ -10,13 +10,13 @@ These tests validate critical user workflows and performance benchmarks for Medi
 
 Before running tests:
 
-1. **Development server must be running**
+1. **Production preview server must be running**
 
    ```bash
-   npm run dev
+   npm run preview
    ```
 
-   Server should be accessible at `http://localhost:5173`
+   Server should be accessible at `http://localhost:4173`
 
 2. **Clean state**
    - Tests assume a fresh localStorage state
@@ -74,7 +74,7 @@ Each test scenario follows this general pattern:
 
 ```markdown
 1. Navigate to application
-   - Tool: navigate_page(url: "http://localhost:5173")
+   - Tool: navigate_page(url: "http://localhost:4173")
    - Expected: Page loads successfully
 
 2. Wait for app to render
