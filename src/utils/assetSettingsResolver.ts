@@ -51,7 +51,6 @@ export function resolveEffectiveProperties(args: {
   consider("boundsAlignment");
   consider("volume");
   consider("loop");
-  consider("autoplay");
   consider("muted");
   consider("monitorType");
   consider("randomCoordinates");
@@ -93,7 +92,6 @@ export function buildOverridesDiff(
   assignIfDifferent("boundsAlignment");
   assignIfDifferent("volume");
   assignIfDifferent("loop");
-  assignIfDifferent("autoplay");
   assignIfDifferent("muted");
   assignIfDifferent("monitorType");
   assignIfDifferent("randomCoordinates");

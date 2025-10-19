@@ -269,15 +269,40 @@ public class CPHInline
                 InitializeTimers();
             }
 
+            // Check for test mode with specific spawnId
+            if (CPH.TryGetArg("spawnId", out string testSpawnId) &&
+                CPH.TryGetArg("testMode", out bool testMode) &&
+                testMode)
+            {
+                LogExecution(LogLevel.Info, $"Execute[{executionId}]: Test mode detected for spawn: {testSpawnId}");
+                bool testResult = HandleTestSpawn(testSpawnId);
+
+                stopwatch.Stop();
+                long testExecutionTime = stopwatch.ElapsedMilliseconds;
+
+                if (testResult)
+                {
+                    LogExecution(LogLevel.Info, $"Execute[{executionId}]: Test spawn execution completed successfully in {testExecutionTime}ms");
+                }
+                else
+                {
+                    LogExecution(LogLevel.Warning, $"Execute[{executionId}]: Test spawn execution failed in {testExecutionTime}ms");
+                }
+
+                return testResult;
+            }
+
             // Detect trigger type and source with validation
-            string source = CPH.GetSource().ToString();
+            string source = CPH.GetSource().ToString()?.ToLowerInvariant();
 
             // Get trigger name for routing
-            if (!CPH.TryGetArg("triggerName", out string triggerName) || string.IsNullOrWhiteSpace(triggerName))
+            if (!CPH.TryGetArg("triggerName", out string triggerNameRaw) || string.IsNullOrWhiteSpace(triggerNameRaw))
             {
                 LogExecution(LogLevel.Error, $"Execute[{executionId}]: No triggerName argument provided");
                 return false;
             }
+
+            string triggerName = triggerNameRaw.ToLowerInvariant();
 
             LogExecution(LogLevel.Info, $"Execute[{executionId}]: Trigger detected - TriggerName: '{triggerName}', Source: '{source ?? "null"}'");
 
@@ -288,21 +313,21 @@ public class CPHInline
             try
             {
                 // Route based on source and trigger name patterns
-                if (source?.ToLowerInvariant() == "command" || triggerName.ToLowerInvariant() == "command")
+                if (source == "command" || triggerName == "command")
                 {
                     handlerName = "HandleCommandTrigger";
                     executionResult = HandleCommandTrigger(source);
                 }
-                else if (source?.ToLowerInvariant() == "twitch" ||
-                         triggerName == "Follow" || triggerName == "Subscription" || triggerName == "Cheer" ||
-                         triggerName == "Gift Subscription" || triggerName == "Channel Point Reward" ||
-                         triggerName == "Raid" || triggerName == "Host" || triggerName == "Announcement" ||
-                         triggerName == "Present Viewers")
+                else if (source == "twitch" ||
+                         triggerName == "follow" || triggerName == "subscription" || triggerName == "cheer" ||
+                         triggerName == "gift subscription" || triggerName == "channel point reward" ||
+                         triggerName == "raid" || triggerName == "host" || triggerName == "announcement" ||
+                         triggerName == "present viewers")
                 {
                     handlerName = "HandleTwitchTrigger";
                     executionResult = HandleTwitchTrigger(source);
                 }
-                else if (triggerName.ToLowerInvariant() == "manual" || triggerName.ToLowerInvariant() == "c# method")
+                else if (triggerName == "manual" || triggerName == "c# method")
                 {
                     handlerName = "HandleManualTrigger";
                     executionResult = HandleManualTrigger();
@@ -356,6 +381,60 @@ public class CPHInline
 
             return false;
         }
+    }
+
+    /// <summary>
+    /// Handle test execution of a specific spawn
+    /// </summary>
+    private bool HandleTestSpawn(string spawnId)
+    {
+        LogStructuredInfo("TestSpawn", $"Testing spawn: {spawnId}", new Dictionary<string, object>
+        {
+            { "spawnId", spawnId }
+        });
+
+        if (!LoadMediaSpawnerConfigWithRetry())
+        {
+            LogStructuredError("TestSpawn", "Failed to load configuration", null);
+            return false;
+        }
+
+        Spawn spawn = FindSpawnById(spawnId);
+        if (spawn == null)
+        {
+            LogStructuredError("TestSpawn", $"Spawn not found: {spawnId}", new Dictionary<string, object>
+            {
+                { "spawnId", spawnId }
+            });
+            return false;
+        }
+
+        Dictionary<string, object> contextData = new Dictionary<string, object>
+        {
+            { "triggerType", "manual" },
+            { "testMode", true }
+        };
+
+        bool result = ExecuteSpawn(spawn, "manual", contextData);
+
+        if (result)
+        {
+            LogStructuredInfo("TestSpawn", $"Successfully tested spawn: {spawn.Name}", new Dictionary<string, object>
+            {
+                { "spawnId", spawnId },
+                { "spawnName", spawn.Name }
+            });
+        }
+        else
+        {
+            LogStructuredError("TestSpawn", $"Failed to test spawn: {spawn.Name}", new Dictionary<string, object>
+            {
+                { "spawnId", spawnId },
+                { "spawnName", spawn.Name }
+            });
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -3263,6 +3342,51 @@ public class CPHInline
     }
 
     /// <summary>
+    /// Find the profile that contains a specific spawn
+    /// </summary>
+    /// <param name="spawnId">The spawn ID to search for</param>
+    /// <returns>The profile containing the spawn, or null if not found</returns>
+    private SpawnProfile FindProfileBySpawnId(string spawnId)
+    {
+        if (this.cachedConfig?.Profiles == null || string.IsNullOrWhiteSpace(spawnId))
+            return null;
+
+        return this.cachedConfig.Profiles.FirstOrDefault(profile =>
+            profile.Spawns?.Any(s => s.Id == spawnId) == true);
+    }
+
+    /// <summary>
+    /// Get the effective working directory for a spawn, with profile override and global fallback.
+    /// Only applies to local file assets; URL/browser sources ignore working directory.
+    /// </summary>
+    /// <param name="spawn">The spawn to get working directory for</param>
+    /// <returns>Effective working directory path, or empty string if none configured</returns>
+    private string GetEffectiveWorkingDirectory(Spawn spawn)
+    {
+        if (spawn == null || this.cachedConfig == null)
+        {
+            LogExecution(LogLevel.Debug, $"GetEffectiveWorkingDirectory: spawn={spawn?.Id}, cachedConfig={this.cachedConfig != null} - returning empty");
+            return string.Empty;
+        }
+
+        // Find the profile containing this spawn
+        SpawnProfile profile = FindProfileBySpawnId(spawn.Id);
+        LogExecution(LogLevel.Debug, $"GetEffectiveWorkingDirectory: spawn={spawn.Id}, profile={profile?.Name}, profileWorkingDir={profile?.WorkingDirectory}");
+
+        // Priority: Profile working directory > Global working directory
+        if (profile != null && !string.IsNullOrWhiteSpace(profile.WorkingDirectory))
+        {
+            LogExecution(LogLevel.Debug, $"GetEffectiveWorkingDirectory: Using profile working directory: {profile.WorkingDirectory}");
+            return profile.WorkingDirectory;
+        }
+
+        // Fallback to global config
+        string globalWorkingDir = this.cachedConfig.WorkingDirectory ?? string.Empty;
+        LogExecution(LogLevel.Debug, $"GetEffectiveWorkingDirectory: Using global working directory: {globalWorkingDir}");
+        return globalWorkingDir;
+    }
+
+    /// <summary>
     /// Filter spawns based on command configuration
     /// </summary>
     /// <param name="spawns">List of spawns to filter</param>
@@ -3288,7 +3412,7 @@ public class CPHInline
             bool commandMatches = false;
             if (config.ContainsKey("aliases"))
             {
-                var aliasesValue = config["aliases"];
+                object aliasesValue = config["aliases"];
                 List<object> aliases = null;
 
                 // Handle different types of aliases collections
@@ -3787,7 +3911,7 @@ public class CPHInline
                             lock (this.lockObject)
                             {
                                 // Find the active execution by spawn ID
-                                var activeExecution = this.activeSpawns.Values.FirstOrDefault(e => e.SpawnId == spawn.Id);
+                                ActiveSpawnExecution activeExecution = this.activeSpawns.Values.FirstOrDefault(e => e.SpawnId == spawn.Id);
                                 if (activeExecution != null)
                                 {
                                     activeExecution.SourceGuids[spawnAsset.Id] = generatedSourceGuid;
@@ -3881,7 +4005,7 @@ public class CPHInline
                         string sourceGuid = null;
                         lock (this.lockObject)
                         {
-                            var activeExecution = this.activeSpawns.Values.FirstOrDefault(e => e.SpawnId == spawn.Id);
+                            ActiveSpawnExecution activeExecution = this.activeSpawns.Values.FirstOrDefault(e => e.SpawnId == spawn.Id);
                             if (activeExecution != null && activeExecution.SourceGuids.TryGetValue(successfulAsset.Id, out sourceGuid))
                             {
                                 // Create spawn-level cleanup timer for this asset using the tracked GUID
@@ -4483,8 +4607,11 @@ public class CPHInline
                 effectiveProperties.Effective["positionMode"] = "absolute"; // Force absolute positioning
             }
 
+            // Get effective working directory for this spawn's profile
+            string effectiveWorkingDir = GetEffectiveWorkingDirectory(spawn);
+
             // Create OBS source for the asset with retry logic
-            bool sourceCreated = CreateOBSSource(baseAsset, effectiveProperties.Effective, generatedSourceGuid, out int sceneItemId);
+            bool sourceCreated = CreateOBSSource(baseAsset, effectiveProperties.Effective, generatedSourceGuid, out int sceneItemId, effectiveWorkingDir);
             if (!sourceCreated)
             {
                 LogExecution(LogLevel.Warning, $"ExecuteSpawnAsset[{executionId}]: Failed to create OBS source for asset '{spawnAsset.AssetId}' - continuing without OBS source");
@@ -4504,7 +4631,7 @@ public class CPHInline
                     this.sourceSceneItemIds[generatedSourceGuid] = sceneItemId;
 
                     // Also store in ActiveSpawnExecution for current execution tracking
-                    var activeExecution = this.activeSpawns.Values.FirstOrDefault(e => e.SpawnId == spawn.Id);
+                    ActiveSpawnExecution activeExecution = this.activeSpawns.Values.FirstOrDefault(e => e.SpawnId == spawn.Id);
                     if (activeExecution != null)
                     {
                         activeExecution.SourceSceneItemIds[generatedSourceGuid] = sceneItemId;
@@ -4599,7 +4726,6 @@ public class CPHInline
         ResolveProperty("scale", overrides, effective, sourceMap);
         ResolveProperty("positionMode", overrides, effective, sourceMap);
         ResolveProperty("loop", overrides, effective, sourceMap);
-        ResolveProperty("autoplay", overrides, effective, sourceMap);
         ResolveProperty("muted", overrides, effective, sourceMap);
         ResolveProperty("monitorType", overrides, effective, sourceMap);
         ResolveProperty("randomCoordinates", overrides, effective, sourceMap);
@@ -4667,7 +4793,7 @@ public class CPHInline
         // Extract dimensions if present (could be in position dictionary or as separate width/height)
         if (properties.ContainsKey("dimensions"))
         {
-            var dimensions = properties["dimensions"] as Dictionary<string, object>;
+            Dictionary<string, object> dimensions = properties["dimensions"] as Dictionary<string, object>;
             if (dimensions != null)
             {
                 if (dimensions.ContainsKey("width"))
@@ -4692,8 +4818,8 @@ public class CPHInline
         maxY = Math.Max(0, maxY);
 
         // Generate random coordinates
-        int randomX = random.Next(0, maxX + 1);
-        int randomY = random.Next(0, maxY + 1);
+        double randomX = random.Next(0, maxX + 1);
+        double randomY = random.Next(0, maxY + 1);
 
         // Update or create position property
         if (!properties.ContainsKey("position"))
@@ -4701,7 +4827,7 @@ public class CPHInline
             properties["position"] = new Dictionary<string, object>();
         }
 
-        var position = properties["position"] as Dictionary<string, object>;
+        Dictionary<string, object> position = properties["position"] as Dictionary<string, object>;
         if (position != null)
         {
             position["x"] = randomX;
@@ -4722,7 +4848,6 @@ public class CPHInline
         if (settings.Scale.HasValue) dict["scale"] = settings.Scale.Value;
         if (!string.IsNullOrEmpty(settings.PositionMode)) dict["positionMode"] = settings.PositionMode;
         if (settings.Loop.HasValue) dict["loop"] = settings.Loop.Value;
-        if (settings.Autoplay.HasValue) dict["autoplay"] = settings.Autoplay.Value;
         if (settings.Muted.HasValue) dict["muted"] = settings.Muted.Value;
         if (!string.IsNullOrEmpty(settings.MonitorType)) dict["monitorType"] = settings.MonitorType;
         if (settings.RandomCoordinates.HasValue) dict["randomCoordinates"] = settings.RandomCoordinates.Value;
@@ -4791,8 +4916,9 @@ public class CPHInline
     /// <param name="properties">The effective properties to apply</param>
     /// <param name="sourceName">The name for the OBS source</param>
     /// <param name="sceneItemId">The scene item ID returned by OBS (set to -1 on failure)</param>
+    /// <param name="workingDirectory">The working directory for local file resolution (optional)</param>
     /// <returns>True if source was created successfully</returns>
-    private bool CreateOBSSource(MediaAsset asset, Dictionary<string, object> properties, string sourceName, out int sceneItemId)
+    private bool CreateOBSSource(MediaAsset asset, Dictionary<string, object> properties, string sourceName, out int sceneItemId, string workingDirectory = null)
     {
         sceneItemId = -1; // Initialize out parameter
 
@@ -4847,7 +4973,7 @@ public class CPHInline
                 }
 
                 // Build source settings
-                Dictionary<string, object> sourceSettings = BuildOBSSourceSettings(asset, properties);
+                Dictionary<string, object> sourceSettings = BuildOBSSourceSettings(asset, properties, workingDirectory);
 
                 // Create OBS WebSocket API request data for CreateInput
                 Dictionary<string, object> createInputData = new Dictionary<string, object>
@@ -5021,6 +5147,27 @@ public class CPHInline
                 if (!inputSuccess)
                 {
                     LogExecution(LogLevel.Warning, $"ApplyAssetPropertiesToOBS: Failed to apply input settings for source '{sourceName}'");
+                }
+            }
+
+            // Apply mute setting using SetInputMute API
+            if (properties.ContainsKey("muted") && properties["muted"] is bool muted)
+            {
+                bool muteSuccess = ExecuteOBSOperationWithRetry($"SetInputMute-{sourceName}", () =>
+                {
+                    Dictionary<string, object> muteRequest = new Dictionary<string, object>
+                    {
+                        ["inputName"] = sourceName,
+                        ["inputMuted"] = muted
+                    };
+
+                    string response = CPH.ObsSendRaw("SetInputMute", JsonConvert.SerializeObject(muteRequest));
+                    return !string.IsNullOrEmpty(response);
+                });
+
+                if (!muteSuccess)
+                {
+                    LogExecution(LogLevel.Warning, $"ApplyAssetPropertiesToOBS: Failed to set mute state for source '{sourceName}'");
                 }
             }
 
@@ -5355,24 +5502,37 @@ public class CPHInline
     /// </summary>
     /// <param name="asset">The media asset</param>
     /// <param name="properties">The effective properties</param>
+    /// <param name="workingDirectory">The working directory for local file resolution (optional)</param>
     /// <returns>Dictionary of OBS source settings</returns>
-    private Dictionary<string, object> BuildOBSSourceSettings(MediaAsset asset, Dictionary<string, object> properties)
+    private Dictionary<string, object> BuildOBSSourceSettings(MediaAsset asset, Dictionary<string, object> properties, string workingDirectory = null)
     {
         Dictionary<string, object> settings = new Dictionary<string, object>();
+
+        LogExecution(LogLevel.Debug, $"BuildOBSSourceSettings: asset={asset.Name}, type={asset.Type}, isUrl={asset.IsUrl}, workingDirectory={workingDirectory}");
 
         // Set the file path or URL based on source type
         if (asset.IsUrl)
         {
             // URL-based media uses browser_source with "url" parameter
             settings["url"] = asset.Path;
+            LogExecution(LogLevel.Debug, $"BuildOBSSourceSettings: URL asset, setting url={asset.Path}");
         }
         else
         {
-            // Local files - resolve path using working directory
+            // Local files only - resolve path using provided working directory
+            // URL/browser sources bypass this entirely
             string resolvedPath = asset.Path;
-            if (this.cachedConfig != null && !string.IsNullOrWhiteSpace(this.cachedConfig.WorkingDirectory))
+            LogExecution(LogLevel.Debug, $"BuildOBSSourceSettings: Local file asset, original path={asset.Path}");
+
+            if (!string.IsNullOrWhiteSpace(workingDirectory))
             {
-                resolvedPath = ResolveLocalFilePath(asset.Path, this.cachedConfig.WorkingDirectory);
+                LogExecution(LogLevel.Debug, $"BuildOBSSourceSettings: Calling ResolveLocalFilePath with path={asset.Path}, workingDir={workingDirectory}");
+                resolvedPath = ResolveLocalFilePath(asset.Path, workingDirectory);
+                LogExecution(LogLevel.Debug, $"BuildOBSSourceSettings: Resolved path={resolvedPath}");
+            }
+            else
+            {
+                LogExecution(LogLevel.Debug, $"BuildOBSSourceSettings: No working directory provided, using original path={asset.Path}");
             }
 
             // Use appropriate parameter based on source type
@@ -5380,11 +5540,13 @@ public class CPHInline
             {
                 // image_source uses "file" parameter
                 settings["file"] = resolvedPath;
+                LogExecution(LogLevel.Debug, $"BuildOBSSourceSettings: Image asset, setting file={resolvedPath}");
             }
             else
             {
                 // ffmpeg_source uses "local_file" parameter
                 settings["local_file"] = resolvedPath;
+                LogExecution(LogLevel.Debug, $"BuildOBSSourceSettings: Audio/Video asset, setting local_file={resolvedPath}");
             }
         }
 
@@ -5407,37 +5569,28 @@ public class CPHInline
     /// <returns>Dictionary containing SetInputSettings request data</returns>
     private Dictionary<string, object> BuildSetInputSettingsRequest(string sourceName, Dictionary<string, object> properties)
     {
-        Dictionary<string, object> inputSettings = new Dictionary<string, object>();
+        // Check if we have loop property to apply
+        bool hasLoop = properties.ContainsKey("loop");
 
-        // Map input-specific properties to OBS API structure
-        if (properties.ContainsKey("loop") && properties["loop"] is bool loop)
-        {
-            inputSettings["looping"] = loop;
-        }
-
-        if (properties.ContainsKey("muted") && properties["muted"] is bool muted)
-        {
-            inputSettings["muted"] = muted;
-        }
-
-        if (properties.ContainsKey("autoplay") && properties["autoplay"] is bool autoplay)
-        {
-            inputSettings["autoplay"] = autoplay;
-        }
-
-        // Only create request if there are input settings to apply
-        if (inputSettings.Count == 0)
+        if (!hasLoop)
         {
             return null;
         }
 
-        // Create SetInputSettings request following OBS WebSocket API
+        // Build input settings with only the properties we want to update
+        Dictionary<string, object> inputSettings = new Dictionary<string, object>();
+
+        if (hasLoop && properties["loop"] is bool loop)
+        {
+            inputSettings["looping"] = loop;
+        }
+
+        // Create SetInputSettings request with overlay=true for partial update
         Dictionary<string, object> request = new Dictionary<string, object>
         {
-            ["requestType"] = "SetInputSettings",
             ["inputName"] = sourceName,
             ["inputSettings"] = inputSettings,
-            ["overlay"] = false
+            ["overlay"] = true
         };
 
         return request;
@@ -5454,7 +5607,6 @@ public class CPHInline
     {
         Dictionary<string, object> request = new Dictionary<string, object>
         {
-            ["requestType"] = "SetSceneItemTransform",
             ["sceneName"] = currentScene,
             ["sceneItemId"] = sceneItemId
         };
@@ -5684,7 +5836,7 @@ public class CPHInline
 
             // Log operation types being executed
             List<string> operationTypes = new List<string>();
-            foreach (var operation in operations)
+            foreach (Dictionary<string, object> operation in operations)
             {
                 if (operation.ContainsKey("inputName") && operation.ContainsKey("inputSettings"))
                 {
@@ -5737,7 +5889,7 @@ public class CPHInline
                     {
                         // Convert List<object> to List<Dictionary<string, object>>
                         responses = new List<Dictionary<string, object>>();
-                        foreach (var result in resultsList)
+                        foreach (object result in resultsList)
                         {
                             if (result is Dictionary<string, object> resultDict)
                             {
@@ -6733,6 +6885,9 @@ public class CPHInline
         [JsonProperty("description")]
         public string Description { get; set; }
 
+        [JsonProperty("workingDirectory")]
+        public string WorkingDirectory { get; set; }
+
         [JsonProperty("spawns")]
         public List<Spawn> Spawns { get; set; } = new List<Spawn>();
 
@@ -7297,9 +7452,6 @@ public class CPHInline
 
         [JsonProperty("loop")]
         public bool? Loop { get; set; }
-
-        [JsonProperty("autoplay")]
-        public bool? Autoplay { get; set; }
 
         [JsonProperty("muted")]
         public bool? Muted { get; set; }
@@ -8033,12 +8185,15 @@ public class CPHInline
     /// <param name="workingDirectory">The working directory to scan</param>
     private void BuildFilePathCache(string workingDirectory)
     {
+        LogExecution(LogLevel.Debug, $"BuildFilePathCache: Starting cache build for workingDirectory={workingDirectory}");
+
         lock (this.lockObject)
         {
             // Clear existing cache
             this.filePathCache.Clear();
             this.duplicateFileWarnings.Clear();
             this.filePathCacheTimestamp = DateTime.UtcNow;
+            LogExecution(LogLevel.Debug, $"BuildFilePathCache: Cleared existing cache, timestamp={this.filePathCacheTimestamp}");
 
             if (string.IsNullOrWhiteSpace(workingDirectory))
             {
@@ -8051,6 +8206,8 @@ public class CPHInline
                 LogExecution(LogLevel.Warning, $"BuildFilePathCache: Working directory does not exist: {workingDirectory}");
                 return;
             }
+
+            LogExecution(LogLevel.Debug, $"BuildFilePathCache: Directory exists, starting file scan");
 
             try
             {
@@ -8107,8 +8264,11 @@ public class CPHInline
     /// <returns>Full resolved path or original filename if not found</returns>
     private string ResolveLocalFilePath(string filename, string workingDirectory)
     {
+        LogExecution(LogLevel.Debug, $"ResolveLocalFilePath: filename={filename}, workingDirectory={workingDirectory}");
+
         if (string.IsNullOrWhiteSpace(filename) || string.IsNullOrWhiteSpace(workingDirectory))
         {
+            LogExecution(LogLevel.Debug, $"ResolveLocalFilePath: Empty filename or workingDirectory, returning original filename={filename}");
             return filename;
         }
 
@@ -8119,20 +8279,27 @@ public class CPHInline
             // Check cache first
             if (this.filePathCache.TryGetValue(filenameLower, out string cachedPath))
             {
+                LogExecution(LogLevel.Debug, $"ResolveLocalFilePath: Found in cache: {cachedPath}");
                 return cachedPath;
             }
+
+            LogExecution(LogLevel.Debug, $"ResolveLocalFilePath: Cache miss for {filenameLower}, scanning filesystem");
 
             // Cache miss - scan filesystem for this specific file
             try
             {
                 if (Directory.Exists(workingDirectory))
                 {
+                    LogExecution(LogLevel.Debug, $"ResolveLocalFilePath: Directory exists, scanning for {filename}");
                     string[] foundFiles = Directory.GetFiles(workingDirectory, filename, SearchOption.AllDirectories);
+                    LogExecution(LogLevel.Debug, $"ResolveLocalFilePath: Found {foundFiles.Length} files matching '{filename}'");
+
                     if (foundFiles.Length > 0)
                     {
                         // Use first match (alphabetical order by default)
                         string resolvedPath = foundFiles[0];
                         this.filePathCache[filenameLower] = resolvedPath;
+                        LogExecution(LogLevel.Debug, $"ResolveLocalFilePath: Cached and returning: {resolvedPath}");
 
                         if (foundFiles.Length > 1)
                         {
@@ -8141,6 +8308,10 @@ public class CPHInline
 
                         return resolvedPath;
                     }
+                }
+                else
+                {
+                    LogExecution(LogLevel.Debug, $"ResolveLocalFilePath: Directory does not exist: {workingDirectory}");
                 }
             }
             catch (Exception ex)
@@ -8258,7 +8429,6 @@ public class CPHInline
         public string PositionMode { get; set; }
         public double? Volume { get; set; }
         public bool? Loop { get; set; }
-        public bool? Autoplay { get; set; }
         public bool? Muted { get; set; }
     }
 
@@ -8271,7 +8441,6 @@ public class CPHInline
         try
         {
             LogExecution(LogLevel.Info, "ValidateExecutionEnvironment: Validating execution environment");
-
 
             // Check OBS connection
             if (!CPH.ObsIsConnected())
@@ -8724,7 +8893,7 @@ public class CPHInline
                         {
                             lock (this.lockObject)
                             {
-                                var activeExecution = this.activeSpawns.Values.FirstOrDefault(e => e.SpawnId == spawn.Id);
+                                ActiveSpawnExecution activeExecution = this.activeSpawns.Values.FirstOrDefault(e => e.SpawnId == spawn.Id);
                                 if (activeExecution != null && activeExecution.SourceGuids.TryGetValue(asset.Id, out sourceGuid))
                                 {
                                     // Look up sceneItemId for the tracked GUID

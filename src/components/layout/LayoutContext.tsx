@@ -202,6 +202,25 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
     previousProfileIdRef.current = currentProfileId;
   }, [state.activeProfileId]);
 
+  // Update browser title when active profile changes
+  useEffect(() => {
+    if (state.activeProfileId) {
+      try {
+        const profile = SpawnProfileService.getProfile(state.activeProfileId);
+        if (profile) {
+          document.title = `MediaSpawner - ${profile.name}`;
+        } else {
+          document.title = "MediaSpawner";
+        }
+      } catch (error) {
+        console.error("Failed to update browser title:", error);
+        document.title = "MediaSpawner";
+      }
+    } else {
+      document.title = "MediaSpawner";
+    }
+  }, [state.activeProfileId]);
+
   return (
     <LayoutContext.Provider value={{ state, dispatch }}>
       {children}

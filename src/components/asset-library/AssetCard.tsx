@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState, useCallback } from "react";
 import {
   Image,
   Video,
@@ -57,27 +57,36 @@ export const AssetCard = memo(function AssetCard({
     }
   }, [asset.name, isEditing]);
 
-  const handleCardClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isEditing) return; // Don't trigger card click when editing
-    if (onClick) {
-      onClick(asset);
-    }
-  };
+  const handleCardClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (isEditing) return; // Don't trigger card click when editing
+      if (onClick) {
+        onClick(asset);
+      }
+    },
+    [isEditing, onClick, asset],
+  );
 
-  const handlePreviewClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onPreview) {
-      onPreview(asset);
-    }
-  };
+  const handlePreviewClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (onPreview) {
+        onPreview(asset);
+      }
+    },
+    [onPreview, asset],
+  );
 
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onDelete) {
-      onDelete(asset);
-    }
-  };
+  const handleDeleteClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (onDelete) {
+        onDelete(asset);
+      }
+    },
+    [onDelete, asset],
+  );
 
   const beginEdit = (e?: React.MouseEvent | React.KeyboardEvent) => {
     if (e) e.stopPropagation();
@@ -126,7 +135,7 @@ export const AssetCard = memo(function AssetCard({
   };
 
   const handleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = async (
-    e
+    e,
   ) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -249,7 +258,7 @@ export const AssetCard = memo(function AssetCard({
         variant={isSelected ? "selected" : "default"}
         className={cn(
           "cursor-pointer transition-all duration-200 hover:shadow-md",
-          className
+          className,
         )}
         onClick={handleCardClick}
         title={computeDisplayPath(asset.path)}
@@ -339,7 +348,7 @@ export const AssetCard = memo(function AssetCard({
         variant={isSelected ? "selected" : "default"}
         className={cn(
           "cursor-pointer transition-all duration-200 hover:shadow-md",
-          className
+          className,
         )}
         onClick={handleCardClick}
         title={computeDisplayPath(asset.path)}
@@ -428,7 +437,7 @@ export const AssetCard = memo(function AssetCard({
       variant={isSelected ? "selected" : "default"}
       className={cn(
         "cursor-pointer transition-all duration-200 hover:shadow-md",
-        className
+        className,
       )}
       onClick={handleCardClick}
       title={computeDisplayPath(asset.path)}

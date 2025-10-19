@@ -35,6 +35,44 @@ This file guides coding agents working on MediaSpawner. It complements README.md
   - One test file per source file when practical.
   - Reset mocks between tests so they do not affect each other (use `beforeEach` with `vi.resetAllMocks()` or equivalent).
   - Keep the entire suite green before merging; add/update tests for changed behavior.
+  - **Always wrap component renders in `act()` when using providers that trigger state updates.**
+
+### Testing with act()
+
+When testing components that trigger React state updates (via Context providers, useEffect hooks, or async operations), wrap render calls in `act()`:
+
+```typescript
+import { act } from "@testing-library/react";
+
+// ✅ CORRECT: Wrap render in act()
+it("renders component", async () => {
+  await act(async () => {
+    renderWithAllProviders(<MyComponent />);
+  });
+  expect(screen.getByText("Hello")).toBeInTheDocument();
+});
+
+// ❌ WRONG: Missing act() wrapper
+it("renders component", () => {
+  renderWithAllProviders(<MyComponent />); // Warning: state updates not wrapped in act()
+  expect(screen.getByText("Hello")).toBeInTheDocument();
+});
+```
+
+**When to use act():**
+
+- Components wrapped with `LayoutProvider` (triggers useEffect state updates)
+- Components that dispatch events or update context on mount
+- Any test with async state updates, timers, or promises
+- User interactions like `fireEvent.click()` that trigger state changes
+
+**Common scenarios:**
+
+1. **Provider components**: Always wrap when using `renderWithLayoutProvider()` or `renderWithAllProviders()`
+2. **User events**: Wrap `fireEvent` or `userEvent` calls that trigger state updates
+3. **Async operations**: Use `await act(async () => { ... })` for promises
+
+For more details, see: <https://react.dev/link/wrap-tests-with-act>
 
 ## Testing expectations and assertions
 
@@ -182,6 +220,211 @@ Before implementing any React component or reducer:
 - [ ] Are event dispatches happening after operations complete?
 - [ ] Are all side effects properly contained in useEffect hooks?
 - [ ] Is the render function pure with no side effects?
+
+## Performance Optimization Patterns
+
+### Initialization Patterns
+
+- **Avoid blocking useState patterns**: Never use `useState(true)` that prevents first paint until initialization completes.
+- **Use inline scripts for critical initialization**: Apply theme, essential styles, or critical data before React loads.
+- **Example violation** (❌ Don't do this):
+
+  ```typescript
+  function useAppInitialization() {
+    const [isInitializing, setIsInitializing] = useState(true); // ❌ Blocks render
+
+    useEffect(() => {
+      // Synchronous localStorage reads block first paint
+      const theme = localStorage.getItem("theme");
+      applyTheme(theme);
+      setIsInitializing(false); // User waits 7+ seconds
+    }, []);
+
+    return { isInitializing }; // ❌ Blocks ALL rendering
+  }
+  ```
+
+- **Correct approach** (✅ Do this):
+
+  ```typescript
+  // In index.html - apply theme immediately
+  <script>
+    (function() {
+      const theme = localStorage.getItem('theme') || 'light';
+      document.documentElement.classList.add(theme);
+    })();
+  </script>
+
+  // In React - non-blocking initialization
+  function useAppInitialization() {
+    const [error, setError] = useState<string | null>(null); // ✅ No blocking state
+
+    useEffect(() => {
+      // Async initialization doesn't block render
+      initializeAppAsync().catch(setError);
+    }, []);
+
+    return { error }; // ✅ App renders immediately
+  }
+  ```
+
+### Code Splitting Strategies
+
+- **Route-level lazy loading**: Use `React.lazy()` for major route components with Suspense boundaries.
+- **Nested lazy loading**: Lazy load heavy child components within already-lazy-loaded parents.
+- **Defer non-critical UI libraries**: Move tooltips, notifications, and other non-essential libraries to lazy-loaded components.
+
+- **Example implementation** (✅ Good pattern):
+
+  ```typescript
+  // App.tsx - Route-level splitting
+  const Layout = lazy(() => import("./components/layout/Layout"));
+  const AssetLibraryPage = lazy(() => import("./components/asset-library/AssetLibraryPage"));
+
+  // Layout.tsx - Nested splitting
+  const SpawnEditorWorkspace = lazy(() =>
+    import("../configuration").then(module => ({ default: module.SpawnEditorWorkspace }))
+  );
+  const AssetManagementPanel = lazy(() => import("../asset-management/AssetManagementPanel"));
+
+  // Defer UI providers to Layout level
+  const Layout = () => (
+    <Tooltip.Provider> {/* ✅ Moved from App.tsx */}
+      <LayoutProvider>
+        <Suspense fallback={<Loading />}>
+          <SpawnEditorWorkspace />
+        </Suspense>
+      </LayoutProvider>
+      <Toaster /> {/* ✅ Moved from App.tsx */}
+    </Tooltip.Provider>
+  );
+  ```
+
+### React Performance Optimization
+
+- **Use React.memo for expensive components**: Wrap complex forms and components that re-render frequently.
+- **Use useCallback for stable references**: When passing callbacks to memoized children or event listeners.
+- **Use useRef for stable references**: For values that don't need to trigger re-renders.
+
+- **Example implementation** (✅ Good pattern):
+
+  ```typescript
+  // AssetSettingsForm.tsx - Memoize expensive form
+  const AssetSettingsForm = memo(({ spawnId, spawnAssetId, onBack }) => {
+    const handleSave = useCallback(async () => {
+      // Expensive save operation
+    }, [spawnId, spawnAssetId]);
+
+    return (
+      <form>
+        {/* Complex form with many inputs */}
+      </form>
+    );
+  });
+
+  // SpawnEditorWorkspace.tsx - Stable event listeners
+  const SpawnEditorWorkspace = memo(() => {
+    const selectedSpawnIdRef = useRef(selectedSpawnId);
+    selectedSpawnIdRef.current = selectedSpawnId; // ✅ Sync refs in render
+
+    useEffect(() => {
+      const onUpdated = (evt: Event) => {
+        const detail = (evt as CustomEvent).detail;
+        if (detail?.spawnId !== selectedSpawnIdRef.current) return; // ✅ Use ref
+        // Handle update
+      };
+
+      window.addEventListener("mediaspawner:spawn-updated", onUpdated);
+      return () => window.removeEventListener("mediaspawner:spawn-updated", onUpdated);
+    }, []); // ✅ Empty deps for stable listener
+  });
+  ```
+
+### Critical Path Optimization
+
+- **Minimize main bundle dependencies**: Only include essential code needed for first paint.
+- **Defer non-critical libraries**: Move tooltips, notifications, complex UI components to lazy-loaded chunks.
+- **Progressive loading strategies**: Load components as needed rather than all at once.
+
+- **Bundle analysis example**:
+
+  ```typescript
+  // Before optimization
+  // Main bundle: 490KB (Tooltip, Toaster, all components)
+  // FCP: 7088ms (poor)
+
+  // After optimization
+  // Main bundle: 408KB (essential code only)
+  // Layout chunk: 25KB (Tooltip, Toaster moved here)
+  // SpawnEditor chunk: 167KB (lazy loaded)
+  // FCP: 472ms (good) - 93% improvement
+  ```
+
+### Performance Anti-Patterns to Avoid
+
+1. **Blocking initialization hooks**:
+
+   ```typescript
+   // ❌ WRONG - Blocks render for 7+ seconds
+   function App() {
+     const { isInitializing } = useAppInitialization();
+     if (isInitializing) return <div>Loading...</div>; // User waits
+     return <MainApp />;
+   }
+   ```
+
+2. **Eager loading of heavy dependencies**:
+
+   ```typescript
+   // ❌ WRONG - Loads everything upfront
+   import { Tooltip } from "@radix-ui/react-tooltip"; // 30KB+ in main bundle
+   import { Toaster } from "sonner"; // 20KB+ in main bundle
+
+   function App() {
+     return (
+       <Tooltip.Provider> {/* Not needed until Layout loads */}
+         <MainApp />
+       </Tooltip.Provider>
+     );
+   }
+   ```
+
+3. **Monolithic component bundles**:
+
+   ```typescript
+   // ❌ WRONG - All components load together
+   function Layout() {
+     return (
+       <div>
+         <SpawnList /> {/* 50KB */}
+         <SpawnEditorWorkspace /> {/* 167KB */}
+         <AssetManagementPanel /> {/* 40KB */}
+       </div>
+     );
+   }
+   ```
+
+4. **Synchronous operations before first paint**:
+
+   ```typescript
+   // ❌ WRONG - Blocks first paint
+   useEffect(() => {
+     const theme = localStorage.getItem("theme"); // Synchronous read
+     applyTheme(theme); // Synchronous DOM manipulation
+   }, []);
+   ```
+
+### Performance Checklist
+
+Before implementing any React component or optimization:
+
+- [ ] Does initialization block first paint? Move to inline script if critical.
+- [ ] Are heavy components lazy-loaded? Use React.lazy() and Suspense.
+- [ ] Are non-critical UI libraries deferred? Move to lazy-loaded components.
+- [ ] Are expensive components memoized? Use React.memo for complex forms.
+- [ ] Are callbacks stable? Use useCallback for memoized children.
+- [ ] Are event listeners stable? Use useRef for stable references.
+- [ ] Is the main bundle minimal? Only essential code for first paint.
 
 ## Layout and modes
 

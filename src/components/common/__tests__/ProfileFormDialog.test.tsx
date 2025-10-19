@@ -144,11 +144,11 @@ describe("ProfileFormDialog", () => {
           isOpen={true}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
-        />
+        />,
       );
 
       expect(
-        screen.getByRole("heading", { name: "Create Profile" })
+        screen.getByRole("heading", { name: "Create Profile" }),
       ).toBeInTheDocument();
       expect(screen.getByLabelText("Profile Name")).toBeInTheDocument();
       expect(screen.getByLabelText("Description")).toBeInTheDocument();
@@ -160,14 +160,14 @@ describe("ProfileFormDialog", () => {
           isOpen={true}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
-        />
+        />,
       );
 
       expect(
-        screen.getByPlaceholderText("Enter profile name...")
+        screen.getByPlaceholderText("Enter profile name..."),
       ).toBeInTheDocument();
       expect(
-        screen.getByPlaceholderText("Enter profile description (optional)...")
+        screen.getByPlaceholderText("Enter profile description (optional)..."),
       ).toBeInTheDocument();
     });
 
@@ -177,14 +177,14 @@ describe("ProfileFormDialog", () => {
           isOpen={true}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
-        />
+        />,
       );
 
       expect(
-        screen.getByText("A unique name to identify this profile")
+        screen.getByText("A unique name to identify this profile"),
       ).toBeInTheDocument();
       expect(
-        screen.getByText("Optional description of the profile's purpose")
+        screen.getByText("Optional description of the profile's purpose"),
       ).toBeInTheDocument();
     });
 
@@ -194,14 +194,14 @@ describe("ProfileFormDialog", () => {
           isOpen={true}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
-        />
+        />,
       );
 
       expect(
-        screen.getByRole("button", { name: "Create Profile" })
+        screen.getByRole("button", { name: "Create Profile" }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "Cancel" })
+        screen.getByRole("button", { name: "Cancel" }),
       ).toBeInTheDocument();
     });
   });
@@ -214,11 +214,11 @@ describe("ProfileFormDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={mockProfile}
-        />
+        />,
       );
 
       expect(
-        screen.getByRole("heading", { name: "Edit Profile" })
+        screen.getByRole("heading", { name: "Edit Profile" }),
       ).toBeInTheDocument();
     });
 
@@ -229,7 +229,7 @@ describe("ProfileFormDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={mockProfile}
-        />
+        />,
       );
 
       const nameInput = screen.getByDisplayValue("Test Profile");
@@ -246,14 +246,14 @@ describe("ProfileFormDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={mockProfile}
-        />
+        />,
       );
 
       expect(
-        screen.getByRole("button", { name: "Update Profile" })
+        screen.getByRole("button", { name: "Update Profile" }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "Cancel" })
+        screen.getByRole("button", { name: "Cancel" }),
       ).toBeInTheDocument();
     });
   });
@@ -265,7 +265,7 @@ describe("ProfileFormDialog", () => {
           isOpen={true}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
-        />
+        />,
       );
 
       const form = container.querySelector("form");
@@ -274,7 +274,7 @@ describe("ProfileFormDialog", () => {
 
       expect(mockSpawnProfileService.createProfile).not.toHaveBeenCalled();
       expect(
-        await screen.findByText("Profile name is required")
+        await screen.findByText("Profile name is required"),
       ).toBeInTheDocument();
     });
 
@@ -284,11 +284,11 @@ describe("ProfileFormDialog", () => {
           isOpen={true}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
-        />
+        />,
       );
 
       const nameInput = screen.getByLabelText(
-        "Profile Name"
+        "Profile Name",
       ) as HTMLInputElement;
       fireEvent.change(nameInput, { target: { value: "a".repeat(101) } });
 
@@ -306,12 +306,12 @@ describe("ProfileFormDialog", () => {
           isOpen={true}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
-        />
+        />,
       );
 
       const nameInput = screen.getByLabelText("Profile Name");
       const descriptionInput = screen.getByLabelText(
-        "Description"
+        "Description",
       ) as HTMLTextAreaElement;
 
       fireEvent.change(nameInput, { target: { value: "Valid Name" } });
@@ -334,7 +334,7 @@ describe("ProfileFormDialog", () => {
           isOpen={true}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
-        />
+        />,
       );
 
       const form = container.querySelector("form");
@@ -342,14 +342,14 @@ describe("ProfileFormDialog", () => {
       fireEvent.submit(form!);
       expect(mockSpawnProfileService.createProfile).not.toHaveBeenCalled();
       expect(
-        await screen.findByText("Profile name is required")
+        await screen.findByText("Profile name is required"),
       ).toBeInTheDocument();
 
       const nameInput = screen.getByLabelText("Profile Name");
       await user.type(nameInput, "Test");
 
       expect(
-        screen.queryByText("Profile name is required")
+        screen.queryByText("Profile name is required"),
       ).not.toBeInTheDocument();
     });
   });
@@ -368,7 +368,7 @@ describe("ProfileFormDialog", () => {
           isOpen={true}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
-        />
+        />,
       );
 
       const nameInput = screen.getByLabelText("Profile Name");
@@ -384,12 +384,13 @@ describe("ProfileFormDialog", () => {
 
       expect(mockSpawnProfileService.createProfile).toHaveBeenCalledWith(
         "New Profile",
-        "New description"
+        "New description",
+        undefined,
       );
       expect(mockOnSuccess).toHaveBeenCalledWith(mockCreatedProfile);
       expect(mockOnClose).toHaveBeenCalled();
       expect(toast.success).toHaveBeenCalledWith(
-        "Profile created successfully"
+        "Profile created successfully",
       );
     });
 
@@ -407,7 +408,7 @@ describe("ProfileFormDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={mockProfile}
-        />
+        />,
       );
 
       const nameInput = screen.getByLabelText("Profile Name");
@@ -424,12 +425,12 @@ describe("ProfileFormDialog", () => {
         {
           name: "Updated Profile",
           description: "Test description",
-        }
+        },
       );
       expect(mockOnSuccess).toHaveBeenCalledWith(mockUpdatedProfile);
       expect(mockOnClose).toHaveBeenCalled();
       expect(toast.success).toHaveBeenCalledWith(
-        "Profile updated successfully"
+        "Profile updated successfully",
       );
     });
 
@@ -445,7 +446,7 @@ describe("ProfileFormDialog", () => {
           isOpen={true}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
-        />
+        />,
       );
 
       const nameInput = screen.getByLabelText("Profile Name");
@@ -458,7 +459,8 @@ describe("ProfileFormDialog", () => {
 
       expect(mockSpawnProfileService.createProfile).toHaveBeenCalledWith(
         "Duplicate Name",
-        undefined
+        undefined,
+        undefined,
       );
       await screen.findByText("Profile name already exists");
       expect(toast.error).toHaveBeenCalledWith("Profile name already exists");
@@ -477,7 +479,7 @@ describe("ProfileFormDialog", () => {
           isOpen={true}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
-        />
+        />,
       );
 
       const nameInput = screen.getByLabelText("Profile Name");
@@ -501,7 +503,7 @@ describe("ProfileFormDialog", () => {
           isOpen={true}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
-        />
+        />,
       );
 
       const cancelButton = screen.getByRole("button", { name: "Cancel" });
@@ -517,7 +519,7 @@ describe("ProfileFormDialog", () => {
           isOpen={true}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
-        />
+        />,
       );
 
       const closeButton = screen.getByLabelText("Close modal");
@@ -532,7 +534,7 @@ describe("ProfileFormDialog", () => {
           isOpen={true}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
-        />
+        />,
       );
 
       const submitButton = screen.getByRole("button", {
@@ -548,7 +550,7 @@ describe("ProfileFormDialog", () => {
           isOpen={true}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
-        />
+        />,
       );
 
       const nameInput = screen.getByLabelText("Profile Name");
@@ -568,7 +570,7 @@ describe("ProfileFormDialog", () => {
           isOpen={true}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
-        />
+        />,
       );
 
       expect(screen.getByLabelText("Profile Name")).toBeInTheDocument();
@@ -582,7 +584,7 @@ describe("ProfileFormDialog", () => {
           isOpen={true}
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
-        />
+        />,
       );
 
       const nameInput = screen.getByLabelText("Profile Name");

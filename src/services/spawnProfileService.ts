@@ -116,6 +116,7 @@ export class SpawnProfileService {
   static createProfile(
     name: string,
     description?: string,
+    workingDirectory?: string,
   ): ProfileOperationResult {
     try {
       const profiles = this.getAllProfiles();
@@ -128,7 +129,13 @@ export class SpawnProfileService {
         };
       }
 
-      const newProfile = createSpawnProfile(name, description);
+      const newProfile = createSpawnProfile(
+        name,
+        description,
+        [],
+        undefined,
+        workingDirectory,
+      );
       profiles.push(newProfile);
 
       const saveResult = this.saveProfiles(profiles);
@@ -165,7 +172,9 @@ export class SpawnProfileService {
    */
   static updateProfile(
     id: string,
-    updates: Partial<Pick<SpawnProfile, "name" | "description">>,
+    updates: Partial<
+      Pick<SpawnProfile, "name" | "description" | "workingDirectory">
+    >,
   ): ProfileOperationResult {
     try {
       const profiles = this.getAllProfiles();
@@ -235,6 +244,16 @@ export class SpawnProfileService {
   static deleteProfile(id: string): ProfileOperationResult {
     try {
       const profiles = this.getAllProfiles();
+
+      // Prevent deletion of the last remaining profile
+      if (profiles.length === 1) {
+        return {
+          success: false,
+          error:
+            "Cannot delete the last remaining profile. At least one profile must exist.",
+        };
+      }
+
       const profileIndex = profiles.findIndex((profile) => profile.id === id);
 
       if (profileIndex === -1) {
@@ -244,14 +263,13 @@ export class SpawnProfileService {
         };
       }
 
-      const profileToDelete = profiles[profileIndex];
-
-      // Don't allow deletion of the active profile
-      if (profileToDelete.isActive) {
+      // Don't allow deletion of the live profile
+      const settings = SettingsService.getSettings();
+      if (settings.liveProfileId === id) {
         return {
           success: false,
           error:
-            "Cannot delete the active profile. Please switch to a different profile first.",
+            "Cannot delete the live profile. Clear the live profile status before deleting this one.",
         };
       }
 

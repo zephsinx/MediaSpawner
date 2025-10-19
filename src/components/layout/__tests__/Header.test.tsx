@@ -534,6 +534,7 @@ describe("Header", () => {
       expect(mockSpawnProfileService.createProfile).toHaveBeenCalledWith(
         "New Profile",
         undefined,
+        undefined,
       );
     });
 

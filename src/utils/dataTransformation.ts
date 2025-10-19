@@ -14,6 +14,9 @@ import type {
   Trigger,
   RandomizationBucket,
   MediaAssetProperties,
+  AlignmentOption,
+  BoundsType,
+  MonitorType,
 } from "../types";
 
 /**
@@ -23,6 +26,7 @@ export interface ExportedSpawnProfile {
   id: string;
   name: string;
   description?: string;
+  workingDirectory?: string;
   spawns: ExportedSpawn[];
   lastModified: string;
 }
@@ -85,8 +89,17 @@ export interface ExportedAssetSettings {
   x?: number;
   y?: number;
   loop?: boolean;
-  autoplay?: boolean;
   muted?: boolean;
+  rotation?: number;
+  cropLeft?: number;
+  cropTop?: number;
+  cropRight?: number;
+  cropBottom?: number;
+  alignment?: number;
+  boundsType?: string;
+  boundsAlignment?: number;
+  monitorType?: string;
+  randomCoordinates?: boolean;
 }
 
 /**
@@ -98,6 +111,7 @@ export function transformProfileToSchema(
   return {
     id: profile.id,
     name: profile.name,
+    workingDirectory: profile.workingDirectory,
     description: profile.description || undefined,
     spawns: profile.spawns.map((spawn) => transformSpawnToSchema(spawn)),
     lastModified: new Date(profile.lastModified).toISOString(),
@@ -213,8 +227,17 @@ export function transformAssetSettingsToSchema(
     x: settings.position?.x,
     y: settings.position?.y,
     loop: settings.loop,
-    autoplay: settings.autoplay,
     muted: settings.muted,
+    rotation: settings.rotation,
+    cropLeft: settings.crop?.left,
+    cropTop: settings.crop?.top,
+    cropRight: settings.crop?.right,
+    cropBottom: settings.crop?.bottom,
+    alignment: settings.alignment,
+    boundsType: settings.boundsType,
+    boundsAlignment: settings.boundsAlignment,
+    monitorType: settings.monitorType,
+    randomCoordinates: settings.randomCoordinates,
   };
 }
 
@@ -228,6 +251,7 @@ export function transformProfileFromSchema(
     id: profile.id,
     name: profile.name,
     description: profile.description,
+    workingDirectory: profile.workingDirectory,
     spawns: profile.spawns.map((spawn) => transformSpawnFromSchema(spawn)),
     lastModified: new Date(profile.lastModified).getTime(),
     isActive: false, // Imported profiles are not active by default
@@ -339,8 +363,18 @@ export function transformAssetSettingsFromSchema(
   if (settings.positionMode !== undefined)
     result.positionMode = settings.positionMode;
   if (settings.loop !== undefined) result.loop = settings.loop;
-  if (settings.autoplay !== undefined) result.autoplay = settings.autoplay;
   if (settings.muted !== undefined) result.muted = settings.muted;
+  if (settings.rotation !== undefined) result.rotation = settings.rotation;
+  if (settings.alignment !== undefined)
+    result.alignment = settings.alignment as AlignmentOption;
+  if (settings.boundsType !== undefined)
+    result.boundsType = settings.boundsType as BoundsType;
+  if (settings.boundsAlignment !== undefined)
+    result.boundsAlignment = settings.boundsAlignment as AlignmentOption;
+  if (settings.monitorType !== undefined)
+    result.monitorType = settings.monitorType as MonitorType;
+  if (settings.randomCoordinates !== undefined)
+    result.randomCoordinates = settings.randomCoordinates;
 
   if (settings.width !== undefined || settings.height !== undefined) {
     result.dimensions = {
@@ -353,6 +387,20 @@ export function transformAssetSettingsFromSchema(
     result.position = {
       x: settings.x ?? 0,
       y: settings.y ?? 0,
+    };
+  }
+
+  if (
+    settings.cropLeft !== undefined ||
+    settings.cropTop !== undefined ||
+    settings.cropRight !== undefined ||
+    settings.cropBottom !== undefined
+  ) {
+    result.crop = {
+      left: settings.cropLeft ?? 0,
+      top: settings.cropTop ?? 0,
+      right: settings.cropRight ?? 0,
+      bottom: settings.cropBottom ?? 0,
     };
   }
 

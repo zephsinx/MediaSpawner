@@ -8,6 +8,9 @@ import {
   getOverallStatusLabel,
 } from "../../utils/triggerDisplay";
 import { Switch } from "../ui/Switch";
+import { Button } from "../ui/Button";
+import { StreamerbotService } from "../../services/streamerbotService";
+import { toast } from "sonner";
 import * as Tooltip from "@radix-ui/react-tooltip";
 
 /**
@@ -42,6 +45,8 @@ const SpawnListItem: React.FC<SpawnListItemProps> = ({
   className = "",
   itemRef,
 }) => {
+  const [isTesting, setIsTesting] = React.useState(false);
+
   const handleClick = () => {
     onClick?.(spawn);
   };
@@ -55,6 +60,30 @@ const SpawnListItem: React.FC<SpawnListItemProps> = ({
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       handleToggle(e);
+    }
+  };
+
+  const handleTest = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    if (isTesting) return;
+
+    setIsTesting(true);
+
+    try {
+      const success = await StreamerbotService.testSpawn(spawn.id);
+
+      if (success) {
+        toast.success(`Successfully tested spawn: ${spawn.name}`);
+      } else {
+        toast.error(`Failed to test spawn: ${spawn.name}`);
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Error testing spawn: ${errorMessage}`);
+    } finally {
+      setIsTesting(false);
     }
   };
 
@@ -101,7 +130,17 @@ const SpawnListItem: React.FC<SpawnListItemProps> = ({
             </Tooltip.Content>
           </Tooltip.Portal>
         </Tooltip.Root>
-        <div className="flex items-center ml-2">
+        <div className="flex items-center gap-2 ml-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleTest}
+            disabled={isTesting}
+            loading={isTesting}
+            aria-label="Test spawn"
+          >
+            Test
+          </Button>
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
               <div

@@ -250,9 +250,6 @@
         "loop": {
           "type": "boolean"
         },
-        "autoplay": {
-          "type": "boolean"
-        },
         "muted": {
           "type": "boolean"
         },

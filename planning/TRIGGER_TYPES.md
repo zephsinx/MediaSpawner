@@ -25,17 +25,14 @@ Define an extensible, configuration-only trigger model for Spawns. Triggers desc
 - All time-based configs require a `timezone` (IANA tz name) for clarity and DST handling
 
 1. At specific date/time
-
    - **Type**: `time.atDateTime`
    - **Config**: `{ isoDateTime: string (RFC3339), timezone: string }`
 
 2. Daily at time
-
    - **Type**: `time.dailyAt`
    - **Config**: `{ time: string (HH:mm 24h), timezone: string }`
 
 3. Every N minutes (with anchor)
-
    - **Type**: `time.everyNMinutes`
    - **Config**:
      - `intervalMinutes: number` (>= 1)
@@ -65,22 +62,18 @@ Define an extensible, configuration-only trigger model for Spawns. Triggers desc
 - Reference: Streamer.bot client types [`twitch.types.ts`](https://github.com/Streamerbot/client/blob/main/packages/client/src/ws/types/events/twitch.types.ts)
 
 1. Follow
-
    - **Type**: `twitch.follow`
    - **Config**: `{}`
 
 2. Cheer
-
    - **Type**: `twitch.cheer`
    - **Config**: `{ minBits: number (>= 1) }`
 
 3. Subscription
-
    - **Type**: `twitch.subscription`
    - **Config**: `{ tier?: '1000' | '2000' | '3000', minMonths?: number (>= 1) }`
 
 4. Gifted Subs (separate from subscriptions)
-
    - **Type**: `twitch.giftSub`
    - **Config**: `{ minCount?: number (>= 1), tier?: '1000' | '2000' | '3000' }`
 

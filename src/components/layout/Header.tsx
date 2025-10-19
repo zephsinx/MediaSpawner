@@ -12,7 +12,9 @@ import {
   ProfileFormDialog,
   ProfileDeletionDialog,
   LiveProfileIndicator,
+  Modal,
 } from "../common";
+import { Button } from "../ui";
 import { StreamerbotService } from "../../services/streamerbotService";
 import type { SyncStatusInfo } from "../../types/sync";
 import { toast } from "sonner";
@@ -30,8 +32,14 @@ export interface HeaderProps {
  */
 const Header: React.FC<HeaderProps> = ({ className = "" }) => {
   const [profiles, setProfiles] = useState<SpawnProfile[]>([]);
-  const { activeProfileId, liveProfileId, setActiveProfile, setLiveProfile } =
-    usePanelState();
+  const {
+    activeProfileId,
+    liveProfileId,
+    setActiveProfile,
+    setLiveProfile,
+    hasUnsavedChanges,
+    setUnsavedChanges,
+  } = usePanelState();
   const streamerbot = useStreamerbotStatus();
   const [syncStatus, setSyncStatus] = useState<SyncStatusInfo>({
     status: "unknown",
@@ -45,6 +53,9 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
   const [profileToDelete, setProfileToDelete] = useState<SpawnProfile | null>(
     null,
   );
+
+  // Unsaved changes confirmation state
+  const [pendingProfileId, setPendingProfileId] = useState<string | null>(null);
 
   // Load profiles on mount
   useEffect(() => {
@@ -137,12 +148,50 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
   }, [streamerbot.state, setLiveProfile]);
 
   const handleProfileChange = (profileId: string) => {
+    // Check for unsaved changes before switching
+    if (hasUnsavedChanges) {
+      setPendingProfileId(profileId);
+      return;
+    }
+
+    // No unsaved changes, proceed with profile switch
     const result = SpawnProfileService.setActiveProfile(profileId);
     if (result.success) {
       setActiveProfile(profileId);
     } else {
       console.error("Failed to set active profile:", result.error);
     }
+  };
+
+  /**
+   * Confirm profile switch and discard unsaved changes
+   */
+  const handleConfirmProfileSwitch = () => {
+    if (!pendingProfileId) return;
+
+    // Clear unsaved changes flag
+    setUnsavedChanges(false);
+
+    // Switch to the pending profile
+    const result = SpawnProfileService.setActiveProfile(pendingProfileId);
+    if (result.success) {
+      setActiveProfile(pendingProfileId);
+    } else {
+      console.error("Failed to set active profile:", result.error);
+      toast.error("Failed to switch profiles", {
+        description: result.error,
+      });
+    }
+
+    // Clear pending state
+    setPendingProfileId(null);
+  };
+
+  /**
+   * Cancel profile switch
+   */
+  const handleCancelProfileSwitch = () => {
+    setPendingProfileId(null);
   };
 
   const handleSetLive = async () => {
@@ -357,6 +406,38 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
           profile={profileToDelete}
         />
       )}
+
+      {/* Unsaved Changes Confirmation Modal */}
+      <Modal
+        isOpen={pendingProfileId !== null}
+        onClose={handleCancelProfileSwitch}
+        title="Unsaved Changes"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[rgb(var(--color-fg))]">
+            You have unsaved changes. Switching profiles will discard them.
+            Continue?
+          </p>
+
+          <div className="flex justify-end space-x-3 pt-4 border-t border-[rgb(var(--color-border))]">
+            <Button
+              variant="outline"
+              onClick={handleCancelProfileSwitch}
+              aria-label="Cancel profile switch"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmProfileSwitch}
+              aria-label="Discard changes and switch profile"
+            >
+              Discard Changes
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </header>
   );
 };

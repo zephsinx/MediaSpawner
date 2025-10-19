@@ -31,6 +31,7 @@ export interface ProfileFormDialogProps {
 interface ProfileFormData {
   name: string;
   description: string;
+  workingDirectory: string;
 }
 
 /**
@@ -39,6 +40,7 @@ interface ProfileFormData {
 interface FormErrors {
   name?: string;
   description?: string;
+  workingDirectory?: string;
 }
 
 /**
@@ -79,6 +81,7 @@ export function ProfileFormDialog({
   const [formData, setFormData] = useState<ProfileFormData>(() => ({
     name: profile?.name ?? "",
     description: profile?.description ?? "",
+    workingDirectory: profile?.workingDirectory ?? "",
   }));
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -93,11 +96,13 @@ export function ProfileFormDialog({
       setFormData({
         name: profile.name,
         description: profile.description || "",
+        workingDirectory: profile.workingDirectory || "",
       });
     } else {
       setFormData({
         name: "",
         description: "",
+        workingDirectory: "",
       });
     }
     setErrors({});
@@ -122,6 +127,16 @@ export function ProfileFormDialog({
     // Validate description length
     if (formData.description.length > 500) {
       newErrors.description = "Description must be less than 500 characters";
+    }
+
+    // Validate working directory if provided
+    if (formData.workingDirectory.trim()) {
+      const path = formData.workingDirectory.trim();
+      const invalidChars = /[<>"|?*]/;
+      if (invalidChars.test(path)) {
+        newErrors.workingDirectory =
+          'Path contains invalid characters (<>"?*|)';
+      }
     }
 
     setErrors(newErrors);
@@ -167,17 +182,21 @@ export function ProfileFormDialog({
     try {
       const trimmedName = formData.name.trim();
       const trimmedDescription = formData.description.trim() || undefined;
+      const trimmedWorkingDirectory =
+        formData.workingDirectory.trim() || undefined;
 
       let result;
       if (isEditMode && profile) {
         result = SpawnProfileService.updateProfile(profile.id, {
           name: trimmedName,
           description: trimmedDescription,
+          workingDirectory: trimmedWorkingDirectory,
         });
       } else {
         result = SpawnProfileService.createProfile(
           trimmedName,
-          trimmedDescription
+          trimmedDescription,
+          trimmedWorkingDirectory,
         );
       }
 
@@ -185,7 +204,7 @@ export function ProfileFormDialog({
         toast.success(
           isEditMode
             ? "Profile updated successfully"
-            : "Profile created successfully"
+            : "Profile created successfully",
         );
         onSuccess(result.profile);
         onClose();
@@ -248,6 +267,18 @@ export function ProfileFormDialog({
           placeholder="Enter profile description (optional)..."
           maxLength={500}
           helperText="Optional description of the profile's purpose"
+        />
+
+        {/* Working Directory Field */}
+        <Input
+          label="Working Directory"
+          value={formData.workingDirectory}
+          onChange={(e) =>
+            handleFieldChange("workingDirectory", e.target.value)
+          }
+          error={errors.workingDirectory}
+          placeholder="C:\Path\To\Project (optional)"
+          helperText="Override global working directory for this profile"
         />
 
         {/* Submit Error Display */}

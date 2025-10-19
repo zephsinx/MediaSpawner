@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, act } from "@testing-library/react";
 import ThreePanelLayout from "../ThreePanelLayout";
 import { renderWithAllProviders } from "./testUtils";
 
@@ -13,41 +13,47 @@ describe("ThreePanelLayout", () => {
   );
 
   describe("Basic Rendering", () => {
-    it("renders all three panels with provided content", () => {
-      renderWithAllProviders(
-        <ThreePanelLayout
-          leftPanel={mockLeftPanel}
-          centerPanel={mockCenterPanel}
-          rightPanel={mockRightPanel}
-        />
-      );
+    it("renders all three panels with provided content", async () => {
+      await act(async () => {
+        renderWithAllProviders(
+          <ThreePanelLayout
+            leftPanel={mockLeftPanel}
+            centerPanel={mockCenterPanel}
+            rightPanel={mockRightPanel}
+          />,
+        );
+      });
 
       expect(screen.getByTestId("left-panel")).toBeInTheDocument();
       expect(screen.getByTestId("center-panel")).toBeInTheDocument();
       expect(screen.getByTestId("right-panel")).toBeInTheDocument();
     });
 
-    it("applies correct CSS classes for grid layout", () => {
-      const { container } = renderWithAllProviders(
-        <ThreePanelLayout
-          leftPanel={mockLeftPanel}
-          centerPanel={mockCenterPanel}
-          rightPanel={mockRightPanel}
-        />
-      );
+    it("applies correct CSS classes for grid layout", async () => {
+      const { container } = await act(async () => {
+        return renderWithAllProviders(
+          <ThreePanelLayout
+            leftPanel={mockLeftPanel}
+            centerPanel={mockCenterPanel}
+            rightPanel={mockRightPanel}
+          />,
+        );
+      });
 
       const gridContainer = container.querySelector(".grid.grid-cols-12");
       expect(gridContainer).toBeInTheDocument();
     });
 
-    it("applies minimum width constraint to container", () => {
-      const { container } = renderWithAllProviders(
-        <ThreePanelLayout
-          leftPanel={mockLeftPanel}
-          centerPanel={mockCenterPanel}
-          rightPanel={mockRightPanel}
-        />
-      );
+    it("applies minimum width constraint to container", async () => {
+      const { container } = await act(async () => {
+        return renderWithAllProviders(
+          <ThreePanelLayout
+            leftPanel={mockLeftPanel}
+            centerPanel={mockCenterPanel}
+            rightPanel={mockRightPanel}
+          />,
+        );
+      });
 
       const gridContainer = container.querySelector(".min-w-\\[1280px\\]");
       expect(gridContainer).toBeInTheDocument();
@@ -55,14 +61,16 @@ describe("ThreePanelLayout", () => {
   });
 
   describe("Panel Width Distribution", () => {
-    it("applies correct column spans for 25%/50%/25% distribution", () => {
-      const { container } = renderWithAllProviders(
-        <ThreePanelLayout
-          leftPanel={mockLeftPanel}
-          centerPanel={mockCenterPanel}
-          rightPanel={mockRightPanel}
-        />
-      );
+    it("applies correct column spans for 25%/50%/25% distribution", async () => {
+      const { container } = await act(async () => {
+        return renderWithAllProviders(
+          <ThreePanelLayout
+            leftPanel={mockLeftPanel}
+            centerPanel={mockCenterPanel}
+            rightPanel={mockRightPanel}
+          />,
+        );
+      });
 
       const leftPanel = container.querySelector(".col-span-3");
       const centerPanel = container.querySelector(".col-span-6");
@@ -73,14 +81,16 @@ describe("ThreePanelLayout", () => {
       expect(rightPanel).toBeInTheDocument();
     });
 
-    it("applies minimum widths to prevent unusable panels", () => {
-      const { container } = renderWithAllProviders(
-        <ThreePanelLayout
-          leftPanel={mockLeftPanel}
-          centerPanel={mockCenterPanel}
-          rightPanel={mockRightPanel}
-        />
-      );
+    it("applies minimum widths to prevent unusable panels", async () => {
+      const { container } = await act(async () => {
+        return renderWithAllProviders(
+          <ThreePanelLayout
+            leftPanel={mockLeftPanel}
+            centerPanel={mockCenterPanel}
+            rightPanel={mockRightPanel}
+          />,
+        );
+      });
 
       const leftPanel = container.querySelector(".min-w-\\[320px\\]");
       const centerPanel = container.querySelector(".min-w-\\[640px\\]");
@@ -93,17 +103,19 @@ describe("ThreePanelLayout", () => {
   });
 
   describe("Panel Styling", () => {
-    it("applies correct background colors and borders", () => {
-      const { container } = renderWithAllProviders(
-        <ThreePanelLayout
-          leftPanel={mockLeftPanel}
-          centerPanel={mockCenterPanel}
-          rightPanel={mockRightPanel}
-        />
-      );
+    it("applies correct background colors and borders", async () => {
+      const { container } = await act(async () => {
+        return renderWithAllProviders(
+          <ThreePanelLayout
+            leftPanel={mockLeftPanel}
+            centerPanel={mockCenterPanel}
+            rightPanel={mockRightPanel}
+          />,
+        );
+      });
 
       const panels = container.querySelectorAll(
-        ".bg-\\[rgb\\(var\\(--color-surface-1\\)\\)\\]"
+        ".bg-\\[rgb\\(var\\(--color-surface-1\\)\\)\\]",
       );
       expect(panels.length).toBeGreaterThanOrEqual(4); // Header + 3 panels (may have additional inner elements)
 
@@ -113,23 +125,25 @@ describe("ThreePanelLayout", () => {
 
       expect(leftPanel).toHaveClass(
         "border-r",
-        "border-[rgb(var(--color-border))]"
+        "border-[rgb(var(--color-border))]",
       );
       expect(centerPanel).toHaveClass(
         "border-r",
-        "border-[rgb(var(--color-border))]"
+        "border-[rgb(var(--color-border))]",
       );
       expect(rightPanel).not.toHaveClass("border-r");
     });
 
-    it("applies overflow handling to prevent content overflow", () => {
-      const { container } = renderWithAllProviders(
-        <ThreePanelLayout
-          leftPanel={mockLeftPanel}
-          centerPanel={mockCenterPanel}
-          rightPanel={mockRightPanel}
-        />
-      );
+    it("applies overflow handling to prevent content overflow", async () => {
+      const { container } = await act(async () => {
+        return renderWithAllProviders(
+          <ThreePanelLayout
+            leftPanel={mockLeftPanel}
+            centerPanel={mockCenterPanel}
+            rightPanel={mockRightPanel}
+          />,
+        );
+      });
 
       const panels = container.querySelectorAll(".overflow-hidden");
       expect(panels).toHaveLength(3);
@@ -137,61 +151,69 @@ describe("ThreePanelLayout", () => {
   });
 
   describe("Optional Props", () => {
-    it("applies optional className prop correctly", () => {
-      const { container } = renderWithAllProviders(
-        <ThreePanelLayout
-          leftPanel={mockLeftPanel}
-          centerPanel={mockCenterPanel}
-          rightPanel={mockRightPanel}
-          className="custom-class"
-        />
-      );
+    it("applies optional className prop correctly", async () => {
+      const { container } = await act(async () => {
+        return renderWithAllProviders(
+          <ThreePanelLayout
+            leftPanel={mockLeftPanel}
+            centerPanel={mockCenterPanel}
+            rightPanel={mockRightPanel}
+            className="custom-class"
+          />,
+        );
+      });
 
       const layoutContainer = container.firstChild as HTMLElement;
       expect(layoutContainer).toHaveClass("custom-class");
     });
 
-    it("works without optional className prop", () => {
-      const { container } = renderWithAllProviders(
-        <ThreePanelLayout
-          leftPanel={mockLeftPanel}
-          centerPanel={mockCenterPanel}
-          rightPanel={mockRightPanel}
-        />
-      );
+    it("works without optional className prop", async () => {
+      const { container } = await act(async () => {
+        return renderWithAllProviders(
+          <ThreePanelLayout
+            leftPanel={mockLeftPanel}
+            centerPanel={mockCenterPanel}
+            rightPanel={mockRightPanel}
+          />,
+        );
+      });
 
       const layoutContainer = container.firstChild as HTMLElement;
       expect(layoutContainer).toHaveClass(
         "min-h-screen",
-        "bg-[rgb(var(--color-bg))]"
+        "bg-[rgb(var(--color-bg))]",
       );
     });
   });
 
   describe("Responsive Design", () => {
-    it("maintains full height layout", () => {
-      const { container } = renderWithAllProviders(
-        <ThreePanelLayout
-          leftPanel={mockLeftPanel}
-          centerPanel={mockCenterPanel}
-          rightPanel={mockRightPanel}
-        />
-      );
+    it("maintains full height layout", async () => {
+      const { container } = await act(async () => {
+        return renderWithAllProviders(
+          <ThreePanelLayout
+            leftPanel={mockLeftPanel}
+            centerPanel={mockCenterPanel}
+            rightPanel={mockRightPanel}
+          />,
+        );
+      });
 
       const gridContainer = container.querySelector(
-        ".h-\\[calc\\(100vh-80px\\)\\]"
+        ".h-\\[calc\\(100vh-80px\\)\\]",
       );
       expect(gridContainer).toBeInTheDocument();
     });
 
-    it("ensures panels have proper height containers", () => {
-      const { container } = renderWithAllProviders(
-        <ThreePanelLayout
-          leftPanel={mockLeftPanel}
-          centerPanel={mockCenterPanel}
-          rightPanel={mockRightPanel}
-        />
-      );
+    it("ensures panels have proper height containers", async () => {
+      const { container } = await act(async () => {
+        return renderWithAllProviders(
+          <ThreePanelLayout
+            leftPanel={mockLeftPanel}
+            centerPanel={mockCenterPanel}
+            rightPanel={mockRightPanel}
+          />,
+        );
+      });
 
       const panelContainers = container.querySelectorAll(".h-full");
       expect(panelContainers).toHaveLength(3);
@@ -199,7 +221,7 @@ describe("ThreePanelLayout", () => {
   });
 
   describe("Content Rendering", () => {
-    it("renders complex content in panels", () => {
+    it("renders complex content in panels", async () => {
       const complexLeftPanel = (
         <div data-testid="complex-left">
           <h1>Title</h1>
@@ -226,13 +248,15 @@ describe("ThreePanelLayout", () => {
         </div>
       );
 
-      renderWithAllProviders(
-        <ThreePanelLayout
-          leftPanel={complexLeftPanel}
-          centerPanel={complexCenterPanel}
-          rightPanel={complexRightPanel}
-        />
-      );
+      await act(async () => {
+        renderWithAllProviders(
+          <ThreePanelLayout
+            leftPanel={complexLeftPanel}
+            centerPanel={complexCenterPanel}
+            rightPanel={complexRightPanel}
+          />,
+        );
+      });
 
       expect(screen.getByTestId("complex-left")).toBeInTheDocument();
       expect(screen.getByTestId("complex-center")).toBeInTheDocument();

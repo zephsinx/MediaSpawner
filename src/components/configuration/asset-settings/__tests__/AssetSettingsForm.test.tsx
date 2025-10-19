@@ -122,7 +122,6 @@ const makeProperties = (
   positionMode: overrides.positionMode || "absolute",
   volume: overrides.volume ?? 0.5,
   loop: overrides.loop ?? false,
-  autoplay: overrides.autoplay ?? false,
   muted: overrides.muted ?? false,
   rotation: overrides.rotation ?? 0,
   crop: overrides.crop,
@@ -190,7 +189,6 @@ describe("AssetSettingsForm", () => {
         positionMode: "none",
         volume: "none",
         loop: "none",
-        autoplay: "none",
         muted: "none",
         rotation: "none",
         crop: "none",
@@ -294,7 +292,6 @@ describe("AssetSettingsForm", () => {
       ).toBeInTheDocument();
       expect(await screen.findByText("Volume (%)")).toBeInTheDocument();
       expect(await screen.findByText("Loop")).toBeInTheDocument();
-      expect(await screen.findByText("Autoplay")).toBeInTheDocument();
       expect(await screen.findByText("Muted")).toBeInTheDocument();
     });
 
@@ -319,7 +316,6 @@ describe("AssetSettingsForm", () => {
       ).toBeInTheDocument();
       expect(await screen.findByText("Volume (%)")).toBeInTheDocument();
       expect(await screen.findByText("Loop")).toBeInTheDocument();
-      expect(await screen.findByText("Autoplay")).toBeInTheDocument();
       expect(await screen.findByText("Muted")).toBeInTheDocument();
     });
   });

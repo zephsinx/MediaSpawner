@@ -332,6 +332,28 @@ export class StreamerbotService {
   }
 
   /**
+   * Test a spawn by executing it through the MediaSpawner action
+   * @param spawnId The ID of the spawn to test
+   * @returns Promise<boolean> indicating success/failure
+   */
+  static async testSpawn(spawnId: string): Promise<boolean> {
+    try {
+      this.connectIfNeeded();
+      await this.waitForConnection(10000);
+
+      const success = await this.executeAction("MediaSpawner", {
+        spawnId: spawnId,
+        testMode: true,
+      });
+
+      return success;
+    } catch (error) {
+      console.error("Failed to test spawn:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Wait for Streamer.bot connection with timeout
    * @param timeoutMs Timeout in milliseconds
    * @returns Promise<void> that resolves when connected or rejects on timeout/error
