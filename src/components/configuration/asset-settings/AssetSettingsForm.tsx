@@ -114,7 +114,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
       cn(
         inputVariants({
           variant: field && validationErrors[field] ? "error" : "default",
-        })
+        }),
       );
 
     useEffect(() => {
@@ -202,7 +202,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
         setDraftValues((prev) => ({ ...prev, [key]: value }));
         setUnsavedChanges(true);
       },
-      [setUnsavedChanges]
+      [setUnsavedChanges],
     );
 
     const handleBlur = useCallback(
@@ -213,7 +213,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
           [key]: error,
         }));
       },
-      [validateField]
+      [validateField],
     );
 
     // Single effect to sync debounced slider values to draftValues
@@ -293,13 +293,13 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
 
       window.addEventListener(
         "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-        onSpawnUpdated as EventListener
+        onSpawnUpdated as EventListener,
       );
 
       return () => {
         window.removeEventListener(
           "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-          onSpawnUpdated as EventListener
+          onSpawnUpdated as EventListener,
         );
       };
     }, [spawnId, spawnAssetId]);
@@ -399,7 +399,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                   duration: Math.max(0, durationDraftMs),
                 },
               }
-            : sa
+            : sa,
         );
 
         const result = await SpawnService.updateSpawn(spawn.id, {
@@ -424,12 +424,12 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
         window.dispatchEvent(
           new CustomEvent(
             "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-            { detail: { spawnId: result.spawn.id } } as CustomEventInit
-          )
+            { detail: { spawnId: result.spawn.id } } as CustomEventInit,
+          ),
         );
       } catch (e) {
         setError(
-          e instanceof Error ? e.message : "Failed to save asset settings"
+          e instanceof Error ? e.message : "Failed to save asset settings",
         );
       } finally {
         setIsSaving(false);
@@ -590,8 +590,8 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                           setField("dimensions", undefined);
                         } else {
                           setField("dimensions", {
-                            width: widthValue ?? 1,
-                            height: heightValue ?? 1,
+                            width: widthValue,
+                            height: heightValue,
                           });
                         }
                       }}
@@ -631,8 +631,8 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                           setField("dimensions", undefined);
                         } else {
                           setField("dimensions", {
-                            width: widthValue ?? 1,
-                            height: heightValue ?? 1,
+                            width: widthValue,
+                            height: heightValue,
                           });
                         }
                       }}
@@ -661,8 +661,8 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                           setField("position", undefined);
                         } else {
                           setField("position", {
-                            x: xValue ?? 0,
-                            y: yValue ?? 0,
+                            x: xValue,
+                            y: yValue,
                           });
                         }
                       }}
@@ -699,8 +699,8 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                           setField("position", undefined);
                         } else {
                           setField("position", {
-                            x: xValue ?? 0,
-                            y: yValue ?? 0,
+                            x: xValue,
+                            y: yValue,
                           });
                         }
                       }}
@@ -792,8 +792,8 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                                     setField("scale", undefined);
                                   } else {
                                     setField("scale", {
-                                      x: xValue ?? 1,
-                                      y: yValue ?? 1,
+                                      x: xValue,
+                                      y: yValue,
                                       linked: false,
                                     });
                                   }
@@ -831,8 +831,8 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                                     setField("scale", undefined);
                                   } else {
                                     setField("scale", {
-                                      x: xValue ?? 1,
-                                      y: yValue ?? 1,
+                                      x: xValue,
+                                      y: yValue,
                                       linked: false,
                                     });
                                   }
@@ -934,7 +934,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                     onChange={(e) =>
                       setField(
                         "positionMode",
-                        e.target.value as MediaAssetProperties["positionMode"]
+                        e.target.value as MediaAssetProperties["positionMode"],
                       )
                     }
                     className={getInputClassName()}
@@ -1034,10 +1034,10 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                             setField("crop", undefined);
                           } else {
                             setField("crop", {
-                              left: leftValue ?? 0,
-                              top: currentCrop?.top ?? 0,
-                              right: currentCrop?.right ?? 0,
-                              bottom: currentCrop?.bottom ?? 0,
+                              left: leftValue,
+                              top: currentCrop?.top,
+                              right: currentCrop?.right,
+                              bottom: currentCrop?.bottom,
                             });
                           }
                         }}
@@ -1071,10 +1071,10 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                             setField("crop", undefined);
                           } else {
                             setField("crop", {
-                              left: currentCrop?.left ?? 0,
-                              top: topValue ?? 0,
-                              right: currentCrop?.right ?? 0,
-                              bottom: currentCrop?.bottom ?? 0,
+                              left: currentCrop?.left,
+                              top: topValue,
+                              right: currentCrop?.right,
+                              bottom: currentCrop?.bottom,
                             });
                           }
                         }}
@@ -1108,10 +1108,10 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                             setField("crop", undefined);
                           } else {
                             setField("crop", {
-                              left: currentCrop?.left ?? 0,
-                              top: currentCrop?.top ?? 0,
-                              right: rightValue ?? 0,
-                              bottom: currentCrop?.bottom ?? 0,
+                              left: currentCrop?.left,
+                              top: currentCrop?.top,
+                              right: rightValue,
+                              bottom: currentCrop?.bottom,
                             });
                           }
                         }}
@@ -1145,10 +1145,10 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                             setField("crop", undefined);
                           } else {
                             setField("crop", {
-                              left: currentCrop?.left ?? 0,
-                              top: currentCrop?.top ?? 0,
-                              right: currentCrop?.right ?? 0,
-                              bottom: bottomValue ?? 0,
+                              left: currentCrop?.left,
+                              top: currentCrop?.top,
+                              right: currentCrop?.right,
+                              bottom: bottomValue,
                             });
                           }
                         }}
@@ -1180,7 +1180,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                         "boundsType",
                         e.target.value
                           ? (e.target.value as BoundsType)
-                          : undefined
+                          : undefined,
                       )
                     }
                     onBlur={() => handleBlur("boundsType")}
@@ -1222,7 +1222,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                         "alignment",
                         e.target.value
                           ? (Number(e.target.value) as AlignmentOption)
-                          : undefined
+                          : undefined,
                       )
                     }
                     onBlur={() => handleBlur("alignment")}
@@ -1294,7 +1294,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                         onChange={(e) =>
                           setField(
                             "volume",
-                            (Number(e.target.value) || 0) / 100
+                            (Number(e.target.value) || 0) / 100,
                           )
                         }
                         onBlur={() => handleBlur("volume")}
@@ -1325,7 +1325,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                           "monitorType",
                           e.target.value
                             ? (e.target.value as MonitorType)
-                            : undefined
+                            : undefined,
                         )
                       }
                       onBlur={() => handleBlur("monitorType")}
@@ -1376,7 +1376,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
         />
       </div>
     );
-  }
+  },
 );
 
 AssetSettingsForm.displayName = "AssetSettingsForm";
