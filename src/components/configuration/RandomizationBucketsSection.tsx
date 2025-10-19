@@ -73,10 +73,10 @@ export const RandomizationBucketsSection: React.FC<
 
   const updateBucket = (
     bucketId: string,
-    update: Partial<RandomizationBucket>
+    update: Partial<RandomizationBucket>,
   ) => {
     onChange(
-      (buckets || []).map((b) => (b.id === bucketId ? { ...b, ...update } : b))
+      (buckets || []).map((b) => (b.id === bucketId ? { ...b, ...update } : b)),
     );
   };
 
@@ -104,7 +104,7 @@ export const RandomizationBucketsSection: React.FC<
             ? b.members.filter((m) => m.spawnAssetId !== spawnAssetId)
             : [...b.members, { spawnAssetId } as RandomizationBucketMember],
         };
-      })
+      }),
     );
   };
 
@@ -125,7 +125,7 @@ export const RandomizationBucketsSection: React.FC<
           return { ...b, members: [...b.members, { spawnAssetId: assetId }] };
         }
         return b;
-      })
+      }),
     );
     setPendingMove(null);
   };
@@ -141,7 +141,7 @@ export const RandomizationBucketsSection: React.FC<
         <button
           type="button"
           onClick={() => setIsCreateOpen(true)}
-          className="px-3 py-1.5 rounded-md text-white bg-blue-600 hover:bg-blue-700"
+          className="px-3 py-1.5 rounded-md text-[rgb(var(--color-accent-foreground))] bg-[rgb(var(--color-accent))] hover:bg-[rgb(var(--color-accent-hover))]"
         >
           Add Bucket
         </button>
@@ -192,7 +192,7 @@ export const RandomizationBucketsSection: React.FC<
                   </button>
                   <button
                     type="button"
-                    className="text-xs px-2 py-1 rounded border border-[rgb(var(--color-error-border))] bg-[rgb(var(--color-surface-1))] text-red-700 hover:bg-[rgb(var(--color-muted))]"
+                    className="text-xs px-2 py-1 rounded border border-[rgb(var(--color-error-border))] bg-[rgb(var(--color-surface-1))] text-[rgb(var(--color-error))] hover:bg-[rgb(var(--color-muted))]"
                     onClick={() => removeBucket(b.id)}
                     aria-label="Delete bucket"
                   >
@@ -310,10 +310,10 @@ export const RandomizationBucketsSection: React.FC<
             <button
               type="button"
               disabled={!canCreate}
-              className={`px-3 py-1.5 rounded-md text-white ${
+              className={`px-3 py-1.5 rounded-md text-[rgb(var(--color-accent-foreground))] ${
                 canCreate
-                  ? "bg-blue-600 hover:bg-blue-700"
-                  : "bg-blue-300 cursor-not-allowed"
+                  ? "bg-[rgb(var(--color-accent))] hover:bg-[rgb(var(--color-accent-hover))]"
+                  : "bg-[rgb(var(--color-muted))] cursor-not-allowed"
               }`}
               onClick={addBucket}
             >
@@ -360,7 +360,7 @@ export const RandomizationBucketsSection: React.FC<
                           className="z-[60] rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] px-2 py-1 text-xs text-[rgb(var(--color-fg))] shadow-md"
                         >
                           {base?.path || sa.assetId}
-                          <Tooltip.Arrow className="fill-white" />
+                          <Tooltip.Arrow className="fill-[rgb(var(--color-bg))]" />
                         </Tooltip.Content>
                       </Tooltip.Portal>
                     </Tooltip.Root>
@@ -382,7 +382,7 @@ export const RandomizationBucketsSection: React.FC<
             <div className="flex justify-end gap-2">
               <button
                 type="button"
-                className="px-3 py-1.5 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] text-[rgb(var(--color-muted-foreground))] hover:bg-gray-50"
+                className="px-3 py-1.5 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] text-[rgb(var(--color-muted-foreground))] hover:bg-[rgb(var(--color-muted))]/10"
                 onClick={closeMembersEditor}
               >
                 Done

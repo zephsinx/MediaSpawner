@@ -221,15 +221,15 @@ export function SyncActionsDropdown({
   const getStatusColor = (status: SyncStatusInfo["status"]) => {
     switch (status) {
       case "synced":
-        return "text-emerald-600";
+        return "text-[rgb(var(--color-success))]";
       case "out-of-sync":
-        return "text-amber-600";
+        return "text-[rgb(var(--color-warning))]";
       case "error":
-        return "text-red-600";
+        return "text-[rgb(var(--color-error))]";
       case "offline":
-        return "text-gray-500";
+        return "text-[rgb(var(--color-muted-foreground))]";
       default:
-        return "text-gray-500";
+        return "text-[rgb(var(--color-muted-foreground))]";
     }
   };
 
@@ -289,10 +289,13 @@ export function SyncActionsDropdown({
               <div className="flex items-center gap-2">
                 <div
                   className={cn("w-2 h-2 rounded-full", {
-                    "bg-emerald-500": syncStatus.status === "synced",
-                    "bg-amber-500": syncStatus.status === "out-of-sync",
-                    "bg-red-500": syncStatus.status === "error",
-                    "bg-gray-400":
+                    "bg-[rgb(var(--color-success))]":
+                      syncStatus.status === "synced",
+                    "bg-[rgb(var(--color-warning))]":
+                      syncStatus.status === "out-of-sync",
+                    "bg-[rgb(var(--color-error))]":
+                      syncStatus.status === "error",
+                    "bg-[rgb(var(--color-muted))]":
                       syncStatus.status === "offline" ||
                       syncStatus.status === "unknown",
                   })}

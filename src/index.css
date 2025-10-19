@@ -293,3 +293,58 @@ input[type="range"]:disabled::-moz-range-thumb {
   background-color: rgb(var(--color-muted));
   cursor: not-allowed;
 }
+
+/* Checkbox styling using CSS variables */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgb(var(--color-border));
+  border-radius: 0.25rem;
+  background-color: rgb(var(--color-input));
+  cursor: pointer;
+  position: relative;
+  transition: all 150ms ease;
+}
+
+input[type="checkbox"]:hover {
+  border-color: rgb(var(--color-accent));
+}
+
+input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgb(var(--color-bg)),
+    0 0 0 4px rgb(var(--color-ring));
+}
+
+input[type="checkbox"]:checked {
+  background-color: rgb(var(--color-accent));
+  border-color: rgb(var(--color-accent));
+}
+
+input[type="checkbox"]:checked::after {
+  content: "✓";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: rgb(var(--color-accent-foreground));
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+/* Number input spinner styling */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+/* Firefox number input styling */
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}

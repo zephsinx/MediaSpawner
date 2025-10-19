@@ -191,7 +191,7 @@ function ThumbnailWithPreview({ asset }: { asset: MediaAsset }) {
               {asset.path}
             </div>
           </div>
-          <Popover.Arrow className="fill-white" />
+          <Popover.Arrow className="fill-[rgb(var(--color-bg))]" />
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
@@ -598,7 +598,7 @@ function SpawnAssetsSection() {
                               {baseAsset.path}
                             </div>
                           </div>
-                          <Popover.Arrow className="fill-white" />
+                          <Popover.Arrow className="fill-[rgb(var(--color-bg))]" />
                         </Popover.Content>
                       </Popover.Portal>
                     </Popover.Root>
@@ -620,7 +620,7 @@ function SpawnAssetsSection() {
                             className="z-10 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-2 py-1 text-xs text-[rgb(var(--color-fg))] shadow-md"
                           >
                             {baseAsset.name}
-                            <Tooltip.Arrow className="fill-white" />
+                            <Tooltip.Arrow className="fill-[rgb(var(--color-bg))]" />
                           </Tooltip.Content>
                         </Tooltip.Portal>
                       </Tooltip.Root>
@@ -655,7 +655,7 @@ function SpawnAssetsSection() {
                                     className="z-10 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-2 py-1 text-xs text-[rgb(var(--color-fg))] shadow-md"
                                   >
                                     Bucket: {bucket.name}
-                                    <Tooltip.Arrow className="fill-white" />
+                                    <Tooltip.Arrow className="fill-[rgb(var(--color-bg))]" />
                                   </Tooltip.Content>
                                 </Tooltip.Portal>
                               </Tooltip.Root>
@@ -767,7 +767,7 @@ function SpawnAssetsSection() {
                               <Trash2 size={14} /> Remove
                             </span>
                           </DropdownMenu.Item>
-                          <DropdownMenu.Arrow className="fill-white" />
+                          <DropdownMenu.Arrow className="fill-[rgb(var(--color-bg))]" />
                         </DropdownMenu.Content>
                       </DropdownMenu.Portal>
                     </DropdownMenu.Root>
@@ -1168,7 +1168,7 @@ function AssetLibrarySection() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                className={`text-xs px-2 py-1 rounded text-white ${
+                className={`text-xs px-2 py-1 rounded text-[rgb(var(--color-accent-foreground))] ${
                   isSubmitting
                     ? "bg-[rgb(var(--color-accent))]/50 cursor-not-allowed"
                     : "bg-[rgb(var(--color-accent))] hover:bg-[rgb(var(--color-accent-hover))]"
@@ -1263,7 +1263,7 @@ function AssetLibrarySection() {
                             className="z-10 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-2 py-1 text-xs text-[rgb(var(--color-fg))] shadow-md"
                           >
                             {asset.name}
-                            <Tooltip.Arrow className="fill-white" />
+                            <Tooltip.Arrow className="fill-[rgb(var(--color-bg))]" />
                           </Tooltip.Content>
                         </Tooltip.Portal>
                       </Tooltip.Root>

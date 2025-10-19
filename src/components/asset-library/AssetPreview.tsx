@@ -238,7 +238,7 @@ export function AssetPreview({
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay
-          className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+          className="fixed inset-0 z-50 bg-[rgb(var(--color-fg))]/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
           aria-hidden="true"
         />
         <Dialog.Content
@@ -326,7 +326,7 @@ export function AssetPreview({
               variant="ghost"
               size="sm"
               onClick={onPrevious}
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 h-12 w-12 p-0 bg-black/50 hover:bg-black/70 text-white"
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 h-12 w-12 p-0 bg-[rgb(var(--color-fg))]/50 hover:bg-[rgb(var(--color-fg))]/70 text-[rgb(var(--color-bg))]"
               aria-label="View previous asset"
             >
               <ChevronLeft className="h-6 w-6" aria-hidden="true" />
@@ -338,7 +338,7 @@ export function AssetPreview({
               variant="ghost"
               size="sm"
               onClick={onNext}
-              className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 h-12 w-12 p-0 bg-black/50 hover:bg-black/70 text-white"
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 h-12 w-12 p-0 bg-[rgb(var(--color-fg))]/50 hover:bg-[rgb(var(--color-fg))]/70 text-[rgb(var(--color-bg))]"
               aria-label="View next asset"
             >
               <ChevronRight className="h-6 w-6" aria-hidden="true" />

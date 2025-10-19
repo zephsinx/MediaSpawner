@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import type { ChangeEvent } from "react";
 import { validateFileReference } from "../../utils/fileValidation";
 import type { MediaType } from "../../utils/fileValidation";
+import { Button } from "../ui/Button";
 
 export interface FileReferenceInputProps {
   value: string;
@@ -70,17 +71,12 @@ export function FileReferenceInput({
   };
 
   const inputClasses = `
-    flex-1 px-3 py-2 border rounded-md
-    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-    ${validationState.isValid ? "border-gray-300" : "border-red-500 bg-red-50"}
-    ${disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}
+    flex-1 px-3 py-2 border rounded-md text-sm transition-colors
+    focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-ring))] focus:border-transparent
+    ${validationState.isValid ? "border-[rgb(var(--color-input-border))] bg-[rgb(var(--color-input))] text-[rgb(var(--color-fg))]" : "border-[rgb(var(--color-error))] bg-[rgb(var(--color-error-bg))] text-[rgb(var(--color-fg))]"}
+    ${disabled ? "bg-[rgb(var(--color-muted))] cursor-not-allowed text-[rgb(var(--color-muted-foreground))]" : ""}
+    placeholder:text-[rgb(var(--color-muted-foreground))]
     ${className}
-  `.trim();
-
-  const buttonClasses = `
-    px-4 py-2 ml-2 bg-gray-100 border border-gray-300 rounded-md
-    hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500
-    ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}
   `.trim();
 
   return (
@@ -94,14 +90,16 @@ export function FileReferenceInput({
           disabled={disabled}
           className={inputClasses}
         />
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={handleBrowseClick}
           disabled={disabled}
-          className={buttonClasses}
+          className="ml-2"
         >
           Browse
-        </button>
+        </Button>
         <input
           ref={fileInputRef}
           type="file"
@@ -112,11 +110,13 @@ export function FileReferenceInput({
       </div>
 
       {!validationState.isValid && validationState.error && (
-        <div className="mt-1 text-sm text-red-600">{validationState.error}</div>
+        <div className="mt-1 text-sm text-[rgb(var(--color-error))]">
+          {validationState.error}
+        </div>
       )}
 
       {validationState.isValid && validationState.mediaType && value && (
-        <div className="mt-1 text-sm text-green-600">
+        <div className="mt-1 text-sm text-[rgb(var(--color-success))]">
           {validationState.mediaType.charAt(0).toUpperCase() +
             validationState.mediaType.slice(1)}{" "}
           file detected
