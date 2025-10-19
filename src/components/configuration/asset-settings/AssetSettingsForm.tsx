@@ -1226,15 +1226,6 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                     <label className="inline-flex items-center gap-2 text-sm text-[rgb(var(--color-fg))]">
                       <input
                         type="checkbox"
-                        checked={!!draftValues.autoplay}
-                        onChange={(e) => setField("autoplay", e.target.checked)}
-                      />
-                      Autoplay
-                    </label>
-
-                    <label className="inline-flex items-center gap-2 text-sm text-[rgb(var(--color-fg))]">
-                      <input
-                        type="checkbox"
                         checked={!!draftValues.muted}
                         onChange={(e) => setField("muted", e.target.checked)}
                       />

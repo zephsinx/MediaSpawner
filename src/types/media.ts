@@ -44,9 +44,6 @@ export interface MediaAssetProperties {
   /** Whether the asset should loop for videos and audio */
   loop?: boolean;
 
-  /** Whether playback should start automatically (where supported) */
-  autoplay?: boolean;
-
   /** Whether audio should start muted */
   muted?: boolean;
 

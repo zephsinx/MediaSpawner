@@ -12,6 +12,8 @@ import { Button } from "../ui/Button";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { Input } from "../ui/Input";
 import { Switch } from "../ui/Switch";
+import { StreamerbotService } from "../../services/streamerbotService";
+import { toast } from "sonner";
 
 const SBCommandAliasCombobox: React.FC<{
   value: string;
@@ -189,6 +191,7 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
   >({});
 
   const [showMetadata, setShowMetadata] = useState<boolean>(true);
+  const [isTesting, setIsTesting] = useState<boolean>(false);
   const validation = useMemo(() => validateTrigger(trigger), [trigger]);
   const bucketValidation = useMemo(() => {
     if (!selectedSpawn) return { isValid: true, errors: [] as string[] };
@@ -491,6 +494,28 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
     setSelectedSpawn,
   ]);
 
+  const handleTestSpawn = useCallback(async () => {
+    if (!selectedSpawn || isTesting) return;
+
+    setIsTesting(true);
+
+    try {
+      const success = await StreamerbotService.testSpawn(selectedSpawn.id);
+
+      if (success) {
+        toast.success(`Successfully tested spawn: ${selectedSpawn.name}`);
+      } else {
+        toast.error(`Failed to test spawn: ${selectedSpawn.name}`);
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Error testing spawn: ${errorMessage}`);
+    } finally {
+      setIsTesting(false);
+    }
+  }, [selectedSpawn, isTesting]);
+
   const formatDate = (ms: number | undefined) => {
     if (!ms) return "-";
     try {
@@ -565,18 +590,31 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
           </p>
           <div className="flex items-center gap-2">
             {selectedSpawn && (
-              <Button
-                type="button"
-                onClick={() => {
-                  setDeleteError(null);
-                  setShowDeleteDialog(true);
-                }}
-                variant="destructive"
-                size="sm"
-                aria-label="Delete spawn"
-              >
-                Delete
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  onClick={handleTestSpawn}
+                  variant="outline"
+                  size="sm"
+                  disabled={isTesting}
+                  loading={isTesting}
+                  aria-label="Test spawn"
+                >
+                  Test
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setDeleteError(null);
+                    setShowDeleteDialog(true);
+                  }}
+                  variant="destructive"
+                  size="sm"
+                  aria-label="Delete spawn"
+                >
+                  Delete
+                </Button>
+              </>
             )}
             <Button
               type="button"
