@@ -73,7 +73,7 @@ export class AssetService {
   static addAsset(
     type: MediaAsset["type"],
     name: string,
-    path: string
+    path: string,
   ): MediaAsset {
     const asset = createMediaAsset(type, name, path);
     const assets = this.getAssets();
@@ -82,8 +82,8 @@ export class AssetService {
     try {
       window.dispatchEvent(
         new Event(
-          "mediaspawner:assets-updated" as unknown as keyof WindowEventMap
-        )
+          "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
+        ),
       );
     } catch {
       // Best-effort notification
@@ -112,7 +112,7 @@ export class AssetService {
           }));
           if (
             newSpawns.some(
-              (s, i) => s.assets.length !== p.spawns[i].assets.length
+              (s, i) => s.assets.length !== p.spawns[i].assets.length,
             )
           ) {
             changed = true;
@@ -124,8 +124,8 @@ export class AssetService {
           try {
             window.dispatchEvent(
               new Event(
-                "mediaspawner:assets-updated" as unknown as keyof WindowEventMap
-              )
+                "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
+              ),
             );
           } catch {
             // Best-effort notify
@@ -154,8 +154,8 @@ export class AssetService {
         // Notify listeners that assets changed so dependent panels can refresh
         window.dispatchEvent(
           new Event(
-            "mediaspawner:assets-updated" as unknown as keyof WindowEventMap
-          )
+            "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
+          ),
         );
       } catch {
         // Best-effort notification
@@ -184,8 +184,8 @@ export class AssetService {
     try {
       window.dispatchEvent(
         new Event(
-          "mediaspawner:assets-updated" as unknown as keyof WindowEventMap
-        )
+          "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
+        ),
       );
     } catch {
       // Best-effort notification
@@ -214,7 +214,7 @@ export class AssetService {
     return assets.filter(
       (asset) =>
         asset.name.toLowerCase().includes(searchLower) ||
-        asset.path.toLowerCase().includes(searchLower)
+        asset.path.toLowerCase().includes(searchLower),
     );
   }
 
@@ -223,7 +223,7 @@ export class AssetService {
    */
   static searchAndFilterAssets(
     searchQuery: string = "",
-    typeFilter: MediaAsset["type"] | "all" = "all"
+    typeFilter: MediaAsset["type"] | "all" = "all",
   ): MediaAsset[] {
     let assets = this.getAssets();
 
@@ -238,7 +238,7 @@ export class AssetService {
       assets = assets.filter(
         (asset) =>
           asset.name.toLowerCase().includes(searchLower) ||
-          asset.path.toLowerCase().includes(searchLower)
+          asset.path.toLowerCase().includes(searchLower),
       );
     }
 
@@ -293,7 +293,7 @@ export class AssetService {
    * Validate if a file path or URL is accessible
    */
   static async validateAssetReference(
-    asset: MediaAsset
+    asset: MediaAsset,
   ): Promise<AssetValidationResult> {
     const result: AssetValidationResult = {
       asset,
@@ -330,7 +330,7 @@ export class AssetService {
   static async validateAllAssets(): Promise<AssetValidationResult[]> {
     const assets = this.getAssets();
     const validationPromises = assets.map((asset) =>
-      this.validateAssetReference(asset)
+      this.validateAssetReference(asset),
     );
     return Promise.all(validationPromises);
   }
@@ -470,7 +470,7 @@ export class AssetService {
    */
   static async getResolvedAssetSettings(
     spawnId: string,
-    spawnAssetId: string
+    spawnAssetId: string,
   ): Promise<{
     duration: number;
     trigger: Trigger;
@@ -533,8 +533,17 @@ export class AssetService {
     }
 
     // Check for invalid characters that are not allowed in file paths
-    const invalidChars = /[<>:"|?*]/;
+    // Allow colons only in drive letters (C:) and backslashes for Windows paths
+    const invalidChars = /[<>"|?*]/;
     if (invalidChars.test(path)) {
+      return false;
+    }
+
+    // Additional validation for Windows paths
+    // Check for invalid colon usage (not in drive letter)
+    const colonIndex = path.indexOf(":");
+    if (colonIndex !== -1 && colonIndex !== 1) {
+      // Colon is only allowed as second character for drive letters (C:)
       return false;
     }
 
@@ -548,13 +557,20 @@ export class AssetService {
       "webp",
       "bmp",
       "svg",
+      "ico",
+      "tiff",
+      "tif",
       // Videos
       "mp4",
       "webm",
       "mov",
       "avi",
       "mkv",
+      "flv",
       "wmv",
+      "m4v",
+      "3gp",
+      "ogv",
       // Audio
       "mp3",
       "wav",
@@ -562,10 +578,21 @@ export class AssetService {
       "m4a",
       "aac",
       "flac",
+      "wma",
+      "opus",
+      "m4r",
     ];
 
-    const extension = path.split(".").pop()?.toLowerCase();
-    return extension ? supportedExtensions.includes(extension) : false;
+    // Extract extension from path, handling both forward and backward slashes
+    const lastDot = path.lastIndexOf(".");
+    const lastSlash = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
+
+    if (lastDot > lastSlash && lastDot !== -1) {
+      const extension = path.slice(lastDot + 1).toLowerCase();
+      return supportedExtensions.includes(extension);
+    }
+
+    return false;
   }
 
   /**

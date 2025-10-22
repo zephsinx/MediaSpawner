@@ -87,6 +87,81 @@ const AssetLibraryPage: React.FC = () => {
 
     if (!newAssetPath.trim()) {
       errors.path = "File path or URL is required";
+    } else {
+      // Validate path format
+      const trimmedPath = newAssetPath.trim();
+
+      // Check if it's a URL
+      if (
+        trimmedPath.startsWith("http://") ||
+        trimmedPath.startsWith("https://")
+      ) {
+        try {
+          new URL(trimmedPath);
+        } catch {
+          errors.path = "Invalid URL format";
+        }
+      } else {
+        // Validate as local file path
+        const invalidChars = /[<>"|?*]/;
+        if (invalidChars.test(trimmedPath)) {
+          errors.path = 'Path contains invalid characters (< > " | ? *)';
+        } else {
+          // Check for invalid colon usage (not in drive letter)
+          const colonIndex = trimmedPath.indexOf(":");
+          if (colonIndex !== -1 && colonIndex !== 1) {
+            errors.path = "Invalid colon usage in path";
+          } else {
+            // Check for supported file extension
+            const lastDot = trimmedPath.lastIndexOf(".");
+            const lastSlash = Math.max(
+              trimmedPath.lastIndexOf("/"),
+              trimmedPath.lastIndexOf("\\"),
+            );
+
+            if (lastDot <= lastSlash || lastDot === -1) {
+              errors.path = "File must have a supported extension";
+            } else {
+              const extension = trimmedPath.slice(lastDot + 1).toLowerCase();
+              const supportedExtensions = [
+                "jpg",
+                "jpeg",
+                "png",
+                "gif",
+                "webp",
+                "bmp",
+                "svg",
+                "ico",
+                "tiff",
+                "tif",
+                "mp4",
+                "webm",
+                "mov",
+                "avi",
+                "mkv",
+                "flv",
+                "wmv",
+                "m4v",
+                "3gp",
+                "ogv",
+                "mp3",
+                "wav",
+                "ogg",
+                "m4a",
+                "aac",
+                "flac",
+                "wma",
+                "opus",
+                "m4r",
+              ];
+
+              if (!supportedExtensions.includes(extension)) {
+                errors.path = `Unsupported file type. Supported: ${supportedExtensions.slice(0, 5).join(", ")}...`;
+              }
+            }
+          }
+        }
+      }
     }
 
     setFormErrors(errors);
@@ -309,7 +384,7 @@ const AssetLibraryPage: React.FC = () => {
 
                   <div className="flex flex-col sm:flex-row gap-3 pt-4">
                     <Button
-                      onClick={handleAddAsset}
+                      type="submit"
                       disabled={
                         isLoading ||
                         !newAssetPath.trim() ||

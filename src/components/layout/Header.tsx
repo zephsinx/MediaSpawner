@@ -15,7 +15,7 @@ import {
   Modal,
   ProfileSelector,
 } from "../common";
-import { Button } from "../ui";
+import { Button } from "../ui/Button";
 import { StreamerbotService } from "../../services/streamerbotService";
 import type { SyncStatusInfo } from "../../types/sync";
 import { toast } from "sonner";
