@@ -13,6 +13,7 @@ const initialState: LayoutState = {
   selectedSpawnAssetId: undefined,
   centerPanelMode: "spawn-settings",
   hasUnsavedChanges: false,
+  changeType: "none",
   profileSpawnSelections: {},
 };
 
@@ -36,6 +37,7 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
         selectedSpawnId: newSelectedSpawnId,
         centerPanelMode: "spawn-settings" as const, // Reset to spawn settings mode
         hasUnsavedChanges: false, // Clear unsaved changes when switching profiles
+        changeType: "none" as const, // Reset change type when switching profiles
       };
 
       return newState;
@@ -67,6 +69,7 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
         selectedSpawnAssetId: undefined,
         profileSpawnSelections: newProfileSpawnSelections,
         centerPanelMode: "spawn-settings", // Reset to spawn settings when selecting spawn
+        // Note: hasUnsavedChanges and changeType are now managed by the guard dialog in Layout.tsx
       };
     }
 
@@ -87,10 +90,11 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
     }
 
     case "SET_UNSAVED_CHANGES": {
-      const { hasChanges } = action.payload;
+      const { hasChanges, changeType } = action.payload;
       return {
         ...state,
         hasUnsavedChanges: hasChanges,
+        changeType: hasChanges ? changeType || "none" : ("none" as const),
       };
     }
 

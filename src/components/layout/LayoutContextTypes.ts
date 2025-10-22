@@ -1,6 +1,11 @@
 import React, { createContext } from "react";
 
 /**
+ * Types of unsaved changes in the workspace
+ */
+export type ChangeType = "none" | "spawn" | "asset";
+
+/**
  * Layout state interface for panel coordination
  */
 export interface LayoutState {
@@ -22,6 +27,9 @@ export interface LayoutState {
   /** Whether there are unsaved changes in the workspace */
   hasUnsavedChanges: boolean;
 
+  /** Type of unsaved changes in the workspace */
+  changeType: ChangeType;
+
   /** Per-profile spawn selection persistence */
   profileSpawnSelections: Record<string, string | undefined>;
 }
@@ -41,7 +49,10 @@ export type LayoutAction =
       type: "SET_CENTER_PANEL_MODE";
       payload: { mode: "spawn-settings" | "asset-settings" };
     }
-  | { type: "SET_UNSAVED_CHANGES"; payload: { hasChanges: boolean } }
+  | {
+      type: "SET_UNSAVED_CHANGES";
+      payload: { hasChanges: boolean; changeType?: ChangeType };
+    }
   | { type: "CLEAR_CONTEXT" }
   | { type: "LOAD_STATE_FROM_STORAGE" };
 

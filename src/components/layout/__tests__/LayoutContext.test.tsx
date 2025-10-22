@@ -529,7 +529,7 @@ describe("LayoutContext", () => {
       expect(screen.getByTestId("unsaved-changes")).toHaveTextContent("true");
     });
 
-    it("tracks complex state interactions with asset selection and configuration changes", () => {
+    it("preserves unsaved changes when selecting spawn without guard dialog", () => {
       render(
         <LayoutProvider>
           <TestComponent />
@@ -543,11 +543,13 @@ describe("LayoutContext", () => {
       fireEvent.click(screen.getByTestId("set-unsaved-true"));
       expect(screen.getByTestId("unsaved-changes")).toHaveTextContent("true");
 
-      // Simulate spawner selection change - should preserve unsaved changes
+      // Direct spawn selection (bypassing guard dialog) should preserve unsaved changes
+      // This tests the LayoutContext reducer behavior, not the Layout.tsx guard dialog
       fireEvent.click(screen.getByTestId("select-spawn-1"));
       expect(screen.getByTestId("selected-spawn")).toHaveTextContent("spawn-1");
 
-      // In this implementation, spawn selection resets center panel mode but preserves unsaved changes
+      // Spawn selection resets center panel mode but preserves unsaved changes
+      // The guard dialog in Layout.tsx handles unsaved changes clearing
       expect(screen.getByTestId("center-mode")).toHaveTextContent(
         "spawn-settings",
       );

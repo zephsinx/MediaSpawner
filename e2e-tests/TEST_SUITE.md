@@ -133,6 +133,23 @@ For best results, run tests in this order:
 
 ---
 
+### Scenario 09: Asset Settings Unsaved Changes Guard
+
+**File**: `scenarios/09-asset-settings-unsaved-changes.md`
+
+**Objective**: Test the improved unsaved changes behavior specifically for asset settings.
+
+**Coverage**:
+
+- Asset settings unsaved changes detection
+- Switching between different asset configurations
+- Consolidated modal logic (no duplicate modals)
+- Change type tracking ("asset" vs "spawn")
+- Mixed unsaved changes scenarios
+- Asset settings isolation per spawn
+
+---
+
 ## Success Metrics
 
 - All scenarios pass verification checkpoints

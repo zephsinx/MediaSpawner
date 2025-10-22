@@ -1,5 +1,6 @@
 import { useContext, useCallback } from "react";
 import { LayoutContext } from "../components/layout/LayoutContextTypes";
+import type { ChangeType } from "../components/layout/LayoutContextTypes";
 
 /**
  * Custom hook to use the layout context
@@ -47,8 +48,11 @@ export const usePanelState = () => {
   );
 
   const setUnsavedChanges = useCallback(
-    (hasChanges: boolean) => {
-      dispatch({ type: "SET_UNSAVED_CHANGES", payload: { hasChanges } });
+    (hasChanges: boolean, changeType?: ChangeType) => {
+      dispatch({
+        type: "SET_UNSAVED_CHANGES",
+        payload: { hasChanges, changeType },
+      });
     },
     [dispatch],
   );
@@ -72,6 +76,7 @@ export const usePanelState = () => {
     selectedSpawnAssetId: state.selectedSpawnAssetId,
     centerPanelMode: state.centerPanelMode,
     hasUnsavedChanges: state.hasUnsavedChanges,
+    changeType: state.changeType,
     profileSpawnSelections: state.profileSpawnSelections,
 
     // Actions

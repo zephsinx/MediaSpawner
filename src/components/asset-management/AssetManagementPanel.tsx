@@ -223,7 +223,7 @@ function SpawnAssetsSection() {
 
   // Update context unsaved changes state
   useEffect(() => {
-    setUnsavedChanges(hasAssetChanges);
+    setUnsavedChanges(hasAssetChanges, hasAssetChanges ? "spawn" : "none");
   }, [hasAssetChanges, setUnsavedChanges]);
 
   useEffect(() => {

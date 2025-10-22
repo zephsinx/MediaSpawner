@@ -53,3 +53,4 @@ export {
   LiveProfileIndicator,
   type LiveProfileIndicatorProps,
 } from "./LiveProfileIndicator";
+export { ProfileSelector, type ProfileSelectorProps } from "./ProfileSelector";

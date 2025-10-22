@@ -92,6 +92,28 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+    const [isDiscarding, setIsDiscarding] = useState(false);
+
+    // Cache isolation validation
+    const validateCacheIsolation = useCallback(
+      (operation: string) => {
+        if (!spawnId || !spawnAssetId) {
+          const error = `AssetSettingsForm ${operation} failed: missing spawnId or spawnAssetId`;
+          if (process.env.NODE_ENV === "development") {
+            console.error(error, { spawnId, spawnAssetId, operation });
+          }
+          throw new Error(error);
+        }
+
+        if (process.env.NODE_ENV === "development") {
+          console.debug(`AssetSettingsForm ${operation} isolation validated:`, {
+            spawnId,
+            spawnAssetId,
+          });
+        }
+      },
+      [spawnId, spawnAssetId],
+    );
 
     // Local draft state: values only
     const [durationDraftMs, setDurationDraftMs] = useState<number>(0);
@@ -169,6 +191,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
       initKeyRef.current = key;
       setSuccess(null);
 
+      validateCacheIsolation("get-cached-draft");
       const cached = getCachedDraft?.();
       const valuesToUse = cached ? cached.draftValues : effective.effective;
 
@@ -189,8 +212,15 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
 
       setInitialDurationMs(initialDuration);
       setDurationDraftMs(initialDuration);
-      setUnsavedChanges(false);
-    }, [effective, spawn, spawnAsset, setUnsavedChanges, getCachedDraft]);
+      setUnsavedChanges(false, "none");
+    }, [
+      effective,
+      spawn,
+      spawnAsset,
+      setUnsavedChanges,
+      getCachedDraft,
+      validateCacheIsolation,
+    ]);
 
     // Keep draftValuesRef in sync
     useEffect(() => {
@@ -199,8 +229,11 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
 
     const setField = useCallback(
       (key: FieldKey, value: MediaAssetProperties[FieldKey]) => {
-        setDraftValues((prev) => ({ ...prev, [key]: value }));
-        setUnsavedChanges(true);
+        setDraftValues((prev) => {
+          const newValues = { ...prev, [key]: value };
+          return newValues;
+        });
+        setUnsavedChanges(true, "asset");
       },
       [setUnsavedChanges],
     );
@@ -232,7 +265,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
       });
 
       // Mark as unsaved when debounced values update
-      setUnsavedChanges(true);
+      setUnsavedChanges(true, "asset");
     }, [debouncedVolume, debouncedRotation, setUnsavedChanges]);
 
     // Initialize local state when component first loads
@@ -304,6 +337,13 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
       };
     }, [spawnId, spawnAssetId]);
 
+    // Cleanup unsaved changes when component unmounts
+    useEffect(() => {
+      return () => {
+        setUnsavedChanges(false, "none");
+      };
+    }, [setUnsavedChanges]);
+
     const handleClose = useCallback(() => {
       if (hasUnsavedChanges) {
         setShowDiscardDialog(true);
@@ -313,6 +353,9 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
     }, [hasUnsavedChanges, onBack]);
 
     const handleConfirmDiscard = useCallback(() => {
+      // Set discarding flag to prevent cleanup effect from saving draft
+      setIsDiscarding(true);
+
       // Reset to initial values
       if (initialValues) {
         setDraftValues(initialValues);
@@ -327,11 +370,12 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
 
       // Clear cached draft
       if (clearCachedDraft) {
+        validateCacheIsolation("clear-cached-draft");
         clearCachedDraft(spawnAssetId);
       }
 
       // Clear unsaved changes flag and close dialog
-      setUnsavedChanges(false);
+      setUnsavedChanges(false, "none");
       setShowDiscardDialog(false);
 
       // Navigate back with skipGuard=true since we've already confirmed discard
@@ -343,6 +387,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
       spawnAssetId,
       setUnsavedChanges,
       onBack,
+      validateCacheIsolation,
     ]);
 
     const handleSave = async () => {
@@ -415,8 +460,9 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
           result.spawn.assets.find((a) => a.id === spawnAsset.id) || null;
         setSpawnAsset(updated);
         setSuccess("Changes saved");
-        setUnsavedChanges(false);
+        setUnsavedChanges(false, "none");
         if (setCachedDraft) {
+          validateCacheIsolation("set-cached-draft");
           setCachedDraft({
             draftValues,
           });
@@ -439,11 +485,13 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
     // Persist draft on unmount to preserve across mode switches
     useEffect(() => {
       return () => {
-        if (setCachedDraft) {
+        // Don't persist draft if we're discarding changes
+        if (!isDiscarding && setCachedDraft) {
+          validateCacheIsolation("set-cached-draft-unmount");
           setCachedDraft({ draftValues });
         }
       };
-    }, [draftValues, setCachedDraft]);
+    }, [draftValues, setCachedDraft, isDiscarding, validateCacheIsolation]);
 
     const hasValidationErrors = useMemo(() => {
       return Object.values(validationErrors).some(Boolean);
@@ -554,7 +602,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                     onChange={(e) => {
                       const val = Math.max(0, Number(e.target.value) || 0);
                       setDurationDraftMs(val);
-                      setUnsavedChanges(true);
+                      setUnsavedChanges(true, "asset");
                     }}
                     className={getInputClassName()}
                   />
@@ -589,10 +637,11 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                         ) {
                           setField("dimensions", undefined);
                         } else {
-                          setField("dimensions", {
+                          const newDimensions = {
                             width: widthValue,
                             height: heightValue,
-                          });
+                          };
+                          setField("dimensions", newDimensions);
                         }
                       }}
                       onBlur={() => handleBlur("dimensions")}
@@ -630,10 +679,11 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                         ) {
                           setField("dimensions", undefined);
                         } else {
-                          setField("dimensions", {
+                          const newDimensions = {
                             width: widthValue,
                             height: heightValue,
-                          });
+                          };
+                          setField("dimensions", newDimensions);
                         }
                       }}
                       onBlur={() => handleBlur("dimensions")}

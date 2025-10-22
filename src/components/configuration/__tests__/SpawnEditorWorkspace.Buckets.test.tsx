@@ -52,6 +52,7 @@ describe("SpawnEditorWorkspace - Randomization Buckets UI", () => {
       centerPanelMode: "spawn-settings",
       setUnsavedChanges: vi.fn(),
       hasUnsavedChanges: false,
+      changeType: "none",
       profileSpawnSelections: {},
       setActiveProfile: vi.fn(),
       setLiveProfile: vi.fn(),
@@ -103,9 +104,7 @@ describe("SpawnEditorWorkspace - Randomization Buckets UI", () => {
     fireEvent.change(within(modal).getByLabelText("Name"), {
       target: { value: "Audio bucket" },
     });
-    fireEvent.change(within(modal).getByLabelText("Selection"), {
-      target: { value: "n" },
-    });
+    fireEvent.click(within(modal).getByRole("radio", { name: "Pick N" }));
     fireEvent.change(within(modal).getByLabelText("N"), {
       target: { value: "3" },
     });
@@ -191,6 +190,7 @@ describe("SpawnEditorWorkspace - Randomization Buckets UI", () => {
       centerPanelMode: "spawn-settings",
       setUnsavedChanges: vi.fn(),
       hasUnsavedChanges: true,
+      changeType: "spawn",
       profileSpawnSelections: {},
       setActiveProfile: vi.fn(),
       setLiveProfile: vi.fn(),
@@ -217,7 +217,7 @@ describe("SpawnEditorWorkspace - Randomization Buckets UI", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Unsaved Changes")).toBeInTheDocument();
+      expect(screen.getByText("Unsaved Spawn Changes")).toBeInTheDocument();
     });
   });
 });
