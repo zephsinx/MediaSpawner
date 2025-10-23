@@ -1050,9 +1050,16 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
       ) : (
         <div className="h-full flex flex-col">
           <div className="p-4 border-b border-[rgb(var(--color-border))] bg-[rgb(var(--color-muted))]/5">
-            <h2 className="text-lg font-semibold text-[rgb(var(--color-fg))]">
-              Spawn Editor
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-[rgb(var(--color-fg))]">
+                Spawn Editor
+              </h2>
+              {hasUnsavedChanges && (
+                <span className="text-[rgb(var(--color-warning))] text-sm font-medium">
+                  • Unsaved changes
+                </span>
+              )}
+            </div>
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mt-1">
               <p className="text-sm text-[rgb(var(--color-muted-foreground))]">
                 {selectedSpawn
