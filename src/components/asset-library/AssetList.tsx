@@ -301,7 +301,7 @@ export function AssetList({
               "rounded-none border-0 font-medium transition-all",
               currentViewMode === "grid"
                 ? "bg-[rgb(var(--color-accent))] text-[rgb(var(--color-accent-foreground))] shadow-sm"
-                : "text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))] hover:bg-[rgb(var(--color-muted))]/10"
+                : "text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))] hover:bg-[rgb(var(--color-muted))]/10",
             )}
             aria-label="Grid view"
             aria-pressed={currentViewMode === "grid"}
@@ -318,7 +318,7 @@ export function AssetList({
               "rounded-none border-0 border-l border-[rgb(var(--color-border))] font-medium transition-all",
               currentViewMode === "list"
                 ? "bg-[rgb(var(--color-accent))] text-[rgb(var(--color-accent-foreground))] shadow-sm"
-                : "text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))] hover:bg-[rgb(var(--color-muted))]/10"
+                : "text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))] hover:bg-[rgb(var(--color-muted))]/10",
             )}
             aria-label="List view"
             aria-pressed={currentViewMode === "list"}
@@ -335,7 +335,7 @@ export function AssetList({
               "rounded-none border-0 border-l border-[rgb(var(--color-border))] font-medium transition-all",
               currentViewMode === "condensed"
                 ? "bg-[rgb(var(--color-accent))] text-[rgb(var(--color-accent-foreground))] shadow-sm"
-                : "text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))] hover:bg-[rgb(var(--color-muted))]/10"
+                : "text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))] hover:bg-[rgb(var(--color-muted))]/10",
             )}
             aria-label="Condensed view"
             aria-pressed={currentViewMode === "condensed"}

@@ -21,7 +21,7 @@ const getTimezoneIfTimeBased = (trigger: Trigger): string | undefined => {
 };
 
 export const getNextActivation = (
-  trigger: Trigger | null
+  trigger: Trigger | null,
 ): { when: Date | null; timezone?: string } => {
   if (!trigger) return { when: null };
   if (trigger.enabled === false) {
@@ -88,7 +88,7 @@ export const getNextActivation = (
           second: 0,
           millisecond: 0,
         },
-        tz
+        tz,
       );
       // Valid only if month did not roll over
       if (candidate.month() !== monthZeroBased) return null;
@@ -127,7 +127,7 @@ export const getNextActivation = (
     const diffMin = now.diff(start, "minutes");
     const steps = Math.max(
       1,
-      Math.ceil(diffMin / Math.max(1, intervalMinutes))
+      Math.ceil(diffMin / Math.max(1, intervalMinutes)),
     );
     const next = start
       .clone()
@@ -147,7 +147,7 @@ export const getNextActivation = (
 
 export const formatNextActivation = (
   when: Date | null,
-  timezone?: string
+  timezone?: string,
 ): string => {
   if (!when) return "-";
   try {

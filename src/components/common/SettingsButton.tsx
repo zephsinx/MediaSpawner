@@ -18,7 +18,7 @@ export function SettingsButton({ className }: SettingsButtonProps) {
           className={cn(
             buttonVariants({ variant: "ghost", size: "sm" }),
             "h-8 w-8 p-0 text-[rgb(var(--color-muted-foreground))] hover:text-[rgb(var(--color-fg))]",
-            className
+            className,
           )}
           aria-label="Settings"
         >

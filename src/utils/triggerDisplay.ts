@@ -5,7 +5,7 @@ import { getNextActivation, formatNextActivation } from "./scheduling";
 const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export const getTriggerTypeLabel = (
-  trigger: Trigger | null | undefined
+  trigger: Trigger | null | undefined,
 ): string => {
   if (!trigger) return "-";
   switch (trigger.type) {
@@ -41,7 +41,7 @@ export const getTriggerTypeLabel = (
 };
 
 export const getTriggerAbbrev = (
-  trigger: Trigger | null | undefined
+  trigger: Trigger | null | undefined,
 ): string => {
   if (!trigger) return "-";
   switch (trigger.type) {
@@ -110,7 +110,7 @@ export const getTriggerAbbrev = (
 };
 
 export const getTriggerTooltip = (
-  trigger: Trigger | null | undefined
+  trigger: Trigger | null | undefined,
 ): string => {
   if (!trigger) return "-";
   const type = getTriggerTypeLabel(trigger);
@@ -119,7 +119,7 @@ export const getTriggerTooltip = (
 };
 
 export const getTriggerScheduleLabel = (
-  trigger: Trigger | null | undefined
+  trigger: Trigger | null | undefined,
 ): string | null => {
   if (!trigger) return null;
   if (

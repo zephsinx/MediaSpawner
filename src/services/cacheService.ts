@@ -32,7 +32,7 @@ export class CacheService {
   static get<T>(
     key: string,
     fetcher: () => T,
-    ttl: number = this.defaultTTL
+    ttl: number = this.defaultTTL,
   ): T {
     const entry = this.cache.get(key);
     const now = Date.now();
@@ -224,7 +224,7 @@ export const CACHE_KEYS = {
  */
 export const getSpawnAssetCacheKey = (
   spawnId: string,
-  assetId: string
+  assetId: string,
 ): string => {
   return `${CACHE_KEYS.SPAWN_ASSET_SETTINGS}:${spawnId}:${assetId}`;
 };

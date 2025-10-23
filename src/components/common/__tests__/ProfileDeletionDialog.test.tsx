@@ -132,16 +132,16 @@ describe("ProfileDeletionDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={mockProfile}
-        />
+        />,
       );
 
       expect(
-        screen.getByRole("heading", { name: "Delete Profile" })
+        screen.getByRole("heading", { name: "Delete Profile" }),
       ).toBeInTheDocument();
       expect(
         screen.getByText(
-          `Are you sure you want to delete the profile "${mockProfile.name}"?`
-        )
+          `Are you sure you want to delete the profile "${mockProfile.name}"?`,
+        ),
       ).toBeInTheDocument();
     });
 
@@ -152,7 +152,7 @@ describe("ProfileDeletionDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={mockProfile}
-        />
+        />,
       );
 
       expect(screen.getByText("Test Profile")).toBeInTheDocument();
@@ -167,16 +167,16 @@ describe("ProfileDeletionDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={mockProfile}
-        />
+        />,
       );
 
       expect(
-        screen.getByText("Warning: This action cannot be undone")
+        screen.getByText("Warning: This action cannot be undone"),
       ).toBeInTheDocument();
       expect(
         screen.getByText(
-          "Deleting this profile will permanently remove all spawns and their configurations. Make sure you have exported your data if you need to keep it."
-        )
+          "Deleting this profile will permanently remove all spawns and their configurations. Make sure you have exported your data if you need to keep it.",
+        ),
       ).toBeInTheDocument();
     });
 
@@ -187,17 +187,17 @@ describe("ProfileDeletionDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={mockProfile}
-        />
+        />,
       );
 
       expect(
-        screen.getByRole("heading", { name: "Delete Profile" })
+        screen.getByRole("heading", { name: "Delete Profile" }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "Delete Profile" })
+        screen.getByRole("button", { name: "Delete Profile" }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "Cancel" })
+        screen.getByRole("button", { name: "Cancel" }),
       ).toBeInTheDocument();
     });
 
@@ -213,7 +213,7 @@ describe("ProfileDeletionDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={profileWithoutDescription}
-        />
+        />,
       );
 
       expect(screen.getByText("Test Profile")).toBeInTheDocument();
@@ -232,7 +232,7 @@ describe("ProfileDeletionDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={profileWithNoSpawns}
-        />
+        />,
       );
 
       expect(screen.getByText("0 total (0 enabled)")).toBeInTheDocument();
@@ -252,7 +252,7 @@ describe("ProfileDeletionDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={mockProfile}
-        />
+        />,
       );
 
       const deleteButton = screen.getByRole("button", {
@@ -261,12 +261,12 @@ describe("ProfileDeletionDialog", () => {
       await user.click(deleteButton);
 
       expect(mockSpawnProfileService.deleteProfile).toHaveBeenCalledWith(
-        mockProfile.id
+        mockProfile.id,
       );
       expect(mockOnSuccess).toHaveBeenCalled();
       expect(mockOnClose).toHaveBeenCalled();
       expect(toast.success).toHaveBeenCalledWith(
-        "Profile deleted successfully"
+        "Profile deleted successfully",
       );
     });
 
@@ -283,7 +283,7 @@ describe("ProfileDeletionDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={mockProfile}
-        />
+        />,
       );
 
       const deleteButton = screen.getByRole("button", {
@@ -292,7 +292,7 @@ describe("ProfileDeletionDialog", () => {
       await user.click(deleteButton);
 
       expect(
-        screen.getByText("Cannot delete active profile")
+        screen.getByText("Cannot delete active profile"),
       ).toBeInTheDocument();
       expect(toast.error).toHaveBeenCalledWith("Cannot delete active profile");
       expect(mockOnSuccess).not.toHaveBeenCalled();
@@ -311,7 +311,7 @@ describe("ProfileDeletionDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={mockProfile}
-        />
+        />,
       );
 
       const deleteButton = screen.getByRole("button", {
@@ -335,7 +335,7 @@ describe("ProfileDeletionDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={mockProfile}
-        />
+        />,
       );
 
       const deleteButton = screen.getByRole("button", {
@@ -357,7 +357,7 @@ describe("ProfileDeletionDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={mockProfile}
-        />
+        />,
       );
 
       const cancelButton = screen.getByText("Cancel");
@@ -374,7 +374,7 @@ describe("ProfileDeletionDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={mockProfile}
-        />
+        />,
       );
 
       const cancelButton = screen.getByRole("button", { name: "Cancel" });
@@ -391,7 +391,7 @@ describe("ProfileDeletionDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={mockProfile}
-        />
+        />,
       );
 
       const overlay = screen.getByTestId("dialog-overlay");
@@ -419,7 +419,7 @@ describe("ProfileDeletionDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={mockProfile}
-        />
+        />,
       );
 
       const deleteButton = screen.getByRole("button", {
@@ -447,7 +447,7 @@ describe("ProfileDeletionDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={mockProfile}
-        />
+        />,
       );
 
       // Trigger error
@@ -468,7 +468,7 @@ describe("ProfileDeletionDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={mockProfile}
-        />
+        />,
       );
 
       expect(screen.queryByText("Test error message")).not.toBeInTheDocument();
@@ -483,15 +483,15 @@ describe("ProfileDeletionDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={mockProfile}
-        />
+        />,
       );
 
       expect(screen.getByRole("dialog")).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "Cancel" })
+        screen.getByRole("button", { name: "Cancel" }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "Delete Profile" })
+        screen.getByRole("button", { name: "Delete Profile" }),
       ).toBeInTheDocument();
     });
 
@@ -502,7 +502,7 @@ describe("ProfileDeletionDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={mockProfile}
-        />
+        />,
       );
 
       const dialog = screen.getByRole("dialog");
@@ -518,7 +518,7 @@ describe("ProfileDeletionDialog", () => {
           onClose={mockOnClose}
           onSuccess={mockOnSuccess}
           profile={mockProfile}
-        />
+        />,
       );
 
       // Check that the dialog uses danger styling

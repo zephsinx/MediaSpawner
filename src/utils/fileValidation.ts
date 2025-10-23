@@ -44,7 +44,7 @@ export function getFileExtension(filePath: string): string {
   const lastDot = cleanPath.lastIndexOf(".");
   const lastSlash = Math.max(
     cleanPath.lastIndexOf("/"),
-    cleanPath.lastIndexOf("\\")
+    cleanPath.lastIndexOf("\\"),
   );
 
   if (lastDot > lastSlash && lastDot !== -1) {
@@ -59,7 +59,7 @@ export function getFileExtension(filePath: string): string {
 export function getMediaTypeFromExtension(extension: string): MediaType | null {
   const lowerExt = extension.toLowerCase();
   for (const [mediaType, extensions] of Object.entries(
-    SUPPORTED_FILE_EXTENSIONS
+    SUPPORTED_FILE_EXTENSIONS,
   )) {
     if ((extensions as readonly string[]).includes(lowerExt)) {
       return mediaType as MediaType;
@@ -122,7 +122,7 @@ export function isValidFilePath(string: string): boolean {
  * Validate and format a file reference (path or URL)
  */
 export function validateFileReference(
-  input: string
+  input: string,
 ): FileValidationResult & { formattedPath?: string } {
   const trimmed = input.trim();
 

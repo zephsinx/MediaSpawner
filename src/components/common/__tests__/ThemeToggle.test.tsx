@@ -152,7 +152,7 @@ describe("ThemeToggle", () => {
 
       expect(consoleSpy).toHaveBeenCalledWith(
         "Failed to set theme mode:",
-        "Failed to save theme"
+        "Failed to save theme",
       );
 
       consoleSpy.mockRestore();
@@ -184,7 +184,7 @@ describe("ThemeToggle", () => {
       const switchElement = screen.getByRole("switch");
       expect(switchElement).toHaveAttribute(
         "aria-label",
-        "Switch to dark theme"
+        "Switch to dark theme",
       );
     });
 
@@ -196,7 +196,7 @@ describe("ThemeToggle", () => {
       const switchElement = screen.getByRole("switch");
       expect(switchElement).toHaveAttribute(
         "aria-label",
-        "Switch to light theme"
+        "Switch to light theme",
       );
     });
 

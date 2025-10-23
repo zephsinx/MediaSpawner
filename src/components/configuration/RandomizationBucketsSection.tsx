@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import type { Spawn } from "../../types/spawn";
 import type {
   RandomizationBucket,
@@ -7,6 +7,7 @@ import type {
 import { Modal } from "../common/Modal";
 import { ConfirmDialog } from "../common/ConfirmDialog";
 import { AssetService } from "../../services/assetService";
+import { Button } from "../ui/Button";
 import * as Tooltip from "@radix-ui/react-tooltip";
 
 export interface RandomizationBucketsSectionProps {
@@ -35,6 +36,7 @@ export const RandomizationBucketsSection: React.FC<
     fromBucketId: string;
     toBucketId: string;
   } | null>(null);
+  const [selectedCount, setSelectedCount] = useState(0);
 
   const bucketByAssetId = useMemo(() => {
     const map = new Map<string, string>();
@@ -49,6 +51,18 @@ export const RandomizationBucketsSection: React.FC<
     if (createForm.selection === "n") return (createForm.n || 0) >= 1;
     return true;
   }, [createForm]);
+
+  // Update selected count when bucket members change
+  useEffect(() => {
+    if (!memberEditFor) {
+      setSelectedCount(0);
+      return;
+    }
+
+    const currentBucket = buckets.find((b) => b.id === memberEditFor);
+    const count = currentBucket?.members.length || 0;
+    setSelectedCount(count);
+  }, [memberEditFor, buckets]);
 
   const addBucket = () => {
     if (!canCreate) return;
@@ -106,6 +120,54 @@ export const RandomizationBucketsSection: React.FC<
         };
       }),
     );
+  };
+
+  const handleSelectAll = () => {
+    if (!memberEditFor) return;
+
+    // Get all spawn assets that are not already in other buckets
+    const availableAssets = spawn.assets.filter((sa) => {
+      const otherBucket = bucketByAssetId.get(sa.id);
+      return !otherBucket || otherBucket === memberEditFor;
+    });
+
+    // Add all available assets to the current bucket
+    onChange(
+      (buckets || []).map((b) => {
+        if (b.id !== memberEditFor) return b;
+
+        const existingMemberIds = new Set(b.members.map((m) => m.spawnAssetId));
+        const newMembers = availableAssets
+          .filter((sa) => !existingMemberIds.has(sa.id))
+          .map((sa) => ({ spawnAssetId: sa.id }) as RandomizationBucketMember);
+
+        return {
+          ...b,
+          members: [...b.members, ...newMembers],
+        };
+      }),
+    );
+  };
+
+  const handleDeselectAll = () => {
+    if (!memberEditFor) return;
+
+    onChange(
+      (buckets || []).map((b) => {
+        if (b.id !== memberEditFor) return b;
+        return {
+          ...b,
+          members: [],
+        };
+      }),
+    );
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.ctrlKey && e.key === "a") {
+      e.preventDefault();
+      handleSelectAll();
+    }
   };
 
   const confirmMove = () => {
@@ -352,7 +414,36 @@ export const RandomizationBucketsSection: React.FC<
       >
         {memberEditFor && (
           <div className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[60vh] overflow-auto">
+            {/* Bulk Selection Header */}
+            <div className="flex items-center justify-between p-3 bg-[rgb(var(--color-muted))]/5 border border-[rgb(var(--color-border))] rounded-md">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSelectAll}
+                  disabled={!memberEditFor}
+                >
+                  Select All
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDeselectAll}
+                  disabled={!memberEditFor}
+                >
+                  Deselect All
+                </Button>
+              </div>
+              <div className="text-sm text-[rgb(var(--color-muted-foreground))]">
+                {selectedCount} of {spawn.assets.length} selected
+              </div>
+            </div>
+
+            <div
+              className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[60vh] overflow-auto"
+              onKeyDown={handleKeyDown}
+              tabIndex={0}
+            >
               {spawn.assets.map((sa) => {
                 const inBucket = (
                   buckets.find((b) => b.id === memberEditFor)?.members || []

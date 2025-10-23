@@ -26,7 +26,7 @@ export const buttonVariants = cva(
       variant: "primary",
       size: "md",
     },
-  }
+  },
 );
 
 export const inputVariants = cva(
@@ -45,7 +45,7 @@ export const inputVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-  }
+  },
 );
 
 export const cardVariants = cva(
@@ -63,15 +63,15 @@ export const cardVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-  }
+  },
 );
 
 export const cardHeaderVariants = cva("flex flex-col space-y-1.5 p-6");
 export const cardTitleVariants = cva(
-  "text-2xl font-semibold leading-none tracking-tight"
+  "text-2xl font-semibold leading-none tracking-tight",
 );
 export const cardDescriptionVariants = cva(
-  "text-sm text-[rgb(var(--color-muted-foreground))]"
+  "text-sm text-[rgb(var(--color-muted-foreground))]",
 );
 export const cardContentVariants = cva("p-6 pt-0");
 export const cardFooterVariants = cva("flex items-center p-6 pt-0");
@@ -89,7 +89,7 @@ export const switchVariants = cva(
     defaultVariants: {
       size: "md",
     },
-  }
+  },
 );
 
 export const switchThumbVariants = cva(
@@ -105,7 +105,7 @@ export const switchThumbVariants = cva(
     defaultVariants: {
       size: "md",
     },
-  }
+  },
 );
 
 export const comboboxVariants = cva(
@@ -124,5 +124,5 @@ export const comboboxVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-  }
+  },
 );

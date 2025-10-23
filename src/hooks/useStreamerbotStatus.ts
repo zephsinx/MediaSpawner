@@ -6,7 +6,7 @@ import {
 
 export function useStreamerbotStatus(): StreamerbotConnectionStatus {
   const [status, setStatus] = useState<StreamerbotConnectionStatus>(
-    StreamerbotService.getStatus()
+    StreamerbotService.getStatus(),
   );
 
   useEffect(() => {
