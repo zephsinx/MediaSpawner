@@ -252,12 +252,467 @@ List item
 
 - Density suitable for `SpawnList`: compact `py-2 px-3`, hover background, selected border/accent bar.
 
-## Accessibility checklist
+## Accessibility Guidelines
 
-- All interactive elements keyboard reachable and operable (Enter/Space).
-- Visible focus indicator at 3:1 contrast minimum.
-- Text contrast AA: 4.5:1 for normal text; 3:1 for large text/icons.
-- Proper semantics/ARIA on Radix primitives; label and description associations for inputs.
+### Core Principles
+
+- **Keyboard-First Design**: All functionality must be accessible via keyboard navigation
+- **Screen Reader Support**: Proper ARIA labels, roles, and descriptions for all interactive elements
+- **Focus Management**: Clear focus indicators and logical tab order throughout the application
+- **WCAG AA Compliance**: Minimum contrast ratios and accessible color usage
+
+### Tab Index Best Practices
+
+#### Default Tab Order
+
+- **Natural Document Flow**: Use `tabIndex={0}` sparingly - prefer natural DOM order
+- **Skip Non-Interactive Elements**: Avoid `tabIndex={0}` on decorative elements
+- **Remove from Tab Order**: Use `tabIndex={-1}` for programmatically focused elements
+
+```tsx
+// ✅ CORRECT - Natural tab order
+<button>Save</button>
+<input type="text" />
+<button>Cancel</button>
+
+// ✅ CORRECT - Skip decorative elements
+<div tabIndex={-1} className="decorative-icon" />
+
+// ❌ WRONG - Unnecessary tabIndex
+<div tabIndex={0}>Static content</div>
+```
+
+#### Three-Panel Layout Tab Order
+
+MediaSpawner's three-panel layout requires careful tab order management:
+
+1. **Header Navigation** (Profile selector, settings, sync status)
+2. **Left Panel** (Spawn list, create button)
+3. **Center Panel** (Editor forms, spawn settings)
+4. **Right Panel** (Asset management, library)
+5. **Modal Overlays** (When open, trap focus within)
+
+```tsx
+// ✅ CORRECT - Logical panel tab order
+<div className="three-panel-layout">
+  <header className="tab-order-1">
+    <ProfileSelector />
+    <SettingsButton />
+  </header>
+  <aside className="tab-order-2">
+    <SpawnList />
+  </aside>
+  <main className="tab-order-3">
+    <SpawnEditor />
+  </main>
+  <aside className="tab-order-4">
+    <AssetManagementPanel />
+  </aside>
+</div>
+```
+
+#### Skip Navigation Links
+
+Provide skip links for keyboard users to bypass repetitive navigation:
+
+```tsx
+// ✅ CORRECT - Skip navigation implementation
+<div className="skip-links">
+  <a href="#main-content" className="sr-only focus:not-sr-only">
+    Skip to main content
+  </a>
+  <a href="#spawn-list" className="sr-only focus:not-sr-only">
+    Skip to spawn list
+  </a>
+  <a href="#asset-management" className="sr-only focus:not-sr-only">
+    Skip to asset management
+  </a>
+</div>
+```
+
+### Focus Management Patterns
+
+#### Modal Focus Trapping
+
+All modals must trap focus and restore it when closed:
+
+```tsx
+// ✅ CORRECT - Modal focus management
+const Modal = ({ isOpen, onClose, children }) => {
+  const focusManagement = useModalFocusManagement();
+
+  useEffect(() => {
+    if (isOpen) {
+      const cleanup = focusManagement.initializeFocusManagement(
+        focusManagement.containerRef.current,
+      );
+      return cleanup;
+    }
+  }, [isOpen, focusManagement]);
+
+  return (
+    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Content ref={focusManagement.containerRef}>
+        {children}
+      </Dialog.Content>
+    </Dialog.Root>
+  );
+};
+```
+
+#### Focus Restoration
+
+Restore focus to trigger elements when modals/dialogs close:
+
+```tsx
+// ✅ CORRECT - Focus restoration pattern
+const useFocusRestoration = () => {
+  const previousActiveElement = useRef<HTMLElement | null>(null);
+
+  const saveFocus = () => {
+    previousActiveElement.current = document.activeElement as HTMLElement;
+  };
+
+  const restoreFocus = () => {
+    if (previousActiveElement.current) {
+      previousActiveElement.current.focus();
+    }
+  };
+
+  return { saveFocus, restoreFocus };
+};
+```
+
+#### Form Focus Management
+
+Handle focus in complex forms with validation:
+
+```tsx
+// ✅ CORRECT - Form focus on error
+const FormWithValidation = () => {
+  const firstErrorRef = useRef<HTMLElement | null>(null);
+
+  const handleSubmit = async (data) => {
+    const errors = validateForm(data);
+    if (errors.length > 0) {
+      // Focus first error field
+      firstErrorRef.current?.focus();
+      return;
+    }
+    // Submit form
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input ref={firstErrorRef} aria-invalid={hasError} />
+    </form>
+  );
+};
+```
+
+### ARIA Implementation Standards
+
+#### Dialog and Modal ARIA
+
+```tsx
+// ✅ CORRECT - Proper dialog ARIA
+<Dialog.Root>
+  <Dialog.Content
+    role="dialog"
+    aria-labelledby="dialog-title"
+    aria-describedby="dialog-description"
+  >
+    <Dialog.Title id="dialog-title">Modal Title</Dialog.Title>
+    <Dialog.Description id="dialog-description">
+      Modal description for screen readers
+    </Dialog.Description>
+    <Dialog.Close aria-label="Close modal">
+      <X />
+    </Dialog.Close>
+  </Dialog.Content>
+</Dialog.Root>
+```
+
+#### Form Field ARIA
+
+```tsx
+// ✅ CORRECT - Form field accessibility
+<div>
+  <label htmlFor="spawn-name" id="spawn-name-label">
+    Spawn Name
+  </label>
+  <input
+    id="spawn-name"
+    aria-labelledby="spawn-name-label"
+    aria-describedby="spawn-name-help spawn-name-error"
+    aria-invalid={hasError}
+    aria-required="true"
+  />
+  <div id="spawn-name-help" className="text-sm text-muted">
+    Enter a descriptive name for your spawn
+  </div>
+  {hasError && (
+    <div id="spawn-name-error" role="alert" className="text-error">
+      {errorMessage}
+    </div>
+  )}
+</div>
+```
+
+#### List and Navigation ARIA
+
+```tsx
+// ✅ CORRECT - List accessibility
+<ul role="listbox" aria-label="Spawn list">
+  {spawns.map((spawn) => (
+    <li
+      key={spawn.id}
+      role="option"
+      aria-selected={selectedSpawnId === spawn.id}
+      tabIndex={0}
+    >
+      {spawn.name}
+    </li>
+  ))}
+</ul>
+```
+
+### Keyboard Navigation Standards
+
+#### Standard Keyboard Shortcuts
+
+- **Tab**: Move to next focusable element
+- **Shift+Tab**: Move to previous focusable element
+- **Enter/Space**: Activate buttons and links
+- **Escape**: Close modals, dialogs, and dropdowns
+- **Arrow Keys**: Navigate within lists and menus
+
+#### Custom Keyboard Navigation
+
+```tsx
+// ✅ CORRECT - Arrow key navigation for lists
+const SpawnList = () => {
+  const [focusedIndex, setFocusedIndex] = useState(0);
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        setFocusedIndex((prev) => Math.min(prev + 1, spawns.length - 1));
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setFocusedIndex((prev) => Math.max(prev - 1, 0));
+        break;
+      case "Enter":
+        e.preventDefault();
+        selectSpawn(spawns[focusedIndex]);
+        break;
+    }
+  };
+
+  return (
+    <div onKeyDown={handleKeyDown} tabIndex={0}>
+      {spawns.map((spawn, index) => (
+        <div key={spawn.id} className={index === focusedIndex ? "focused" : ""}>
+          {spawn.name}
+        </div>
+      ))}
+    </div>
+  );
+};
+```
+
+### Accessibility Testing Standards
+
+#### Testing Library Queries
+
+Use semantic queries that match how users interact with the interface:
+
+```tsx
+// ✅ CORRECT - Testing Library accessibility queries
+import { screen } from "@testing-library/react";
+
+// Test by role (preferred)
+const button = screen.getByRole("button", { name: "Save" });
+const dialog = screen.getByRole("dialog");
+const listbox = screen.getByRole("listbox");
+
+// Test by accessible name
+const closeButton = screen.getByLabelText("Close modal");
+const input = screen.getByLabelText("Spawn name");
+
+// Test by text content (fallback)
+const heading = screen.getByText("Create New Spawn");
+```
+
+#### Focus Management Testing
+
+```tsx
+// ✅ CORRECT - Focus management tests
+import {
+  keyboardUtils,
+  modalUtils,
+} from "../test-utils/accessibilityTestUtils";
+
+it("traps focus within modal", async () => {
+  render(<Modal isOpen={true} />);
+
+  const dialog = screen.getByRole("dialog");
+  const focusResults = await modalUtils.testModalFocusManagement(dialog);
+
+  expect(focusResults.focusTrapped).toBe(true);
+});
+
+it("handles escape key", async () => {
+  const onClose = vi.fn();
+  render(<Modal isOpen={true} onClose={onClose} />);
+
+  keyboardUtils.escape();
+  expect(onClose).toHaveBeenCalled();
+});
+```
+
+#### ARIA Attribute Testing
+
+```tsx
+// ✅ CORRECT - ARIA attribute validation
+import { ariaUtils } from "../test-utils/accessibilityTestUtils";
+
+it("has proper ARIA attributes", () => {
+  render(<Modal isOpen={true} title="Test Modal" />);
+
+  const dialog = screen.getByRole("dialog");
+  const ariaResults = ariaUtils.validateAriaAttributes(dialog, {
+    role: "dialog",
+  });
+
+  expect(ariaResults.role.valid).toBe(true);
+});
+```
+
+#### Keyboard Navigation Testing
+
+```tsx
+// ✅ CORRECT - Keyboard navigation tests
+it("supports arrow key navigation", async () => {
+  render(<SpawnList spawns={testSpawns} />);
+
+  const listbox = screen.getByRole("listbox");
+
+  // Test arrow down
+  fireEvent.keyDown(listbox, { key: "ArrowDown" });
+  expect(document.activeElement).toHaveTextContent("Second Spawn");
+
+  // Test arrow up
+  fireEvent.keyDown(listbox, { key: "ArrowUp" });
+  expect(document.activeElement).toHaveTextContent("First Spawn");
+});
+```
+
+### Color and Contrast Standards
+
+#### WCAG AA Compliance
+
+- **Normal Text**: 4.5:1 contrast ratio minimum
+- **Large Text**: 3:1 contrast ratio minimum
+- **UI Components**: 3:1 contrast ratio minimum
+- **Focus Indicators**: 3:1 contrast ratio minimum
+
+#### Accessible Color Usage
+
+```tsx
+// ✅ CORRECT - Accessible color tokens
+className = "text-[rgb(var(--color-fg))]"; // High contrast text
+className = "text-[rgb(var(--color-muted-foreground))]"; // Secondary text
+className = "bg-[rgb(var(--color-error))]"; // Error states
+className = "border-[rgb(var(--color-border))]"; // Borders
+
+// ❌ WRONG - Low contrast colors
+className = "text-gray-400"; // May not meet contrast requirements
+className = "bg-gray-100"; // May not be visible in dark mode
+```
+
+#### Focus Indicator Standards
+
+```tsx
+// ✅ CORRECT - Consistent focus indicators
+className =
+  "focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2";
+
+// Ensure focus rings are visible in both light and dark modes
+// Test with keyboard navigation to verify visibility
+```
+
+### Screen Reader Support
+
+#### Live Regions for Dynamic Content
+
+```tsx
+// ✅ CORRECT - Screen reader announcements
+<div aria-live="polite" aria-atomic="true" className="sr-only">
+  {statusMessage}
+</div>
+
+// For urgent updates
+<div aria-live="assertive" aria-atomic="true" className="sr-only">
+  {errorMessage}
+</div>
+```
+
+#### Descriptive Text and Labels
+
+```tsx
+// ✅ CORRECT - Descriptive accessible names
+<button aria-label="Delete spawn 'My Test Spawn'">
+  <Trash />
+</button>
+
+<input
+  aria-label="Search spawns"
+  placeholder="Type to search..."
+/>
+
+// Use visible text when possible
+<button>
+  <Save />
+  Save Changes
+</button>
+```
+
+### Accessibility Checklist
+
+#### Pre-Development
+
+- [ ] Identify all interactive elements and their keyboard equivalents
+- [ ] Plan tab order for complex layouts
+- [ ] Design focus indicators that meet contrast requirements
+- [ ] Plan ARIA labels and descriptions for complex components
+
+#### During Development
+
+- [ ] All interactive elements are keyboard accessible
+- [ ] Focus indicators are visible and meet contrast requirements
+- [ ] ARIA labels and descriptions are properly associated
+- [ ] Form validation errors are announced to screen readers
+- [ ] Modal focus trapping works correctly
+- [ ] Skip navigation links are implemented
+
+#### Testing
+
+- [ ] Test with keyboard-only navigation
+- [ ] Test with screen reader (NVDA, JAWS, or VoiceOver)
+- [ ] Verify color contrast ratios meet WCAG AA standards
+- [ ] Test focus management in modals and complex forms
+- [ ] Verify ARIA attributes with accessibility testing utilities
+
+#### Post-Development
+
+- [ ] Run automated accessibility tests
+- [ ] Manual keyboard navigation testing
+- [ ] Screen reader testing with real users
+- [ ] Color contrast validation
+- [ ] Focus management verification
 
 ## Variants strategy
 

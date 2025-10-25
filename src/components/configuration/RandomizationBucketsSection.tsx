@@ -203,7 +203,8 @@ export const RandomizationBucketsSection: React.FC<
         <button
           type="button"
           onClick={() => setIsCreateOpen(true)}
-          className="px-3 py-1.5 rounded-md text-[rgb(var(--color-accent-foreground))] bg-[rgb(var(--color-accent))] hover:bg-[rgb(var(--color-accent-hover))]"
+          className="px-3 py-1.5 rounded-md text-[rgb(var(--color-accent-foreground))] bg-[rgb(var(--color-accent))] hover:bg-[rgb(var(--color-accent-hover))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
+          tabIndex={1}
         >
           Add Bucket
         </button>
@@ -215,7 +216,7 @@ export const RandomizationBucketsSection: React.FC<
         </p>
       ) : (
         <div className="space-y-3">
-          {buckets.map((b) => (
+          {buckets.map((b, index) => (
             <div
               key={b.id}
               className="border border-[rgb(var(--color-border))] rounded-md p-3"
@@ -232,14 +233,15 @@ export const RandomizationBucketsSection: React.FC<
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    className="text-xs px-2 py-1 rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] text-[rgb(var(--color-muted-foreground))] hover:bg-[rgb(var(--color-muted))]"
+                    className="text-xs px-2 py-1 rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] text-[rgb(var(--color-muted-foreground))] hover:bg-[rgb(var(--color-muted))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
                     onClick={() => openMembersEditor(b.id)}
+                    tabIndex={2 + index * 4}
                   >
                     Edit Members ({b.members.length})
                   </button>
                   <button
                     type="button"
-                    className="text-xs px-2 py-1 rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] text-[rgb(var(--color-muted-foreground))] hover:bg-[rgb(var(--color-muted))]"
+                    className="text-xs px-2 py-1 rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] text-[rgb(var(--color-muted-foreground))] hover:bg-[rgb(var(--color-muted))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
                     onClick={() =>
                       updateBucket(b.id, {
                         selection: b.selection === "one" ? "n" : "one",
@@ -249,14 +251,16 @@ export const RandomizationBucketsSection: React.FC<
                             : undefined,
                       })
                     }
+                    tabIndex={3 + index * 4}
                   >
                     Toggle Mode
                   </button>
                   <button
                     type="button"
-                    className="text-xs px-2 py-1 rounded border border-[rgb(var(--color-error-border))] bg-[rgb(var(--color-surface-1))] text-[rgb(var(--color-error))] hover:bg-[rgb(var(--color-muted))]"
+                    className="text-xs px-2 py-1 rounded border border-[rgb(var(--color-error-border))] bg-[rgb(var(--color-surface-1))] text-[rgb(var(--color-error))] hover:bg-[rgb(var(--color-muted))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
                     onClick={() => removeBucket(b.id)}
                     aria-label="Delete bucket"
+                    tabIndex={4 + index * 4}
                   >
                     Delete
                   </button>
@@ -276,7 +280,8 @@ export const RandomizationBucketsSection: React.FC<
                         n: Math.max(1, Number(e.target.value) || 1),
                       })
                     }
-                    className="ml-2 w-20 px-2 py-1 text-sm border border-[rgb(var(--color-border))] bg-[rgb(var(--color-input))] text-[rgb(var(--color-fg))] rounded"
+                    className="ml-2 w-20 px-2 py-1 text-sm border border-[rgb(var(--color-border))] bg-[rgb(var(--color-input))] text-[rgb(var(--color-fg))] rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
+                    tabIndex={5 + index * 4}
                   />
                 </div>
               )}
@@ -309,7 +314,8 @@ export const RandomizationBucketsSection: React.FC<
               onChange={(e) =>
                 setCreateForm((f) => ({ ...f, name: e.target.value }))
               }
-              className="w-full px-3 py-2 border border-[rgb(var(--color-border))] bg-[rgb(var(--color-input))] text-[rgb(var(--color-fg))] rounded-md"
+              className="w-full px-3 py-2 border border-[rgb(var(--color-border))] bg-[rgb(var(--color-input))] text-[rgb(var(--color-fg))] rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
+              tabIndex={1}
             />
           </div>
           <div className="flex items-center gap-4">
@@ -330,6 +336,7 @@ export const RandomizationBucketsSection: React.FC<
                     }))
                   }
                   className="w-4 h-4 text-[rgb(var(--color-accent))] bg-[rgb(var(--color-input))] border-[rgb(var(--color-border))] focus:ring-[rgb(var(--color-ring))] focus:ring-2"
+                  tabIndex={2}
                 />
                 <span className="text-sm text-[rgb(var(--color-fg))]">
                   Pick one
@@ -348,6 +355,7 @@ export const RandomizationBucketsSection: React.FC<
                     }))
                   }
                   className="w-4 h-4 text-[rgb(var(--color-accent))] bg-[rgb(var(--color-input))] border-[rgb(var(--color-border))] focus:ring-[rgb(var(--color-ring))] focus:ring-2"
+                  tabIndex={3}
                 />
                 <span className="text-sm text-[rgb(var(--color-fg))]">
                   Pick N
@@ -374,7 +382,8 @@ export const RandomizationBucketsSection: React.FC<
                     n: Math.max(1, Number(e.target.value) || 1),
                   }))
                 }
-                className="w-20 px-2 py-1 text-sm border border-[rgb(var(--color-border))] bg-[rgb(var(--color-input))] text-[rgb(var(--color-fg))] rounded"
+                className="w-20 px-2 py-1 text-sm border border-[rgb(var(--color-border))] bg-[rgb(var(--color-input))] text-[rgb(var(--color-fg))] rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
+                tabIndex={4}
               />
             </>
           )}
@@ -382,23 +391,25 @@ export const RandomizationBucketsSection: React.FC<
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
-              className="px-3 py-1.5 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] text-[rgb(var(--color-muted-foreground))] hover:bg-[rgb(var(--color-muted))]"
+              className="px-3 py-1.5 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] text-[rgb(var(--color-muted-foreground))] hover:bg-[rgb(var(--color-muted))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
               onClick={() => {
                 setIsCreateOpen(false);
                 setCreateForm({ name: "", selection: "one", n: 1 });
               }}
+              tabIndex={5}
             >
               Cancel
             </button>
             <button
               type="button"
               disabled={!canCreate}
-              className={`px-3 py-1.5 rounded-md text-[rgb(var(--color-accent-foreground))] ${
+              className={`px-3 py-1.5 rounded-md text-[rgb(var(--color-accent-foreground))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2 ${
                 canCreate
                   ? "bg-[rgb(var(--color-accent))] hover:bg-[rgb(var(--color-accent-hover))]"
                   : "bg-[rgb(var(--color-muted))] cursor-not-allowed"
               }`}
               onClick={addBucket}
+              tabIndex={6}
             >
               Create
             </button>
@@ -422,6 +433,7 @@ export const RandomizationBucketsSection: React.FC<
                   size="sm"
                   onClick={handleSelectAll}
                   disabled={!memberEditFor}
+                  tabIndex={1}
                 >
                   Select All
                 </Button>
@@ -430,6 +442,7 @@ export const RandomizationBucketsSection: React.FC<
                   size="sm"
                   onClick={handleDeselectAll}
                   disabled={!memberEditFor}
+                  tabIndex={2}
                 >
                   Deselect All
                 </Button>
@@ -444,7 +457,7 @@ export const RandomizationBucketsSection: React.FC<
               onKeyDown={handleKeyDown}
               tabIndex={0}
             >
-              {spawn.assets.map((sa) => {
+              {spawn.assets.map((sa, index) => {
                 const inBucket = (
                   buckets.find((b) => b.id === memberEditFor)?.members || []
                 ).some((m) => m.spawnAssetId === sa.id);
@@ -459,6 +472,8 @@ export const RandomizationBucketsSection: React.FC<
                       type="checkbox"
                       checked={inBucket}
                       onChange={() => toggleMember(memberEditFor, sa.id)}
+                      className="focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
+                      tabIndex={3 + index}
                     />
                     <Tooltip.Root>
                       <Tooltip.Trigger asChild>
@@ -494,8 +509,9 @@ export const RandomizationBucketsSection: React.FC<
             <div className="flex justify-end gap-2">
               <button
                 type="button"
-                className="px-3 py-1.5 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] text-[rgb(var(--color-muted-foreground))] hover:bg-[rgb(var(--color-muted))]/10"
+                className="px-3 py-1.5 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface-1))] text-[rgb(var(--color-muted-foreground))] hover:bg-[rgb(var(--color-muted))]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
                 onClick={closeMembersEditor}
+                tabIndex={3 + spawn.assets.length}
               >
                 Done
               </button>

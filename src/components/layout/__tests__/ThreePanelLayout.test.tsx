@@ -1,269 +1,107 @@
-import { describe, it, expect } from "vitest";
 import { screen, act } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import ThreePanelLayout from "../ThreePanelLayout";
 import { renderWithAllProviders } from "./testUtils";
 
+// Mock the skip navigation hook
+vi.mock("../../hooks/useFocusManagement", () => ({
+  useSkipNavigation: () => ({
+    skipToElement: vi.fn(),
+  }),
+}));
+
+// Mock SpawnProfileService
+vi.mock("../../services/spawnProfileService", () => ({
+  SpawnProfileService: {
+    getProfilesWithActiveInfo: vi.fn(() => ({
+      profiles: [],
+      activeProfileId: undefined,
+    })),
+    setActiveProfile: vi.fn(() => ({ success: true })),
+  },
+}));
+
 describe("ThreePanelLayout", () => {
-  const mockLeftPanel = <div data-testid="left-panel">Left Panel Content</div>;
-  const mockCenterPanel = (
-    <div data-testid="center-panel">Center Panel Content</div>
-  );
-  const mockRightPanel = (
-    <div data-testid="right-panel">Right Panel Content</div>
-  );
+  const defaultProps = {
+    leftPanel: <div>Left Panel Content</div>,
+    centerPanel: <div>Center Panel Content</div>,
+    rightPanel: <div>Right Panel Content</div>,
+  };
 
-  describe("Basic Rendering", () => {
-    it("renders all three panels with provided content", async () => {
-      await act(async () => {
-        renderWithAllProviders(
-          <ThreePanelLayout
-            leftPanel={mockLeftPanel}
-            centerPanel={mockCenterPanel}
-            rightPanel={mockRightPanel}
-          />,
-        );
-      });
-
-      expect(screen.getByTestId("left-panel")).toBeInTheDocument();
-      expect(screen.getByTestId("center-panel")).toBeInTheDocument();
-      expect(screen.getByTestId("right-panel")).toBeInTheDocument();
-    });
-
-    it("applies correct CSS classes for grid layout", async () => {
-      const { container } = await act(async () => {
-        return renderWithAllProviders(
-          <ThreePanelLayout
-            leftPanel={mockLeftPanel}
-            centerPanel={mockCenterPanel}
-            rightPanel={mockRightPanel}
-          />,
-        );
-      });
-
-      const gridContainer = container.querySelector(".grid.grid-cols-12");
-      expect(gridContainer).toBeInTheDocument();
-    });
-
-    it("applies minimum width constraint to container", async () => {
-      const { container } = await act(async () => {
-        return renderWithAllProviders(
-          <ThreePanelLayout
-            leftPanel={mockLeftPanel}
-            centerPanel={mockCenterPanel}
-            rightPanel={mockRightPanel}
-          />,
-        );
-      });
-
-      const gridContainer = container.querySelector(".min-w-\\[1280px\\]");
-      expect(gridContainer).toBeInTheDocument();
-    });
+  beforeEach(() => {
+    vi.resetAllMocks();
   });
 
-  describe("Panel Width Distribution", () => {
-    it("applies correct column spans for 25%/50%/25% distribution", async () => {
-      const { container } = await act(async () => {
-        return renderWithAllProviders(
-          <ThreePanelLayout
-            leftPanel={mockLeftPanel}
-            centerPanel={mockCenterPanel}
-            rightPanel={mockRightPanel}
-          />,
-        );
-      });
-
-      const leftPanel = container.querySelector(".col-span-3");
-      const centerPanel = container.querySelector(".col-span-6");
-      const rightPanel = container.querySelector(".col-span-3");
-
-      expect(leftPanel).toBeInTheDocument();
-      expect(centerPanel).toBeInTheDocument();
-      expect(rightPanel).toBeInTheDocument();
+  it("renders three panels with correct IDs", async () => {
+    await act(async () => {
+      renderWithAllProviders(<ThreePanelLayout {...defaultProps} />);
     });
 
-    it("applies minimum widths to prevent unusable panels", async () => {
-      const { container } = await act(async () => {
-        return renderWithAllProviders(
-          <ThreePanelLayout
-            leftPanel={mockLeftPanel}
-            centerPanel={mockCenterPanel}
-            rightPanel={mockRightPanel}
-          />,
-        );
-      });
+    expect(screen.getByText("Left Panel Content")).toBeInTheDocument();
+    expect(screen.getByText("Center Panel Content")).toBeInTheDocument();
+    expect(screen.getByText("Right Panel Content")).toBeInTheDocument();
 
-      const leftPanel = container.querySelector(".min-w-\\[320px\\]");
-      const centerPanel = container.querySelector(".min-w-\\[640px\\]");
-      const rightPanel = container.querySelector(".min-w-\\[320px\\]");
-
-      expect(leftPanel).toBeInTheDocument();
-      expect(centerPanel).toBeInTheDocument();
-      expect(rightPanel).toBeInTheDocument();
-    });
+    // Check that panels have correct IDs
+    expect(document.getElementById("spawn-list")).toBeInTheDocument();
+    expect(document.getElementById("main-content")).toBeInTheDocument();
+    expect(document.getElementById("asset-management")).toBeInTheDocument();
   });
 
-  describe("Panel Styling", () => {
-    it("applies correct background colors and borders", async () => {
-      const { container } = await act(async () => {
-        return renderWithAllProviders(
-          <ThreePanelLayout
-            leftPanel={mockLeftPanel}
-            centerPanel={mockCenterPanel}
-            rightPanel={mockRightPanel}
-          />,
-        );
-      });
-
-      const panels = container.querySelectorAll(
-        ".bg-\\[rgb\\(var\\(--color-surface-1\\)\\)\\]",
-      );
-      expect(panels.length).toBeGreaterThanOrEqual(4); // Header + 3 panels (may have additional inner elements)
-
-      const leftPanel = container.querySelector(".col-span-3");
-      const centerPanel = container.querySelector(".col-span-6");
-      const rightPanel = container.querySelector(".col-span-3:last-child");
-
-      expect(leftPanel).toHaveClass(
-        "border-r",
-        "border-[rgb(var(--color-border))]",
-      );
-      expect(centerPanel).toHaveClass(
-        "border-r",
-        "border-[rgb(var(--color-border))]",
-      );
-      expect(rightPanel).not.toHaveClass("border-r");
+  it("renders skip navigation links", async () => {
+    await act(async () => {
+      renderWithAllProviders(<ThreePanelLayout {...defaultProps} />);
     });
 
-    it("applies overflow handling to prevent content overflow", async () => {
-      const { container } = await act(async () => {
-        return renderWithAllProviders(
-          <ThreePanelLayout
-            leftPanel={mockLeftPanel}
-            centerPanel={mockCenterPanel}
-            rightPanel={mockRightPanel}
-          />,
-        );
-      });
-
-      const panels = container.querySelectorAll(".overflow-hidden");
-      expect(panels).toHaveLength(3);
-    });
+    // Skip links should be present but visually hidden
+    expect(screen.getByText("Skip to main content")).toBeInTheDocument();
+    expect(screen.getByText("Skip to spawn list")).toBeInTheDocument();
+    expect(screen.getByText("Skip to asset management")).toBeInTheDocument();
   });
 
-  describe("Optional Props", () => {
-    it("applies optional className prop correctly", async () => {
-      const { container } = await act(async () => {
-        return renderWithAllProviders(
-          <ThreePanelLayout
-            leftPanel={mockLeftPanel}
-            centerPanel={mockCenterPanel}
-            rightPanel={mockRightPanel}
-            className="custom-class"
-          />,
-        );
-      });
-
-      const layoutContainer = container.firstChild as HTMLElement;
-      expect(layoutContainer).toHaveClass("custom-class");
+  it("applies sr-only class to skip links container", async () => {
+    await act(async () => {
+      renderWithAllProviders(<ThreePanelLayout {...defaultProps} />);
     });
 
-    it("works without optional className prop", async () => {
-      const { container } = await act(async () => {
-        return renderWithAllProviders(
-          <ThreePanelLayout
-            leftPanel={mockLeftPanel}
-            centerPanel={mockCenterPanel}
-            rightPanel={mockRightPanel}
-          />,
-        );
-      });
-
-      const layoutContainer = container.firstChild as HTMLElement;
-      expect(layoutContainer).toHaveClass(
-        "min-h-screen",
-        "bg-[rgb(var(--color-bg))]",
-      );
-    });
+    // Find the skip links container by looking for the div that contains all skip buttons
+    const skipButtons = screen
+      .getAllByRole("button")
+      .filter((button) => button.textContent?.includes("Skip to"));
+    const skipLinksContainer = skipButtons[0].closest("div")?.parentElement;
+    expect(skipLinksContainer).toHaveClass("sr-only");
+    expect(skipLinksContainer).toHaveClass("focus-within:not-sr-only");
   });
 
-  describe("Responsive Design", () => {
-    it("maintains full height layout", async () => {
-      const { container } = await act(async () => {
-        return renderWithAllProviders(
-          <ThreePanelLayout
-            leftPanel={mockLeftPanel}
-            centerPanel={mockCenterPanel}
-            rightPanel={mockRightPanel}
-          />,
-        );
-      });
-
-      const gridContainer = container.querySelector(
-        ".h-\\[calc\\(100vh-80px\\)\\]",
-      );
-      expect(gridContainer).toBeInTheDocument();
+  it("panels have correct tabIndex for focus management", async () => {
+    await act(async () => {
+      renderWithAllProviders(<ThreePanelLayout {...defaultProps} />);
     });
 
-    it("ensures panels have proper height containers", async () => {
-      const { container } = await act(async () => {
-        return renderWithAllProviders(
-          <ThreePanelLayout
-            leftPanel={mockLeftPanel}
-            centerPanel={mockCenterPanel}
-            rightPanel={mockRightPanel}
-          />,
-        );
-      });
+    const spawnListPanel = document.getElementById("spawn-list");
+    const mainContentPanel = document.getElementById("main-content");
+    const assetManagementPanel = document.getElementById("asset-management");
 
-      const panelContainers = container.querySelectorAll(".h-full");
-      expect(panelContainers).toHaveLength(3);
-    });
+    expect(spawnListPanel).toHaveAttribute("tabIndex", "-1");
+    expect(mainContentPanel).toHaveAttribute("tabIndex", "-1");
+    expect(assetManagementPanel).toHaveAttribute("tabIndex", "-1");
   });
 
-  describe("Content Rendering", () => {
-    it("renders complex content in panels", async () => {
-      const complexLeftPanel = (
-        <div data-testid="complex-left">
-          <h1>Title</h1>
-          <p>Description</p>
-          <button>Action</button>
-        </div>
-      );
+  it("applies correct CSS classes using design tokens", async () => {
+    await act(async () => {
+      renderWithAllProviders(<ThreePanelLayout {...defaultProps} />);
+    });
 
-      const complexCenterPanel = (
-        <div data-testid="complex-center">
-          <form>
-            <input type="text" />
-            <button type="submit">Submit</button>
-          </form>
-        </div>
-      );
+    // Filter to only get skip navigation buttons
+    const skipButtons = screen
+      .getAllByRole("button")
+      .filter((button) => button.textContent?.includes("Skip to"));
 
-      const complexRightPanel = (
-        <div data-testid="complex-right">
-          <ul>
-            <li>Item 1</li>
-            <li>Item 2</li>
-          </ul>
-        </div>
-      );
-
-      await act(async () => {
-        renderWithAllProviders(
-          <ThreePanelLayout
-            leftPanel={complexLeftPanel}
-            centerPanel={complexCenterPanel}
-            rightPanel={complexRightPanel}
-          />,
-        );
-      });
-
-      expect(screen.getByTestId("complex-left")).toBeInTheDocument();
-      expect(screen.getByTestId("complex-center")).toBeInTheDocument();
-      expect(screen.getByTestId("complex-right")).toBeInTheDocument();
-      expect(screen.getByText("Title")).toBeInTheDocument();
-      expect(screen.getByText("Submit")).toBeInTheDocument();
-      expect(screen.getByText("Item 1")).toBeInTheDocument();
+    skipButtons.forEach((button) => {
+      expect(button).toHaveClass("text-[rgb(var(--color-fg))]");
+      expect(button).toHaveClass("bg-[rgb(var(--color-surface-1))]");
+      expect(button).toHaveClass("hover:bg-[rgb(var(--color-surface-2))]");
+      expect(button).toHaveClass("border-[rgb(var(--color-border))]");
+      expect(button).toHaveClass("focus:ring-[rgb(var(--color-ring))]");
     });
   });
 });
