@@ -45,7 +45,7 @@ describe("validateTrigger", () => {
     expect(bad.isValid).toBe(false);
     expect(bad.errors.join(" ")).toMatch(/Reward identifier is required/);
     expect(bad.errors.join(" ")).toMatch(
-      /Select at least one redemption status/
+      /Select at least one redemption status/,
     );
   });
 });

@@ -76,12 +76,12 @@ describe("ProfileActionsDropdown", () => {
           onCreateProfile={mockOnCreateProfile}
           onEditProfile={mockOnEditProfile}
           onDeleteProfile={mockOnDeleteProfile}
-        />
+        />,
       );
 
       expect(screen.getByText("Create Profile")).toBeInTheDocument();
       expect(
-        screen.getByLabelText("Additional profile actions")
+        screen.getByLabelText("Additional profile actions"),
       ).toBeInTheDocument();
     });
 
@@ -92,11 +92,11 @@ describe("ProfileActionsDropdown", () => {
           onCreateProfile={mockOnCreateProfile}
           onEditProfile={mockOnEditProfile}
           onDeleteProfile={mockOnDeleteProfile}
-        />
+        />,
       );
 
       const dropdownTrigger = screen.getByLabelText(
-        "Additional profile actions"
+        "Additional profile actions",
       );
       expect(dropdownTrigger).toBeInTheDocument();
     });
@@ -110,7 +110,7 @@ describe("ProfileActionsDropdown", () => {
           onCreateProfile={mockOnCreateProfile}
           onEditProfile={mockOnEditProfile}
           onDeleteProfile={mockOnDeleteProfile}
-        />
+        />,
       );
 
       fireEvent.click(screen.getByRole("button", { name: "Create Profile" }));
@@ -124,19 +124,19 @@ describe("ProfileActionsDropdown", () => {
           onCreateProfile={mockOnCreateProfile}
           onEditProfile={mockOnEditProfile}
           onDeleteProfile={mockOnDeleteProfile}
-        />
+        />,
       );
 
       const dropdownTrigger = screen.getByLabelText(
-        "Additional profile actions"
+        "Additional profile actions",
       );
       fireEvent.click(dropdownTrigger);
 
       expect(
-        screen.getByRole("menuitem", { name: "Edit Profile" })
+        screen.getByRole("menuitem", { name: "Edit Profile" }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("menuitem", { name: "Delete Profile" })
+        screen.getByRole("menuitem", { name: "Delete Profile" }),
       ).toBeInTheDocument();
     });
 
@@ -147,11 +147,11 @@ describe("ProfileActionsDropdown", () => {
           onCreateProfile={mockOnCreateProfile}
           onEditProfile={mockOnEditProfile}
           onDeleteProfile={mockOnDeleteProfile}
-        />
+        />,
       );
 
       const dropdownTrigger = screen.getByLabelText(
-        "Additional profile actions"
+        "Additional profile actions",
       );
       fireEvent.click(dropdownTrigger);
 
@@ -166,11 +166,11 @@ describe("ProfileActionsDropdown", () => {
           onCreateProfile={mockOnCreateProfile}
           onEditProfile={mockOnEditProfile}
           onDeleteProfile={mockOnDeleteProfile}
-        />
+        />,
       );
 
       const dropdownTrigger = screen.getByLabelText(
-        "Additional profile actions"
+        "Additional profile actions",
       );
       fireEvent.click(dropdownTrigger);
 
@@ -187,11 +187,11 @@ describe("ProfileActionsDropdown", () => {
           onCreateProfile={mockOnCreateProfile}
           onEditProfile={mockOnEditProfile}
           onDeleteProfile={mockOnDeleteProfile}
-        />
+        />,
       );
 
       const dropdownTrigger = screen.getByLabelText(
-        "Additional profile actions"
+        "Additional profile actions",
       );
       fireEvent.click(dropdownTrigger);
 
@@ -211,11 +211,11 @@ describe("ProfileActionsDropdown", () => {
           onCreateProfile={mockOnCreateProfile}
           onEditProfile={mockOnEditProfile}
           onDeleteProfile={mockOnDeleteProfile}
-        />
+        />,
       );
 
       const dropdownTrigger = screen.getByLabelText(
-        "Additional profile actions"
+        "Additional profile actions",
       );
       fireEvent.click(dropdownTrigger);
 
@@ -237,12 +237,12 @@ describe("ProfileActionsDropdown", () => {
           onCreateProfile={mockOnCreateProfile}
           onEditProfile={mockOnEditProfile}
           onDeleteProfile={mockOnDeleteProfile}
-        />
+        />,
       );
 
       expect(screen.getByLabelText("Create Profile")).toBeInTheDocument();
       expect(
-        screen.getByLabelText("Additional profile actions")
+        screen.getByLabelText("Additional profile actions"),
       ).toBeInTheDocument();
     });
 
@@ -253,11 +253,11 @@ describe("ProfileActionsDropdown", () => {
           onCreateProfile={mockOnCreateProfile}
           onEditProfile={mockOnEditProfile}
           onDeleteProfile={mockOnDeleteProfile}
-        />
+        />,
       );
 
       const dropdownTrigger = screen.getByLabelText(
-        "Additional profile actions"
+        "Additional profile actions",
       );
       expect(dropdownTrigger).toHaveAttribute("aria-haspopup", "menu");
       expect(dropdownTrigger).toHaveAttribute("aria-expanded", "false");

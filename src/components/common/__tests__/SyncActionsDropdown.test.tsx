@@ -83,14 +83,14 @@ describe("SyncActionsDropdown", () => {
       <SyncActionsDropdown
         syncStatus={mockSyncStatus}
         onSyncStatusChange={mockOnSyncStatusChange}
-      />
+      />,
     );
 
     expect(
-      screen.getByRole("button", { name: /sync config/i })
+      screen.getByRole("button", { name: /sync config/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /additional sync actions/i })
+      screen.getByRole("button", { name: /additional sync actions/i }),
     ).toBeInTheDocument();
   });
 
@@ -99,7 +99,7 @@ describe("SyncActionsDropdown", () => {
       <SyncActionsDropdown
         syncStatus={mockSyncStatus}
         onSyncStatusChange={mockOnSyncStatusChange}
-      />
+      />,
     );
 
     expect(screen.getByText("Synced")).toBeInTheDocument();
@@ -108,7 +108,7 @@ describe("SyncActionsDropdown", () => {
 
   it("handles sync config action", async () => {
     const mockPushConfiguration = vi.mocked(
-      StreamerbotService.pushConfiguration
+      StreamerbotService.pushConfiguration,
     );
     mockPushConfiguration.mockResolvedValue({
       success: true,
@@ -119,7 +119,7 @@ describe("SyncActionsDropdown", () => {
       <SyncActionsDropdown
         syncStatus={mockSyncStatus}
         onSyncStatusChange={mockOnSyncStatusChange}
-      />
+      />,
     );
 
     const syncButton = screen.getByRole("button", { name: /sync config/i });
@@ -141,7 +141,7 @@ describe("SyncActionsDropdown", () => {
       <SyncActionsDropdown
         syncStatus={mockSyncStatus}
         onSyncStatusChange={mockOnSyncStatusChange}
-      />
+      />,
     );
 
     // Open dropdown and click check status
@@ -171,7 +171,7 @@ describe("SyncActionsDropdown", () => {
       <SyncActionsDropdown
         syncStatus={mockSyncStatus}
         onSyncStatusChange={mockOnSyncStatusChange}
-      />
+      />,
     );
 
     // Open dropdown and click refresh
@@ -190,7 +190,7 @@ describe("SyncActionsDropdown", () => {
 
   it("shows loading state during sync", async () => {
     const mockPushConfiguration = vi.mocked(
-      StreamerbotService.pushConfiguration
+      StreamerbotService.pushConfiguration,
     );
 
     // Create a promise that we can control
@@ -205,7 +205,7 @@ describe("SyncActionsDropdown", () => {
       <SyncActionsDropdown
         syncStatus={mockSyncStatus}
         onSyncStatusChange={mockOnSyncStatusChange}
-      />
+      />,
     );
 
     const syncButton = screen.getByRole("button", { name: /sync config/i });
@@ -217,7 +217,7 @@ describe("SyncActionsDropdown", () => {
     // Should show loading state immediately after click
     expect(syncButton).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: /additional sync actions/i })
+      screen.getByRole("button", { name: /additional sync actions/i }),
     ).toBeDisabled();
 
     // Resolve the promise to complete the operation
@@ -240,7 +240,7 @@ describe("SyncActionsDropdown", () => {
       <SyncActionsDropdown
         syncStatus={offlineStatus}
         onSyncStatusChange={mockOnSyncStatusChange}
-      />
+      />,
     );
 
     const syncButton = screen.getByRole("button", { name: /sync config/i });
@@ -257,7 +257,7 @@ describe("SyncActionsDropdown", () => {
       <SyncActionsDropdown
         syncStatus={errorStatus}
         onSyncStatusChange={mockOnSyncStatusChange}
-      />
+      />,
     );
 
     expect(screen.getByText("Error")).toBeInTheDocument();
@@ -272,7 +272,7 @@ describe("SyncActionsDropdown", () => {
       <SyncActionsDropdown
         syncStatus={outOfSyncStatus}
         onSyncStatusChange={mockOnSyncStatusChange}
-      />
+      />,
     );
 
     expect(screen.getByText("Out of sync")).toBeInTheDocument();
@@ -285,7 +285,7 @@ describe("SyncActionsDropdown", () => {
       <SyncActionsDropdown
         syncStatus={mockSyncStatus}
         onSyncStatusChange={mockOnSyncStatusChange}
-      />
+      />,
     );
 
     expect(mockSubscribe).toHaveBeenCalledTimes(1);
@@ -297,7 +297,7 @@ describe("SyncActionsDropdown", () => {
         syncStatus={mockSyncStatus}
         onSyncStatusChange={mockOnSyncStatusChange}
         className="custom-class"
-      />
+      />,
     );
 
     const container = screen.getByRole("button", {

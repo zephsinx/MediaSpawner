@@ -24,7 +24,7 @@ const isValidHHmm = (time: string | undefined): boolean => {
 };
 
 export const validateTrigger = (
-  trigger: Trigger | null
+  trigger: Trigger | null,
 ): TriggerValidationResult => {
   const result: TriggerValidationResult = {
     isValid: true,
@@ -44,7 +44,7 @@ export const validateTrigger = (
         result.isValid = false;
         result.errors.push("Enter a valid ISO date-time (RFC3339)");
         (result.fieldErrors.isoDateTime ||= []).push(
-          "Enter a valid ISO date-time (RFC3339)"
+          "Enter a valid ISO date-time (RFC3339)",
         );
       }
       if (!isValidTimezone(timezone)) {
@@ -57,7 +57,7 @@ export const validateTrigger = (
         const target = moment.tz(isoDateTime, timezone);
         if (!target.isAfter(now)) {
           result.warnings.push(
-            "The date/time is in the past; it will not trigger again"
+            "The date/time is in the past; it will not trigger again",
           );
         }
       }
@@ -87,7 +87,7 @@ export const validateTrigger = (
         result.isValid = false;
         result.errors.push("Day of week must be 0 (Sun) to 6 (Sat)");
         (result.fieldErrors.dayOfWeek ||= []).push(
-          "Day of week must be 0 (Sun) to 6 (Sat)"
+          "Day of week must be 0 (Sun) to 6 (Sat)",
         );
       }
       if (!isValidHHmm(time)) {
@@ -114,7 +114,7 @@ export const validateTrigger = (
         result.isValid = false;
         result.errors.push("Day of month must be 1 to 31");
         (result.fieldErrors.dayOfMonth ||= []).push(
-          "Day of month must be 1 to 31"
+          "Day of month must be 1 to 31",
         );
       }
       if (!isValidHHmm(time)) {
@@ -138,7 +138,7 @@ export const validateTrigger = (
         result.isValid = false;
         result.errors.push("Interval must be an integer ≥ 1 minute");
         (result.fieldErrors.intervalMinutes ||= []).push(
-          "Interval must be an integer ≥ 1 minute"
+          "Interval must be an integer ≥ 1 minute",
         );
       }
       if (!isValidTimezone(timezone)) {
@@ -151,14 +151,14 @@ export const validateTrigger = (
           result.isValid = false;
           result.errors.push("Custom anchor must be a valid ISO date-time");
           (result.fieldErrors["anchor.isoDateTime"] ||= []).push(
-            "Custom anchor must be a valid ISO date-time"
+            "Custom anchor must be a valid ISO date-time",
           );
         }
         if (!isValidTimezone(anchor.timezone)) {
           result.isValid = false;
           result.errors.push("Custom anchor timezone must be valid");
           (result.fieldErrors["anchor.timezone"] ||= []).push(
-            "Custom anchor timezone must be valid"
+            "Custom anchor timezone must be valid",
           );
         }
       }
@@ -187,7 +187,7 @@ export const validateTrigger = (
         result.isValid = false;
         result.errors.push("Add at least one non-empty command alias");
         (result.fieldErrors.aliases ||= []).push(
-          "Add at least one non-empty command alias"
+          "Add at least one non-empty command alias",
         );
       }
       return result;
@@ -204,10 +204,10 @@ export const validateTrigger = (
         result.isValid = false;
         result.errors.push("Provide both bits and comparator");
         (result.fieldErrors.bits ||= []).push(
-          "Provide both bits and comparator"
+          "Provide both bits and comparator",
         );
         (result.fieldErrors.bitsComparator ||= []).push(
-          "Provide both bits and comparator"
+          "Provide both bits and comparator",
         );
       }
       if (bits !== undefined && !(Number.isInteger(bits) && bits >= 1)) {
@@ -227,7 +227,7 @@ export const validateTrigger = (
         result.isValid = false;
         result.errors.push("Tier must be 1000, 2000, or 3000");
         (result.fieldErrors.tier ||= []).push(
-          "Tier must be 1000, 2000, or 3000"
+          "Tier must be 1000, 2000, or 3000",
         );
       }
       if (
@@ -237,17 +237,17 @@ export const validateTrigger = (
         result.isValid = false;
         result.errors.push("Provide both months and comparator");
         (result.fieldErrors.months ||= []).push(
-          "Provide both months and comparator"
+          "Provide both months and comparator",
         );
         (result.fieldErrors.monthsComparator ||= []).push(
-          "Provide both months and comparator"
+          "Provide both months and comparator",
         );
       }
       if (months !== undefined && !(Number.isInteger(months) && months >= 1)) {
         result.isValid = false;
         result.errors.push("Months must be an integer ≥ 1");
         (result.fieldErrors.months ||= []).push(
-          "Months must be an integer ≥ 1"
+          "Months must be an integer ≥ 1",
         );
       }
       return result;
@@ -266,7 +266,7 @@ export const validateTrigger = (
         result.isValid = false;
         result.errors.push("Tier must be 1000, 2000, or 3000");
         (result.fieldErrors.tier ||= []).push(
-          "Tier must be 1000, 2000, or 3000"
+          "Tier must be 1000, 2000, or 3000",
         );
       }
       return result;
@@ -277,14 +277,14 @@ export const validateTrigger = (
         result.isValid = false;
         result.errors.push("Reward identifier is required");
         (result.fieldErrors.rewardIdentifier ||= []).push(
-          "Reward identifier is required"
+          "Reward identifier is required",
         );
       }
       if (!Array.isArray(statuses) || statuses.length === 0) {
         result.isValid = false;
         result.errors.push("Select at least one redemption status");
         (result.fieldErrors.statuses ||= []).push(
-          "Select at least one redemption status"
+          "Select at least one redemption status",
         );
       }
       return result;

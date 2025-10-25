@@ -40,7 +40,7 @@ describe("deepEqual", () => {
     const b = { id: "1", name: "X", lastModified: 200, meta: { order: 1 } };
     // Ignore lastModified so objects are equal
     expect(deepEqual(a, b, { ignoreKeys: new Set(["lastModified"]) })).toBe(
-      true
+      true,
     );
 
     // Ignore a key that exists only in one object; should still be equal

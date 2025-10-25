@@ -100,7 +100,7 @@ describe("fileDownload", () => {
       });
 
       await expect(downloadJsonFile(testData, filename)).rejects.toThrow(
-        "Failed to download file: Mock error"
+        "Failed to download file: Mock error",
       );
     });
 
@@ -147,7 +147,7 @@ describe("fileDownload", () => {
       expect(mockCreateElement).toHaveBeenCalledWith("a");
       const anchor = mockCreateElement.mock.results[0].value;
       expect(anchor.download).toMatch(
-        /^mediaspawner-config_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.json$/
+        /^mediaspawner-config_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.json$/,
       );
     });
 
@@ -159,7 +159,7 @@ describe("fileDownload", () => {
 
       const anchor = mockCreateElement.mock.results[0].value;
       expect(anchor.download).toMatch(
-        /^my-config_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.json$/
+        /^my-config_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.json$/,
       );
     });
 

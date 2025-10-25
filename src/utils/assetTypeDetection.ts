@@ -82,7 +82,7 @@ function extractExtension(path: string): string {
   const lastDot = cleanPath.lastIndexOf(".");
   const lastSlash = Math.max(
     cleanPath.lastIndexOf("/"),
-    cleanPath.lastIndexOf("\\")
+    cleanPath.lastIndexOf("\\"),
   );
 
   if (lastDot > lastSlash && lastDot !== -1) {
@@ -137,7 +137,7 @@ export function detectAssetTypeFromMime(mimeType: string): MediaAsset["type"] {
  */
 export function detectAssetType(
   pathOrMime: string,
-  fallback: MediaAsset["type"] = "image"
+  fallback: MediaAsset["type"] = "image",
 ): MediaAsset["type"] {
   // Try path detection first
   if (

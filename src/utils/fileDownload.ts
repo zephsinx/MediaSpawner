@@ -11,7 +11,7 @@
  */
 export async function downloadJsonFile(
   data: unknown,
-  filename: string
+  filename: string,
 ): Promise<void> {
   try {
     // Serialize data to JSON with proper formatting
@@ -41,7 +41,7 @@ export async function downloadJsonFile(
     throw new Error(
       `Failed to download file: ${
         error instanceof Error ? error.message : "Unknown error"
-      }`
+      }`,
     );
   }
 }
@@ -71,9 +71,8 @@ export function generateTimestampedFilename(baseName: string): string {
  */
 export async function downloadConfiguration(
   data: unknown,
-  baseName: string = "mediaspawner-config"
+  baseName: string = "mediaspawner-config",
 ): Promise<void> {
   const filename = generateTimestampedFilename(baseName);
   return downloadJsonFile(data, filename);
 }
-

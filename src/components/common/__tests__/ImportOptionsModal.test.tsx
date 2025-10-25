@@ -65,15 +65,15 @@ describe("ImportOptionsModal", () => {
       // Profile conflict strategy
       expect(screen.getByText("Profile Conflict Strategy")).toBeInTheDocument();
       expect(
-        screen.getByRole("radio", { name: /skip keep existing profile/i })
+        screen.getByRole("radio", { name: /skip keep existing profile/i }),
       ).toBeInTheDocument();
       expect(
         screen.getByRole("radio", {
           name: /overwrite replace existing profile/i,
-        })
+        }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("radio", { name: /rename create new profile/i })
+        screen.getByRole("radio", { name: /rename create new profile/i }),
       ).toBeInTheDocument();
 
       // Asset conflict strategy
@@ -82,18 +82,18 @@ describe("ImportOptionsModal", () => {
       // Additional options
       expect(screen.getByText("Additional Options")).toBeInTheDocument();
       expect(
-        screen.getByRole("checkbox", { name: /update working directory/i })
+        screen.getByRole("checkbox", { name: /update working directory/i }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("checkbox", { name: /validate asset references/i })
+        screen.getByRole("checkbox", { name: /validate asset references/i }),
       ).toBeInTheDocument();
 
       // Action buttons
       expect(
-        screen.getByRole("button", { name: "Cancel" })
+        screen.getByRole("button", { name: "Cancel" }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "Import Configuration" })
+        screen.getByRole("button", { name: "Import Configuration" }),
       ).toBeInTheDocument();
     });
   });
@@ -103,13 +103,13 @@ describe("ImportOptionsModal", () => {
       render(<ImportOptionsModal {...defaultProps} />);
 
       expect(
-        screen.getByRole("radio", { name: /rename create new profile/i })
+        screen.getByRole("radio", { name: /rename create new profile/i }),
       ).toBeChecked();
       expect(
-        screen.getByRole("checkbox", { name: /update working directory/i })
+        screen.getByRole("checkbox", { name: /update working directory/i }),
       ).toBeChecked();
       expect(
-        screen.getByRole("checkbox", { name: /validate asset references/i })
+        screen.getByRole("checkbox", { name: /validate asset references/i }),
       ).toBeChecked();
     });
 
@@ -122,19 +122,22 @@ describe("ImportOptionsModal", () => {
       };
 
       render(
-        <ImportOptionsModal {...defaultProps} defaultOptions={defaultOptions} />
+        <ImportOptionsModal
+          {...defaultProps}
+          defaultOptions={defaultOptions}
+        />,
       );
 
       expect(
         screen.getByRole("radio", {
           name: /overwrite replace existing profile/i,
-        })
+        }),
       ).toBeChecked();
       expect(
-        screen.getByRole("checkbox", { name: /update working directory/i })
+        screen.getByRole("checkbox", { name: /update working directory/i }),
       ).not.toBeChecked();
       expect(
-        screen.getByRole("checkbox", { name: /validate asset references/i })
+        screen.getByRole("checkbox", { name: /validate asset references/i }),
       ).not.toBeChecked();
     });
   });
@@ -207,13 +210,15 @@ describe("ImportOptionsModal", () => {
 
       // Change options
       await user.click(
-        screen.getByRole("radio", { name: /skip keep existing profile/i })
+        screen.getByRole("radio", { name: /skip keep existing profile/i }),
       );
       await user.click(
-        screen.getByRole("radio", { name: /overwrite replace existing asset/i })
+        screen.getByRole("radio", {
+          name: /overwrite replace existing asset/i,
+        }),
       );
       await user.click(
-        screen.getByRole("checkbox", { name: /update working directory/i })
+        screen.getByRole("checkbox", { name: /update working directory/i }),
       );
 
       const submitButton = screen.getByRole("button", {
@@ -285,21 +290,21 @@ describe("ImportOptionsModal", () => {
       render(<ImportOptionsModal {...defaultProps} />);
 
       expect(
-        screen.getByRole("radio", { name: /skip keep existing profile/i })
+        screen.getByRole("radio", { name: /skip keep existing profile/i }),
       ).toBeInTheDocument();
       expect(
         screen.getByRole("radio", {
           name: /overwrite replace existing profile/i,
-        })
+        }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("radio", { name: /rename create new profile/i })
+        screen.getByRole("radio", { name: /rename create new profile/i }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("checkbox", { name: /update working directory/i })
+        screen.getByRole("checkbox", { name: /update working directory/i }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("checkbox", { name: /validate asset references/i })
+        screen.getByRole("checkbox", { name: /validate asset references/i }),
       ).toBeInTheDocument();
     });
   });

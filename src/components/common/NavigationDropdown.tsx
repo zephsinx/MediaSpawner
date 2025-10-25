@@ -70,7 +70,7 @@ export function NavigationDropdown({ className }: NavigationDropdownProps) {
                 "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
                 "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
                 "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2",
-                "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
+                "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
               )}
               sideOffset={4}
               role="menu"
@@ -86,7 +86,7 @@ export function NavigationDropdown({ className }: NavigationDropdownProps) {
                     className={cn(
                       "flex items-center w-full px-3 py-2 text-sm rounded-sm cursor-pointer transition-colors",
                       "focus:bg-[rgb(var(--color-muted))] focus:text-[rgb(var(--color-fg))] focus:outline-none",
-                      "hover:bg-[rgb(var(--color-muted))] hover:text-[rgb(var(--color-fg))]"
+                      "hover:bg-[rgb(var(--color-muted))] hover:text-[rgb(var(--color-fg))]",
                     )}
                     asChild
                   >

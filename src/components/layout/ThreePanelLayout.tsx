@@ -1,5 +1,6 @@
 import React from "react";
 import Header from "./Header";
+import { useSkipNavigation } from "../../hooks/useFocusManagement";
 
 /**
  * Props for the three-panel layout component
@@ -27,8 +28,46 @@ const ThreePanelLayout: React.FC<ThreePanelLayoutProps> = ({
   rightPanel,
   className = "",
 }) => {
+  const { skipToElement } = useSkipNavigation();
+
+  const handleSkipToMain = () => {
+    skipToElement("main-content");
+  };
+
+  const handleSkipToSpawnList = () => {
+    skipToElement("spawn-list");
+  };
+
+  const handleSkipToAssetManagement = () => {
+    skipToElement("asset-management");
+  };
+
   return (
     <div className={`min-h-screen bg-[rgb(var(--color-bg))] ${className}`}>
+      {/* Skip Navigation Links */}
+      <div className="sr-only focus-within:not-sr-only">
+        <div className="absolute top-0 left-0 z-50 bg-[rgb(var(--color-surface-1))] border border-[rgb(var(--color-border))] rounded-b-md shadow-lg p-2 space-y-1">
+          <button
+            onClick={handleSkipToMain}
+            className="block w-full px-3 py-2 text-sm text-[rgb(var(--color-fg))] bg-[rgb(var(--color-surface-1))] hover:bg-[rgb(var(--color-surface-2))] border border-[rgb(var(--color-border))] rounded focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-ring))] focus:ring-offset-2"
+          >
+            Skip to main content
+          </button>
+          <button
+            onClick={handleSkipToSpawnList}
+            className="block w-full px-3 py-2 text-sm text-[rgb(var(--color-fg))] bg-[rgb(var(--color-surface-1))] hover:bg-[rgb(var(--color-surface-2))] border border-[rgb(var(--color-border))] rounded focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-ring))] focus:ring-offset-2"
+          >
+            Skip to spawn list
+          </button>
+          <button
+            onClick={handleSkipToAssetManagement}
+            className="block w-full px-3 py-2 text-sm text-[rgb(var(--color-fg))] bg-[rgb(var(--color-surface-1))] hover:bg-[rgb(var(--color-surface-2))] border border-[rgb(var(--color-border))] rounded focus:outline-none focus:ring-2 focus:ring-[rgb(var(--color-ring))] focus:ring-offset-2"
+          >
+            Skip to asset management
+          </button>
+        </div>
+      </div>
+
       {/* Header */}
       <Header />
 
@@ -36,21 +75,33 @@ const ThreePanelLayout: React.FC<ThreePanelLayoutProps> = ({
       <div className="w-full max-w-[2560px] mx-auto">
         <div className="grid grid-cols-12 h-[calc(100vh-80px)] min-w-[1280px] px-0 lg:px-2 xl:px-4 2xl:px-6">
           {/* Left Panel - Spawn Navigation (25%) */}
-          <div className="col-span-3 bg-[rgb(var(--color-surface-1))] border-r border-[rgb(var(--color-border))] min-w-[320px] lg:min-w-[360px] xl:min-w-[400px] overflow-hidden">
+          <div
+            id="spawn-list"
+            className="col-span-3 bg-[rgb(var(--color-surface-1))] border-r border-[rgb(var(--color-border))] min-w-[320px] lg:min-w-[360px] xl:min-w-[400px] overflow-hidden"
+            tabIndex={-1}
+          >
             <div className="h-full min-h-0 overflow-y-auto p-3 lg:p-4 xl:p-5">
               {leftPanel}
             </div>
           </div>
 
           {/* Center Panel - Configuration Workspace (50%) */}
-          <div className="col-span-6 bg-[rgb(var(--color-surface-1))] border-r border-[rgb(var(--color-border))] min-w-[640px] lg:min-w-[720px] xl:min-w-[800px] overflow-hidden">
+          <div
+            id="main-content"
+            className="col-span-6 bg-[rgb(var(--color-surface-1))] border-r border-[rgb(var(--color-border))] min-w-[640px] lg:min-w-[720px] xl:min-w-[800px] overflow-hidden"
+            tabIndex={-1}
+          >
             <div className="h-full min-h-0 overflow-y-auto p-3 lg:p-4 xl:p-5">
               {centerPanel}
             </div>
           </div>
 
           {/* Right Panel - Asset Management (25%) */}
-          <div className="col-span-3 bg-[rgb(var(--color-surface-1))] min-w-[320px] lg:min-w-[360px] xl:min-w-[400px] overflow-hidden">
+          <div
+            id="asset-management"
+            className="col-span-3 bg-[rgb(var(--color-surface-1))] min-w-[320px] lg:min-w-[360px] xl:min-w-[400px] overflow-hidden"
+            tabIndex={-1}
+          >
             <div className="h-full min-h-0 overflow-y-auto p-3 lg:p-4 xl:p-5">
               {rightPanel}
             </div>

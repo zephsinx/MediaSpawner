@@ -50,7 +50,7 @@ export function useStreamerbotCommands(): UseStreamerbotCommandsResult {
         }
       }
     },
-    [state]
+    [state],
   );
 
   useEffect(() => {

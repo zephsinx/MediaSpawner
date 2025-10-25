@@ -32,7 +32,7 @@ vi.mock("@radix-ui/react-tooltip", () => ({
 describe("SyncStatusIndicator", () => {
   const createStatusInfo = (
     status: SyncStatusInfo["status"],
-    overrides?: Partial<SyncStatusInfo>
+    overrides?: Partial<SyncStatusInfo>,
   ): SyncStatusInfo => ({
     status,
     lastChecked: new Date("2024-01-01T12:00:00Z"),
@@ -45,7 +45,7 @@ describe("SyncStatusIndicator", () => {
 
     expect(screen.getByRole("status")).toHaveAttribute(
       "aria-label",
-      "Sync status: Synced"
+      "Sync status: Synced",
     );
   });
 
@@ -55,7 +55,7 @@ describe("SyncStatusIndicator", () => {
 
     expect(screen.getByRole("status")).toHaveAttribute(
       "aria-label",
-      "Sync status: Out of sync"
+      "Sync status: Out of sync",
     );
   });
 
@@ -67,7 +67,7 @@ describe("SyncStatusIndicator", () => {
 
     expect(screen.getByRole("status")).toHaveAttribute(
       "aria-label",
-      "Sync status: Error"
+      "Sync status: Error",
     );
   });
 
@@ -77,7 +77,7 @@ describe("SyncStatusIndicator", () => {
 
     expect(screen.getByRole("status")).toHaveAttribute(
       "aria-label",
-      "Sync status: Unknown"
+      "Sync status: Unknown",
     );
   });
 
@@ -87,7 +87,7 @@ describe("SyncStatusIndicator", () => {
 
     expect(screen.getByRole("status")).toHaveAttribute(
       "aria-label",
-      "Sync status: Offline"
+      "Sync status: Offline",
     );
   });
 
@@ -101,7 +101,7 @@ describe("SyncStatusIndicator", () => {
   it("applies custom className", () => {
     const statusInfo = createStatusInfo("synced");
     render(
-      <SyncStatusIndicator statusInfo={statusInfo} className="custom-class" />
+      <SyncStatusIndicator statusInfo={statusInfo} className="custom-class" />,
     );
 
     const container = screen.getByRole("status");
@@ -112,7 +112,7 @@ describe("SyncStatusIndicator", () => {
     const statusInfo = createStatusInfo("synced");
 
     const { rerender } = render(
-      <SyncStatusIndicator statusInfo={statusInfo} size="sm" />
+      <SyncStatusIndicator statusInfo={statusInfo} size="sm" />,
     );
     expect(screen.getByRole("status")).toBeInTheDocument();
 

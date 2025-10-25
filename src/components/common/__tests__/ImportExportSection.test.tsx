@@ -58,9 +58,9 @@ vi.mock("../ImportOptionsModal", () => ({
               validateAssetReferences: true,
             }),
         },
-        "Confirm Import"
+        "Confirm Import",
       ),
-      React.createElement("button", { onClick: onClose }, "Cancel")
+      React.createElement("button", { onClick: onClose }, "Cancel"),
     );
   },
 }));
@@ -104,10 +104,10 @@ describe("ImportExportSection", () => {
     render(<ImportExportSection />);
 
     expect(
-      screen.getByRole("button", { name: /export configuration/i })
+      screen.getByRole("button", { name: /export configuration/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /import configuration/i })
+      screen.getByRole("button", { name: /import configuration/i }),
     ).toBeInTheDocument();
   });
 
@@ -115,8 +115,8 @@ describe("ImportExportSection", () => {
     exportConfigurationMock.mockImplementation(
       async () =>
         new Promise((resolve) =>
-          setTimeout(() => resolve({ success: false, error: "No data" }), 50)
-        )
+          setTimeout(() => resolve({ success: false, error: "No data" }), 50),
+        ),
     );
 
     render(<ImportExportSection />);
@@ -151,13 +151,13 @@ describe("ImportExportSection", () => {
 
     render(<ImportExportSection />);
     fireEvent.click(
-      screen.getByRole("button", { name: /export configuration/i })
+      screen.getByRole("button", { name: /export configuration/i }),
     );
 
     await waitFor(() => {
       expect(downloadConfiguration).toHaveBeenCalledWith(
         { version: "1.0.0", profiles: [], assets: [] },
-        "mediaspawner-config"
+        "mediaspawner-config",
       );
       expect(toast.success).toHaveBeenCalled();
     });
@@ -171,7 +171,7 @@ describe("ImportExportSection", () => {
 
     render(<ImportExportSection />);
     fireEvent.click(
-      screen.getByRole("button", { name: /export configuration/i })
+      screen.getByRole("button", { name: /export configuration/i }),
     );
 
     await waitFor(() => {
@@ -191,13 +191,13 @@ describe("ImportExportSection", () => {
 
     const file = new File(["{}"], "config.json", { type: "application/json" });
     const input = document.querySelector(
-      'input[type="file"]'
+      'input[type="file"]',
     ) as HTMLInputElement;
 
     fireEvent.change(input, { target: { files: [file] } });
 
     expect(
-      await screen.findByTestId("import-options-modal")
+      await screen.findByTestId("import-options-modal"),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByText("Confirm Import"));
 
@@ -209,11 +209,13 @@ describe("ImportExportSection", () => {
           assetConflictStrategy: "rename",
           updateWorkingDirectory: true,
           validateAssetReferences: true,
-        }
+        },
       );
       expect(toast.success).toHaveBeenCalled();
       expect(dispatchSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ type: "mediaspawner:configuration-imported" })
+        expect.objectContaining({
+          type: "mediaspawner:configuration-imported",
+        }),
       );
     });
 
@@ -223,7 +225,7 @@ describe("ImportExportSection", () => {
   it("rejects non-JSON files and shows error", () => {
     render(<ImportExportSection />);
     const input = document.querySelector(
-      'input[type="file"]'
+      'input[type="file"]',
     ) as HTMLInputElement;
     const badFile = new File(["dummy"], "image.png", { type: "image/png" });
 
@@ -242,12 +244,12 @@ describe("ImportExportSection", () => {
     render(<ImportExportSection />);
     const file = new File(["{}"], "config.json", { type: "application/json" });
     const input = document.querySelector(
-      'input[type="file"]'
+      'input[type="file"]',
     ) as HTMLInputElement;
     fireEvent.change(input, { target: { files: [file] } });
 
     expect(
-      await screen.findByTestId("import-options-modal")
+      await screen.findByTestId("import-options-modal"),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByText("Confirm Import"));
 

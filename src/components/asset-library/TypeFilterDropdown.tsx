@@ -51,7 +51,7 @@ export function TypeFilterDropdown({
   className,
 }: TypeFilterDropdownProps) {
   const currentOption = filterOptions.find(
-    (option) => option.value === currentFilter
+    (option) => option.value === currentFilter,
   );
   const CurrentIcon = currentOption?.icon || FileText;
 
@@ -81,7 +81,7 @@ export function TypeFilterDropdown({
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
             "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2",
-            "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
+            "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
           )}
           sideOffset={4}
           role="menu"
@@ -100,7 +100,7 @@ export function TypeFilterDropdown({
                   "focus:bg-[rgb(var(--color-muted))] focus:text-[rgb(var(--color-fg))] focus:outline-none",
                   "hover:bg-[rgb(var(--color-muted))] hover:text-[rgb(var(--color-fg))]",
                   isSelected &&
-                    "bg-[rgb(var(--color-accent))]/10 text-[rgb(var(--color-accent))]"
+                    "bg-[rgb(var(--color-accent))]/10 text-[rgb(var(--color-accent))]",
                 )}
                 onSelect={() => onFilterChange(option.value)}
                 role="menuitemradio"
@@ -116,7 +116,7 @@ export function TypeFilterDropdown({
                     "text-xs px-2 py-0.5 rounded-full",
                     isSelected
                       ? "bg-[rgb(var(--color-accent))] text-[rgb(var(--color-accent-foreground))]"
-                      : "bg-[rgb(var(--color-muted))] text-[rgb(var(--color-muted-foreground))]"
+                      : "bg-[rgb(var(--color-muted))] text-[rgb(var(--color-muted-foreground))]",
                   )}
                   aria-label={`${count} assets`}
                 >

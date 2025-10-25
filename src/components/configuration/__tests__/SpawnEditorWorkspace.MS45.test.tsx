@@ -25,7 +25,7 @@ describe("SpawnEditorWorkspace MS-45 mode routing", () => {
       render(
         <LayoutProvider>
           <SpawnEditorWorkspace />
-        </LayoutProvider>
+        </LayoutProvider>,
       );
     });
     expect(screen.getByText("Asset Settings")).toBeInTheDocument();

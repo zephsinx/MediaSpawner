@@ -159,7 +159,7 @@ describe("SettingsButton", () => {
       const button = screen.getByLabelText("Settings");
       expect(button).toHaveClass(
         "text-[rgb(var(--color-muted-foreground))]",
-        "hover:text-[rgb(var(--color-fg))]"
+        "hover:text-[rgb(var(--color-fg))]",
       );
     });
 
@@ -215,7 +215,7 @@ describe("SettingsButton", () => {
       expect(button).toHaveClass("h-8", "w-8", "p-0");
       expect(button).toHaveClass(
         "hover:bg-[rgb(var(--color-muted))]",
-        "text-xs"
+        "text-xs",
       );
     });
   });

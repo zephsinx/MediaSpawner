@@ -217,6 +217,18 @@ body {
   border: 0;
 }
 
+/* Focus-within utility for skip links */
+.focus-within\:not-sr-only:focus-within {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: initial;
+  margin: initial;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
 /* Range Slider Styling */
 input[type="range"] {
   -webkit-appearance: none;
