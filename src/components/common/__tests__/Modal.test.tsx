@@ -21,6 +21,7 @@ describe("Modal", () => {
     isOpen: true,
     onClose: vi.fn(),
     title: "Test Modal",
+    description: "Test modal description",
     children: <div>Modal content</div>,
   };
 

@@ -563,6 +563,70 @@ describe("ProfileFormDialog", () => {
     });
   });
 
+  describe("Focus Management", () => {
+    it("maintains focus on input fields while typing", async () => {
+      const user = userEvent.setup();
+      renderWithAllProviders(
+        <ProfileFormDialog
+          isOpen={true}
+          onClose={mockOnClose}
+          onSuccess={mockOnSuccess}
+        />,
+      );
+
+      const nameInput = screen.getByLabelText("Profile Name");
+      const descriptionInput = screen.getByLabelText("Description");
+
+      // Focus on name input and type
+      await user.click(nameInput);
+      expect(document.activeElement).toBe(nameInput);
+
+      // Type multiple characters to trigger state updates
+      await user.type(nameInput, "Test Profile Name");
+      expect(document.activeElement).toBe(nameInput);
+      expect(nameInput).toHaveValue("Test Profile Name");
+
+      // Focus on description input and type
+      await user.click(descriptionInput);
+      expect(document.activeElement).toBe(descriptionInput);
+
+      // Type multiple characters to trigger state updates
+      await user.type(descriptionInput, "Test Description");
+      expect(document.activeElement).toBe(descriptionInput);
+      expect(descriptionInput).toHaveValue("Test Description");
+    });
+
+    it("maintains focus when switching between input fields", async () => {
+      const user = userEvent.setup();
+      renderWithAllProviders(
+        <ProfileFormDialog
+          isOpen={true}
+          onClose={mockOnClose}
+          onSuccess={mockOnSuccess}
+        />,
+      );
+
+      const nameInput = screen.getByLabelText("Profile Name");
+      const descriptionInput = screen.getByLabelText("Description");
+
+      // Type in name input
+      await user.type(nameInput, "Test");
+      expect(document.activeElement).toBe(nameInput);
+
+      // Switch to description input
+      await user.click(descriptionInput);
+      expect(document.activeElement).toBe(descriptionInput);
+
+      // Type in description input
+      await user.type(descriptionInput, "Description");
+      expect(document.activeElement).toBe(descriptionInput);
+
+      // Switch back to name input
+      await user.click(nameInput);
+      expect(document.activeElement).toBe(nameInput);
+    });
+  });
+
   describe("Accessibility", () => {
     it("has proper ARIA labels", () => {
       renderWithAllProviders(

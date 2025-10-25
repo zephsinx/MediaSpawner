@@ -8,6 +8,7 @@ export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
+  description?: string;
   children: React.ReactNode;
   size?: "sm" | "md" | "lg" | "xl";
 }
@@ -16,6 +17,7 @@ export function Modal({
   isOpen,
   onClose,
   title,
+  description,
   children,
   size = "md",
 }: ModalProps) {
@@ -50,17 +52,12 @@ export function Modal({
     }
   }, [isOpen, focusManagement]);
 
-  // Callback ref to ensure focus management is initialized when DOM is ready
+  // Callback ref to set the container reference
   const contentRef = React.useCallback(
     (node: HTMLDivElement | null) => {
       focusManagement.containerRef.current = node;
-      if (isOpen && node) {
-        // Initialize focus management when the DOM element is ready
-        const cleanup = focusManagement.initializeFocusManagement(node);
-        return cleanup;
-      }
     },
-    [isOpen, focusManagement],
+    [focusManagement],
   );
 
   return (
@@ -90,6 +87,13 @@ export function Modal({
               </button>
             </Dialog.Close>
           </div>
+
+          {/* Description */}
+          {description && (
+            <Dialog.Description className="text-sm text-[rgb(var(--color-muted-foreground))] leading-relaxed">
+              {description}
+            </Dialog.Description>
+          )}
 
           {/* Content */}
           <div className="text-[rgb(var(--color-fg))]">{children}</div>

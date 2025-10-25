@@ -348,7 +348,7 @@ const Modal = ({ isOpen, onClose, children }) => {
       );
       return cleanup;
     }
-  }, [isOpen, focusManagement]);
+  }, [isOpen]); // ✅ Only depend on isOpen, not focusManagement
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -358,6 +358,32 @@ const Modal = ({ isOpen, onClose, children }) => {
     </Dialog.Root>
   );
 };
+```
+
+**⚠️ Important**: Do not include the `focusManagement` object in the dependency array. The hook returns a memoized object that only changes when its internal dependencies change, not on every render. Including it in dependencies causes the effect to re-run on every state change, which can steal focus from form inputs.
+
+> **Note**: This pattern applies to any custom hook that returns an object with methods, not just focus management hooks. Always be careful when including hook return values in useEffect dependencies.
+
+```tsx
+// ❌ WRONG - Causes focus loss in forms
+useEffect(() => {
+  if (isOpen) {
+    const cleanup = focusManagement.initializeFocusManagement(
+      focusManagement.containerRef.current,
+    );
+    return cleanup;
+  }
+}, [isOpen, focusManagement]); // ❌ focusManagement causes re-runs on every render
+
+// ✅ CORRECT - Stable dependencies
+useEffect(() => {
+  if (isOpen) {
+    const cleanup = focusManagement.initializeFocusManagement(
+      focusManagement.containerRef.current,
+    );
+    return cleanup;
+  }
+}, [isOpen]); // ✅ Only depend on isOpen
 ```
 
 #### Focus Restoration

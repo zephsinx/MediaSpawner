@@ -1,4 +1,4 @@
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useMemo } from "react";
 
 /**
  * Focus management utilities for accessibility
@@ -87,8 +87,13 @@ export function useFocusManagement(options: FocusManagementOptions = {}) {
 
       container.addEventListener("keydown", handleKeyDown);
 
-      // Focus the first element when trap is activated
-      firstFocusableElementRef.current?.focus();
+      // Focus the first element when trap is activated, but only if no element is already focused within the container
+      const currentActiveElement = document.activeElement as HTMLElement;
+      const isElementWithinContainer = container.contains(currentActiveElement);
+
+      if (!isElementWithinContainer) {
+        firstFocusableElementRef.current?.focus();
+      }
 
       return () => {
         container.removeEventListener("keydown", handleKeyDown);
@@ -203,30 +208,47 @@ export function useFocusManagement(options: FocusManagementOptions = {}) {
     [getFocusableElements],
   );
 
-  return {
-    // Core focus management
-    initializeFocusManagement,
-    cleanupFocusManagement,
+  return useMemo(
+    () => ({
+      // Core focus management
+      initializeFocusManagement,
+      cleanupFocusManagement,
 
-    // Focus utilities
-    getFocusableElements,
-    getCurrentFocusableElement,
-    isFocusable,
+      // Focus utilities
+      getFocusableElements,
+      getCurrentFocusableElement,
+      isFocusable,
 
-    // Skip navigation utilities
-    skipToElement,
-    skipToNext,
-    skipToPrevious,
+      // Skip navigation utilities
+      skipToElement,
+      skipToNext,
+      skipToPrevious,
 
-    // Focus restoration
-    restoreFocus: restoreFocusToPrevious,
+      // Focus restoration
+      restoreFocus: restoreFocusToPrevious,
 
-    // Refs for external use
-    containerRef,
-    previousActiveElementRef,
-    firstFocusableElementRef,
-    lastFocusableElementRef,
-  };
+      // Refs for external use
+      containerRef,
+      previousActiveElementRef,
+      firstFocusableElementRef,
+      lastFocusableElementRef,
+    }),
+    [
+      initializeFocusManagement,
+      cleanupFocusManagement,
+      getFocusableElements,
+      getCurrentFocusableElement,
+      isFocusable,
+      skipToElement,
+      skipToNext,
+      skipToPrevious,
+      restoreFocusToPrevious,
+      containerRef,
+      previousActiveElementRef,
+      firstFocusableElementRef,
+      lastFocusableElementRef,
+    ],
+  );
 }
 
 /**
