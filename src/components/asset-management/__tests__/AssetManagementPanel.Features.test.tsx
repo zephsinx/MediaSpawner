@@ -4,7 +4,6 @@ import {
   screen,
   act,
   fireEvent,
-  within,
   waitFor,
 } from "@testing-library/react";
 import * as Tooltip from "@radix-ui/react-tooltip";
@@ -242,7 +241,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
   });
 
   describe("Asset Removal Workflow (MS-38)", () => {
-    it("renders remove control and requires confirmation; removes on confirm and updates count (draft)", async () => {
+    it("renders remove control and immediately removes asset (draft)", async () => {
       const mockSetUnsavedChanges = vi.fn();
       vi.mocked(usePanelState).mockReturnValue({
         selectedSpawnId: "s1",
@@ -284,20 +283,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
         removeBtn[0].click();
       });
 
-      // Confirm dialog
-      const dialog = await screen.findByRole("dialog");
-      expect(dialog).toBeInTheDocument();
-      const confirm = within(dialog).getByRole("button", { name: /remove/i });
-
-      // Click confirm
-      fireEvent.click(confirm);
-
-      // Wait for dialog to close and draft state to be created
-      await waitFor(() => {
-        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-      });
-
-      // Verify draft state created (Save button appears)
+      // Verify draft state created immediately (Save button appears)
       await waitFor(() => {
         expect(
           screen.queryByRole("button", { name: /Save/i }),

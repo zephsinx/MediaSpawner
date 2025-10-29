@@ -11,7 +11,6 @@ import {
 } from "../../utils/assetTypeDetection";
 import { validateUrlFormat } from "../../utils/assetValidation";
 import { createSpawnAsset } from "../../types/spawn";
-import { ConfirmDialog } from "../common/ConfirmDialog";
 import { Button } from "../ui/Button";
 import { HUICombobox } from "../common";
 import * as Popover from "@radix-ui/react-popover";
@@ -206,9 +205,6 @@ function SpawnAssetsSection() {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [removeError, setRemoveError] = useState<string | null>(null);
-  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
-  const [isRemoving, setIsRemoving] = useState<boolean>(false);
-  const [skipRemoveConfirm, setSkipRemoveConfirm] = useState<boolean>(false);
 
   // Draft state for asset operations
   const [draftAssets, setDraftAssets] = useState<SpawnAsset[] | null>(null);
@@ -292,9 +288,6 @@ function SpawnAssetsSection() {
         setDraggingId(null);
         setDragOverIndex(null);
         setRemoveError(null);
-        setConfirmRemoveId(null);
-        setIsRemoving(false);
-        setSkipRemoveConfirm(false);
         setDraftAssets(null);
         setSaveError(null);
       }
@@ -428,7 +421,6 @@ function SpawnAssetsSection() {
   };
 
   const performRemove = (removeId: string) => {
-    setIsRemoving(true);
     setRemoveError(null);
     try {
       const remaining = currentAssets.filter((sa) => sa.id !== removeId);
@@ -441,15 +433,7 @@ function SpawnAssetsSection() {
       setRemoveError(
         e instanceof Error ? e.message : "Failed to remove asset from spawn",
       );
-    } finally {
-      setIsRemoving(false);
     }
-  };
-
-  const handleConfirmRemove = () => {
-    if (!confirmRemoveId) return;
-    performRemove(confirmRemoveId);
-    setConfirmRemoveId(null);
   };
 
   const handleSaveAssets = async () => {
@@ -696,17 +680,10 @@ function SpawnAssetsSection() {
                     <button
                       type="button"
                       aria-label="Remove from Spawn"
-                      className={`inline-flex items-center justify-center text-xs rounded border border-[rgb(var(--color-error))] bg-[rgb(var(--color-bg))] text-[rgb(var(--color-error))] hover:bg-[rgb(var(--color-error-bg))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2 w-7 h-7 ${
-                        isRemoving ? "opacity-50 cursor-not-allowed" : ""
-                      }`}
+                      className="inline-flex items-center justify-center text-xs rounded border border-[rgb(var(--color-error))] bg-[rgb(var(--color-bg))] text-[rgb(var(--color-error))] hover:bg-[rgb(var(--color-error-bg))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2 w-7 h-7"
                       onClick={() => {
-                        if (skipRemoveConfirm) {
-                          void performRemove(spawnAsset.id);
-                        } else {
-                          setConfirmRemoveId(spawnAsset.id);
-                        }
+                        void performRemove(spawnAsset.id);
                       }}
-                      disabled={isRemoving}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -756,11 +733,7 @@ function SpawnAssetsSection() {
                           <DropdownMenu.Item
                             className="px-3 py-2 rounded text-[rgb(var(--color-error))] data-[highlighted]:bg-[rgb(var(--color-error-bg))] outline-none cursor-pointer"
                             onSelect={() => {
-                              if (skipRemoveConfirm) {
-                                void performRemove(spawnAsset.id);
-                              } else {
-                                setConfirmRemoveId(spawnAsset.id);
-                              }
+                              void performRemove(spawnAsset.id);
                             }}
                           >
                             <span className="inline-flex items-center gap-2">
@@ -833,28 +806,6 @@ function SpawnAssetsSection() {
           )}
         </div>
       )}
-
-      <ConfirmDialog
-        isOpen={Boolean(confirmRemoveId)}
-        title="Remove asset from spawn?"
-        message="This will remove the asset from the current spawn. The asset will remain available in the library."
-        confirmText={isRemoving ? "Removing…" : "Remove"}
-        cancelText="Cancel"
-        variant="danger"
-        onConfirm={handleConfirmRemove}
-        onCancel={() => setConfirmRemoveId(null)}
-        extraContent={
-          <label className="flex items-center gap-2 text-xs text-[rgb(var(--color-fg))]">
-            <input
-              type="checkbox"
-              className="h-3 w-3"
-              checked={skipRemoveConfirm}
-              onChange={(e) => setSkipRemoveConfirm(e.target.checked)}
-            />
-            Don’t ask again (this session)
-          </label>
-        }
-      />
     </div>
   );
 }
