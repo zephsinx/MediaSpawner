@@ -31,7 +31,6 @@ export default defineConfig({
           "ui-card": ["src/components/ui/Card.tsx"],
           "ui-switch": ["src/components/ui/Switch.tsx"],
           "ui-input": ["src/components/ui/Input.tsx"],
-          "ui-variants": ["src/components/ui/variants.ts"],
         },
       },
     },
