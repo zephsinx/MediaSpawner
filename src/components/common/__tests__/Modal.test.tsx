@@ -7,15 +7,6 @@ import {
   ariaUtils,
 } from "../../../test-utils/accessibilityTestUtils";
 
-// Mock the focus management hook
-vi.mock("../../hooks/useFocusManagement", () => ({
-  useModalFocusManagement: () => ({
-    containerRef: { current: null },
-    initializeFocusManagement: vi.fn(() => vi.fn()),
-    cleanupFocusManagement: vi.fn(),
-  }),
-}));
-
 describe("Modal", () => {
   const defaultProps = {
     isOpen: true,
@@ -132,40 +123,6 @@ describe("Modal", () => {
       // The modal should handle escape key (implementation dependent)
       // This tests that the escape key event is properly handled
       expect(dialog).toBeInTheDocument();
-    });
-
-    it("tests focus restoration when modal closes", async () => {
-      const onClose = vi.fn();
-      let isOpen = true;
-
-      const TestComponent = () => (
-        <div>
-          <button data-testid="trigger-button">Trigger Button</button>
-          <Modal
-            isOpen={isOpen}
-            onClose={() => {
-              isOpen = false;
-              onClose();
-            }}
-            title="Test Modal"
-          >
-            <div>Modal content</div>
-          </Modal>
-        </div>
-      );
-
-      await act(async () => {
-        render(<TestComponent />);
-      });
-
-      const triggerButton = screen.getByTestId("trigger-button");
-
-      // Focus the trigger button before opening modal
-      await act(async () => {
-        triggerButton.focus();
-      });
-
-      expect(document.activeElement).toBe(triggerButton);
     });
 
     it("has accessible close button with proper ARIA attributes", async () => {

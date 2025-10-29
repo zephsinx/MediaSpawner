@@ -286,11 +286,11 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
     const spawnRef = useRef(spawn);
     const spawnAssetRef = useRef(spawnAsset);
 
-    // Keep refs in sync (no dependencies - runs after every render)
+    // Keep refs in sync
     useEffect(() => {
       spawnRef.current = spawn;
       spawnAssetRef.current = spawnAsset;
-    });
+    }, [spawn, spawnAsset]);
 
     // Stable event listener - only re-registered when IDs change
     useEffect(() => {
