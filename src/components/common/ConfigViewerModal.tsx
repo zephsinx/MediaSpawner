@@ -77,6 +77,7 @@ export function ConfigViewerModal({ isOpen, onClose }: ConfigViewerModalProps) {
       isOpen={isOpen}
       onClose={handleClose}
       title="Configuration JSON"
+      description="View the complete MediaSpawner configuration that would be sent to Streamer.bot"
       size="xl"
     >
       <div className="space-y-6">

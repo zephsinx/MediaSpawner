@@ -92,7 +92,7 @@ export function ProfileDeletionDialog({
   const getProfileInfo = () => {
     const spawnCount = profile.spawns.length;
     const enabledSpawnCount = profile.spawns.filter(
-      (spawn) => spawn.enabled
+      (spawn) => spawn.enabled,
     ).length;
 
     return (

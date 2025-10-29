@@ -368,7 +368,7 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
 
       const key = generateCacheKey(spawnId, spawnAssetId);
       if (process.env.NODE_ENV === "development") {
-        console.debug("Clearing cache entry:", key);
+        console.debug("Clearing asset draft cache entry:", key);
       }
       const newCache = { ...assetDraftCacheRef.current };
       delete newCache[key];
@@ -385,7 +385,10 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
 
       const key = generateCacheKey(spawnId, spawnAssetId);
       if (process.env.NODE_ENV === "development") {
-        console.debug("Clearing cache entry (unsafe):", key);
+        console.debug(
+          "Clearing asset draft cache entry (unsafe system operation):",
+          key,
+        );
       }
       const newCache = { ...assetDraftCacheRef.current };
       delete newCache[key];
@@ -396,7 +399,7 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
 
   const clearAllCacheEntries = useCallback(() => {
     if (process.env.NODE_ENV === "development") {
-      console.debug("Clearing all cache entries");
+      console.debug("Clearing all asset draft cache entries");
     }
     assetDraftCacheRef.current = {};
   }, []);
@@ -449,7 +452,9 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
   // Clear all cache entries when spawn changes to prevent cross-spawn contamination
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
-      console.debug("Spawn changed, clearing all cache entries");
+      console.debug(
+        "Spawn changed, clearing all asset draft cache entries to prevent cross-spawn contamination",
+      );
     }
     clearAllCacheEntries();
   }, [selectedSpawnId, clearAllCacheEntries]);
@@ -660,7 +665,9 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
   useEffect(() => {
     return () => {
       if (process.env.NODE_ENV === "development") {
-        console.debug("Component unmounting, clearing cache");
+        console.debug(
+          "Component unmounting, clearing all asset draft cache entries",
+        );
       }
       clearAllCacheEntries();
     };
@@ -869,7 +876,9 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
 
           // Clear cache when discarding changes to prevent stale data
           if (process.env.NODE_ENV === "development") {
-            console.debug("Discarding changes, clearing cache");
+            console.debug(
+              "Discarding unsaved changes, clearing asset draft cache to prevent stale data",
+            );
           }
           clearAllCacheEntries();
 
@@ -917,7 +926,7 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
           // Clear cache when switching modes to prevent contamination
           if (process.env.NODE_ENV === "development") {
             console.debug(
-              "Mode switch confirmed, clearing cache for mode change",
+              "Mode switch confirmed, clearing asset draft cache to prevent contamination between modes",
             );
           }
           clearAllCacheEntries();
@@ -991,7 +1000,9 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
 
             // Clear cache when deleting spawn to prevent stale data
             if (process.env.NODE_ENV === "development") {
-              console.debug("Spawn deleted, clearing cache");
+              console.debug(
+                "Spawn deleted, clearing asset draft cache to prevent stale data",
+              );
             }
             clearAllCacheEntries();
 
@@ -1050,9 +1061,16 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
       ) : (
         <div className="h-full flex flex-col">
           <div className="p-4 border-b border-[rgb(var(--color-border))] bg-[rgb(var(--color-muted))]/5">
-            <h2 className="text-lg font-semibold text-[rgb(var(--color-fg))]">
-              Spawn Editor
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-[rgb(var(--color-fg))]">
+                Spawn Editor
+              </h2>
+              {hasUnsavedChanges && (
+                <span className="text-[rgb(var(--color-warning))] text-sm font-medium">
+                  • Unsaved changes
+                </span>
+              )}
+            </div>
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mt-1">
               <p className="text-sm text-[rgb(var(--color-muted-foreground))]">
                 {selectedSpawn

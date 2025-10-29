@@ -242,7 +242,17 @@ export function ProfileFormDialog({
     Object.keys(errors).length === 0;
 
   return (
-    <Modal isOpen={isOpen} onClose={handleCancel} title={dialogTitle} size="md">
+    <Modal
+      isOpen={isOpen}
+      onClose={handleCancel}
+      title={dialogTitle}
+      description={
+        isEditMode
+          ? "Edit the profile settings below"
+          : "Create a new spawn profile with the settings below"
+      }
+      size="md"
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Profile Name Field */}
         <Input

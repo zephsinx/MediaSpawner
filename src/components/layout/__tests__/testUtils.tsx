@@ -10,7 +10,7 @@ import { LayoutProvider } from "../LayoutContext";
  */
 export const renderWithLayoutProvider = (
   ui: React.ReactElement,
-  options?: Omit<RenderOptions, "wrapper">
+  options?: Omit<RenderOptions, "wrapper">,
 ) => {
   const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <LayoutProvider>{children}</LayoutProvider>
@@ -26,7 +26,7 @@ export const renderWithLayoutProvider = (
  */
 export const renderWithAllProviders = (
   ui: React.ReactElement,
-  options?: Omit<RenderOptions, "wrapper">
+  options?: Omit<RenderOptions, "wrapper">,
 ) => {
   const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <MemoryRouter>

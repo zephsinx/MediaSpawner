@@ -5,7 +5,7 @@ export type DeepEqualOptions = {
 export function deepEqual(
   a: unknown,
   b: unknown,
-  options: DeepEqualOptions = {}
+  options: DeepEqualOptions = {},
 ): boolean {
   const { ignoreKeys } = options;
 
@@ -29,10 +29,10 @@ export function deepEqual(
     const objB = b as Record<string, unknown>;
 
     const keysA = Object.keys(objA).filter(
-      (k) => !(ignoreKeys && ignoreKeys.has(k))
+      (k) => !(ignoreKeys && ignoreKeys.has(k)),
     );
     const keysB = Object.keys(objB).filter(
-      (k) => !(ignoreKeys && ignoreKeys.has(k))
+      (k) => !(ignoreKeys && ignoreKeys.has(k)),
     );
 
     if (keysA.length !== keysB.length) return false;

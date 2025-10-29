@@ -37,7 +37,7 @@ export function PathInput({
   const [currentValue, setCurrentValue] = useState(value);
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined
+    undefined,
   );
 
   const debouncedValidation = useCallback(
@@ -60,7 +60,7 @@ export function PathInput({
         }
       }, VALIDATION_DEBOUNCE_MS);
     },
-    [onChange, isDirty]
+    [onChange, isDirty],
   );
 
   // Sync currentValue when prop value changes
@@ -129,13 +129,13 @@ export function PathInput({
       currentValue &&
       validationState.isValid &&
       "border-[rgb(var(--color-success))] bg-[rgb(var(--color-success))]/10",
-    className
+    className,
   );
 
   const buttonClasses = cn(
     "px-4 py-2 ml-2 bg-[rgb(var(--color-muted))] border border-[rgb(var(--color-border))] rounded-md",
     "cursor-not-allowed opacity-50 text-[rgb(var(--color-muted-foreground))]",
-    "transition-colors duration-200"
+    "transition-colors duration-200",
   );
 
   return (

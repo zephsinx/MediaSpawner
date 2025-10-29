@@ -48,7 +48,7 @@ describe("randomization buckets validation", () => {
     const result = validateRandomizationBuckets(candidate);
     expect(result.isValid).toBe(false);
     expect(
-      result.errors.some((e) => e.includes("appears in multiple buckets"))
+      result.errors.some((e) => e.includes("appears in multiple buckets")),
     ).toBe(true);
   });
 
@@ -95,7 +95,7 @@ describe("randomization buckets validation", () => {
     });
     expect(afterDelete.randomizationBuckets?.[0].members).toHaveLength(1);
     expect(afterDelete.randomizationBuckets?.[0].members[0].spawnAssetId).toBe(
-      sa1.id
+      sa1.id,
     );
   });
 });

@@ -286,11 +286,11 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
     const spawnRef = useRef(spawn);
     const spawnAssetRef = useRef(spawnAsset);
 
-    // Keep refs in sync (no dependencies - runs after every render)
+    // Keep refs in sync
     useEffect(() => {
       spawnRef.current = spawn;
       spawnAssetRef.current = spawnAsset;
-    });
+    }, [spawn, spawnAsset]);
 
     // Stable event listener - only re-registered when IDs change
     useEffect(() => {
@@ -647,6 +647,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                       onBlur={() => handleBlur("dimensions")}
                       className={getInputClassName("dimensions")}
                       aria-describedby="dimensions-error"
+                      tabIndex={1}
                     />
                     {validationErrors.dimensions && (
                       <p
@@ -688,6 +689,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                       }}
                       onBlur={() => handleBlur("dimensions")}
                       className={getInputClassName("dimensions")}
+                      tabIndex={2}
                     />
                   </div>
 
@@ -719,6 +721,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                       onBlur={() => handleBlur("position")}
                       className={getInputClassName("position")}
                       aria-describedby="position-error"
+                      tabIndex={3}
                     />
                     {validationErrors.position && (
                       <p
@@ -756,6 +759,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                       }}
                       onBlur={() => handleBlur("position")}
                       className={getInputClassName("position")}
+                      tabIndex={4}
                     />
                   </div>
 
@@ -802,7 +806,8 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                                 });
                               }
                             }}
-                            className="rounded"
+                            className="rounded focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
+                            tabIndex={5}
                           />
                           Unlinked
                         </label>
@@ -851,6 +856,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                                 onBlur={() => handleBlur("scale")}
                                 className={getInputClassName("scale")}
                                 aria-describedby="scale-error"
+                                tabIndex={6}
                               />
                             </div>
                             <div className="flex-1">
@@ -890,6 +896,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                                 onBlur={() => handleBlur("scale")}
                                 className={getInputClassName("scale")}
                                 aria-describedby="scale-error"
+                                tabIndex={7}
                               />
                             </div>
                           </>
@@ -922,6 +929,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                             onBlur={() => handleBlur("scale")}
                             className={cn(getInputClassName("scale"), "w-24")}
                             aria-describedby="scale-error"
+                            tabIndex={6}
                           />
                         )}
                       </div>
@@ -958,6 +966,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                         }
                       }}
                       className="mt-0.5 rounded focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
+                      tabIndex={8}
                     />
                     <span className="text-sm text-[rgb(var(--color-muted-foreground))]">
                       Enable random positioning
@@ -988,6 +997,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                       )
                     }
                     className={getInputClassName()}
+                    tabIndex={9}
                   >
                     <option value="absolute">Absolute (px)</option>
                     <option value="relative">Relative (%)</option>
@@ -1018,9 +1028,10 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                           rotation: error,
                         }));
                       }}
-                      className="flex-1 h-2 bg-[rgb(var(--color-border))] rounded-lg appearance-none cursor-pointer focus-visible:outline-none"
+                      className="flex-1 h-2 bg-[rgb(var(--color-border))] rounded-lg appearance-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
                       aria-label="Rotation slider"
                       aria-describedby="rotation-error"
+                      tabIndex={10}
                     />
                     <input
                       type="number"
@@ -1040,6 +1051,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                       id="rotation-input"
                       aria-label="Rotation input"
                       aria-describedby="rotation-error"
+                      tabIndex={11}
                     />
                   </div>
 
@@ -1094,6 +1106,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                         onBlur={() => handleBlur("crop")}
                         className={getInputClassName("crop")}
                         aria-describedby="crop-error"
+                        tabIndex={12}
                       />
                     </div>
                     <div>
@@ -1131,6 +1144,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                         onBlur={() => handleBlur("crop")}
                         className={getInputClassName("crop")}
                         aria-describedby="crop-error"
+                        tabIndex={13}
                       />
                     </div>
                     <div>
@@ -1168,6 +1182,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                         onBlur={() => handleBlur("crop")}
                         className={getInputClassName("crop")}
                         aria-describedby="crop-error"
+                        tabIndex={14}
                       />
                     </div>
                     <div>
@@ -1205,6 +1220,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                         onBlur={() => handleBlur("crop")}
                         className={getInputClassName("crop")}
                         aria-describedby="crop-error"
+                        tabIndex={15}
                       />
                     </div>
                   </div>
@@ -1236,6 +1252,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                     onBlur={() => handleBlur("boundsType")}
                     className={getInputClassName("boundsType")}
                     aria-describedby="bounds-type-error"
+                    tabIndex={16}
                   >
                     <option value="">Select bounds type...</option>
                     <option value="OBS_BOUNDS_NONE">None</option>
@@ -1278,6 +1295,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                     onBlur={() => handleBlur("alignment")}
                     className={getInputClassName("alignment")}
                     aria-describedby="alignment-error"
+                    tabIndex={17}
                   >
                     <option value="">Select alignment...</option>
                     <option value="0">Top Left</option>
@@ -1332,9 +1350,10 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                             volume: error,
                           }));
                         }}
-                        className="flex-1 h-2 bg-[rgb(var(--color-border))] rounded-lg appearance-none cursor-pointer focus-visible:outline-none"
+                        className="flex-1 h-2 bg-[rgb(var(--color-border))] rounded-lg appearance-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
                         aria-label="Volume slider"
                         aria-describedby="volume-help volume-error"
+                        tabIndex={18}
                       />
                       <input
                         type="number"
@@ -1350,6 +1369,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                         onBlur={() => handleBlur("volume")}
                         className={cn(getInputClassName("volume"), "w-20")}
                         aria-describedby="volume-help volume-error"
+                        tabIndex={19}
                       />
                     </div>
 
@@ -1380,6 +1400,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                       }
                       onBlur={() => handleBlur("monitorType")}
                       className={getInputClassName("monitorType")}
+                      tabIndex={20}
                     >
                       <option value="">Not set (OBS default)</option>
                       <option value="monitor-only">Monitor Only</option>
@@ -1395,6 +1416,8 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                         type="checkbox"
                         checked={!!draftValues.loop}
                         onChange={(e) => setField("loop", e.target.checked)}
+                        className="focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
+                        tabIndex={21}
                       />
                       Loop
                     </label>
@@ -1404,6 +1427,8 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                         type="checkbox"
                         checked={!!draftValues.muted}
                         onChange={(e) => setField("muted", e.target.checked)}
+                        className="focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
+                        tabIndex={22}
                       />
                       Muted
                     </label>

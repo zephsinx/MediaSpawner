@@ -67,7 +67,7 @@ export function ImportExportSection({
         // Download the configuration file
         await downloadConfiguration(
           JSON.parse(result.data),
-          "mediaspawner-config"
+          "mediaspawner-config",
         );
 
         // Show success message with metadata
@@ -137,7 +137,7 @@ export function ImportExportSection({
       // Call the import service
       const result = await ImportExportService.importConfiguration(
         fileContent,
-        options
+        options,
       );
 
       if (result.success) {
@@ -150,7 +150,7 @@ export function ImportExportSection({
 
         // Dispatch event to refresh the UI
         window.dispatchEvent(
-          new CustomEvent("mediaspawner:configuration-imported")
+          new CustomEvent("mediaspawner:configuration-imported"),
         );
       } else {
         throw new Error(result.error || "Import failed");

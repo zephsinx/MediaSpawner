@@ -33,41 +33,41 @@ describe("triggerDisplay helpers", () => {
 
   it("labels types correctly", () => {
     expect(
-      getTriggerTypeLabel({ type: "manual", enabled: true, config: {} })
+      getTriggerTypeLabel({ type: "manual", enabled: true, config: {} }),
     ).toBe("Manual");
     expect(
       getTriggerTypeLabel({
         type: "streamerbot.command",
         enabled: true,
         config: {},
-      })
+      }),
     ).toBe("Cmd");
     expect(
       getTriggerTypeLabel({
         type: "time.dailyAt",
         enabled: true,
         config: { time: "09:00", timezone: "UTC" },
-      })
+      }),
     ).toBe("Daily");
   });
 
   it("builds abbrev strings", () => {
     expect(
-      getTriggerAbbrev({ type: "manual", enabled: true, config: {} })
+      getTriggerAbbrev({ type: "manual", enabled: true, config: {} }),
     ).toBe("Manual");
     expect(
       getTriggerAbbrev({
         type: "streamerbot.command",
         enabled: true,
         config: { aliases: ["go"] },
-      })
+      }),
     ).toBe("Cmd: go");
     expect(
       getTriggerAbbrev({
         type: "time.minuteOfHour",
         enabled: true,
         config: { minute: 5, timezone: "UTC" },
-      })
+      }),
     ).toBe("At :05 each hour");
   });
 

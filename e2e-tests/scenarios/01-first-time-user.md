@@ -9,6 +9,7 @@ Verify that a new user with no existing data can successfully create their first
 - Production preview server running at `http://localhost:4173`
 - Clean localStorage (no existing MediaSpawner data)
 - Fresh browser session or cleared storage
+- Note: Application always creates a default profile on first load
 
 ## Steps
 
@@ -46,7 +47,7 @@ Verify that a new user with no existing data can successfully create their first
 
 **Expected**:
 
-- Profile dropdown exists (may be empty or have default profile)
+- Profile dropdown exists with default profile already created
 - "Create Profile" button visible in UI
 - Left panel (Spawns) shows empty state or loading
 
@@ -63,6 +64,7 @@ Verify that a new user with no existing data can successfully create their first
 - Dialog/modal opens with title "Create Profile"
 - Form fields for profile name and description visible
 - Save/Create button visible
+- Note: This creates an additional profile alongside the default one
 
 ### 6. Fill Profile Form
 
@@ -103,9 +105,10 @@ fill_form([
 
 **Expected**:
 
-- Profile selector shows "My First Profile"
+- Profile selector shows "My First Profile" (newly created profile)
 - Application is now fully accessible
 - Spawns panel shows empty state with "No Spawns Found" message
+- Note: Default profile still exists and can be switched to
 
 ### 9. Verify Empty Spawns State
 
@@ -166,10 +169,11 @@ fill_form([
 
 ## Cleanup
 
-This scenario creates one profile named "My First Profile". Subsequent tests can use this profile or create additional ones as needed.
+This scenario creates one additional profile named "My First Profile" alongside the default profile. Subsequent tests can use either profile or create additional ones as needed.
 
 ## Common Issues
 
 - **Dialog doesn't open**: Check that button UID is correct, take fresh snapshot
 - **Profile not appearing**: Wait longer for async operation, check console for errors
 - **Empty state not showing**: Profile may have pre-existing spawns from previous test, ensure clean localStorage
+- **Default profile confusion**: Remember that a default profile always exists, even with clean localStorage

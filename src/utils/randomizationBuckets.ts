@@ -5,7 +5,9 @@ export interface RandomizationBucketsValidationResult {
   errors: string[];
 }
 
-export function validateRandomizationBuckets(spawn: Spawn): RandomizationBucketsValidationResult {
+export function validateRandomizationBuckets(
+  spawn: Spawn,
+): RandomizationBucketsValidationResult {
   const errors: string[] = [];
   const buckets = spawn.randomizationBuckets || [];
 
@@ -31,12 +33,12 @@ export function validateRandomizationBuckets(spawn: Spawn): RandomizationBuckets
     for (const m of bucket.members) {
       if (!spawnAssetIds.has(m.spawnAssetId)) {
         errors.push(
-          `Bucket ${bucket.name} references missing spawn asset ${m.spawnAssetId}`
+          `Bucket ${bucket.name} references missing spawn asset ${m.spawnAssetId}`,
         );
       }
       if (uniqueMembers.has(m.spawnAssetId)) {
         errors.push(
-          `Bucket ${bucket.name} has duplicate member ${m.spawnAssetId}`
+          `Bucket ${bucket.name} has duplicate member ${m.spawnAssetId}`,
         );
       } else {
         uniqueMembers.add(m.spawnAssetId);
@@ -48,14 +50,14 @@ export function validateRandomizationBuckets(spawn: Spawn): RandomizationBuckets
         errors.push(
           `Spawn asset ${m.spawnAssetId} appears in multiple buckets (${
             memberToBucket[m.spawnAssetId]
-          } and ${bucket.id})`
+          } and ${bucket.id})`,
         );
       } else {
         memberToBucket[m.spawnAssetId] = bucket.id;
       }
       if (bucket.weighted && m.weight !== undefined && m.weight <= 0) {
         errors.push(
-          `Bucket ${bucket.name} member ${m.spawnAssetId} has non-positive weight`
+          `Bucket ${bucket.name} member ${m.spawnAssetId} has non-positive weight`,
         );
       }
     }
@@ -67,7 +69,7 @@ export function validateRandomizationBuckets(spawn: Spawn): RandomizationBuckets
 
     if (bucket.selection === "n" && bucket.n && bucket.n > enabledMemberCount) {
       errors.push(
-        `Bucket ${bucket.name} selects ${bucket.n} but only ${enabledMemberCount} enabled members`
+        `Bucket ${bucket.name} selects ${bucket.n} but only ${enabledMemberCount} enabled members`,
       );
     }
 

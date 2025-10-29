@@ -46,7 +46,7 @@ const Input = React.forwardRef<
       children,
       ...props
     },
-    ref
+    ref,
   ) => {
     const generatedId = React.useId();
     const inputId = id || generatedId;
@@ -59,8 +59,8 @@ const Input = React.forwardRef<
       (type === "select"
         ? "select"
         : type === "textarea"
-        ? "textarea"
-        : "input");
+          ? "textarea"
+          : "input");
 
     // Determine the actual variant based on error state
     const actualVariant = error ? "error" : variant;
@@ -141,7 +141,7 @@ const Input = React.forwardRef<
         )}
       </div>
     );
-  }
+  },
 );
 Input.displayName = "Input";
 

@@ -36,7 +36,7 @@ export class SpawnService {
    */
   static async createSpawn(
     name: string,
-    description?: string
+    description?: string,
   ): Promise<SpawnOperationResult> {
     try {
       const activeProfile = SpawnProfileService.getActiveProfile();
@@ -83,7 +83,7 @@ export class SpawnService {
       const updatedSpawns = [...activeProfile.spawns, newSpawn];
       const updateResult = this.updateProfileSpawns(
         activeProfile.id,
-        updatedSpawns
+        updatedSpawns,
       );
 
       if (!updateResult.success) {
@@ -139,7 +139,7 @@ export class SpawnService {
         | "enabled"
         | "randomizationBuckets"
       >
-    >
+    >,
   ): Promise<SpawnOperationResult> {
     try {
       const activeProfile = SpawnProfileService.getActiveProfile();
@@ -152,7 +152,7 @@ export class SpawnService {
       }
 
       const spawnIndex = activeProfile.spawns.findIndex(
-        (spawn) => spawn.id === id
+        (spawn) => spawn.id === id,
       );
       if (spawnIndex === -1) {
         return {
@@ -167,7 +167,7 @@ export class SpawnService {
       if (updates.name && updates.name !== currentSpawn.name) {
         if (
           activeProfile.spawns.some(
-            (spawn) => spawn.id !== id && spawn.name === updates.name!.trim()
+            (spawn) => spawn.id !== id && spawn.name === updates.name!.trim(),
           )
         ) {
           return {
@@ -193,7 +193,7 @@ export class SpawnService {
         return {
           success: false,
           error: `Invalid randomization buckets: ${bucketValidation.errors.join(
-            ", "
+            ", ",
           )}`,
         };
       }
@@ -213,7 +213,7 @@ export class SpawnService {
 
       const updateResult = this.updateProfileSpawns(
         activeProfile.id,
-        updatedSpawns
+        updatedSpawns,
       );
 
       if (!updateResult.success) {
@@ -227,8 +227,8 @@ export class SpawnService {
         window.dispatchEvent(
           new CustomEvent(
             "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-            { detail: { spawnId: updatedSpawn.id } } as CustomEventInit
-          )
+            { detail: { spawnId: updatedSpawn.id } } as CustomEventInit,
+          ),
         );
       } catch {
         // Best-effort notification
@@ -259,7 +259,7 @@ export class SpawnService {
       }
 
       const spawnIndex = activeProfile.spawns.findIndex(
-        (spawn) => spawn.id === id
+        (spawn) => spawn.id === id,
       );
       if (spawnIndex === -1) {
         return {
@@ -272,7 +272,7 @@ export class SpawnService {
 
       // Remove spawn from profile
       const updatedSpawns = activeProfile.spawns.filter(
-        (spawn) => spawn.id !== id
+        (spawn) => spawn.id !== id,
       );
 
       // Reorder remaining spawns to maintain sequential order
@@ -282,7 +282,7 @@ export class SpawnService {
 
       const updateResult = this.updateProfileSpawns(
         activeProfile.id,
-        updatedSpawns
+        updatedSpawns,
       );
 
       if (!updateResult.success) {
@@ -320,7 +320,7 @@ export class SpawnService {
       }
 
       const spawnIndex = activeProfile.spawns.findIndex(
-        (spawn) => spawn.id === id
+        (spawn) => spawn.id === id,
       );
       if (spawnIndex === -1) {
         return {
@@ -349,7 +349,7 @@ export class SpawnService {
 
       const updateResult = this.updateProfileSpawns(
         activeProfile.id,
-        updatedSpawns
+        updatedSpawns,
       );
 
       if (!updateResult.success) {
@@ -387,7 +387,7 @@ export class SpawnService {
       }
 
       const spawnIndex = activeProfile.spawns.findIndex(
-        (spawn) => spawn.id === id
+        (spawn) => spawn.id === id,
       );
       if (spawnIndex === -1) {
         return {
@@ -416,7 +416,7 @@ export class SpawnService {
 
       const updateResult = this.updateProfileSpawns(
         activeProfile.id,
-        updatedSpawns
+        updatedSpawns,
       );
 
       if (!updateResult.success) {
@@ -487,7 +487,7 @@ export class SpawnService {
 
       const totalSpawns = activeProfile.spawns.length;
       const enabledSpawns = activeProfile.spawns.filter(
-        (spawn) => spawn.enabled
+        (spawn) => spawn.enabled,
       ).length;
 
       return {
@@ -513,12 +513,12 @@ export class SpawnService {
    */
   private static updateProfileSpawns(
     profileId: string,
-    spawns: Spawn[]
+    spawns: Spawn[],
   ): SpawnOperationResult {
     try {
       const profiles = SpawnProfileService.getAllProfiles();
       const profileIndex = profiles.findIndex(
-        (profile) => profile.id === profileId
+        (profile) => profile.id === profileId,
       );
 
       if (profileIndex === -1) {
