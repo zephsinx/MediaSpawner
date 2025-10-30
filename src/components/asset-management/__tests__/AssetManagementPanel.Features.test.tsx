@@ -5,6 +5,7 @@ import {
   act,
   fireEvent,
   waitFor,
+  within,
 } from "@testing-library/react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import AssetManagementPanel from "../AssetManagementPanel";
@@ -23,12 +24,72 @@ vi.mock("../../../services/assetService", () => ({
   AssetService: {
     getAssets: vi.fn(),
     getAssetById: vi.fn(),
+    updateAsset: vi.fn(),
+    isNameAvailable: vi.fn(),
   },
 }));
 
 // Mock usePanelState hook with current architecture
 vi.mock("../../../hooks/useLayout", () => ({
   usePanelState: vi.fn(),
+}));
+
+// Mock Radix UI DropdownMenu to avoid complexity in tests
+vi.mock("@radix-ui/react-dropdown-menu", () => ({
+  Root: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="dropdown-root">{children}</div>
+  ),
+  Trigger: ({
+    children,
+    asChild,
+  }: {
+    children: React.ReactNode;
+    asChild?: boolean;
+  }) =>
+    asChild ? (
+      <>{children}</>
+    ) : (
+      <div data-testid="dropdown-trigger">{children}</div>
+    ),
+  Portal: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="dropdown-portal">{children}</div>
+  ),
+  Content: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="dropdown-content" role="menu">
+      {children}
+    </div>
+  ),
+  Item: ({
+    children,
+    onSelect,
+    disabled,
+    ...props
+  }: {
+    children: React.ReactNode;
+    onSelect?: (e: Event) => void;
+    disabled?: boolean;
+    [key: string]: unknown;
+  }) => (
+    <div
+      data-testid="dropdown-item"
+      role="menuitem"
+      onClick={(e) => {
+        if (!disabled && onSelect) {
+          onSelect(e as unknown as Event);
+        }
+      }}
+      style={{
+        opacity: disabled ? 0.5 : 1,
+        cursor: disabled ? "not-allowed" : "pointer",
+      }}
+      aria-disabled={disabled}
+      {...props}
+    >
+      {children}
+    </div>
+  ),
+  Separator: () => <hr data-testid="dropdown-separator" />,
+  Arrow: () => <div data-testid="dropdown-arrow" />,
 }));
 
 // Imports after mocks
@@ -549,6 +610,219 @@ describe("AssetManagementPanel (Advanced Features)", () => {
 
       // After clicking configure, the center panel mode will be changed in context; we just ensure no crash and button exists
       expect(configureBtn).toBeInTheDocument();
+    });
+  });
+
+  describe("Asset Rename (Menu + Inline)", () => {
+    it("spawn row kebab → Rename → saves unique name", async () => {
+      vi.mocked(usePanelState).mockReturnValue({
+        selectedSpawnId: "s1",
+        activeProfileId: undefined,
+        liveProfileId: undefined,
+        selectedSpawnAssetId: undefined,
+        centerPanelMode: "spawn-settings",
+        hasUnsavedChanges: false,
+        changeType: "none",
+        profileSpawnSelections: {},
+        setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
+        selectSpawn: vi.fn(),
+        selectSpawnAsset: vi.fn(),
+        setCenterPanelMode: vi.fn(),
+        setUnsavedChanges: vi.fn(),
+        clearContext: vi.fn(),
+      });
+
+      const asset = makeAsset({ id: "a1", name: "Old" });
+      const sa = makeSpawnAsset(asset.id, 0);
+      const spawn = makeSpawn("s1", [sa]);
+      vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
+      vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
+      vi.mocked(AssetService.getAssets).mockReturnValue([asset]);
+      vi.mocked(AssetService.isNameAvailable).mockImplementation(
+        (n, id) => n.toLowerCase() !== "old" || id === "a1",
+      );
+      vi.mocked(AssetService.updateAsset).mockReturnValue(true);
+
+      render(<AssetManagementPanel />);
+
+      const spawnSection = screen.getByRole("region", {
+        name: "Assets in Current Spawn",
+      });
+      const withinSpawn = within(spawnSection);
+      const more = await withinSpawn.findByRole("button", {
+        name: "More actions",
+      });
+      await act(async () => {
+        fireEvent.click(more);
+      });
+      const renameItem = withinSpawn.getByRole("menuitem", { name: "Rename" });
+      await act(async () => {
+        fireEvent.click(renameItem);
+      });
+
+      const input = await screen.findByLabelText("Rename asset");
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "New" } });
+        fireEvent.keyDown(input, { key: "Enter" });
+      });
+
+      expect(AssetService.updateAsset).toHaveBeenCalled();
+    });
+
+    it("inline double-click then Esc cancels without saving", async () => {
+      vi.mocked(usePanelState).mockReturnValue({
+        selectedSpawnId: "s1",
+        activeProfileId: undefined,
+        liveProfileId: undefined,
+        selectedSpawnAssetId: undefined,
+        centerPanelMode: "spawn-settings",
+        hasUnsavedChanges: false,
+        changeType: "none",
+        profileSpawnSelections: {},
+        setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
+        selectSpawn: vi.fn(),
+        selectSpawnAsset: vi.fn(),
+        setCenterPanelMode: vi.fn(),
+        setUnsavedChanges: vi.fn(),
+        clearContext: vi.fn(),
+      });
+
+      const asset = makeAsset({ id: "a1", name: "Old" });
+      const sa = makeSpawnAsset(asset.id, 0);
+      const spawn = makeSpawn("s1", [sa]);
+      vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
+      vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
+      vi.mocked(AssetService.getAssets).mockReturnValue([asset]);
+      vi.mocked(AssetService.isNameAvailable).mockReturnValue(true);
+
+      render(<AssetManagementPanel />);
+
+      const nameEl = await screen.findByText("Old");
+      await act(async () => {
+        fireEvent.doubleClick(nameEl);
+      });
+
+      const input = await screen.findByLabelText("Rename asset");
+      await act(async () => {
+        fireEvent.keyDown(input, { key: "Escape" });
+      });
+
+      expect(AssetService.updateAsset).not.toHaveBeenCalled();
+    });
+
+    it("prevents duplicate name and shows error (no save)", async () => {
+      vi.mocked(usePanelState).mockReturnValue({
+        selectedSpawnId: "s1",
+        activeProfileId: undefined,
+        liveProfileId: undefined,
+        selectedSpawnAssetId: undefined,
+        centerPanelMode: "spawn-settings",
+        hasUnsavedChanges: false,
+        changeType: "none",
+        profileSpawnSelections: {},
+        setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
+        selectSpawn: vi.fn(),
+        selectSpawnAsset: vi.fn(),
+        setCenterPanelMode: vi.fn(),
+        setUnsavedChanges: vi.fn(),
+        clearContext: vi.fn(),
+      });
+
+      const a1 = makeAsset({ id: "a1", name: "One" });
+      const a2 = makeAsset({ id: "a2", name: "Two" });
+      const sa = makeSpawnAsset(a1.id, 0);
+      const spawn = makeSpawn("s1", [sa]);
+      vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
+      vi.mocked(AssetService.getAssetById).mockReturnValue(a1);
+      vi.mocked(AssetService.getAssets).mockReturnValue([a1, a2]);
+      vi.mocked(AssetService.isNameAvailable).mockImplementation((n, id) =>
+        [a1, a2].every(
+          (x) => x.id === id || x.name.toLowerCase() !== n.toLowerCase(),
+        ),
+      );
+      vi.mocked(AssetService.updateAsset).mockReturnValue(true);
+
+      render(<AssetManagementPanel />);
+
+      const spawnSection = screen.getByRole("region", {
+        name: "Assets in Current Spawn",
+      });
+      const withinSpawn = within(spawnSection);
+      const more = await withinSpawn.findByRole("button", {
+        name: "More actions",
+      });
+      await act(async () => {
+        fireEvent.click(more);
+      });
+      const renameItem = withinSpawn.getByRole("menuitem", { name: "Rename" });
+      await act(async () => {
+        fireEvent.click(renameItem);
+      });
+      const input = await screen.findByLabelText("Rename asset");
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "Two" } });
+        fireEvent.keyDown(input, { key: "Enter" });
+      });
+
+      expect(AssetService.updateAsset).not.toHaveBeenCalled();
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Name must be unique",
+      );
+    });
+
+    it("library row kebab → Rename → saves unique name", async () => {
+      vi.mocked(usePanelState).mockReturnValue({
+        selectedSpawnId: undefined,
+        activeProfileId: undefined,
+        liveProfileId: undefined,
+        selectedSpawnAssetId: undefined,
+        centerPanelMode: "spawn-settings",
+        hasUnsavedChanges: false,
+        changeType: "none",
+        profileSpawnSelections: {},
+        setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
+        selectSpawn: vi.fn(),
+        selectSpawnAsset: vi.fn(),
+        setCenterPanelMode: vi.fn(),
+        setUnsavedChanges: vi.fn(),
+        clearContext: vi.fn(),
+      });
+
+      const a1 = makeAsset({ id: "a1", name: "Old" });
+      vi.mocked(AssetService.getAssets).mockReturnValue([a1]);
+      vi.mocked(AssetService.isNameAvailable).mockImplementation(
+        (n, id) => n.toLowerCase() !== "old" || id === "a1",
+      );
+      vi.mocked(AssetService.updateAsset).mockReturnValue(true);
+
+      render(<AssetManagementPanel />);
+
+      const librarySection = screen.getByRole("region", {
+        name: "Asset Library",
+      });
+      const withinLibrary = within(librarySection);
+      const more = await withinLibrary.findByRole("button", {
+        name: "More actions",
+      });
+      await act(async () => {
+        fireEvent.click(more);
+      });
+      const renameItem = withinLibrary.getByRole("menuitem", {
+        name: "Rename",
+      });
+      await act(async () => {
+        fireEvent.click(renameItem);
+      });
+      const input = await screen.findByLabelText("Rename asset");
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "New" } });
+        fireEvent.keyDown(input, { key: "Enter" });
+      });
+      expect(AssetService.updateAsset).toHaveBeenCalled();
     });
   });
 });
