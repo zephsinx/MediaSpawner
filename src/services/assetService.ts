@@ -55,6 +55,19 @@ export class AssetService {
   }
 
   /**
+   * Check if a name is available (case-insensitive), excluding an optional asset id
+   */
+  static isNameAvailable(name: string, exceptId?: string): boolean {
+    const trimmed = name.trim();
+    if (trimmed.length === 0) return false;
+    const lower = trimmed.toLowerCase();
+    const assets = this.getAssets();
+    return !assets.some(
+      (a) => a.id !== exceptId && a.name.trim().toLowerCase() === lower,
+    );
+  }
+
+  /**
    * Save assets to storage and invalidate cache
    */
   static saveAssets(assets: MediaAsset[]): void {

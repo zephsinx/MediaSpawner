@@ -205,6 +205,9 @@ function SpawnAssetsSection() {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [removeError, setRemoveError] = useState<string | null>(null);
+  const [renamingAssetId, setRenamingAssetId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState<string>("");
+  const [renameError, setRenameError] = useState<string | null>(null);
 
   // Draft state for asset operations
   const [draftAssets, setDraftAssets] = useState<SpawnAsset[] | null>(null);
@@ -368,6 +371,37 @@ function SpawnAssetsSection() {
       .filter(Boolean) as ResolvedSpawnAsset[];
     return items;
   }, [currentAssets]);
+
+  const startRename = (asset: MediaAsset) => {
+    setRenamingAssetId(asset.id);
+    setRenameValue(asset.name);
+    setRenameError(null);
+  };
+
+  const cancelRename = () => {
+    setRenamingAssetId(null);
+    setRenameValue("");
+    setRenameError(null);
+  };
+
+  const commitRename = (asset: MediaAsset) => {
+    const next = renameValue.trim();
+    if (next.length === 0) {
+      setRenameError("Name is required");
+      return;
+    }
+    if (!AssetService.isNameAvailable(next, asset.id)) {
+      setRenameError("Name must be unique");
+      return;
+    }
+    const ok = AssetService.updateAsset({ ...asset, name: next });
+    if (ok) {
+      toast.success(`Renamed to "${next}"`);
+      cancelRename();
+    } else {
+      toast.error("Failed to rename asset");
+    }
+  };
 
   const renderEmptyState = () => {
     if (!selectedSpawnId) {
@@ -592,22 +626,55 @@ function SpawnAssetsSection() {
                       className="text-sm font-medium text-[rgb(var(--color-fg))] truncate"
                       title={baseAsset.name}
                     >
-                      <Tooltip.Root>
-                        <Tooltip.Trigger asChild>
-                          <span className="truncate inline-block max-w-full align-middle">
-                            {baseAsset.name}
-                          </span>
-                        </Tooltip.Trigger>
-                        <Tooltip.Portal>
-                          <Tooltip.Content
-                            sideOffset={6}
-                            className="z-10 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-2 py-1 text-xs text-[rgb(var(--color-fg))] shadow-md"
-                          >
-                            {baseAsset.name}
-                            <Tooltip.Arrow className="fill-[rgb(var(--color-bg))]" />
-                          </Tooltip.Content>
-                        </Tooltip.Portal>
-                      </Tooltip.Root>
+                      {renamingAssetId === baseAsset.id ? (
+                        <div className="flex flex-col gap-1">
+                          <input
+                            aria-label="Rename asset"
+                            value={renameValue}
+                            onChange={(e) => {
+                              setRenameValue(e.target.value);
+                              if (renameError) setRenameError(null);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                commitRename(baseAsset);
+                              } else if (e.key === "Escape") {
+                                cancelRename();
+                              }
+                            }}
+                            onBlur={() => cancelRename()}
+                            className="w-full px-2 py-1 border border-[rgb(var(--color-border))] rounded text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
+                          />
+                          {renameError && (
+                            <div
+                              className="text-xs text-[rgb(var(--color-error))]"
+                              role="alert"
+                            >
+                              {renameError}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <Tooltip.Root>
+                          <Tooltip.Trigger asChild>
+                            <span
+                              className="truncate inline-block max-w-full align-middle"
+                              onDoubleClick={() => startRename(baseAsset)}
+                            >
+                              {baseAsset.name}
+                            </span>
+                          </Tooltip.Trigger>
+                          <Tooltip.Portal>
+                            <Tooltip.Content
+                              sideOffset={6}
+                              className="z-10 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-2 py-1 text-xs text-[rgb(var(--color-fg))] shadow-md"
+                            >
+                              {baseAsset.name}
+                              <Tooltip.Arrow className="fill-[rgb(var(--color-bg))]" />
+                            </Tooltip.Content>
+                          </Tooltip.Portal>
+                        </Tooltip.Root>
+                      )}
                     </div>
                     <div className="text-xs text-[rgb(var(--color-muted-foreground))] flex items-center gap-1.5">
                       <span className="inline-flex items-center gap-1 capitalize bg-[rgb(var(--color-muted))]/10 text-[rgb(var(--color-fg))] px-1.5 py-0.5 rounded">
@@ -702,6 +769,13 @@ function SpawnAssetsSection() {
                           sideOffset={6}
                           className="z-10 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] shadow-md p-1 text-sm"
                         >
+                          <DropdownMenu.Item
+                            className="px-3 py-2 rounded data-[highlighted]:bg-[rgb(var(--color-muted))]/5 outline-none cursor-pointer"
+                            onSelect={() => startRename(baseAsset)}
+                          >
+                            Rename
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Separator className="my-1 h-px bg-[rgb(var(--color-border))]" />
                           <DropdownMenu.Item
                             className="px-3 py-2 rounded data-[highlighted]:bg-[rgb(var(--color-muted))]/5 outline-none cursor-pointer"
                             onSelect={() => {
@@ -823,6 +897,9 @@ function AssetLibrarySection() {
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const listRef = React.useRef<HTMLUListElement | null>(null);
   const [activeIndex, setActiveIndex] = useState<number>(-1);
+  const [renamingAssetId, setRenamingAssetId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState<string>("");
+  const [renameError, setRenameError] = useState<string | null>(null);
 
   useEffect(() => {
     // Initial load
@@ -1040,6 +1117,38 @@ function AssetLibrarySection() {
     );
   };
 
+  const startRename = (asset: MediaAsset) => {
+    setRenamingAssetId(asset.id);
+    setRenameValue(asset.name);
+    setRenameError(null);
+  };
+
+  const cancelRename = () => {
+    setRenamingAssetId(null);
+    setRenameValue("");
+    setRenameError(null);
+  };
+
+  const commitRename = (asset: MediaAsset) => {
+    const next = renameValue.trim();
+    if (next.length === 0) {
+      setRenameError("Name is required");
+      return;
+    }
+    if (!AssetService.isNameAvailable(next, asset.id)) {
+      setRenameError("Name must be unique");
+      return;
+    }
+    const ok = AssetService.updateAsset({ ...asset, name: next });
+    if (ok) {
+      toast.success(`Renamed to "${next}"`);
+      cancelRename();
+      setAssets(AssetService.getAssets());
+    } else {
+      toast.error("Failed to rename asset");
+    }
+  };
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="flex-shrink-0 px-3 py-2 lg:px-4 lg:py-3 bg-[rgb(var(--color-muted))]/5 border-b border-[rgb(var(--color-border))]">
@@ -1202,22 +1311,55 @@ function AssetLibrarySection() {
                       className="text-sm font-medium text-[rgb(var(--color-fg))] truncate"
                       title={asset.name}
                     >
-                      <Tooltip.Root>
-                        <Tooltip.Trigger asChild>
-                          <span className="truncate inline-block max-w-full align-middle">
-                            {asset.name}
-                          </span>
-                        </Tooltip.Trigger>
-                        <Tooltip.Portal>
-                          <Tooltip.Content
-                            sideOffset={6}
-                            className="z-10 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-2 py-1 text-xs text-[rgb(var(--color-fg))] shadow-md"
-                          >
-                            {asset.name}
-                            <Tooltip.Arrow className="fill-[rgb(var(--color-bg))]" />
-                          </Tooltip.Content>
-                        </Tooltip.Portal>
-                      </Tooltip.Root>
+                      {renamingAssetId === asset.id ? (
+                        <div className="flex flex-col gap-1">
+                          <input
+                            aria-label="Rename asset"
+                            value={renameValue}
+                            onChange={(e) => {
+                              setRenameValue(e.target.value);
+                              if (renameError) setRenameError(null);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                commitRename(asset);
+                              } else if (e.key === "Escape") {
+                                cancelRename();
+                              }
+                            }}
+                            onBlur={() => cancelRename()}
+                            className="w-full px-2 py-1 border border-[rgb(var(--color-border))] rounded text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
+                          />
+                          {renameError && (
+                            <div
+                              className="text-xs text-[rgb(var(--color-error))]"
+                              role="alert"
+                            >
+                              {renameError}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <Tooltip.Root>
+                          <Tooltip.Trigger asChild>
+                            <span
+                              className="truncate inline-block max-w-full align-middle"
+                              onDoubleClick={() => startRename(asset)}
+                            >
+                              {asset.name}
+                            </span>
+                          </Tooltip.Trigger>
+                          <Tooltip.Portal>
+                            <Tooltip.Content
+                              sideOffset={6}
+                              className="z-10 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-2 py-1 text-xs text-[rgb(var(--color-fg))] shadow-md"
+                            >
+                              {asset.name}
+                              <Tooltip.Arrow className="fill-[rgb(var(--color-bg))]" />
+                            </Tooltip.Content>
+                          </Tooltip.Portal>
+                        </Tooltip.Root>
+                      )}
                     </div>
                     <div className="text-xs text-[rgb(var(--color-muted-foreground))] flex items-center gap-2">
                       <span className="inline-flex items-center gap-1 capitalize bg-[rgb(var(--color-muted))]/10 text-[rgb(var(--color-fg))] px-1.5 py-0.5 rounded">
@@ -1256,6 +1398,31 @@ function AssetLibrarySection() {
                         +
                       </button>
                     )}
+                    <DropdownMenu.Root>
+                      <DropdownMenu.Trigger asChild>
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] text-[rgb(var(--color-fg))] hover:bg-[rgb(var(--color-muted))]/5 p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
+                          aria-label="More actions"
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+                      </DropdownMenu.Trigger>
+                      <DropdownMenu.Portal>
+                        <DropdownMenu.Content
+                          sideOffset={6}
+                          className="z-10 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] shadow-md p-1 text-sm"
+                        >
+                          <DropdownMenu.Item
+                            className="px-3 py-2 rounded data-[highlighted]:bg-[rgb(var(--color-muted))]/5 outline-none cursor-pointer"
+                            onSelect={() => startRename(asset)}
+                          >
+                            Rename
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Arrow className="fill-[rgb(var(--color-bg))]" />
+                        </DropdownMenu.Content>
+                      </DropdownMenu.Portal>
+                    </DropdownMenu.Root>
                   </div>
                 </div>
               </li>
