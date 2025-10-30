@@ -192,6 +192,46 @@ fill_form([
 - Screenshot shows asset library with multiple assets
 - All asset cards rendered correctly
 
+### 13.1 Rename Asset from Library (kebab menu)
+
+**Action**:
+
+1. Take snapshot of Asset Library list to capture UIDs
+2. Locate the row for "Test Image Asset"
+3. Click its per-row kebab (⋮) button (aria-label: "More actions")
+4. Click "Rename"
+5. When inline input appears, type "Test Image Asset Renamed" and press Enter
+
+**Expected**:
+
+- Success toast appears
+- The asset row updates to show "Test Image Asset Renamed"
+- Subsequent searches by the new name find the asset
+
+### 13.2 Inline rename via double-click
+
+**Action**:
+
+1. Double-click the asset name "Test Video Asset"
+2. Type "Test Video Asset Renamed" and press Enter
+
+**Expected**:
+
+- Asset name updates to "Test Video Asset Renamed"
+- No dialog; inline edit completes with success toast
+
+### 13.3 Uniqueness validation (duplicate name rejected)
+
+**Action**:
+
+1. Double-click the asset name "Test Audio Asset"
+2. Type an existing name (e.g., "Test Image Asset Renamed") and press Enter
+
+**Expected**:
+
+- Inline error appears: "Name must be unique"
+- Rename is not saved; asset name remains unchanged after canceling or blurring
+
 ### 14. Return to Main View
 
 **Action**:
@@ -213,6 +253,9 @@ fill_form([
 - [ ] Assets appear in list immediately after creation
 - [ ] Asset data persists in localStorage
 - [ ] Type badges/icons display correctly
+- [ ] Can rename from Asset Library via kebab (⋮) and double-click
+- [ ] Duplicate names are rejected with clear inline error
+- [ ] Renamed assets are discoverable via search
 - [ ] No console errors during operations
 
 ## Performance Target

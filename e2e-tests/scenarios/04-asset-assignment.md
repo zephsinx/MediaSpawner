@@ -147,6 +147,30 @@ Verify the workflow for assigning assets from the library to spawns and viewing 
 - Status text indicates assets added (e.g., "+3 assets")
 - Note: Asset assignments require explicit save (manual save model)
 
+### 10.1 Rename asset in spawn section (kebab menu)
+
+**Action**:
+
+1. In "Assets in Current Spawn", take snapshot to capture UIDs
+2. On the row for "Test Image Asset", click kebab (⋮) → "Rename"
+3. Type "Test Image Asset (Spawn)" and press Enter
+
+**Expected**:
+
+- Success toast appears
+- The row updates to "Test Image Asset (Spawn)"
+- No spawn-level unsaved change is introduced solely by renaming (manual-save model unaffected)
+
+### 10.2 Inline rename via double-click
+
+**Action**: Double-click the name on "Test Video Asset" → type "Test Video Asset (Spawn)" → Enter
+
+**Expected**:
+
+- Name updates immediately in spawn section
+- The Asset Library section shows updated names as well
+- Randomization bucket chip, type badges, and order display still render correctly
+
 ### 11. Save Asset Assignments
 
 **Action**:
@@ -236,6 +260,9 @@ Verify the workflow for assigning assets from the library to spawns and viewing 
 - [ ] Assets appear immediately in spawn section after adding
 - [ ] Asset count updates correctly
 - [ ] Asset type indicators display correctly
+- [ ] Can rename assigned assets via kebab (⋮) and double-click
+- [ ] Rename does not create spawn-level unsaved changes
+- [ ] Library reflects renamed asset names
 - [ ] Can remove assets from spawn
 - [ ] Removed assets return to available library
 - [ ] Asset assignments persist when switching spawns
