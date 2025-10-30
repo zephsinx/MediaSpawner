@@ -10,19 +10,19 @@
   --color-ring: 99 102 241; /* indigo-500 */
 
   /* Color System - Neutral Grays */
-  --color-bg: 248 250 252; /* gray-50 - softer background */
+  --color-bg: 249 247 243; /* stone-50 - warmer background */
   --color-fg: 17 24 39; /* gray-900 */
   --color-muted: 107 114 128; /* gray-500 */
   --color-muted-foreground: 75 85 99; /* gray-600 */
-  --color-border: 229 231 235; /* gray-200 */
-  --color-border-strong: 209 213 219; /* gray-300 */
-  --color-input: 255 255 255; /* white */
-  --color-input-border: 209 213 219; /* gray-300 */
+  --color-border: 229 226 223; /* stone-200 - warmer border */
+  --color-border-strong: 209 206 203; /* stone-300 - warmer border */
+  --color-input: 252 251 249; /* stone-50 - warm off-white */
+  --color-input-border: 209 206 203; /* stone-300 */
 
   /* Surface Layer Tokens */
-  --color-surface-1: 255 255 255; /* white - highest surface */
-  --color-surface-2: 248 250 252; /* gray-50 - medium surface */
-  --color-surface-3: 241 245 249; /* gray-100 - lowest surface */
+  --color-surface-1: 252 251 249; /* stone-50 - warm off-white */
+  --color-surface-2: 250 249 247; /* stone-50 - warm gray */
+  --color-surface-3: 248 245 243; /* stone-50 - warm surface */
 
   /* Color System - Semantic Colors */
   --color-success: 16 185 129; /* emerald-500 */
