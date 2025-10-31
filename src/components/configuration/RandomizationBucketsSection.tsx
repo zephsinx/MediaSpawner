@@ -364,7 +364,7 @@ export const RandomizationBucketsSection: React.FC<
             </div>
           </div>
           {createForm.selection === "n" && (
-            <>
+            <div className="flex items-center gap-2">
               <label
                 htmlFor="bucket-n"
                 className="text-sm text-[rgb(var(--color-muted-foreground))]"
@@ -385,7 +385,7 @@ export const RandomizationBucketsSection: React.FC<
                 className="w-20 px-2 py-1 text-sm border border-[rgb(var(--color-border))] bg-[rgb(var(--color-input))] text-[rgb(var(--color-fg))] rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
                 tabIndex={4}
               />
-            </>
+            </div>
           )}
           <div className="flex items-center gap-4"></div>
           <div className="flex justify-end gap-2 pt-2">
@@ -466,18 +466,21 @@ export const RandomizationBucketsSection: React.FC<
                 return (
                   <label
                     key={sa.id}
-                    className="flex items-center gap-2 text-sm border border-[rgb(var(--color-border))] rounded p-2"
+                    className="flex items-center gap-2 text-sm border border-[rgb(var(--color-border))] rounded p-2 cursor-pointer"
                   >
                     <input
                       type="checkbox"
                       checked={inBucket}
                       onChange={() => toggleMember(memberEditFor, sa.id)}
-                      className="focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
+                      className="flex-shrink-0 focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
                       tabIndex={3 + index}
                     />
                     <Tooltip.Root>
                       <Tooltip.Trigger asChild>
-                        <span className="text-[rgb(var(--color-fg))] truncate">
+                        <span
+                          className="text-[rgb(var(--color-fg))] truncate"
+                          tabIndex={-1}
+                        >
                           {base?.name || sa.assetId}
                         </span>
                       </Tooltip.Trigger>

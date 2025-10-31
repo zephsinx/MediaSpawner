@@ -10,6 +10,10 @@ import AssetSettingsForm from "../AssetSettingsForm";
 import type { Spawn, SpawnAsset } from "../../../../types/spawn";
 import type { MediaAsset, MediaAssetProperties } from "../../../../types/media";
 import { createSpawn, createSpawnAsset } from "../../../../types/spawn";
+import {
+  keyboardUtils,
+  tabOrderUtils,
+} from "../../../../test-utils/accessibilityTestUtils";
 
 // Mock services
 vi.mock("../../../../services/spawnService", () => ({
@@ -1506,6 +1510,198 @@ describe("AssetSettingsForm", () => {
             .checked,
         ).toBe(initialLoop);
       });
+    });
+  });
+
+  describe("Tooltip Tab Order Accessibility", () => {
+    it("tooltip triggers are not focusable via Tab key", async () => {
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />,
+      );
+
+      // Wait for component to load
+      await waitFor(() => {
+        expect(screen.getByText("Test Video · video")).toBeInTheDocument();
+      });
+
+      // Get all focusable elements in the form (excluding tabIndex={-1})
+      const form =
+        screen.getByText("Asset Settings").closest("form") || document.body;
+      const allFocusableElements = tabOrderUtils.getFocusableElements(
+        form as HTMLElement,
+      );
+
+      // Filter out elements with tabIndex={-1} since the utility doesn't exclude them for buttons
+      const focusableElements = allFocusableElements.filter((element) => {
+        const tabIndex = element.getAttribute("tabIndex");
+        return tabIndex !== "-1";
+      });
+
+      // Find all tooltip trigger buttons
+      const tooltipButtons = Array.from(
+        document.querySelectorAll('button[aria-label="More information"]'),
+      ) as HTMLElement[];
+
+      // Verify tooltip buttons have tabIndex=-1
+      tooltipButtons.forEach((tooltipButton) => {
+        expect(tooltipButton).toHaveAttribute("tabIndex", "-1");
+      });
+
+      // Verify tooltip buttons are not in the focusable elements list (after filtering)
+      tooltipButtons.forEach((tooltipButton) => {
+        expect(focusableElements).not.toContain(tooltipButton);
+      });
+    });
+
+    it("keyboard navigation flows directly between form fields", async () => {
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />,
+      );
+
+      // Wait for component to load
+      await waitFor(() => {
+        expect(screen.getByText("Test Video · video")).toBeInTheDocument();
+      });
+
+      // Find form inputs
+      const numberInputs = screen.getAllByRole("spinbutton");
+      const widthInput = numberInputs.find((input) =>
+        input.getAttribute("aria-describedby")?.includes("dimensions-error"),
+      );
+      if (!widthInput) throw new Error("Width input not found");
+
+      // Focus first input
+      await act(async () => {
+        widthInput.focus();
+      });
+
+      expect(document.activeElement).toBe(widthInput);
+
+      // Tab to next focusable element
+      await act(async () => {
+        keyboardUtils.tab();
+      });
+
+      // Find height input (should be the next input)
+      const heightInput = numberInputs.find(
+        (input) =>
+          input
+            .getAttribute("aria-describedby")
+            ?.includes("dimensions-error") && input !== widthInput,
+      );
+
+      // Verify focus moved to next input, not to a tooltip button
+      const activeElement = document.activeElement;
+      expect(activeElement).not.toBeNull();
+
+      // Verify we did not focus a tooltip button
+      if (activeElement) {
+        const isTooltipButton =
+          activeElement.getAttribute("aria-label") === "More information";
+        expect(isTooltipButton).toBe(false);
+      }
+
+      // If height input exists, verify focus is on it or another input
+      if (heightInput && activeElement) {
+        const isFormInput =
+          activeElement.tagName.toLowerCase() === "input" ||
+          activeElement.tagName.toLowerCase() === "select" ||
+          activeElement.tagName.toLowerCase() === "textarea";
+        expect(isFormInput).toBe(true);
+      }
+    });
+
+    it("tooltips still appear on hover", async () => {
+      // Since Radix Tooltip is mocked, we can't test actual tooltip display
+      // But we can verify the tooltip structure is present and accessible
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />,
+      );
+
+      // Wait for component to load
+      await waitFor(() => {
+        expect(screen.getByText("Test Video · video")).toBeInTheDocument();
+      });
+
+      // Find tooltip trigger buttons
+      const tooltipButtons = screen.getAllByLabelText("More information");
+
+      // Verify tooltip buttons are present
+      expect(tooltipButtons.length).toBeGreaterThan(0);
+
+      // Verify tooltip buttons are clickable (not disabled)
+      tooltipButtons.forEach((button) => {
+        expect(button).not.toBeDisabled();
+        expect(button).toBeInTheDocument();
+      });
+
+      // Simulate hover/click on tooltip button
+      const firstTooltipButton = tooltipButtons[0];
+      await act(async () => {
+        fireEvent.mouseEnter(firstTooltipButton);
+        fireEvent.click(firstTooltipButton);
+      });
+
+      // Verify button still exists and is interactive
+      expect(firstTooltipButton).toBeInTheDocument();
+      expect(firstTooltipButton).not.toBeDisabled();
+    });
+
+    it("focus order skips tooltip triggers when tabbing through form", async () => {
+      render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+        />,
+      );
+
+      // Wait for component to load
+      await waitFor(() => {
+        expect(screen.getByText("Test Video · video")).toBeInTheDocument();
+      });
+
+      // Get all focusable elements in tab order
+      const form =
+        screen.getByText("Asset Settings").closest("form") || document.body;
+      const allFocusableElements = tabOrderUtils.getFocusableElements(
+        form as HTMLElement,
+      );
+
+      // Filter out elements with tabIndex={-1} since the utility doesn't exclude them for buttons
+      const focusableElements = allFocusableElements.filter((element) => {
+        const tabIndex = element.getAttribute("tabIndex");
+        return tabIndex !== "-1";
+      });
+
+      // Get all tooltip buttons
+      const tooltipButtons = Array.from(
+        document.querySelectorAll('button[aria-label="More information"]'),
+      ) as HTMLElement[];
+
+      // Verify tooltip buttons have tabIndex=-1
+      tooltipButtons.forEach((tooltipButton) => {
+        expect(tooltipButton).toHaveAttribute("tabIndex", "-1");
+      });
+
+      // Verify no tooltip buttons are in the focusable elements list (after filtering)
+      const tooltipButtonsInTabOrder = focusableElements.filter((element) =>
+        tooltipButtons.includes(element),
+      );
+
+      expect(tooltipButtonsInTabOrder.length).toBe(0);
     });
   });
 });

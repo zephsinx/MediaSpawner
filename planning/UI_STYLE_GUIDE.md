@@ -334,11 +334,52 @@ Provide skip links for keyboard users to bypass repetitive navigation:
 
 #### Modal Focus Trapping
 
-All modals must trap focus and restore it when closed:
+**For Radix UI Dialog Components:**
+
+Radix Dialog provides built-in focus trapping, escape key handling, and focus restoration. Use Radix's APIs instead of custom hooks:
 
 ```tsx
-// ✅ CORRECT - Modal focus management
+// ✅ CORRECT - Using Radix Dialog APIs
 const Modal = ({ isOpen, onClose, children }) => {
+  return (
+    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay />
+        <Dialog.Content
+          onOpenAutoFocus={(e) => {
+            // Prevent default focus on close button
+            e.preventDefault();
+            // Focus first input field instead
+            const firstInput = e.currentTarget.querySelector(
+              'input:not([tabindex="-1"]):not([disabled]), textarea:not([tabindex="-1"]):not([disabled]), select:not([tabindex="-1"]):not([disabled])',
+            ) as HTMLElement | null;
+            firstInput?.focus();
+          }}
+        >
+          {children}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+};
+```
+
+**Alternative: Use `autoFocus` attribute** (simpler for single-input forms):
+
+```tsx
+// ✅ CORRECT - Using autoFocus attribute
+<Dialog.Content>
+  <input autoFocus /> {/* First input receives focus automatically */}
+</Dialog.Content>
+```
+
+**For Custom Modals (Non-Radix):**
+
+Use `useModalFocusManagement` hook for custom dialogs without Radix:
+
+```tsx
+// ✅ CORRECT - Custom modal focus management
+const CustomModal = ({ isOpen, onClose, children }) => {
   const focusManagement = useModalFocusManagement();
 
   useEffect(() => {
@@ -350,41 +391,11 @@ const Modal = ({ isOpen, onClose, children }) => {
     }
   }, [isOpen]); // ✅ Only depend on isOpen, not focusManagement
 
-  return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <Dialog.Content ref={focusManagement.containerRef}>
-        {children}
-      </Dialog.Content>
-    </Dialog.Root>
-  );
+  return <div ref={focusManagement.containerRef}>{children}</div>;
 };
 ```
 
 **⚠️ Important**: Do not include the `focusManagement` object in the dependency array. The hook returns a memoized object that only changes when its internal dependencies change, not on every render. Including it in dependencies causes the effect to re-run on every state change, which can steal focus from form inputs.
-
-> **Note**: This pattern applies to any custom hook that returns an object with methods, not just focus management hooks. Always be careful when including hook return values in useEffect dependencies.
-
-```tsx
-// ❌ WRONG - Causes focus loss in forms
-useEffect(() => {
-  if (isOpen) {
-    const cleanup = focusManagement.initializeFocusManagement(
-      focusManagement.containerRef.current,
-    );
-    return cleanup;
-  }
-}, [isOpen, focusManagement]); // ❌ focusManagement causes re-runs on every render
-
-// ✅ CORRECT - Stable dependencies
-useEffect(() => {
-  if (isOpen) {
-    const cleanup = focusManagement.initializeFocusManagement(
-      focusManagement.containerRef.current,
-    );
-    return cleanup;
-  }
-}, [isOpen]); // ✅ Only depend on isOpen
-```
 
 #### Focus Restoration
 

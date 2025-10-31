@@ -637,7 +637,10 @@ function SpawnAssetsSection() {
                     >
                       <Tooltip.Root>
                         <Tooltip.Trigger asChild>
-                          <span className="truncate inline-block max-w-full align-middle">
+                          <span
+                            className="truncate inline-block max-w-full align-middle"
+                            tabIndex={-1}
+                          >
                             {baseAsset.name}
                           </span>
                         </Tooltip.Trigger>
@@ -672,6 +675,7 @@ function SpawnAssetsSection() {
                                   <span
                                     className="inline-flex items-center justify-center bg-[rgb(var(--color-accent))]/10 text-[rgb(var(--color-accent))] w-6 h-6 rounded border border-[rgb(var(--color-accent))]"
                                     aria-label={`Bucket: ${bucket.name}`}
+                                    tabIndex={-1}
                                   >
                                     <Shuffle size={14} />
                                   </span>
@@ -1462,6 +1466,7 @@ function AssetLibrarySection() {
                             <span
                               className="truncate inline-block max-w-full align-middle"
                               onDoubleClick={() => startRename(asset)}
+                              tabIndex={-1}
                             >
                               {asset.name}
                             </span>
