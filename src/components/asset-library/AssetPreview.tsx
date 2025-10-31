@@ -245,7 +245,7 @@ export function AssetPreview({
       description={description}
       size="xl"
     >
-      <div className="overflow-x-hidden">
+      <div className="overflow-x-hidden w-full flex flex-col flex-1 min-h-0">
         <div className="flex items-center justify-end mb-2 gap-2">
           {(asset.type === "video" || asset.type === "audio") && canPreview && (
             <div role="group" aria-label="Media playback controls">
@@ -313,7 +313,7 @@ export function AssetPreview({
         )}
 
         <div
-          className="flex-1 min-h-0 flex items-center justify-center overflow-hidden"
+          className="w-full min-w-0 flex-1 min-h-0 flex items-center justify-center overflow-hidden"
           role="img"
           aria-label={`Preview of ${asset.name}`}
         >
@@ -323,7 +323,7 @@ export function AssetPreview({
         <div className="mt-4 bg-[rgb(var(--color-muted))]/10 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center space-x-4 text-sm text-[rgb(var(--color-muted-foreground))]">
+              <div className="flex items-center space-x-4 text-sm text-[rgb(var(--color-muted-foreground))] min-w-0">
                 <span className="capitalize font-medium">{asset.type}</span>
                 <span aria-hidden="true">•</span>
                 <span className="flex-1 min-w-0 truncate" title={asset.path}>
