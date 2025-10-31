@@ -711,6 +711,8 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
     validation.errors.length > 0 ||
     !bucketValidation.isValid;
 
+  const isCancelDisabled = !hasUnsavedChanges && !isDirty;
+
   const handleCancel = useCallback(() => {
     if (!selectedSpawn) return;
     if (isDirty) {
@@ -1110,6 +1112,7 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
                   onClick={handleCancel}
                   variant="outline"
                   size="sm"
+                  disabled={isCancelDisabled}
                   aria-label="Cancel edits"
                 >
                   Cancel
