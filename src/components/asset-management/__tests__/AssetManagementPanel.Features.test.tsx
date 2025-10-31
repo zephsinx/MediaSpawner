@@ -373,6 +373,129 @@ describe("AssetManagementPanel (Advanced Features)", () => {
     });
   });
 
+  describe("Pending changes diff (MS-??)", () => {
+    it("shows summary and allows expanding grouped diff for added assets", async () => {
+      vi.mocked(usePanelState).mockReturnValue({
+        selectedSpawnId: "s1",
+        activeProfileId: undefined,
+        liveProfileId: undefined,
+        selectedSpawnAssetId: undefined,
+        centerPanelMode: "spawn-settings",
+        hasUnsavedChanges: false,
+        changeType: "none",
+        profileSpawnSelections: {},
+        setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
+        selectSpawn: vi.fn(),
+        selectSpawnAsset: vi.fn(),
+        setCenterPanelMode: vi.fn(),
+        setUnsavedChanges: vi.fn(),
+        clearContext: vi.fn(),
+      });
+
+      const a1 = makeAsset({ id: "a1", name: "One" });
+      const a2 = makeAsset({ id: "a2", name: "Two" });
+      vi.mocked(AssetService.getAssets).mockReturnValue([a1, a2]);
+      const current = makeSpawn("s1", []);
+      vi.mocked(SpawnService.getSpawn).mockResolvedValue(current);
+
+      render(<AssetManagementPanel />);
+
+      // Add first asset to create draft
+      const addBtns = await screen.findAllByRole("button", {
+        name: "Add to Spawn",
+      });
+      await act(async () => {
+        addBtns[0].click();
+      });
+
+      // Summary appears with View changes
+      const summary = await screen.findByText(/asset\(s\)/i);
+      expect(summary).toBeInTheDocument();
+      const viewChanges = screen.getByRole("button", { name: /view changes/i });
+      expect(viewChanges).toBeInTheDocument();
+
+      // Expand and verify Added group
+      await act(async () => {
+        viewChanges.click();
+      });
+      const diffRegion = await screen.findByRole("region", {
+        name: /Pending changes/i,
+      });
+      const withinDiff = within(diffRegion);
+      expect(await withinDiff.findByText(/Added \(1\)/)).toBeInTheDocument();
+      expect(withinDiff.getByText("One")).toBeInTheDocument();
+    });
+
+    it("shows Reordered group details when only order changes", async () => {
+      vi.mocked(usePanelState).mockReturnValue({
+        selectedSpawnId: "s1",
+        activeProfileId: undefined,
+        liveProfileId: undefined,
+        selectedSpawnAssetId: undefined,
+        centerPanelMode: "spawn-settings",
+        hasUnsavedChanges: false,
+        changeType: "none",
+        profileSpawnSelections: {},
+        setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
+        selectSpawn: vi.fn(),
+        selectSpawnAsset: vi.fn(),
+        setCenterPanelMode: vi.fn(),
+        setUnsavedChanges: vi.fn(),
+        clearContext: vi.fn(),
+      });
+
+      const a1 = makeAsset({ id: "a1", name: "One" });
+      const a2 = makeAsset({ id: "a2", name: "Two" });
+      vi.mocked(AssetService.getAssets).mockReturnValue([a1, a2]);
+      const saved = makeSpawn("s1", [
+        makeSpawnAsset("a1", 0),
+        makeSpawnAsset("a2", 1),
+      ]);
+      vi.mocked(SpawnService.getSpawn).mockResolvedValue(saved);
+
+      render(<AssetManagementPanel />);
+
+      // Drag reorder via synthetic events
+      const spawnRegion = await screen.findByRole("region", {
+        name: "Assets in Current Spawn",
+      });
+      const items = await within(spawnRegion).findAllByRole("listitem");
+      await act(async () => {
+        const dataStore: Record<string, string> = {};
+        const dt = {
+          getData: vi.fn((format: string) => dataStore[format] || "1"),
+          setData: vi.fn(
+            (format: string, data: string) => (dataStore[format] = data),
+          ),
+          effectAllowed: "move",
+          dropEffect: "move",
+        } as unknown as DataTransfer;
+        fireEvent.dragStart(items[1], { dataTransfer: dt });
+        fireEvent.dragOver(items[0], { dataTransfer: dt });
+        fireEvent.drop(items[0], { dataTransfer: dt });
+      });
+
+      // Expand and verify Reordered section
+      const viewChanges = screen.getByRole("button", { name: /view changes/i });
+      await act(async () => {
+        viewChanges.click();
+      });
+      // Moving one item changes positions for two items
+      const diffRegion2 = await screen.findByRole("region", {
+        name: /Pending changes/i,
+      });
+      const withinDiff2 = within(diffRegion2);
+      expect(
+        await withinDiff2.findByText(/Reordered \(2\)/),
+      ).toBeInTheDocument();
+      expect(withinDiff2.getByText("Two")).toBeInTheDocument();
+      // shows index arrows text "#prev → #next"
+      expect(withinDiff2.getByText(/#1 → #0/)).toBeInTheDocument();
+    });
+  });
+
   describe("Drag & Drop Reordering (MS-39)", () => {
     it("reorders items creates draft state", async () => {
       const mockSetUnsavedChanges = vi.fn();

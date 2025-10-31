@@ -12,6 +12,10 @@ import {
 import { validateUrlFormat } from "../../utils/assetValidation";
 import { createSpawnAsset } from "../../types/spawn";
 import { Button } from "../ui/Button";
+import {
+  buildSpawnAssetsDiff,
+  type SpawnAssetsDiff,
+} from "../../utils/spawnAssetsDiff";
 import { HUICombobox } from "../common";
 import * as Popover from "@radix-ui/react-popover";
 import * as Tooltip from "@radix-ui/react-tooltip";
@@ -211,6 +215,7 @@ function SpawnAssetsSection() {
   const [draftAssets, setDraftAssets] = useState<SpawnAsset[] | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [showChanges, setShowChanges] = useState<boolean>(false);
 
   // Compute if there are unsaved asset changes
   const hasAssetChanges = useMemo(() => {
@@ -222,6 +227,11 @@ function SpawnAssetsSection() {
   useEffect(() => {
     setUnsavedChanges(hasAssetChanges, hasAssetChanges ? "spawn" : "none");
   }, [hasAssetChanges, setUnsavedChanges]);
+
+  // Reset expanded changes when draft cleared
+  useEffect(() => {
+    if (!hasAssetChanges) setShowChanges(false);
+  }, [hasAssetChanges]);
 
   useEffect(() => {
     let isActive = true;
@@ -389,6 +399,18 @@ function SpawnAssetsSection() {
       .filter(Boolean) as ResolvedSpawnAsset[];
     return items;
   }, [currentAssets, assets]);
+
+  // Compute grouped diff for Added / Removed / Reordered
+  const changesDiff: SpawnAssetsDiff | null = useMemo(() => {
+    if (!spawn || !draftAssets) return null;
+    return buildSpawnAssetsDiff(spawn.assets, draftAssets);
+  }, [spawn, draftAssets]);
+
+  const assetInfoById = useMemo(() => {
+    const map = new Map<string, MediaAsset>();
+    assets.forEach((a) => map.set(a.id, a));
+    return map;
+  }, [assets]);
 
   const renderEmptyState = () => {
     if (!selectedSpawnId) {
@@ -784,21 +806,34 @@ function SpawnAssetsSection() {
         <div className="flex-shrink-0 border-t border-[rgb(var(--color-border))] bg-[rgb(var(--color-muted))]/5 p-3 lg:p-4">
           <div className="flex items-center justify-between gap-3">
             <div className="text-xs text-[rgb(var(--color-muted-foreground))]">
-              {draftAssets &&
-              spawn &&
-              draftAssets.length !== spawn.assets.length ? (
-                <span className="text-[rgb(var(--color-warning))]">
-                  {draftAssets.length > spawn.assets.length
-                    ? `+${draftAssets.length - spawn.assets.length} asset(s)`
-                    : `${spawn.assets.length - draftAssets.length} asset(s) removed`}
-                </span>
-              ) : (
-                <span className="text-[rgb(var(--color-warning))]">
-                  Assets reordered
-                </span>
-              )}
+              {(() => {
+                const added = changesDiff?.added.length ?? 0;
+                const removed = changesDiff?.removed.length ?? 0;
+                const reordered = changesDiff?.reordered.length ?? 0;
+                const parts: string[] = [];
+                if (added > 0) parts.push(`+${added}`);
+                if (removed > 0) parts.push(`-${removed}`);
+                if (reordered > 0 && added === 0 && removed === 0)
+                  parts.push("Reordered");
+                return (
+                  <span className="text-[rgb(var(--color-warning))]">
+                    {parts.length > 0
+                      ? parts.join(" / ") + " asset(s)"
+                      : "Changes pending"}
+                  </span>
+                );
+              })()}
             </div>
             <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowChanges((v) => !v)}
+                aria-expanded={showChanges}
+                aria-controls="pending-asset-changes"
+              >
+                {showChanges ? "Hide changes" : "View changes"}
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
@@ -817,6 +852,141 @@ function SpawnAssetsSection() {
               </Button>
             </div>
           </div>
+          {showChanges && changesDiff && (
+            <div
+              id="pending-asset-changes"
+              role="region"
+              aria-labelledby="pending-asset-changes-heading"
+              className="mt-3 border border-[rgb(var(--color-border))] rounded-md bg-[rgb(var(--color-bg))] p-2"
+            >
+              <div
+                id="pending-asset-changes-heading"
+                className="text-xs font-medium text-[rgb(var(--color-fg))] mb-2"
+              >
+                Pending changes
+              </div>
+              <div className="space-y-2">
+                {changesDiff.added.length > 0 && (
+                  <div>
+                    <div className="text-xs text-[rgb(var(--color-muted-foreground))] mb-1">
+                      Added ({changesDiff.added.length})
+                    </div>
+                    <ul role="list" className="space-y-1">
+                      {changesDiff.added.map((it) => {
+                        const a = assetInfoById.get(it.assetId);
+                        return (
+                          <li
+                            role="listitem"
+                            key={`add-${it.assetId}`}
+                            className="text-xs text-[rgb(var(--color-fg))] flex items-center gap-2"
+                          >
+                            <span className="inline-flex items-center gap-1 capitalize bg-[rgb(var(--color-muted))]/10 text-[rgb(var(--color-fg))] px-1.5 py-0.5 rounded">
+                              <span>
+                                {a
+                                  ? a.type === "image"
+                                    ? "🖼️"
+                                    : a.type === "video"
+                                      ? "🎥"
+                                      : "🎵"
+                                  : ""}
+                              </span>
+                              <span>{a?.type ?? "asset"}</span>
+                            </span>
+                            <span className="truncate" title={a?.name}>
+                              {a?.name ?? it.assetId}
+                            </span>
+                            <span className="text-[rgb(var(--color-muted))]">
+                              •
+                            </span>
+                            <span className="text-[rgb(var(--color-muted-foreground))]">
+                              #{it.index}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+                {changesDiff.removed.length > 0 && (
+                  <div>
+                    <div className="text-xs text-[rgb(var(--color-muted-foreground))] mb-1">
+                      Removed ({changesDiff.removed.length})
+                    </div>
+                    <ul role="list" className="space-y-1">
+                      {changesDiff.removed.map((it) => {
+                        const a = assetInfoById.get(it.assetId);
+                        return (
+                          <li
+                            role="listitem"
+                            key={`rem-${it.assetId}`}
+                            className="text-xs text-[rgb(var(--color-fg))] flex items-center gap-2"
+                          >
+                            <span className="inline-flex items-center gap-1 capitalize bg-[rgb(var(--color-muted))]/10 text-[rgb(var(--color-fg))] px-1.5 py-0.5 rounded">
+                              <span>
+                                {a
+                                  ? a.type === "image"
+                                    ? "🖼️"
+                                    : a.type === "video"
+                                      ? "🎥"
+                                      : "🎵"
+                                  : ""}
+                              </span>
+                              <span>{a?.type ?? "asset"}</span>
+                            </span>
+                            <span className="truncate" title={a?.name}>
+                              {a?.name ?? it.assetId}
+                            </span>
+                            <span className="text-[rgb(var(--color-muted))]">
+                              •
+                            </span>
+                            <span className="text-[rgb(var(--color-muted-foreground))]">
+                              was #{it.prevIndex}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+                {changesDiff.reordered.length > 0 && (
+                  <div>
+                    <div className="text-xs text-[rgb(var(--color-muted-foreground))] mb-1">
+                      Reordered ({changesDiff.reordered.length})
+                    </div>
+                    <ul role="list" className="space-y-1">
+                      {changesDiff.reordered.map((it) => {
+                        const a = assetInfoById.get(it.assetId);
+                        return (
+                          <li
+                            role="listitem"
+                            key={`re-${it.assetId}`}
+                            className="text-xs text-[rgb(var(--color-fg))] flex items-center gap-2"
+                          >
+                            <span className="truncate" title={a?.name}>
+                              {a?.name ?? it.assetId}
+                            </span>
+                            <span className="text-[rgb(var(--color-muted))]">
+                              •
+                            </span>
+                            <span className="text-[rgb(var(--color-muted-foreground))]">
+                              #{it.prevIndex} → #{it.nextIndex}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+                {changesDiff.added.length === 0 &&
+                  changesDiff.removed.length === 0 &&
+                  changesDiff.reordered.length === 0 && (
+                    <div className="text-xs text-[rgb(var(--color-muted-foreground))]">
+                      No changes
+                    </div>
+                  )}
+              </div>
+            </div>
+          )}
           {saveError && (
             <div
               className="mt-2 text-xs text-[rgb(var(--color-error))]"
