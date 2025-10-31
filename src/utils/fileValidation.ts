@@ -34,11 +34,24 @@ export interface FileValidationResult {
   error?: string;
 }
 
-/**
- * Extract file extension from a file path or URL
- */
 export function getFileExtension(filePath: string): string {
-  // Remove query parameters and fragments from URLs
+  if (isValidUrl(filePath)) {
+    try {
+      const url = new URL(filePath);
+      const pathname = url.pathname;
+      const lastDot = pathname.lastIndexOf(".");
+      if (lastDot !== -1) {
+        const afterDot = pathname.substring(lastDot + 1);
+        const slashIndex = afterDot.indexOf("/");
+        if (slashIndex !== -1) {
+          return afterDot.substring(0, slashIndex).toLowerCase();
+        }
+        return afterDot.toLowerCase();
+      }
+    } catch {
+      // continue to file path logic on error
+    }
+  }
   const cleanPath = filePath.split("?")[0].split("#")[0];
 
   const lastDot = cleanPath.lastIndexOf(".");
