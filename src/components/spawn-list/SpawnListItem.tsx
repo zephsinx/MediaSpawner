@@ -148,10 +148,14 @@ const SpawnListItem: React.FC<SpawnListItemProps> = ({
                 onKeyDown={handleToggleKeyDown}
                 className="cursor-pointer"
                 tabIndex={0}
-                aria-label={`Toggle enabled state for ${spawn.name} (opens editor)`}
+                aria-label={`Toggle enabled state for ${spawn.name}`}
                 aria-describedby={`spawn-${spawn.id}-toggle-description`}
               >
-                <Switch checked={spawn.enabled} disabled={false} size="md" />
+                <Switch
+                  checked={spawn.enabled}
+                  disabled={isToggleProcessing}
+                  size="md"
+                />
               </div>
             </Tooltip.Trigger>
             <Tooltip.Portal>
@@ -159,7 +163,7 @@ const SpawnListItem: React.FC<SpawnListItemProps> = ({
                 sideOffset={6}
                 className="z-50 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-3 py-2 text-sm text-[rgb(var(--color-fg))] shadow-md"
               >
-                <div>Click to edit enabled state for {spawn.name}</div>
+                <div>Click to toggle enabled state for {spawn.name}</div>
                 <Tooltip.Arrow className="fill-[rgb(var(--color-bg))]" />
               </Tooltip.Content>
             </Tooltip.Portal>

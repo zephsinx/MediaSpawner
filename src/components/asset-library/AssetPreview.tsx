@@ -245,104 +245,106 @@ export function AssetPreview({
       description={description}
       size="xl"
     >
-      <div className="flex items-center justify-end mb-2 gap-2">
-        {(asset.type === "video" || asset.type === "audio") && canPreview && (
-          <div role="group" aria-label="Media playback controls">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handlePlayPause}
-              className="h-8 w-8 p-0"
-              aria-label={isPlaying ? "Pause playback" : "Play media"}
-            >
-              {isPlaying ? (
-                <Pause className="h-4 w-4" aria-hidden="true" />
-              ) : (
-                <Play className="h-4 w-4" aria-hidden="true" />
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleMuteToggle}
-              className="h-8 w-8 p-0"
-              aria-label={isMuted ? "Unmute audio" : "Mute audio"}
-            >
-              {isMuted ? (
-                <VolumeX className="h-4 w-4" aria-hidden="true" />
-              ) : (
-                <Volume2 className="h-4 w-4" aria-hidden="true" />
-              )}
-            </Button>
-          </div>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleDownload}
-          className="h-8 w-8 p-0"
-          aria-label={`Download ${asset.name}`}
-        >
-          <Download className="h-4 w-4" aria-hidden="true" />
-        </Button>
-      </div>
-
-      {hasPrevious && onPrevious && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onPrevious}
-          className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 h-12 w-12 p-0 bg-[rgb(var(--color-fg))]/50 hover:bg-[rgb(var(--color-fg))]/70 text-[rgb(var(--color-bg))]"
-          aria-label="View previous asset"
-        >
-          <ChevronLeft className="h-6 w-6" aria-hidden="true" />
-        </Button>
-      )}
-
-      {hasNext && onNext && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onNext}
-          className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 h-12 w-12 p-0 bg-[rgb(var(--color-fg))]/50 hover:bg-[rgb(var(--color-fg))]/70 text-[rgb(var(--color-bg))]"
-          aria-label="View next asset"
-        >
-          <ChevronRight className="h-6 w-6" aria-hidden="true" />
-        </Button>
-      )}
-
-      <div
-        className="flex-1 min-h-0 flex items-center justify-center overflow-hidden"
-        role="img"
-        aria-label={`Preview of ${asset.name}`}
-      >
-        {renderPreviewContent()}
-      </div>
-
-      <div className="mt-4 bg-[rgb(var(--color-muted))]/10 rounded-lg p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center space-x-4 text-sm text-[rgb(var(--color-muted-foreground))]">
-              <span className="capitalize font-medium">{asset.type}</span>
-              <span aria-hidden="true">•</span>
-              <span className="truncate" title={asset.path}>
-                {asset.path}
-              </span>
-              {videoDimensions && (
-                <>
-                  <span aria-hidden="true">•</span>
-                  <span>
-                    {videoDimensions.width} × {videoDimensions.height}
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
-          {(hasNext || hasPrevious) && (
-            <div className="flex-shrink-0 ml-4 text-sm text-[rgb(var(--color-muted))]">
-              Use ← → keys to navigate between assets
+      <div className="overflow-x-hidden">
+        <div className="flex items-center justify-end mb-2 gap-2">
+          {(asset.type === "video" || asset.type === "audio") && canPreview && (
+            <div role="group" aria-label="Media playback controls">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handlePlayPause}
+                className="h-8 w-8 p-0"
+                aria-label={isPlaying ? "Pause playback" : "Play media"}
+              >
+                {isPlaying ? (
+                  <Pause className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <Play className="h-4 w-4" aria-hidden="true" />
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleMuteToggle}
+                className="h-8 w-8 p-0"
+                aria-label={isMuted ? "Unmute audio" : "Mute audio"}
+              >
+                {isMuted ? (
+                  <VolumeX className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <Volume2 className="h-4 w-4" aria-hidden="true" />
+                )}
+              </Button>
             </div>
           )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleDownload}
+            className="h-8 w-8 p-0"
+            aria-label={`Download ${asset.name}`}
+          >
+            <Download className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        </div>
+
+        {hasPrevious && onPrevious && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onPrevious}
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 h-12 w-12 p-0 bg-[rgb(var(--color-fg))]/50 hover:bg-[rgb(var(--color-fg))]/70 text-[rgb(var(--color-bg))]"
+            aria-label="View previous asset"
+          >
+            <ChevronLeft className="h-6 w-6" aria-hidden="true" />
+          </Button>
+        )}
+
+        {hasNext && onNext && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onNext}
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 h-12 w-12 p-0 bg-[rgb(var(--color-fg))]/50 hover:bg-[rgb(var(--color-fg))]/70 text-[rgb(var(--color-bg))]"
+            aria-label="View next asset"
+          >
+            <ChevronRight className="h-6 w-6" aria-hidden="true" />
+          </Button>
+        )}
+
+        <div
+          className="flex-1 min-h-0 flex items-center justify-center overflow-hidden"
+          role="img"
+          aria-label={`Preview of ${asset.name}`}
+        >
+          {renderPreviewContent()}
+        </div>
+
+        <div className="mt-4 bg-[rgb(var(--color-muted))]/10 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center space-x-4 text-sm text-[rgb(var(--color-muted-foreground))]">
+                <span className="capitalize font-medium">{asset.type}</span>
+                <span aria-hidden="true">•</span>
+                <span className="flex-1 min-w-0 truncate" title={asset.path}>
+                  {asset.path}
+                </span>
+                {videoDimensions && (
+                  <>
+                    <span aria-hidden="true">•</span>
+                    <span>
+                      {videoDimensions.width} × {videoDimensions.height}
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+            {(hasNext || hasPrevious) && (
+              <div className="flex-shrink-0 ml-4 text-sm text-[rgb(var(--color-muted))]">
+                Use ← → keys to navigate between assets
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </Modal>

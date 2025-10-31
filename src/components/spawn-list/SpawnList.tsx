@@ -3,6 +3,7 @@ import type { Spawn } from "../../types/spawn";
 import { SpawnService } from "../../services/spawnService";
 import SpawnListItem from "./SpawnListItem";
 import { Button } from "../ui/Button";
+import { toast } from "sonner";
 
 /**
  * Props for the spawn list component
@@ -29,6 +30,9 @@ const SpawnList: React.FC<SpawnListProps> = ({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState<boolean>(false);
+  const [toggleProcessingIds, setToggleProcessingIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   useEffect(() => {
     const loadSpawns = async () => {
@@ -154,9 +158,78 @@ const SpawnList: React.FC<SpawnListProps> = ({
     onSpawnClick?.(spawn);
   };
 
-  const handleToggle = (spawn: Spawn) => {
-    // Select the spawn to open it in the editor where enabled can be changed
-    handleSpawnClick(spawn);
+  const handleToggle = async (spawn: Spawn) => {
+    // Prevent multiple simultaneous toggles for the same spawn
+    if (toggleProcessingIds.has(spawn.id)) {
+      return;
+    }
+
+    // Optimistically update local state
+    const previousSpawn = spawn;
+    const optimisticSpawn = {
+      ...spawn,
+      enabled: !spawn.enabled,
+    };
+    setSpawns((prev) =>
+      prev.map((s) => (s.id === spawn.id ? optimisticSpawn : s)),
+    );
+    setToggleProcessingIds((prev) => new Set(prev).add(spawn.id));
+
+    try {
+      // Call service method based on current state
+      const result = spawn.enabled
+        ? await SpawnService.disableSpawn(spawn.id)
+        : await SpawnService.enableSpawn(spawn.id);
+
+      if (result.success && result.spawn) {
+        // Update with actual spawn from service
+        setSpawns((prev) =>
+          prev.map((s) => (s.id === spawn.id ? result.spawn! : s)),
+        );
+
+        // Dispatch event to notify other panels
+        try {
+          window.dispatchEvent(
+            new CustomEvent(
+              "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+              {
+                detail: {
+                  spawnId: result.spawn.id,
+                  updatedSpawn: result.spawn,
+                },
+              } as CustomEventInit,
+            ),
+          );
+        } catch {
+          // Best-effort notification
+        }
+      } else {
+        // Revert optimistic update on error
+        setSpawns((prev) =>
+          prev.map((s) => (s.id === spawn.id ? previousSpawn : s)),
+        );
+        // Show error toast if available
+        if (result.error) {
+          toast.error(result.error);
+        }
+      }
+    } catch (error) {
+      // Revert optimistic update on exception
+      setSpawns((prev) =>
+        prev.map((s) => (s.id === spawn.id ? previousSpawn : s)),
+      );
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to toggle spawn enabled state",
+      );
+    } finally {
+      setToggleProcessingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(spawn.id);
+        return next;
+      });
+    }
   };
 
   const generateDefaultName = (existing: string[]): string => {
@@ -393,6 +466,7 @@ const SpawnList: React.FC<SpawnListProps> = ({
             isSelected={spawn.id === selectedSpawnId}
             onClick={handleSpawnClick}
             onToggle={handleToggle}
+            isToggleProcessing={toggleProcessingIds.has(spawn.id)}
             itemRef={(el) => {
               itemRefs.current[index] = el;
             }}

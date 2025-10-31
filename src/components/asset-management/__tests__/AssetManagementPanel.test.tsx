@@ -283,6 +283,11 @@ describe("AssetManagementPanel (Core Functionality)", () => {
           return makeAsset({ id: "a3", type: "audio", name: "Third" });
         return makeAsset({ id });
       });
+      vi.mocked(AssetService.getAssets).mockReturnValue([
+        makeAsset({ id: "a1", type: "image", name: "First" }),
+        makeAsset({ id: "a2", type: "video", name: "Second" }),
+        makeAsset({ id: "a3", type: "audio", name: "Third" }),
+      ]);
 
       render(<AssetManagementPanel />);
 

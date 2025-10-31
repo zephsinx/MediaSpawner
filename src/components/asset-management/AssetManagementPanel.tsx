@@ -208,6 +208,7 @@ function SpawnAssetsSection() {
   const [renamingAssetId, setRenamingAssetId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState<string>("");
   const [renameError, setRenameError] = useState<string | null>(null);
+  const [assets, setAssets] = useState<MediaAsset[]>([]);
 
   // Draft state for asset operations
   const [draftAssets, setDraftAssets] = useState<SpawnAsset[] | null>(null);
@@ -345,6 +346,25 @@ function SpawnAssetsSection() {
     };
   }, [spawn, draftAssets]);
 
+  // Listen for asset library updates to refresh resolved assets
+  useEffect(() => {
+    // Initial load
+    setAssets(AssetService.getAssets());
+
+    // Listen for external updates to refresh assets
+    const handler = () => setAssets(AssetService.getAssets());
+    window.addEventListener(
+      "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
+      handler as EventListener,
+    );
+    return () => {
+      window.removeEventListener(
+        "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
+        handler as EventListener,
+      );
+    };
+  }, []);
+
   // Use draft assets if available, otherwise use spawn assets
   const currentAssets = useMemo(() => {
     return draftAssets ?? spawn?.assets ?? [];
@@ -362,15 +382,16 @@ function SpawnAssetsSection() {
   }, [currentAssets, draftAssets, selectedSpawnId]);
 
   const resolvedAssets: ResolvedSpawnAsset[] = useMemo(() => {
+    const assetsMap = new Map(assets.map((a) => [a.id, a]));
     const items = [...currentAssets]
       .sort((a, b) => a.order - b.order)
       .map((sa) => {
-        const base = AssetService.getAssetById(sa.assetId);
+        const base = assetsMap.get(sa.assetId);
         return base ? { spawnAsset: sa, baseAsset: base } : null;
       })
       .filter(Boolean) as ResolvedSpawnAsset[];
     return items;
-  }, [currentAssets]);
+  }, [currentAssets, assets]);
 
   const startRename = (asset: MediaAsset) => {
     setRenamingAssetId(asset.id);

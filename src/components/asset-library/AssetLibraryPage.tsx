@@ -388,7 +388,8 @@ const AssetLibraryPage: React.FC = () => {
                       disabled={
                         isLoading ||
                         !newAssetPath.trim() ||
-                        !newAssetName.trim()
+                        !newAssetName.trim() ||
+                        Object.keys(formErrors).length > 0
                       }
                       className="flex items-center gap-2"
                       aria-label="Add new asset to library"

@@ -322,11 +322,13 @@ describe("AssetManagementPanel (Advanced Features)", () => {
         clearContext: vi.fn(),
       });
 
-      vi.mocked(AssetService.getAssets).mockReturnValue([]);
-
       const a0 = makeSpawnAsset("a1", 0);
       const a1 = makeSpawnAsset("a2", 1);
       const current = makeSpawn("s1", [a0, a1]);
+      vi.mocked(AssetService.getAssets).mockReturnValue([
+        makeAsset({ id: "a1" }),
+        makeAsset({ id: "a2" }),
+      ]);
       vi.mocked(SpawnService.getSpawn).mockImplementation(async () => ({
         ...current,
       }));
@@ -360,7 +362,10 @@ describe("AssetManagementPanel (Advanced Features)", () => {
       expect(screen.getByText("(1)")).toBeInTheDocument();
 
       // Verify only one asset remains
-      const items = screen.getAllByRole("listitem");
+      const spawnRegion = screen.getByRole("region", {
+        name: "Assets in Current Spawn",
+      });
+      const items = within(spawnRegion).getAllByRole("listitem");
       expect(items.length).toBe(1);
 
       // Verify updateSpawn NOT called immediately
@@ -389,12 +394,15 @@ describe("AssetManagementPanel (Advanced Features)", () => {
         clearContext: vi.fn(),
       });
 
-      vi.mocked(AssetService.getAssets).mockReturnValue([]);
-
       const a0 = makeSpawnAsset("a1", 0);
       const a1 = makeSpawnAsset("a2", 1);
       const a2 = makeSpawnAsset("a3", 2);
       const current = makeSpawn("s1", [a0, a1, a2]);
+      vi.mocked(AssetService.getAssets).mockReturnValue([
+        makeAsset({ id: "a1" }),
+        makeAsset({ id: "a2" }),
+        makeAsset({ id: "a3" }),
+      ]);
       vi.mocked(SpawnService.getSpawn).mockImplementation(async () => ({
         ...current,
       }));
@@ -402,23 +410,32 @@ describe("AssetManagementPanel (Advanced Features)", () => {
       render(<AssetManagementPanel />);
 
       // Wait for three listitems
-      const items = await screen.findAllByRole("listitem");
+      const spawnRegion = screen.getByRole("region", {
+        name: "Assets in Current Spawn",
+      });
+      const items = await within(spawnRegion).findAllByRole("listitem");
       expect(items.length).toBe(3);
 
       // Drag index 2 to index 0
       await act(async () => {
+        const dataStore: Record<string, string> = {};
         const dt = {
-          getData: vi.fn(() => "2"),
-          setData: vi.fn(),
+          getData: vi.fn((format: string) => dataStore[format] || "2"),
+          setData: vi.fn((format: string, data: string) => {
+            dataStore[format] = data;
+          }),
           effectAllowed: "move",
           dropEffect: "move",
         } as unknown as DataTransfer;
+        fireEvent.dragStart(items[2], { dataTransfer: dt });
         fireEvent.dragOver(items[0], { dataTransfer: dt });
         fireEvent.drop(items[0], { dataTransfer: dt });
       });
 
       // Verify draft state created
-      expect(mockSetUnsavedChanges).toHaveBeenCalledWith(true, "spawn");
+      await waitFor(() => {
+        expect(mockSetUnsavedChanges).toHaveBeenCalledWith(true, "spawn");
+      });
 
       // Verify Save button appears
       expect(screen.getByRole("button", { name: /Save/i })).toBeInTheDocument();
@@ -447,12 +464,15 @@ describe("AssetManagementPanel (Advanced Features)", () => {
         clearContext: vi.fn(),
       });
 
-      vi.mocked(AssetService.getAssets).mockReturnValue([]);
-
       const a0 = makeSpawnAsset("a1", 0);
       const a1 = makeSpawnAsset("a2", 1);
       const a2 = makeSpawnAsset("a3", 2);
       let current = makeSpawn("s1", [a0, a1, a2]);
+      vi.mocked(AssetService.getAssets).mockReturnValue([
+        makeAsset({ id: "a1" }),
+        makeAsset({ id: "a2" }),
+        makeAsset({ id: "a3" }),
+      ]);
       vi.mocked(SpawnService.getSpawn).mockImplementation(async () => ({
         ...current,
       }));
@@ -469,7 +489,10 @@ describe("AssetManagementPanel (Advanced Features)", () => {
       render(<AssetManagementPanel />);
 
       // Wait for three listitems
-      const items = await screen.findAllByRole("listitem");
+      const spawnRegion = screen.getByRole("region", {
+        name: "Assets in Current Spawn",
+      });
+      const items = await within(spawnRegion).findAllByRole("listitem");
       expect(items.length).toBe(3);
 
       // Drag index 2 to index 0
@@ -480,6 +503,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
           effectAllowed: "move",
           dropEffect: "move",
         } as unknown as DataTransfer;
+        fireEvent.dragStart(items[2], { dataTransfer: dt });
         fireEvent.dragOver(items[0], { dataTransfer: dt });
         fireEvent.drop(items[0], { dataTransfer: dt });
       });
@@ -518,11 +542,13 @@ describe("AssetManagementPanel (Advanced Features)", () => {
         clearContext: vi.fn(),
       });
 
-      vi.mocked(AssetService.getAssets).mockReturnValue([]);
-
       const a0 = makeSpawnAsset("a1", 0);
       const a1 = makeSpawnAsset("a2", 1);
       const current = makeSpawn("s1", [a0, a1]);
+      vi.mocked(AssetService.getAssets).mockReturnValue([
+        makeAsset({ id: "a1" }),
+        makeAsset({ id: "a2" }),
+      ]);
       vi.mocked(SpawnService.getSpawn).mockImplementation(async () => ({
         ...current,
       }));
@@ -597,7 +623,7 @@ describe("AssetManagementPanel (Advanced Features)", () => {
       };
       vi.mocked(SpawnService.getSpawn).mockResolvedValue(spawn);
       vi.mocked(AssetService.getAssetById).mockReturnValue(asset);
-      vi.mocked(AssetService.getAssets).mockReturnValue([]);
+      vi.mocked(AssetService.getAssets).mockReturnValue([asset]);
 
       await act(async () => {
         render(<AssetManagementPanel />);
