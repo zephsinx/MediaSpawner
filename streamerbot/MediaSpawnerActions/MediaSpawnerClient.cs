@@ -4282,11 +4282,32 @@ public class CPHInline
                 }
             }
 
+            // Build set of all bucket member IDs to exclude from remaining assets
+            HashSet<string> bucketMemberIds = new HashSet<string>();
+            if (spawn.RandomizationBuckets != null)
+            {
+                foreach (RandomizationBucket bucket in spawn.RandomizationBuckets)
+                {
+                    if (bucket?.Members != null)
+                    {
+                        foreach (RandomizationBucketMember member in bucket.Members)
+                        {
+                            if (!string.IsNullOrEmpty(member.SpawnAssetId))
+                            {
+                                bucketMemberIds.Add(member.SpawnAssetId);
+                            }
+                        }
+                    }
+                }
+            }
+
             // Add any remaining enabled assets that weren't in buckets
             int remainingAssets = 0;
             foreach (SpawnAsset asset in enabledAssets)
             {
-                if (asset != null && !string.IsNullOrEmpty(asset.Id) && !usedAssetIds.Contains(asset.Id))
+                if (asset != null && !string.IsNullOrEmpty(asset.Id) &&
+                    !usedAssetIds.Contains(asset.Id) &&
+                    !bucketMemberIds.Contains(asset.Id))
                 {
                     selectedAssets.Add(asset);
                     remainingAssets++;
