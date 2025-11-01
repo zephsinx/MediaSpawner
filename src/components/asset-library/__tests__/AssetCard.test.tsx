@@ -6,6 +6,7 @@ import type { MediaAsset } from "../../../types/media";
 vi.mock("../../../services/assetService", () => ({
   AssetService: {
     updateAsset: vi.fn(),
+    isNameAvailable: vi.fn(),
   },
 }));
 
@@ -22,6 +23,8 @@ describe("AssetCard inline rename", () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.mocked(AssetService.updateAsset).mockReturnValue(true);
+    vi.mocked(AssetService.isNameAvailable).mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -89,5 +92,26 @@ describe("AssetCard inline rename", () => {
 
     expect(AssetService.updateAsset).not.toHaveBeenCalled();
     expect(screen.getByText(/name is required/i)).toBeInTheDocument();
+  });
+
+  it("shows unique-name error and does not save when name is taken", async () => {
+    vi.mocked(AssetService.updateAsset).mockReturnValue(true);
+    vi.mocked(AssetService.isNameAvailable).mockReturnValue(false);
+
+    render(<AssetCard asset={asset} variant="list" />);
+
+    const renameBtn = screen.getByRole("button", { name: /rename asset/i });
+    await act(async () => {
+      fireEvent.click(renameBtn);
+    });
+
+    const input = screen.getByRole("textbox", { name: /asset name/i });
+    await act(async () => {
+      fireEvent.change(input, { target: { value: "Duplicate Name" } });
+      fireEvent.keyDown(input, { key: "Enter" });
+    });
+
+    expect(AssetService.updateAsset).not.toHaveBeenCalled();
+    expect(screen.getByText(/name must be unique/i)).toBeInTheDocument();
   });
 });

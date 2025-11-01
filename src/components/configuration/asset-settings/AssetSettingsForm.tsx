@@ -56,6 +56,7 @@ function FieldTooltip({ content }: { content: string }) {
       <Tooltip.Trigger asChild>
         <button
           type="button"
+          tabIndex={-1}
           className="inline-flex items-center justify-center ml-1.5 text-[rgb(var(--color-muted))] hover:text-[rgb(var(--color-fg))] transition-colors"
           aria-label="More information"
         >
@@ -945,7 +946,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                   </div>
                 </div>
 
-                <div>
+                <div className="mb-6">
                   <label className="inline-flex items-center text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                     Random Coordinates
                     <FieldTooltip content="Generates random position each spawn execution." />
@@ -984,7 +985,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                     )}
                 </div>
 
-                <div>
+                <div className="mb-6">
                   <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                     Position Mode
                   </label>
@@ -1005,7 +1006,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                   </select>
                 </div>
 
-                <div>
+                <div className="mb-6">
                   <label className="block text-sm font-medium text-[rgb(var(--color-fg))] mb-1">
                     Rotation (°)
                   </label>
@@ -1028,7 +1029,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                           rotation: error,
                         }));
                       }}
-                      className="flex-1 h-2 bg-[rgb(var(--color-border))] rounded-lg appearance-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
+                      className="flex-1 h-2 rounded-lg appearance-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
                       aria-label="Rotation slider"
                       aria-describedby="rotation-error"
                       tabIndex={10}
@@ -1350,7 +1351,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
                             volume: error,
                           }));
                         }}
-                        className="flex-1 h-2 bg-[rgb(var(--color-border))] rounded-lg appearance-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
+                        className="flex-1 h-2 rounded-lg appearance-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2"
                         aria-label="Volume slider"
                         aria-describedby="volume-help volume-error"
                         tabIndex={18}

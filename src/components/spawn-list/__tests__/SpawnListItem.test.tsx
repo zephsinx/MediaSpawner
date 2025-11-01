@@ -225,7 +225,7 @@ describe("SpawnListItem", () => {
         renderSpawnList(<SpawnListItem spawn={mockSpawn} />);
       });
       const toggleWrapper = screen.getByLabelText(
-        "Toggle enabled state for Test Spawn (opens editor)",
+        "Toggle enabled state for Test Spawn",
       );
       expect(toggleWrapper).toBeInTheDocument();
     });
@@ -235,7 +235,7 @@ describe("SpawnListItem", () => {
         renderSpawnList(<SpawnListItem spawn={mockSpawn} />);
       });
       const toggleWrapper = screen.getByLabelText(
-        "Toggle enabled state for Test Spawn (opens editor)",
+        "Toggle enabled state for Test Spawn",
       );
       expect(toggleWrapper).toHaveAttribute(
         "aria-describedby",
@@ -267,7 +267,7 @@ describe("SpawnListItem", () => {
         );
       });
       const toggleWrapper = screen.getByLabelText(
-        "Toggle enabled state for Test Spawn (opens editor)",
+        "Toggle enabled state for Test Spawn",
       );
       await act(async () => {
         fireEvent.click(toggleWrapper);
@@ -311,7 +311,7 @@ describe("SpawnListItem", () => {
         );
       });
       const toggleWrapper = screen.getByLabelText(
-        "Toggle enabled state for Test Spawn (opens editor)",
+        "Toggle enabled state for Test Spawn",
       );
       await act(async () => {
         fireEvent.keyDown(toggleWrapper, { key: "Enter" });
@@ -327,7 +327,7 @@ describe("SpawnListItem", () => {
         );
       });
       const toggleWrapper = screen.getByLabelText(
-        "Toggle enabled state for Test Spawn (opens editor)",
+        "Toggle enabled state for Test Spawn",
       );
       await act(async () => {
         fireEvent.keyDown(toggleWrapper, { key: " " });
@@ -348,7 +348,7 @@ describe("SpawnListItem", () => {
         );
       });
       const toggleWrapper = screen.getByLabelText(
-        "Toggle enabled state for Test Spawn (opens editor)",
+        "Toggle enabled state for Test Spawn",
       );
       await act(async () => {
         fireEvent.click(toggleWrapper);

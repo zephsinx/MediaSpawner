@@ -215,7 +215,7 @@ describe("Layout", () => {
 
       // Initially disabled (not dirty)
       expect(saveBtn).toBeDisabled();
-      expect(cancelBtn).toBeEnabled();
+      expect(cancelBtn).toBeDisabled(); // Disabled when no unsaved changes and not dirty
 
       await act(async () => {
         fireEvent.change(nameInput, { target: { value: "Saved Name" } });

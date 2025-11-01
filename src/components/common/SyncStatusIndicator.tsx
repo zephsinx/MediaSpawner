@@ -105,6 +105,7 @@ export function SyncStatusIndicator({
           className={cn("inline-flex items-center gap-2", className)}
           role="status"
           aria-label={`Sync status: ${config.label}`}
+          tabIndex={-1}
         >
           <div
             className={cn(

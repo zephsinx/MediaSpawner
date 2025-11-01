@@ -183,7 +183,36 @@ fill_form([
 - Selecting "Image" shows only image assets
 - Selecting "All" shows all assets again
 
-### 13. Take Final Screenshot
+### 13. Rename Asset via Rename button
+
+**Action**:
+
+1. Take snapshot of the Asset Library grid to capture UIDs
+2. Locate the card for "Test Image Asset"
+3. Click its "Rename" button
+4. When the inline input appears, type "Test Image Asset Renamed"
+5. Click "Save" (or press Enter)
+
+**Expected**:
+
+- Success toast appears
+- The asset card updates to show "Test Image Asset Renamed"
+- Subsequent searches by the new name find the asset
+
+### 14. Duplicate name validation (via Rename button)
+
+**Action**:
+
+1. Click "Rename" on the asset "Test Audio Asset"
+2. Type an existing name (e.g., "Test Image Asset Renamed")
+3. Attempt to save
+
+**Expected**:
+
+- Inline error appears: "Name must be unique" and/or the Save action is disabled
+- Rename is not saved; asset name remains unchanged after canceling
+
+### 15. Take Final Screenshot
 
 **Action**: `take_screenshot(filePath: "e2e-tests/screenshots/02-asset-library-complete.png", fullPage: true)`
 
@@ -192,7 +221,7 @@ fill_form([
 - Screenshot shows asset library with multiple assets
 - All asset cards rendered correctly
 
-### 14. Return to Main View
+### 16. Return to Main View
 
 **Action**:
 
@@ -213,6 +242,9 @@ fill_form([
 - [ ] Assets appear in list immediately after creation
 - [ ] Asset data persists in localStorage
 - [ ] Type badges/icons display correctly
+- [ ] Can rename assets from the Asset Library via the Rename button
+- [ ] Duplicate names are rejected with a clear inline error (via Rename button)
+- [ ] Renamed assets are discoverable via search
 - [ ] No console errors during operations
 
 ## Performance Target

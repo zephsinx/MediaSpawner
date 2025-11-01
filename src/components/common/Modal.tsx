@@ -40,11 +40,24 @@ export function Modal({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-[rgb(var(--color-fg))]/40 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <Dialog.Content
+          onOpenAutoFocus={(e) => {
+            // Prevent default focus on close button
+            e.preventDefault();
+            // Focus first input field instead
+            const target = e.currentTarget;
+            if (target && target instanceof HTMLElement) {
+              const firstInput = target.querySelector(
+                'input:not([tabindex="-1"]):not([disabled]), textarea:not([tabindex="-1"]):not([disabled]), select:not([tabindex="-1"]):not([disabled])',
+              ) as HTMLElement | null;
+              firstInput?.focus();
+            }
+          }}
+          style={{ gridTemplateRows: "auto auto 1fr" }}
           className={cn(
             "fixed left-[50%] top-[50%] z-50 grid w-full translate-x-[-50%] translate-y-[-50%] gap-4 border bg-[rgb(var(--color-bg))] p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
             "border-[rgb(var(--color-border))] text-[rgb(var(--color-fg))]",
             getSizeStyles(),
-            "max-h-[90vh] overflow-y-auto",
+            "max-h-[90vh] overflow-y-auto overflow-x-hidden",
           )}
         >
           {/* Header */}
@@ -70,7 +83,9 @@ export function Modal({
           )}
 
           {/* Content */}
-          <div className="text-[rgb(var(--color-fg))]">{children}</div>
+          <div className="text-[rgb(var(--color-fg))] min-w-0 flex flex-col min-h-0">
+            {children}
+          </div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

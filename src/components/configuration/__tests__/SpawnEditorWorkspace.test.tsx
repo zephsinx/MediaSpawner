@@ -26,11 +26,13 @@ import { SpawnService } from "../../../services/spawnService";
 // Provide a controllable mock for usePanelState
 type MockPanelState = {
   selectedSpawnId: string | undefined;
+  hasUnsavedChanges: boolean;
   setUnsavedChanges: (b: boolean) => void;
   selectSpawn: (id: string | undefined) => void;
 };
 const mockState: MockPanelState = {
   selectedSpawnId: undefined,
+  hasUnsavedChanges: false,
   setUnsavedChanges: vi.fn(),
   selectSpawn: vi.fn((id?: string) => {
     mockState.selectedSpawnId = id;
@@ -42,8 +44,17 @@ vi.mock("../../../hooks/useLayout", () => ({
     get selectedSpawnId() {
       return mockState.selectedSpawnId;
     },
+    get hasUnsavedChanges() {
+      return mockState.hasUnsavedChanges;
+    },
     setUnsavedChanges: mockState.setUnsavedChanges,
     selectSpawn: mockState.selectSpawn,
+    selectedSpawnAssetId: undefined,
+    centerPanelMode: "spawn-settings",
+    changeType: "none",
+    setCenterPanelMode: vi.fn(),
+    selectSpawnAsset: vi.fn(),
+    clearContext: vi.fn(),
   }),
 }));
 
@@ -55,6 +66,7 @@ const createSpawn = (overrides: Partial<Spawn> = {}): Spawn => {
 beforeEach(() => {
   vi.clearAllMocks();
   mockState.selectedSpawnId = undefined;
+  mockState.hasUnsavedChanges = false;
 });
 
 afterEach(() => {
@@ -551,6 +563,96 @@ describe("SpawnEditorWorkspace", () => {
       // Save should be disabled
       const saveButton = screen.getByRole("button", { name: "Save spawn" });
       expect(saveButton).toBeDisabled();
+    });
+  });
+
+  describe("Cancel button disabled state", () => {
+    it("is disabled when hasUnsavedChanges is false AND isDirty is false", async () => {
+      const spawn = createSpawn({ id: "test-spawn", name: "Test Spawn" });
+      mockState.selectedSpawnId = "test-spawn";
+      mockState.hasUnsavedChanges = false;
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([spawn]);
+
+      render(<SpawnEditorWorkspace />);
+      await screen.findByText("Editing: Test Spawn");
+
+      const cancelButton = screen.getByRole("button", {
+        name: "Cancel edits",
+      });
+      expect(cancelButton).toBeDisabled();
+      expect(cancelButton).toHaveAttribute("aria-disabled", "true");
+    });
+
+    it("is enabled when hasUnsavedChanges is true", async () => {
+      const spawn = createSpawn({ id: "test-spawn", name: "Test Spawn" });
+      mockState.selectedSpawnId = "test-spawn";
+      mockState.hasUnsavedChanges = true;
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([spawn]);
+
+      render(<SpawnEditorWorkspace />);
+      await screen.findByText("Editing: Test Spawn");
+
+      const cancelButton = screen.getByRole("button", {
+        name: "Cancel edits",
+      });
+      expect(cancelButton).not.toBeDisabled();
+    });
+
+    it("is enabled when isDirty is true (local edits made)", async () => {
+      const spawn = createSpawn({ id: "test-spawn", name: "Test Spawn" });
+      mockState.selectedSpawnId = "test-spawn";
+      mockState.hasUnsavedChanges = false;
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([spawn]);
+
+      render(<SpawnEditorWorkspace />);
+      await screen.findByText("Editing: Test Spawn");
+
+      // Make a local edit to set isDirty to true
+      await act(async () => {
+        const nameInput = screen.getByLabelText("Name");
+        fireEvent.input(nameInput, { target: { value: "Updated Name" } });
+      });
+
+      const cancelButton = screen.getByRole("button", {
+        name: "Cancel edits",
+      });
+      expect(cancelButton).not.toBeDisabled();
+    });
+
+    it("is enabled when both hasUnsavedChanges is true AND isDirty is true", async () => {
+      const spawn = createSpawn({ id: "test-spawn", name: "Test Spawn" });
+      mockState.selectedSpawnId = "test-spawn";
+      mockState.hasUnsavedChanges = true;
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([spawn]);
+
+      render(<SpawnEditorWorkspace />);
+      await screen.findByText("Editing: Test Spawn");
+
+      // Make a local edit to set isDirty to true
+      await act(async () => {
+        const nameInput = screen.getByLabelText("Name");
+        fireEvent.input(nameInput, { target: { value: "Updated Name" } });
+      });
+
+      const cancelButton = screen.getByRole("button", {
+        name: "Cancel edits",
+      });
+      expect(cancelButton).not.toBeDisabled();
+    });
+
+    it("has aria-disabled attribute when disabled", async () => {
+      const spawn = createSpawn({ id: "test-spawn", name: "Test Spawn" });
+      mockState.selectedSpawnId = "test-spawn";
+      mockState.hasUnsavedChanges = false;
+      vi.mocked(SpawnService.getAllSpawns).mockResolvedValue([spawn]);
+
+      render(<SpawnEditorWorkspace />);
+      await screen.findByText("Editing: Test Spawn");
+
+      const cancelButton = screen.getByRole("button", {
+        name: "Cancel edits",
+      });
+      expect(cancelButton).toHaveAttribute("aria-disabled", "true");
     });
   });
 });

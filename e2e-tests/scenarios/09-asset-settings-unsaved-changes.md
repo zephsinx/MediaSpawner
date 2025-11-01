@@ -61,6 +61,20 @@ Test the improved unsaved changes behavior specifically for asset settings, incl
 
 ### 4. Verify Unsaved Changes State
 
+### 4.1 Rename from right panel while asset settings are open
+
+**Action**:
+
+1. With asset settings open for "Test Image Asset", go to right panel
+2. On the same asset row, click kebab (⋮) → "Rename"
+3. Enter "Test Image Asset (Renamed)" and press Enter
+
+**Expected**:
+
+- Success toast appears
+- No unsaved-changes guard is triggered by rename (rename is global library data)
+- Center panel title/labels that reference the asset name reflect the new name after a re-render
+
 **Action**: Take snapshot showing unsaved changes
 
 **Expected**:
@@ -241,6 +255,8 @@ Test the improved unsaved changes behavior specifically for asset settings, incl
 - [ ] Can open asset settings for different assets
 - [ ] Unsaved asset changes trigger appropriate confirmation dialog
 - [ ] Dialog shows "Unsaved Asset Settings" title
+- [ ] Renaming from right panel does not trigger the guard
+- [ ] Asset settings UI reflects the renamed asset title
 - [ ] Can cancel asset switch and retain unsaved changes
 - [ ] Can discard changes and proceed with switch
 - [ ] Discarded changes are not saved to asset

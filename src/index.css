@@ -242,7 +242,7 @@ input[type="range"]:focus-visible {
 }
 
 input[type="range"]::-webkit-slider-track {
-  background-color: rgb(var(--color-border));
+  background-color: rgb(var(--color-border-strong));
   border-radius: 0.5rem;
   height: 0.5rem;
 }
@@ -276,7 +276,7 @@ input[type="range"]:disabled::-webkit-slider-thumb {
 
 /* Firefox */
 input[type="range"]::-moz-range-track {
-  background-color: rgb(var(--color-border));
+  background-color: rgb(var(--color-border-strong));
   border-radius: 0.5rem;
   height: 0.5rem;
 }

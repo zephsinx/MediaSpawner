@@ -106,6 +106,10 @@ export const AssetCard = memo(function AssetCard({
     const trimmed = value.trim();
     if (trimmed.length === 0) return "Name is required";
     if (trimmed.length > 120) return "Name must be 120 characters or fewer";
+    // Enforce global uniqueness (allow keeping the same name for this asset)
+    if (!AssetService.isNameAvailable(trimmed, asset.id)) {
+      return "Name must be unique";
+    }
     return null;
   };
 
@@ -123,6 +127,11 @@ export const AssetCard = memo(function AssetCard({
     }
     try {
       setIsSaving(true);
+      // Double-check uniqueness immediately before saving
+      if (!AssetService.isNameAvailable(trimmed, asset.id)) {
+        setErrorText("Name must be unique");
+        return;
+      }
       const ok = AssetService.updateAsset({ ...asset, name: trimmed });
       if (!ok) {
         setErrorText("Failed to rename asset");

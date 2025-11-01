@@ -72,6 +72,7 @@ export function LiveProfileIndicator({
             className="inline-flex items-center gap-2 min-w-[80px]"
             role="status"
             aria-label={`Live status: ${isLive ? "Live" : "Not live"}`}
+            tabIndex={-1}
           >
             <div
               className={cn(
