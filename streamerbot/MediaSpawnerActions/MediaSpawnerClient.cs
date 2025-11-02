@@ -3534,22 +3534,27 @@ public class CPHInline
                 CPH.TryGetArg("message", out string cheerMessage);
                 eventData["bits"] = bits;
                 eventData["message"] = cheerMessage ?? "";
+                LogExecution(LogLevel.Debug, $"GetTwitchEventData[cheer]: bits={bits}, message='{cheerMessage ?? ""}'");
                 break;
             case "subscription":
                 CPH.TryGetArg("tier", out string subTier);
                 CPH.TryGetArg("months", out int months);
                 CPH.TryGetArg("message", out string subMessage);
-                eventData["tier"] = subTier ?? "1000";
+                string normalizedSubTier = NormalizeTier(subTier);
+                eventData["tier"] = normalizedSubTier;
                 eventData["months"] = months;
                 eventData["message"] = subMessage ?? "";
+                LogExecution(LogLevel.Debug, $"GetTwitchEventData[subscription]: tier='{subTier ?? "null"}'->'{normalizedSubTier}', months={months}");
                 break;
             case "giftSub":
-                CPH.TryGetArg("count", out int count);
+                CPH.TryGetArg("totalSubsGifted", out int totalSubsGifted);
                 CPH.TryGetArg("tier", out string giftTier);
                 CPH.TryGetArg("recipientUserName", out string recipientUserName);
-                eventData["count"] = count;
-                eventData["tier"] = giftTier ?? "1000";
+                string normalizedGiftTier = NormalizeTier(giftTier);
+                eventData["count"] = totalSubsGifted;
+                eventData["tier"] = normalizedGiftTier;
                 eventData["recipientUserName"] = recipientUserName ?? "";
+                LogExecution(LogLevel.Debug, $"GetTwitchEventData[giftSub]: totalSubsGifted={totalSubsGifted}, tier='{giftTier ?? "null"}'->'{normalizedGiftTier}', recipient='{recipientUserName ?? ""}'");
                 break;
             case "channelPointReward":
                 CPH.TryGetArg("rewardId", out string rewardId);
@@ -3560,6 +3565,7 @@ public class CPHInline
                 eventData["rewardName"] = rewardName ?? "";
                 eventData["cost"] = cost;
                 eventData["userInput"] = userInput ?? "";
+                LogExecution(LogLevel.Debug, $"GetTwitchEventData[channelPointReward]: rewardId='{rewardId ?? ""}', cost={cost}");
                 break;
         }
 
@@ -3592,9 +3598,9 @@ public class CPHInline
             switch (eventType)
             {
                 case "cheer":
-                    if (config.ContainsKey("bits") && config["bits"] is int minBits)
+                    if (TryGetIntValue(config, "bits", out int minBits))
                     {
-                        int bits = eventData.ContainsKey("bits") && eventData["bits"] is int b ? b : 0;
+                        int bits = TryGetIntValue(eventData, "bits", out int b) ? b : 0;
                         if (bits < minBits)
                             matches = false;
                     }
@@ -3603,29 +3609,31 @@ public class CPHInline
                 case "subscription":
                     if (config.ContainsKey("tier") && config["tier"] is string configTier)
                     {
+                        string normalizedConfigTier = NormalizeTier(configTier);
                         string eventTier = eventData.ContainsKey("tier") && eventData["tier"] is string t ? t : "1000";
-                        if (eventTier != configTier)
+                        if (eventTier != normalizedConfigTier)
                             matches = false;
                     }
-                    if (config.ContainsKey("months") && config["months"] is int minMonths)
+                    if (TryGetIntValue(config, "months", out int minMonths))
                     {
-                        int months = eventData.ContainsKey("months") && eventData["months"] is int m ? m : 1;
+                        int months = TryGetIntValue(eventData, "months", out int m) ? m : 1;
                         if (months < minMonths)
                             matches = false;
                     }
                     break;
 
                 case "giftSub":
-                    if (config.ContainsKey("minCount") && config["minCount"] is int minCount)
+                    if (TryGetIntValue(config, "minCount", out int minCount))
                     {
-                        int count = eventData.ContainsKey("count") && eventData["count"] is int c ? c : 1;
+                        int count = TryGetIntValue(eventData, "count", out int c) ? c : 1;
                         if (count < minCount)
                             matches = false;
                     }
                     if (config.ContainsKey("tier") && config["tier"] is string giftConfigTier)
                     {
+                        string normalizedConfigTier = NormalizeTier(giftConfigTier);
                         string eventTier = eventData.ContainsKey("tier") && eventData["tier"] is string t ? t : "1000";
-                        if (eventTier != giftConfigTier)
+                        if (eventTier != normalizedConfigTier)
                             matches = false;
                     }
                     break;
@@ -5044,14 +5052,14 @@ public class CPHInline
                         if (responseData.ContainsKey("responseData") && responseData["responseData"] is Dictionary<string, object> responseDataInner)
                         {
                             LogExecution(LogLevel.Info, $"CreateOBSSource: responseDataInner structure: {JsonConvert.SerializeObject(responseDataInner, Formatting.Indented)}");
-                            if (responseDataInner.ContainsKey("sceneItemId") && responseDataInner["sceneItemId"] is int itemId)
+                            if (TryGetIntValue(responseDataInner, "sceneItemId", out int itemId))
                             {
                                 capturedSceneItemId = itemId;
                                 LogExecution(LogLevel.Info, $"CreateOBSSource: Successfully extracted sceneItemId: {capturedSceneItemId}");
                             }
                             else
                             {
-                                LogExecution(LogLevel.Warning, $"CreateOBSSource: sceneItemId not found in responseDataInner or not an int");
+                                LogExecution(LogLevel.Warning, $"CreateOBSSource: sceneItemId not found in responseDataInner or could not be converted to int");
                             }
                         }
                         else
@@ -5639,8 +5647,8 @@ public class CPHInline
         // Handle position
         if (properties.ContainsKey("position") && properties["position"] is Dictionary<string, object> position)
         {
-            double x = position.ContainsKey("x") && position["x"] is double xVal ? xVal : 0;
-            double y = position.ContainsKey("y") && position["y"] is double yVal ? yVal : 0;
+            double x = TryGetDoubleValue(position, "x", out double xVal) ? xVal : 0;
+            double y = TryGetDoubleValue(position, "y", out double yVal) ? yVal : 0;
 
             sceneItemTransform["positionX"] = x;
             sceneItemTransform["positionY"] = y;
@@ -5650,7 +5658,7 @@ public class CPHInline
         // Handle scale - support both uniform (double) and non-uniform (ScaleObject) scaling
         if (properties.ContainsKey("scale"))
         {
-            if (properties["scale"] is double scale)
+            if (TryGetDoubleValue(properties, "scale", out double scale))
             {
                 // Uniform scaling (backward compatibility)
                 sceneItemTransform["scaleX"] = scale;
@@ -5660,8 +5668,8 @@ public class CPHInline
             else if (properties["scale"] is Dictionary<string, object> scaleObj)
             {
                 // Non-uniform scaling
-                double scaleX = scaleObj.ContainsKey("x") && scaleObj["x"] is double xVal ? xVal : 1.0;
-                double scaleY = scaleObj.ContainsKey("y") && scaleObj["y"] is double yVal ? yVal : 1.0;
+                double scaleX = TryGetDoubleValue(scaleObj, "x", out double xVal) ? xVal : 1.0;
+                double scaleY = TryGetDoubleValue(scaleObj, "y", out double yVal) ? yVal : 1.0;
 
                 sceneItemTransform["scaleX"] = scaleX;
                 sceneItemTransform["scaleY"] = scaleY;
@@ -5670,7 +5678,7 @@ public class CPHInline
         }
 
         // Handle rotation
-        if (properties.ContainsKey("rotation") && properties["rotation"] is double rotation)
+        if (TryGetDoubleValue(properties, "rotation", out double rotation))
         {
             // Convert degrees to radians for OBS API
             double rotationRadians = rotation * Math.PI / 180.0;
@@ -5679,29 +5687,29 @@ public class CPHInline
         }
 
         // Handle crop controls
-        if (properties.ContainsKey("cropLeft") && properties["cropLeft"] is double cropLeft)
+        if (TryGetDoubleValue(properties, "cropLeft", out double cropLeft))
         {
             sceneItemTransform["cropLeft"] = cropLeft;
             hasTransformProperties = true;
         }
-        if (properties.ContainsKey("cropTop") && properties["cropTop"] is double cropTop)
+        if (TryGetDoubleValue(properties, "cropTop", out double cropTop))
         {
             sceneItemTransform["cropTop"] = cropTop;
             hasTransformProperties = true;
         }
-        if (properties.ContainsKey("cropRight") && properties["cropRight"] is double cropRight)
+        if (TryGetDoubleValue(properties, "cropRight", out double cropRight))
         {
             sceneItemTransform["cropRight"] = cropRight;
             hasTransformProperties = true;
         }
-        if (properties.ContainsKey("cropBottom") && properties["cropBottom"] is double cropBottom)
+        if (TryGetDoubleValue(properties, "cropBottom", out double cropBottom))
         {
             sceneItemTransform["cropBottom"] = cropBottom;
             hasTransformProperties = true;
         }
 
         // Handle alignment
-        if (properties.ContainsKey("alignment") && properties["alignment"] is int alignment)
+        if (TryGetIntValue(properties, "alignment", out int alignment))
         {
             sceneItemTransform["alignment"] = alignment;
             hasTransformProperties = true;
@@ -5720,7 +5728,7 @@ public class CPHInline
         }
 
         // Handle bounds alignment
-        if (properties.ContainsKey("boundsAlignment") && properties["boundsAlignment"] is int boundsAlignment)
+        if (TryGetIntValue(properties, "boundsAlignment", out int boundsAlignment))
         {
             sceneItemTransform["boundsAlignment"] = boundsAlignment;
             hasTransformProperties = true;
@@ -5729,8 +5737,8 @@ public class CPHInline
         // Handle dimensions (bounds) - enhanced to work with bounds type
         if (properties.ContainsKey("dimensions") && properties["dimensions"] is Dictionary<string, object> dimensions)
         {
-            double width = dimensions.ContainsKey("width") && dimensions["width"] is double w ? w : 0;
-            double height = dimensions.ContainsKey("height") && dimensions["height"] is double h ? h : 0;
+            double width = TryGetDoubleValue(dimensions, "width", out double w) ? w : 0;
+            double height = TryGetDoubleValue(dimensions, "height", out double h) ? h : 0;
 
             if (width > 0 && height > 0)
             {
@@ -5750,7 +5758,7 @@ public class CPHInline
         }
 
         // Handle volume (audio level) - Note: This might not be part of sceneItemTransform
-        if (properties.ContainsKey("volume") && properties["volume"] is double volume)
+        if (TryGetDoubleValue(properties, "volume", out double volume))
         {
             // Clamp volume to 0-1 range for OBS
             double clampedVolume = Math.Max(0, Math.Min(1, volume / 100.0));
@@ -7654,17 +7662,17 @@ public class CPHInline
     /// </summary>
     private bool ValidateCheerConditions(Dictionary<string, object> config, Dictionary<string, object> eventData)
     {
-        if (config.ContainsKey("bits") && config["bits"] is int minBits)
+        if (TryGetIntValue(config, "bits", out int minBits))
         {
-            int bits = eventData.ContainsKey("bits") && eventData["bits"] is int b ? b : 0;
+            int bits = TryGetIntValue(eventData, "bits", out int b) ? b : 0;
             if (bits < minBits)
                 return false;
         }
 
         if (config.ContainsKey("bitsComparator") && config["bitsComparator"] is string comparator)
         {
-            int bits = eventData.ContainsKey("bits") && eventData["bits"] is int b ? b : 0;
-            int threshold = config.ContainsKey("bits") && config["bits"] is int t ? t : 0;
+            int bits = TryGetIntValue(eventData, "bits", out int b) ? b : 0;
+            int threshold = TryGetIntValue(config, "bits", out int t) ? t : 0;
 
             switch (comparator)
             {
@@ -7689,22 +7697,23 @@ public class CPHInline
     {
         if (config.ContainsKey("tier") && config["tier"] is string configTier)
         {
+            string normalizedConfigTier = NormalizeTier(configTier);
             string eventTier = eventData.ContainsKey("tier") && eventData["tier"] is string t ? t : "1000";
-            if (eventTier != configTier)
+            if (eventTier != normalizedConfigTier)
                 return false;
         }
 
-        if (config.ContainsKey("months") && config["months"] is int minMonths)
+        if (TryGetIntValue(config, "months", out int minMonths))
         {
-            int months = eventData.ContainsKey("months") && eventData["months"] is int m ? m : 1;
+            int months = TryGetIntValue(eventData, "months", out int m) ? m : 1;
             if (months < minMonths)
                 return false;
         }
 
         if (config.ContainsKey("monthsComparator") && config["monthsComparator"] is string comparator)
         {
-            int months = eventData.ContainsKey("months") && eventData["months"] is int m ? m : 1;
-            int threshold = config.ContainsKey("months") && config["months"] is int t ? t : 1;
+            int months = TryGetIntValue(eventData, "months", out int m) ? m : 1;
+            int threshold = TryGetIntValue(config, "months", out int t) ? t : 1;
 
             switch (comparator)
             {
@@ -7727,17 +7736,18 @@ public class CPHInline
     /// </summary>
     private bool ValidateGiftSubConditions(Dictionary<string, object> config, Dictionary<string, object> eventData)
     {
-        if (config.ContainsKey("minCount") && config["minCount"] is int minCount)
+        if (TryGetIntValue(config, "minCount", out int minCount))
         {
-            int count = eventData.ContainsKey("count") && eventData["count"] is int c ? c : 1;
+            int count = TryGetIntValue(eventData, "count", out int c) ? c : 1;
             if (count < minCount)
                 return false;
         }
 
         if (config.ContainsKey("tier") && config["tier"] is string configTier)
         {
+            string normalizedConfigTier = NormalizeTier(configTier);
             string eventTier = eventData.ContainsKey("tier") && eventData["tier"] is string t ? t : "1000";
-            if (eventTier != configTier)
+            if (eventTier != normalizedConfigTier)
                 return false;
         }
 
@@ -8619,6 +8629,140 @@ public class CPHInline
             LogExecution(LogLevel.Error, $"ExecuteWithTimeout: {operationName} timed out after {timeoutMs}ms");
             return false;
         }
+    }
+
+    /// <summary>
+    /// Safely extract an integer value from a dictionary, handling various numeric types
+    /// Uses type checking cascade for optimal performance (matches existing codebase pattern)
+    /// </summary>
+    /// <param name="dict">Dictionary to extract value from</param>
+    /// <param name="key">Key to look up</param>
+    /// <param name="value">Extracted integer value</param>
+    /// <param name="defaultValue">Default value to use if extraction fails</param>
+    /// <returns>True if value was successfully extracted, false otherwise</returns>
+    private static bool TryGetIntValue(Dictionary<string, object> dict, string key, out int value, int defaultValue = 0)
+    {
+        value = defaultValue;
+        if (!dict.ContainsKey(key))
+            return false;
+
+        object obj = dict[key];
+        if (obj == null)
+            return false;
+
+        // Type checking cascade (fastest for common cases)
+        if (obj is int intValue)
+        {
+            value = intValue;
+            return true;
+        }
+        if (obj is long longValue)
+        {
+            value = (int)longValue;
+            return true;
+        }
+        if (obj is double doubleValue)
+        {
+            value = (int)doubleValue;
+            return true;
+        }
+
+        // Fallback to string parsing for edge cases
+        if (int.TryParse(obj.ToString(), out int parsed))
+        {
+            value = parsed;
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Safely extract a double value from a dictionary, handling various numeric types
+    /// Uses type checking cascade for optimal performance (matches existing codebase pattern)
+    /// </summary>
+    /// <param name="dict">Dictionary to extract value from</param>
+    /// <param name="key">Key to look up</param>
+    /// <param name="value">Extracted double value</param>
+    /// <param name="defaultValue">Default value to use if extraction fails</param>
+    /// <returns>True if value was successfully extracted, false otherwise</returns>
+    private static bool TryGetDoubleValue(Dictionary<string, object> dict, string key, out double value, double defaultValue = 0.0)
+    {
+        value = defaultValue;
+        if (!dict.ContainsKey(key))
+            return false;
+
+        object obj = dict[key];
+        if (obj == null)
+            return false;
+
+        // Type checking cascade (fastest for common cases)
+        if (obj is double doubleValue)
+        {
+            value = doubleValue;
+            return true;
+        }
+        if (obj is int intValue)
+        {
+            value = intValue;
+            return true;
+        }
+        if (obj is long longValue)
+        {
+            value = longValue;
+            return true;
+        }
+
+        // Fallback to string parsing for edge cases
+        if (double.TryParse(obj.ToString(), out double parsed))
+        {
+            value = parsed;
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Normalize tier value between Streamer.bot format and numeric format
+    /// Streamer.bot provides: "tier 1", "tier 2", "tier 3", or "prime"
+    /// Twitch API uses: "1000", "2000", "3000", or "Prime"
+    /// This normalizes to numeric format for consistent comparison
+    /// </summary>
+    /// <param name="tier">Tier value in any format</param>
+    /// <returns>Normalized tier value in numeric format ("1000", "2000", "3000", "prime") or original if unrecognized</returns>
+    private static string NormalizeTier(string tier)
+    {
+        if (string.IsNullOrWhiteSpace(tier))
+            return "1000"; // Default to tier 1
+
+        // Normalize to lowercase for case-insensitive comparison
+        string normalized = tier.Trim().ToLowerInvariant();
+
+        // Handle Streamer.bot format: "tier 1", "tier 2", "tier 3", "prime"
+        if (normalized == "tier 1" || normalized == "1")
+            return "1000";
+        if (normalized == "tier 2" || normalized == "2")
+            return "2000";
+        if (normalized == "tier 3" || normalized == "3")
+            return "3000";
+        if (normalized == "prime")
+            return "prime";
+
+        // Handle numeric format: "1000", "2000", "3000"
+        if (normalized == "1000")
+            return "1000";
+        if (normalized == "2000")
+            return "2000";
+        if (normalized == "3000")
+            return "3000";
+
+        // Handle capitalized "Prime" (Twitch API format)
+        if (normalized == "prime" || tier.Trim() == "Prime")
+            return "prime";
+
+        // Return original if format is unrecognized (for backwards compatibility)
+        return tier.Trim();
     }
 
     /// <summary>
