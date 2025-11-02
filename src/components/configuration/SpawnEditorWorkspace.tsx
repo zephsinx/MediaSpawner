@@ -1389,13 +1389,6 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
                   </CardContent>
                 </Card>
 
-                {/* Randomization Buckets */}
-                <RandomizationBucketsSection
-                  spawn={selectedSpawn}
-                  buckets={bucketsDraft}
-                  onChange={setBucketsDraft}
-                />
-
                 {trigger?.type === "streamerbot.command" && (
                   <Card>
                     <CardHeader>
@@ -2688,6 +2681,13 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* Randomization Buckets */}
+                <RandomizationBucketsSection
+                  spawn={selectedSpawn}
+                  buckets={bucketsDraft}
+                  onChange={setBucketsDraft}
+                />
 
                 <Card>
                   <CardHeader>
