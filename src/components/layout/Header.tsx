@@ -132,6 +132,64 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
     return unsubscribe;
   }, [streamerbot.state, streamerbot.errorMessage]);
 
+  // Automatically trigger sync checks when configuration changes
+  useEffect(() => {
+    // Early return if not connected
+    if (streamerbot.state !== "connected") return;
+
+    let debounceTimeout: NodeJS.Timeout;
+
+    const handleConfigChange = () => {
+      // Clear previous timeout
+      clearTimeout(debounceTimeout);
+
+      // Schedule new sync check after debounce delay
+      debounceTimeout = setTimeout(() => {
+        StreamerbotService.checkConfigSyncStatus()
+          .then((result) => {
+            // Silently handle failures - don't spam user with errors
+            if (!result.success) {
+              console.warn("Auto sync check failed:", result.error);
+            }
+          })
+          .catch((error) => {
+            console.warn("Auto sync check error:", error);
+          });
+      }, 500); // 500ms debounce
+    };
+
+    // Add event listeners
+    window.addEventListener(
+      "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+      handleConfigChange as EventListener,
+    );
+    window.addEventListener(
+      "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
+      handleConfigChange as EventListener,
+    );
+    window.addEventListener(
+      "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
+      handleConfigChange as EventListener,
+    );
+
+    // Cleanup
+    return () => {
+      clearTimeout(debounceTimeout);
+      window.removeEventListener(
+        "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+        handleConfigChange as EventListener,
+      );
+      window.removeEventListener(
+        "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
+        handleConfigChange as EventListener,
+      );
+      window.removeEventListener(
+        "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
+        handleConfigChange as EventListener,
+      );
+    };
+  }, [streamerbot.state]);
+
   // Load live profile on mount and when Streamer.bot connects
   useEffect(() => {
     const loadLiveProfile = async () => {

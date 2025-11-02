@@ -20,6 +20,15 @@ Sets of media assets that spawn together. Each spawn has its own trigger conditi
 
 Individual media files (images, videos, audio) that can be assigned to spawns with specific configuration overrides.
 
+### Triggers
+
+Spawns can be activated by various events configured per-spawn:
+
+- **Manual**: Activate on demand
+- **Time-based**: Daily schedules, specific times, intervals, or recurring patterns
+- **Streamer.bot Commands**: Respond to chat commands
+- **Twitch Events**: Follows, cheers, subscriptions, channel point rewards, and more
+
 ### Randomization Buckets (per-spawn)
 
 Configure subsets of a spawn's assets to be chosen at runtime by the consuming application.
@@ -31,14 +40,27 @@ Configure subsets of a spawn's assets to be chosen at runtime by the consuming a
 - Non-bucket assets always spawn as usual.
 - UI: create buckets, edit members, and see bucket chips next to assets in the current spawn panel.
 
+### Random Coordinates
+
+Visual assets (images and videos) can generate random positions each time they spawn:
+
+- Enable per-asset in the asset settings
+- Configure canvas size in Settings to define boundaries (default: 1920x1080)
+- Set asset dimensions to keep assets fully on-screen
+- Uses absolute positioning mode automatically
+
 ## Features
 
 - **Spawn Management**: Create, configure, and organize spawns within profiles
 - **Asset Library**: Central repository for all your media assets
 - **Spawn-Specific Settings**: Configure how assets behave within each spawn
+- **Trigger Configuration**: Set up when spawns should activate (manual, time-based, commands, events)
 - **Randomization Buckets**: Define groups that select one or N assets at runtime
+- **Random Coordinates**: Generate random positions for visual assets within canvas bounds
 - **Profile Switching**: Work with different configurations for different scenarios
-- **Export Ready**: Generate configurations for external applications
+- **Streamer.bot Integration**: Real-time connection and sync with Streamer.bot
+- **Theme Support**: Light and dark mode
+- **Import/Export**: Backup and share configurations as JSON files
 
 ## Getting Started
 
@@ -49,11 +71,21 @@ Configure subsets of a spawn's assets to be chosen at runtime by the consuming a
 3. Start the development server: `npm run dev`
 4. Open your browser to the local development URL
 
-### Streamer.bot setup
+### Streamer.bot Setup
 
 - Import `MediaSpawnerClient.sb` into Streamer.bot (Actions > Import).
 - This creates the C# Actions and queue that MediaSpawner uses to manage Spawns and interact with OBS.
-- For context on imported code actions and OBS control, see: [C# Code Actions](https://docs.streamer.bot/guide/csharp) and [OBS Studio integration](https://docs.streamer.bot/guide/broadcasters/obs-studio).
+- MediaSpawner connects to Streamer.bot via WebSocket for real-time sync and live profile management.
+- For technical details, see: [C# Code Actions](https://docs.streamer.bot/guide/csharp) and [OBS Studio integration](https://docs.streamer.bot/guide/broadcasters/obs-studio).
+
+### Settings
+
+Configure the application through the Settings page:
+
+- **Working Directory**: Local path for asset files (Windows or Unix format)
+- **OBS Canvas Size**: Canvas dimensions for random coordinate bounds (default: 1920x1080)
+- **Theme**: Choose light or dark mode
+- **Import/Export**: Backup or share your entire configuration as JSON
 
 ### Basic Workflow
 
@@ -76,7 +108,12 @@ MediaSpawner uses a three-panel layout designed for efficient workflow:
 
 - React 19 + TypeScript
 - Tailwind CSS for styling
+- Radix UI for accessible component primitives
 - Vite for build tooling
+- Vitest for testing
+- Moment Timezone for scheduling
+- Lucide React for icons
+- Sonner for notifications
 - Browser localStorage for configuration persistence
 
 ## Development
@@ -98,7 +135,12 @@ mediaspawner/
 
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Lint code
 - `npm run test` - Run test suite
+- `npm run test:watch` - Run tests in watch mode
+- `npm run test:ui` - Run tests with UI
+- `npm run test:coverage` - Generate coverage report
 
 ## Author
 
