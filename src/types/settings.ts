@@ -3,6 +3,24 @@
  */
 
 /**
+ * Google Drive backup configuration
+ */
+export interface GoogleDriveBackupSettings {
+  /** Whether Google Drive backup is enabled */
+  enabled: boolean;
+  /** Whether automatic backups are enabled */
+  autoBackup: boolean;
+  /** Frequency for automatic backups */
+  backupFrequency: "daily" | "weekly" | "on-change";
+  /** ISO timestamp of last backup attempt */
+  lastBackupTime?: string;
+  /** Status of last backup attempt */
+  lastBackupStatus?: "success" | "error";
+  /** Error message from last failed backup (if any) */
+  lastBackupError?: string;
+}
+
+/**
  * Application settings interface
  */
 export interface Settings {
@@ -18,6 +36,8 @@ export interface Settings {
   obsCanvasWidth?: number;
   /** OBS canvas height in pixels (for random coordinate bounds) */
   obsCanvasHeight?: number;
+  /** Google Drive backup configuration */
+  googleDriveBackup?: GoogleDriveBackupSettings;
 }
 
 /**
@@ -30,6 +50,7 @@ export const DEFAULT_SETTINGS: Settings = {
   themeMode: "light",
   obsCanvasWidth: 1920,
   obsCanvasHeight: 1080,
+  googleDriveBackup: undefined,
 };
 
 /**
