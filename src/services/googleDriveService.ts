@@ -9,7 +9,8 @@
  * Google OAuth client ID
  */
 const GOOGLE_CLIENT_ID =
-  import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+  (import.meta as unknown as { env: { VITE_GOOGLE_CLIENT_ID?: string } }).env
+    .VITE_GOOGLE_CLIENT_ID ||
   "312818501517-i2ad4uttagfi0fnpe4llnr657k11760i.apps.googleusercontent.com";
 
 /**
