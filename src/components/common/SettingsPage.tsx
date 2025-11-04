@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { PathInput } from "./PathInput";
 import { ImportExportSection } from "./ImportExportSection";
+import { GoogleDriveBackupSection } from "./GoogleDriveBackupSection";
 import { SettingsService } from "../../services/settingsService";
 import { usePanelState } from "../../hooks";
 import type { Settings } from "../../types/settings";
@@ -333,6 +334,11 @@ const SettingsPage: React.FC = () => {
           <ImportExportSection />
         </CardContent>
       </Card>
+
+      {/* Google Drive Backup Section */}
+      <div className="mb-6">
+        <GoogleDriveBackupSection />
+      </div>
 
       {/* Settings Information */}
       <Card>
