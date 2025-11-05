@@ -2,7 +2,6 @@
  * Tests for GoogleDriveBackupSection component
  */
 
-import React from "react";
 import { screen, fireEvent, waitFor, act } from "@testing-library/react";
 import {
   beforeEach,
