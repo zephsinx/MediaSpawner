@@ -17,7 +17,7 @@ const GOOGLE_CLIENT_ID =
  * Google OAuth redirect URI
  * Must match the redirect URI configured in Google Cloud Console
  */
-const REDIRECT_URI = `${window.location.origin}${window.location.pathname}`;
+const REDIRECT_URI = `${window.location.origin}/oauth-callback`;
 
 /**
  * Google OAuth scopes for Drive API
@@ -120,45 +120,165 @@ export class GoogleDriveService {
   }
 
   /**
-   * Initiate OAuth 2.0 authentication flow
+   * Initiate OAuth 2.0 authentication flow using popup window
    */
-  static async authenticate(): Promise<void> {
-    try {
-      // Generate PKCE
-      const { codeVerifier, codeChallenge } = await this.generatePKCE();
+  static async authenticate(): Promise<GoogleDriveServiceResult> {
+    return new Promise((resolve) => {
+      try {
+        // Generate PKCE
+        this.generatePKCE()
+          .then(({ codeVerifier, codeChallenge }) => {
+            // Generate state for CSRF protection
+            const state = crypto.randomUUID();
 
-      // Generate state for CSRF protection
-      const state = crypto.randomUUID();
+            // Store code verifier and state in sessionStorage
+            sessionStorage.setItem(CODE_VERIFIER_STORAGE_KEY, codeVerifier);
+            sessionStorage.setItem(OAUTH_STATE_STORAGE_KEY, state);
 
-      // Store code verifier and state in sessionStorage
-      sessionStorage.setItem(CODE_VERIFIER_STORAGE_KEY, codeVerifier);
-      sessionStorage.setItem(OAUTH_STATE_STORAGE_KEY, state);
+            // Build OAuth URL
+            const params = new URLSearchParams({
+              client_id: GOOGLE_CLIENT_ID,
+              redirect_uri: REDIRECT_URI,
+              response_type: "code",
+              scope: SCOPES.join(" "),
+              code_challenge: codeChallenge,
+              code_challenge_method: "S256",
+              state: state,
+              access_type: "offline", // Required to get refresh token
+              prompt: "consent", // Force consent screen to get refresh token
+            });
 
-      // Build OAuth URL
-      const params = new URLSearchParams({
-        client_id: GOOGLE_CLIENT_ID,
-        redirect_uri: REDIRECT_URI,
-        response_type: "code",
-        scope: SCOPES.join(" "),
-        code_challenge: codeChallenge,
-        code_challenge_method: "S256",
-        state: state,
-        access_type: "offline", // Required to get refresh token
-        prompt: "consent", // Force consent screen to get refresh token
-      });
+            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+            // Open popup window
+            const popup = window.open(
+              authUrl,
+              "oauth-popup",
+              "width=500,height=600,scrollbars=yes,resizable=yes",
+            );
 
-      // Redirect to Google OAuth
-      window.location.href = authUrl;
-    } catch (error) {
-      console.error("Failed to initiate OAuth authentication:", error);
-      throw new Error(
-        error instanceof Error
-          ? error.message
-          : "Failed to initiate authentication",
-      );
-    }
+            // Check if popup was blocked
+            if (!popup || popup.closed || typeof popup.closed === "undefined") {
+              return resolve({
+                success: false,
+                error:
+                  "Popup blocked. Please allow popups for this site and try again.",
+              });
+            }
+
+            // Set up message listener for OAuth callback
+            const messageHandler = (event: MessageEvent) => {
+              // Verify origin for security
+              if (event.origin !== window.location.origin) {
+                return;
+              }
+
+              // Check if message is from OAuth callback
+              if (event.data && event.data.type === "oauth-callback") {
+                // Remove listener
+                window.removeEventListener("message", messageHandler);
+
+                // Clear intervals
+                if (popupCheckInterval) {
+                  clearInterval(popupCheckInterval);
+                }
+                if (timeoutId) {
+                  clearTimeout(timeoutId);
+                }
+
+                // Close popup if still open
+                if (popup && !popup.closed) {
+                  popup.close();
+                }
+
+                // Resolve or reject based on result
+                if (event.data.success) {
+                  resolve({
+                    success: true,
+                    data: { message: "Authentication successful" },
+                  });
+                } else {
+                  resolve({
+                    success: false,
+                    error: event.data.error || "Authentication failed",
+                  });
+                }
+              }
+            };
+
+            window.addEventListener("message", messageHandler);
+
+            // Monitor popup for manual closure
+            const popupCheckInterval = setInterval(() => {
+              if (popup.closed) {
+                // Remove listener
+                window.removeEventListener("message", messageHandler);
+
+                // Clear timeout
+                if (timeoutId) {
+                  clearTimeout(timeoutId);
+                }
+
+                // Clear interval
+                if (popupCheckInterval) {
+                  clearInterval(popupCheckInterval);
+                }
+
+                // Reject with user cancellation message
+                resolve({
+                  success: false,
+                  error:
+                    "Authentication cancelled. The popup window was closed.",
+                });
+              }
+            }, 500); // Check every 500ms
+
+            // Set timeout (5 minutes)
+            const timeoutId = setTimeout(
+              () => {
+                // Remove listener
+                window.removeEventListener("message", messageHandler);
+
+                // Clear interval
+                if (popupCheckInterval) {
+                  clearInterval(popupCheckInterval);
+                }
+
+                // Close popup if still open
+                if (popup && !popup.closed) {
+                  popup.close();
+                }
+
+                // Reject with timeout error
+                resolve({
+                  success: false,
+                  error: "Authentication timeout. Please try again.",
+                });
+              },
+              5 * 60 * 1000,
+            ); // 5 minutes
+          })
+          .catch((error) => {
+            console.error("Failed to initiate OAuth authentication:", error);
+            resolve({
+              success: false,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to initiate authentication",
+            });
+          });
+      } catch (error) {
+        console.error("Failed to initiate OAuth authentication:", error);
+        resolve({
+          success: false,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to initiate authentication",
+        });
+      }
+    });
   }
 
   /**

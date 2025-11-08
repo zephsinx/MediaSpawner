@@ -233,8 +233,8 @@ export function ImportExportSection({
       {/* Information section */}
       <div className="mt-4 p-3 bg-[rgb(var(--color-accent))]/10 border border-[rgb(var(--color-accent))]/20 rounded-md">
         <div className="flex items-start gap-2">
-          <FileText className="w-4 h-4 text-[rgb(var(--color-accent))] mt-0.5 flex-shrink-0" />
-          <div className="text-sm text-[rgb(var(--color-accent))]">
+          <FileText className="w-4 h-4 text-[rgb(var(--color-accent-text))] mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-[rgb(var(--color-accent-text))]">
             <p className="font-medium mb-1">Configuration Files</p>
             <p>
               Exported files contain all your spawn profiles, assets, and

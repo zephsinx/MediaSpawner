@@ -78,6 +78,7 @@ export function GoogleDriveBackupSection({
   className = "",
 }: GoogleDriveBackupSectionProps) {
   const [isBackingUp, setIsBackingUp] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [authStatus, setAuthStatus] = useState<{
     authenticated: boolean;
@@ -404,15 +405,29 @@ export function GoogleDriveBackupSection({
       const status = await GoogleDriveService.getAuthStatus();
       if (!status.authenticated) {
         // Need to authenticate
+        setIsAuthenticating(true);
         try {
-          await GoogleDriveService.authenticate();
-          // User will be redirected to Google, then back to app
+          const result = await GoogleDriveService.authenticate();
+          if (result.success) {
+            // Refresh auth status after successful authentication
+            const newStatus = await GoogleDriveService.getAuthStatus();
+            setAuthStatus(newStatus);
+            updateBackupSettings({ enabled: true });
+            toast.success("Google Drive authentication successful");
+          } else {
+            const errorMessage = result.error || "Authentication failed";
+            setError(errorMessage);
+            setEnabled(false);
+            toast.error(`Google Drive authentication failed: ${errorMessage}`);
+          }
         } catch (err) {
           const errorMessage =
             err instanceof Error ? err.message : "Authentication failed";
           setError(errorMessage);
           setEnabled(false);
           toast.error(`Google Drive authentication failed: ${errorMessage}`);
+        } finally {
+          setIsAuthenticating(false);
         }
       } else {
         // Already authenticated, just enable
@@ -520,7 +535,7 @@ export function GoogleDriveBackupSection({
     <div className={cn("", className)}>
       <Card>
         <CardHeader>
-          <CardTitle>Google Drive Backup</CardTitle>
+          <CardTitle as="h2">Google Drive Backup</CardTitle>
         </CardHeader>
         <CardContent>
           {/* Enable/Disable Toggle */}
@@ -535,11 +550,17 @@ export function GoogleDriveBackupSection({
               <p className="text-xs text-[rgb(var(--color-muted-foreground))] mt-1">
                 Automatically backup your configuration to Google Drive
               </p>
+              {isAuthenticating && (
+                <p className="text-xs text-[rgb(var(--color-accent))] mt-1">
+                  Opening authentication window...
+                </p>
+              )}
             </div>
             <Switch
               id="gdrive-enabled"
               checked={enabled}
               onCheckedChange={handleEnableToggle}
+              disabled={isAuthenticating}
               aria-label="Enable Google Drive backup"
             />
           </div>
@@ -681,8 +702,8 @@ export function GoogleDriveBackupSection({
           {/* Information Section */}
           <div className="mt-4 p-3 bg-[rgb(var(--color-accent))]/10 border border-[rgb(var(--color-accent))]/20 rounded-md">
             <div className="flex items-start gap-2">
-              <Cloud className="w-4 h-4 text-[rgb(var(--color-accent))] mt-0.5 flex-shrink-0" />
-              <div className="text-sm text-[rgb(var(--color-accent))]">
+              <Cloud className="w-4 h-4 text-[rgb(var(--color-accent-text))] mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-[rgb(var(--color-accent-text))]">
                 <p className="font-medium mb-1">Google Drive Backup</p>
                 <p>
                   Your configuration is backed up to a single file in your

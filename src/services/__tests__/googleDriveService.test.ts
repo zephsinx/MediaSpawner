@@ -44,6 +44,47 @@ const mockLocation = {
   pathname: "/",
 };
 
+// Mock window.open
+const mockPopup = {
+  closed: false,
+  close: vi.fn(),
+};
+
+const mockWindowOpen = vi.fn<() => Window | null>(
+  () => mockPopup as unknown as Window,
+);
+
+// Mock window.postMessage and message event listeners
+const messageListeners: Array<(event: MessageEvent) => void> = [];
+const mockAddEventListener = vi.fn((event: string, handler: unknown) => {
+  if (event === "message") {
+    messageListeners.push(handler as (event: MessageEvent) => void);
+  }
+});
+const mockRemoveEventListener = vi.fn((event: string, handler: unknown) => {
+  if (event === "message") {
+    const index = messageListeners.indexOf(
+      handler as (event: MessageEvent) => void,
+    );
+    if (index > -1) {
+      messageListeners.splice(index, 1);
+    }
+  }
+});
+
+// Helper to simulate message from popup
+function simulatePopupMessage(data: {
+  type: string;
+  success: boolean;
+  error?: string;
+}) {
+  const event = new MessageEvent("message", {
+    data,
+    origin: "http://localhost",
+  });
+  messageListeners.forEach((listener) => listener(event));
+}
+
 // Mock sessionStorage
 const mockSessionStorage: Storage = {
   getItem: vi.fn(),
@@ -85,8 +126,27 @@ describe("GoogleDriveService", () => {
       configurable: true,
     });
 
+    // Setup window.open mock
+    Object.defineProperty(window, "open", {
+      value: mockWindowOpen,
+      writable: true,
+      configurable: true,
+    });
+
+    // Setup window.addEventListener/removeEventListener mocks
+    window.addEventListener = mockAddEventListener;
+    window.removeEventListener = mockRemoveEventListener;
+
     // Reset location href
     mockLocation.href = "";
+
+    // Reset popup mock
+    mockPopup.closed = false;
+    mockPopup.close.mockClear();
+    mockWindowOpen.mockClear();
+    messageListeners.length = 0;
+    mockAddEventListener.mockClear();
+    mockRemoveEventListener.mockClear();
   });
 
   afterEach(() => {
@@ -95,8 +155,11 @@ describe("GoogleDriveService", () => {
   });
 
   describe("authenticate", () => {
-    it("should generate PKCE and redirect to Google OAuth URL", async () => {
-      await GoogleDriveService.authenticate();
+    it("should generate PKCE and open popup window", async () => {
+      const authenticatePromise = GoogleDriveService.authenticate();
+
+      // Wait a bit for the promise to set up
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Verify sessionStorage was called to store code verifier and state
       expect(mockSessionStorage.setItem).toHaveBeenCalledWith(
@@ -108,27 +171,176 @@ describe("GoogleDriveService", () => {
         "test-uuid-123",
       );
 
-      // Verify redirect URL was set
-      expect(mockLocation.href).toContain(
-        "https://accounts.google.com/o/oauth2/v2/auth",
+      // Verify popup was opened with correct URL
+      expect(mockWindowOpen).toHaveBeenCalledWith(
+        expect.stringContaining("https://accounts.google.com/o/oauth2/v2/auth"),
+        "oauth-popup",
+        "width=500,height=600,scrollbars=yes,resizable=yes",
       );
-      expect(mockLocation.href).toContain("client_id=");
-      expect(mockLocation.href).toContain("code_challenge=");
-      expect(mockLocation.href).toContain("code_challenge_method=S256");
-      expect(mockLocation.href).toContain("state=test-uuid-123");
-      expect(mockLocation.href).toContain("access_type=offline");
-      expect(mockLocation.href).toContain("prompt=consent");
+      expect(mockWindowOpen).toHaveBeenCalledWith(
+        expect.stringContaining("client_id="),
+        "oauth-popup",
+        "width=500,height=600,scrollbars=yes,resizable=yes",
+      );
+      expect(mockWindowOpen).toHaveBeenCalledWith(
+        expect.stringContaining("code_challenge="),
+        "oauth-popup",
+        "width=500,height=600,scrollbars=yes,resizable=yes",
+      );
+      expect(mockWindowOpen).toHaveBeenCalledWith(
+        expect.stringContaining("code_challenge_method=S256"),
+        "oauth-popup",
+        "width=500,height=600,scrollbars=yes,resizable=yes",
+      );
+      expect(mockWindowOpen).toHaveBeenCalledWith(
+        expect.stringContaining("state=test-uuid-123"),
+        "oauth-popup",
+        "width=500,height=600,scrollbars=yes,resizable=yes",
+      );
+      expect(mockWindowOpen).toHaveBeenCalledWith(
+        expect.stringContaining("access_type=offline"),
+        "oauth-popup",
+        "width=500,height=600,scrollbars=yes,resizable=yes",
+      );
+      expect(mockWindowOpen).toHaveBeenCalledWith(
+        expect.stringContaining("prompt=consent"),
+        "oauth-popup",
+        "width=500,height=600,scrollbars=yes,resizable=yes",
+      );
+
+      // Verify message listener was added
+      expect(mockAddEventListener).toHaveBeenCalledWith(
+        "message",
+        expect.any(Function),
+      );
+
+      // Simulate successful callback from popup
+      simulatePopupMessage({
+        type: "oauth-callback",
+        success: true,
+      });
+
+      const result = await authenticatePromise;
+      expect(result.success).toBe(true);
+      expect(result.data).toBeDefined();
+
+      // Verify listener was removed
+      expect(mockRemoveEventListener).toHaveBeenCalledWith(
+        "message",
+        expect.any(Function),
+      );
     });
 
-    it("should handle errors during authentication", async () => {
+    it("should handle popup blocker", async () => {
+      // Mock window.open to return null (popup blocked)
+      mockWindowOpen.mockReturnValueOnce(null);
+
+      const result = await GoogleDriveService.authenticate();
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Popup blocked");
+    });
+
+    it("should handle popup closure by user", async () => {
+      const authenticatePromise = GoogleDriveService.authenticate();
+
+      // Wait a bit for setup
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Simulate popup being closed
+      mockPopup.closed = true;
+
+      // Wait for the interval to detect closure
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      const result = await authenticatePromise;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("cancelled");
+      expect(result.error).toContain("popup window was closed");
+    });
+
+    it("should handle timeout", async () => {
+      vi.useFakeTimers();
+      const authenticatePromise = GoogleDriveService.authenticate();
+
+      // Wait a bit for setup
+      await vi.runOnlyPendingTimersAsync();
+
+      // Fast-forward 5 minutes
+      vi.advanceTimersByTime(5 * 60 * 1000);
+
+      const result = await authenticatePromise;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("timeout");
+
+      // Verify popup was closed
+      expect(mockPopup.close).toHaveBeenCalled();
+
+      // Verify listener was removed
+      expect(mockRemoveEventListener).toHaveBeenCalledWith(
+        "message",
+        expect.any(Function),
+      );
+
+      vi.useRealTimers();
+    });
+
+    it("should handle error message from popup", async () => {
+      const authenticatePromise = GoogleDriveService.authenticate();
+
+      // Wait a bit for setup
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Simulate error callback from popup
+      simulatePopupMessage({
+        type: "oauth-callback",
+        success: false,
+        error: "Authentication failed",
+      });
+
+      const result = await authenticatePromise;
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Authentication failed");
+
+      // Verify popup was closed
+      expect(mockPopup.close).toHaveBeenCalled();
+    });
+
+    it("should verify message origin for security", async () => {
+      const authenticatePromise = GoogleDriveService.authenticate();
+
+      // Wait a bit for setup
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Simulate message from different origin (should be ignored)
+      const wrongOriginEvent = new MessageEvent("message", {
+        data: { type: "oauth-callback", success: true },
+        origin: "https://evil.com",
+      });
+      messageListeners.forEach((listener) => listener(wrongOriginEvent));
+
+      // Wait a bit to ensure it was ignored
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Simulate correct origin message
+      simulatePopupMessage({
+        type: "oauth-callback",
+        success: true,
+      });
+
+      const result = await authenticatePromise;
+      expect(result.success).toBe(true);
+    });
+
+    it("should handle errors during PKCE generation", async () => {
       // Mock crypto.getRandomValues to throw
       mockCrypto.getRandomValues.mockImplementationOnce(() => {
         throw new Error("Crypto error");
       });
 
-      await expect(GoogleDriveService.authenticate()).rejects.toThrow(
-        "Crypto error",
-      );
+      const result = await GoogleDriveService.authenticate();
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Crypto error");
     });
   });
 
