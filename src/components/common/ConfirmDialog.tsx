@@ -47,7 +47,7 @@ export function ConfirmDialog({
         return {
           confirmButton: "primary" as const,
           icon: Info,
-          iconColor: "text-[rgb(var(--color-accent))]",
+          iconColor: "text-[rgb(var(--color-accent-text))]",
           iconBg: "bg-[rgb(var(--color-accent))]/10",
         };
     }

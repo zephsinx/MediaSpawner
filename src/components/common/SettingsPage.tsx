@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { PathInput } from "./PathInput";
 import { ImportExportSection } from "./ImportExportSection";
-import { GoogleDriveBackupSection } from "./GoogleDriveBackupSection";
 import { SettingsService } from "../../services/settingsService";
 import { usePanelState } from "../../hooks";
 import type { Settings } from "../../types/settings";
@@ -189,7 +188,7 @@ const SettingsPage: React.FC = () => {
       {/* Settings Form */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Working Directory</CardTitle>
+          <CardTitle as="h2">Working Directory</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="mb-4">
@@ -255,7 +254,7 @@ const SettingsPage: React.FC = () => {
       {/* OBS Canvas Size Section */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>OBS Canvas Size</CardTitle>
+          <CardTitle as="h2">OBS Canvas Size</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-[rgb(var(--color-muted-foreground))] mb-4">
@@ -313,7 +312,7 @@ const SettingsPage: React.FC = () => {
           )}
 
           <div className="mt-4 p-3 bg-[rgb(var(--color-accent))]/10 border border-[rgb(var(--color-accent))]/20 rounded-md">
-            <p className="text-sm text-[rgb(var(--color-accent))]">
+            <p className="text-sm text-[rgb(var(--color-accent-text))]">
               <strong>Default:</strong> 1920x1080 (Full HD). Common resolutions:
               2560x1440 (2K), 3840x2160 (4K).
             </p>
@@ -324,7 +323,7 @@ const SettingsPage: React.FC = () => {
       {/* Import/Export Section */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Import/Export Configuration</CardTitle>
+          <CardTitle as="h2">Import/Export Configuration</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-[rgb(var(--color-muted-foreground))] mb-4">
@@ -335,15 +334,15 @@ const SettingsPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Google Drive Backup Section */}
-      <div className="mb-6">
+      {/* Google Drive Backup Section - Hidden for now */}
+      {/* <div className="mb-6">
         <GoogleDriveBackupSection />
-      </div>
+      </div> */}
 
       {/* Settings Information */}
       <Card>
         <CardHeader>
-          <CardTitle>Settings Information</CardTitle>
+          <CardTitle as="h2">Settings Information</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -384,7 +383,7 @@ const SettingsPage: React.FC = () => {
           </div>
 
           <div className="mt-4 p-3 bg-[rgb(var(--color-accent))]/10 border border-[rgb(var(--color-accent))]/20 rounded-md">
-            <p className="text-sm text-[rgb(var(--color-accent))]">
+            <p className="text-sm text-[rgb(var(--color-accent-text))]">
               <strong>Note:</strong> Settings are stored locally in your
               browser.
             </p>

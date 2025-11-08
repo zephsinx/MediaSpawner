@@ -7,6 +7,11 @@ const AssetLibraryPage = lazy(
 const SettingsPageWrapper = lazy(
   () => import("./components/common/SettingsPageWrapper"),
 );
+const OAuthCallback = lazy(() =>
+  import("./components/common/OAuthCallback").then((module) => ({
+    default: module.OAuthCallback,
+  })),
+);
 import { useAppInitialization } from "./hooks";
 
 function App() {
@@ -36,6 +41,7 @@ function App() {
           <Route path="/" element={<Layout />} />
           <Route path="/assets" element={<AssetLibraryPage />} />
           <Route path="/settings" element={<SettingsPageWrapper />} />
+          <Route path="/oauth-callback" element={<OAuthCallback />} />
         </Routes>
       </Suspense>
     </BrowserRouter>

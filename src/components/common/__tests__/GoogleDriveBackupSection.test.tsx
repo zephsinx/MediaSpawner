@@ -254,7 +254,10 @@ describe("GoogleDriveBackupSection", () => {
 
   describe("enable/disable toggle", () => {
     it("should trigger OAuth flow when enabling and not authenticated", async () => {
-      authenticateMock.mockResolvedValue(undefined);
+      authenticateMock.mockResolvedValue({
+        success: true,
+        data: { message: "Authentication successful" },
+      });
 
       await act(async () => {
         renderWithAllProviders(<GoogleDriveBackupSection />);
@@ -345,7 +348,10 @@ describe("GoogleDriveBackupSection", () => {
     });
 
     it("should show error on authentication failure", async () => {
-      authenticateMock.mockRejectedValue(new Error("Auth failed"));
+      authenticateMock.mockResolvedValue({
+        success: false,
+        error: "Auth failed",
+      });
 
       await act(async () => {
         renderWithAllProviders(<GoogleDriveBackupSection />);

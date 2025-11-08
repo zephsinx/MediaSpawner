@@ -3,10 +3,11 @@
 /* CSS Variables for MediaSpawner UI Style Guide */
 :root {
   /* Color System - Accent (Indigo) */
-  --color-accent: 99 102 241; /* indigo-500 */
+  --color-accent: 79 70 229; /* indigo-600 */
   --color-accent-foreground: 255 255 255;
-  --color-accent-hover: 79 70 229; /* indigo-600 */
-  --color-accent-active: 67 56 202; /* indigo-700 */
+  --color-accent-hover: 67 56 202; /* indigo-700 */
+  --color-accent-active: 55 48 163; /* indigo-800 */
+  --color-accent-text: 129 140 248; /* indigo-400 - for readable text on dark backgrounds */
   --color-ring: 99 102 241; /* indigo-500 */
 
   /* Color System - Neutral Grays */
@@ -31,9 +32,9 @@
   --color-warning: 217 119 6; /* amber-600 - darker for light mode contrast */
   --color-warning-foreground: 120 53 15; /* amber-900 */
   --color-warning-hover: 180 83 9; /* amber-700 */
-  --color-error: 239 68 68; /* red-500 */
+  --color-error: 220 38 38; /* red-600 */
   --color-error-foreground: 255 255 255;
-  --color-error-hover: 220 38 38; /* red-600 */
+  --color-error-hover: 185 28 28; /* red-700 */
   --color-error-bg: 254 242 242; /* red-50 */
   --color-error-border: 248 113 113; /* red-300 */
   --color-success-bg: 236 253 245; /* emerald-50 */
@@ -70,10 +71,11 @@
 /* Dark Mode Variables */
 .dark {
   /* Color System - Accent (Indigo) - Same in dark mode */
-  --color-accent: 99 102 241; /* indigo-500 */
+  --color-accent: 79 70 229; /* indigo-600 */
   --color-accent-foreground: 255 255 255;
-  --color-accent-hover: 79 70 229; /* indigo-600 */
-  --color-accent-active: 67 56 202; /* indigo-700 */
+  --color-accent-hover: 67 56 202; /* indigo-700 */
+  --color-accent-active: 55 48 163; /* indigo-800 */
+  --color-accent-text: 165 180 252; /* indigo-300 - for readable text on dark backgrounds */
   --color-ring: 99 102 241; /* indigo-500 */
 
   /* Color System - Neutral Grays - Dark Mode */
@@ -98,9 +100,9 @@
   --color-warning: 245 158 11; /* amber-500 - lighter for dark mode contrast */
   --color-warning-foreground: 254 243 199; /* amber-100 */
   --color-warning-hover: 251 191 36; /* amber-400 */
-  --color-error: 239 68 68; /* red-500 */
+  --color-error: 220 38 38; /* red-600 */
   --color-error-foreground: 255 255 255;
-  --color-error-hover: 220 38 38; /* red-600 */
+  --color-error-hover: 185 28 28; /* red-700 */
   --color-error-bg: 69 10 10; /* red-950 */
   --color-error-border: 127 29 29; /* red-800 */
   --color-success-bg: 6 78 59; /* emerald-950 */

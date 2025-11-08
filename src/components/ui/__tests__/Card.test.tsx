@@ -278,12 +278,20 @@ describe("CardHeader", () => {
 });
 
 describe("CardTitle", () => {
-  it("renders as h3 element", () => {
+  it("renders as h3 element by default", () => {
     renderWithAllProviders(<CardTitle>Title content</CardTitle>);
 
     const title = screen.getByText("Title content");
     expect(title).toBeInTheDocument();
     expect(title.tagName).toBe("H3");
+  });
+
+  it("renders as specified heading level when as prop is provided", () => {
+    renderWithAllProviders(<CardTitle as="h2">Title content</CardTitle>);
+
+    const title = screen.getByText("Title content");
+    expect(title).toBeInTheDocument();
+    expect(title.tagName).toBe("H2");
   });
 
   it("applies correct className", () => {

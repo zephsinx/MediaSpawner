@@ -1720,7 +1720,7 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
 
                         {/* Help Text */}
                         <div className="bg-[rgb(var(--color-accent))]/10 border border-[rgb(var(--color-accent))]/20 rounded-lg p-3">
-                          <p className="text-xs text-[rgb(var(--color-accent))]">
+                          <p className="text-xs text-[rgb(var(--color-accent-text))]">
                             <strong>Note:</strong> Twitch handles all reward
                             logic including cooldowns, usage limits, and point
                             costs. MediaSpawner only configures when spawns
