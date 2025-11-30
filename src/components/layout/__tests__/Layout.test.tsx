@@ -597,9 +597,7 @@ describe("Layout", () => {
         container = r.container as unknown as HTMLElement;
       });
 
-      const gridContainer = container.querySelector(
-        ".h-\\[calc\\(100vh-80px\\)\\]",
-      );
+      const gridContainer = container.querySelector(".grid.h-full");
       expect(gridContainer).toBeInTheDocument();
     });
 

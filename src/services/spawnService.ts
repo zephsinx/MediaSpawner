@@ -227,7 +227,9 @@ export class SpawnService {
         window.dispatchEvent(
           new CustomEvent(
             "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-            { detail: { spawnId: updatedSpawn.id } } as CustomEventInit,
+            {
+              detail: { spawnId: reconciled.id, updatedSpawn: reconciled },
+            } as CustomEventInit,
           ),
         );
       } catch {

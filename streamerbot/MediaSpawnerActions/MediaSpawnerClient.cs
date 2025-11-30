@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -841,7 +842,7 @@ public class CPHInline
                     SpawnProfile liveProfile = this.cachedConfig.Profiles?.FirstOrDefault(p => p.Id == this.liveProfileId);
                     if (liveProfile == null)
                     {
-                        LogExecution(LogLevel.Warning, $"InitializeTimers: Live profile '{this.liveProfileId}' not found in configuration, falling back to all profiles");
+                        LogExecution(LogLevel.Info, $"InitializeTimers: Live profile '{this.liveProfileId}' not found in configuration, falling back to all profiles");
                         timerCount = CreateTimersForProfiles(this.cachedConfig.Profiles);
                         profileSource = "all profiles (fallback - invalid live profile)";
                     }
@@ -852,7 +853,7 @@ public class CPHInline
 
                         if (timerCount == 0)
                         {
-                            LogExecution(LogLevel.Warning, $"InitializeTimers: No time-triggered spawns found in live profile '{this.liveProfileId}', falling back to all profiles");
+                            LogExecution(LogLevel.Info, $"InitializeTimers: No time-triggered spawns found in live profile '{this.liveProfileId}', falling back to all profiles");
                             // Fall back to all profiles
                             timerCount = CreateTimersForProfiles(this.cachedConfig.Profiles);
                             profileSource = "all profiles (fallback - no time spawns in live profile)";
@@ -868,10 +869,6 @@ public class CPHInline
 
                 this.timersInitialized = true;
                 LogExecution(LogLevel.Info, $"InitializeTimers: Successfully initialized {timerCount} timers from {profileSource}");
-
-                // Log timer status for monitoring
-                Dictionary<string, object> status = GetTimerStatus();
-                LogExecution(LogLevel.Info, $"InitializeTimers: Timer status - Active: {status["activeTimerCount"]}, Initialized: {status["timersInitialized"]}");
             }
         }
         catch (Exception ex)
@@ -995,8 +992,6 @@ public class CPHInline
             string triggerType = spawn.Trigger.Type.Replace("time.", "");
             Dictionary<string, object> config = spawn.Trigger.Config;
 
-            LogExecution(LogLevel.Info, $"CreateTimerForSpawn: Creating {triggerType} timer for spawn '{spawn.Name}'");
-
             // Basic validation before timer creation
             if (!ValidateSpawnForTimerCreation(spawn))
             {
@@ -1054,8 +1049,6 @@ public class CPHInline
                 return false;
             }
 
-            LogExecution(LogLevel.Info, $"CreateTimerForSpawn: Successfully created {triggerType} timer for spawn '{spawn.Name}'");
-
             // Update statistics
             UpdateTimerStats("created", spawn.Id);
 
@@ -1079,38 +1072,28 @@ public class CPHInline
     {
         try
         {
-            if (!config.ContainsKey("isoDateTime") || !(config["isoDateTime"] is string isoDateTime))
+            if (!TryGetStringValue(config, "isoDateTime", out string isoDateTime))
             {
                 LogExecution(LogLevel.Warning, $"CreateOneTimeTimer: Missing or invalid 'isoDateTime' in config for spawn '{spawn.Name}'");
                 return false;
             }
 
-            // Parse DateTime with timezone consideration
-            DateTime targetTime;
-            if (!DateTime.TryParse(isoDateTime, out targetTime))
+            // Parse DateTimeOffset - RoundtripKind ensures 'Z' is correctly interpreted as UTC
+            if (!DateTimeOffset.TryParse(isoDateTime, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTimeOffset targetTimeOffset))
             {
-                // Try parsing as UTC if local parsing fails
-                if (DateTime.TryParse(isoDateTime, null, System.Globalization.DateTimeStyles.AssumeUniversal, out targetTime))
-                {
-                    targetTime = targetTime.ToLocalTime();
-                    LogExecution(LogLevel.Info, $"CreateOneTimeTimer: Parsed '{isoDateTime}' as UTC and converted to local time: {targetTime}");
-                }
-                else
-                {
-                    LogExecution(LogLevel.Warning, $"CreateOneTimeTimer: Invalid DateTime format '{isoDateTime}' for spawn '{spawn.Name}'");
-                    return false;
-                }
+                LogExecution(LogLevel.Warning, $"CreateOneTimeTimer: Invalid DateTime format '{isoDateTime}' for spawn '{spawn.Name}'");
+                return false;
             }
 
-            DateTime now = DateTime.Now;
-            if (targetTime <= now)
+            DateTimeOffset now = DateTimeOffset.Now;
+            if (targetTimeOffset <= now)
             {
-                LogExecution(LogLevel.Warning, $"CreateOneTimeTimer: Target time {targetTime} is in the past for spawn '{spawn.Name}', skipping");
+                LogExecution(LogLevel.Info, $"CreateOneTimeTimer: Target time {targetTimeOffset.LocalDateTime} is in the past for spawn '{spawn.Name}', skipping");
                 return false;
             }
 
             // Calculate delay with millisecond precision
-            TimeSpan delay = targetTime - now;
+            TimeSpan delay = targetTimeOffset - now;
             int delayMs = (int)Math.Min(delay.TotalMilliseconds, int.MaxValue);
 
             if (delayMs <= 0)
@@ -1134,7 +1117,7 @@ public class CPHInline
                 this.timerStates[spawn.Id] = false; // false = active
             }
 
-            LogExecution(LogLevel.Info, $"CreateOneTimeTimer: Created one-time timer for spawn '{spawn.Name}' to fire at {targetTime} (in {delay.TotalMinutes:F1} minutes)");
+            LogExecution(LogLevel.Info, $"CreateOneTimeTimer: Created one-time timer for spawn '{spawn.Name}' to fire at {targetTimeOffset.LocalDateTime} (in {delay.TotalMinutes:F1} minutes)");
             return true;
         }
         catch (Exception ex)
@@ -1575,7 +1558,7 @@ public class CPHInline
     {
         try
         {
-            if (!config.ContainsKey("time") || !(config["time"] is string timeStr))
+            if (!TryGetStringValue(config, "time", out string timeStr))
             {
                 LogExecution(LogLevel.Warning, $"CreateDailyTimer: Missing or invalid 'time' in config for spawn '{spawn.Name}'");
                 return false;
@@ -1588,8 +1571,8 @@ public class CPHInline
             }
 
             // Calculate delay until next occurrence
-            DateTime now = DateTime.Now;
-            DateTime nextOccurrence = now.Date.Add(targetTime);
+            DateTimeOffset now = DateTimeOffset.Now;
+            DateTimeOffset nextOccurrence = now.Date.Add(targetTime);
             if (nextOccurrence <= now)
             {
                 nextOccurrence = nextOccurrence.AddDays(1);
@@ -1635,8 +1618,8 @@ public class CPHInline
         try
         {
             // Check if we're in a DST transition period (first Sunday of November or second Sunday of March)
-            DateTime now = DateTime.Now;
-            bool isDstTransition = IsDaylightSavingTimeTransition(now);
+            DateTimeOffset now = DateTimeOffset.Now;
+            bool isDstTransition = IsDaylightSavingTimeTransition(now.DateTime);
 
             if (isDstTransition)
             {
@@ -1652,7 +1635,7 @@ public class CPHInline
                             if (config.ContainsKey("time") && config["time"] is string timeStr &&
                                 TimeSpan.TryParse(timeStr, out TimeSpan targetTime))
                             {
-                                DateTime nextOccurrence = now.Date.Add(targetTime);
+                                DateTimeOffset nextOccurrence = now.Date.Add(targetTime);
                                 if (nextOccurrence <= now)
                                 {
                                     nextOccurrence = nextOccurrence.AddDays(1);
@@ -1674,7 +1657,7 @@ public class CPHInline
                                         daysOfWeek.Add(dayOfWeek);
                                     }
                                 }
-                                DateTime nextOccurrence = GetNextWeeklyOccurrence(now, daysOfWeek, weeklyTargetTime);
+                                DateTimeOffset nextOccurrence = GetNextWeeklyOccurrence(now, daysOfWeek, weeklyTargetTime);
                                 timer.Interval = (nextOccurrence - now).TotalMilliseconds;
                             }
                             break;
@@ -1695,7 +1678,7 @@ public class CPHInline
                                         }
                                     }
                                 }
-                                DateTime nextOccurrence = GetNextMonthlyOccurrence(now, daysOfMonth, monthlyTargetTime);
+                                DateTimeOffset nextOccurrence = GetNextMonthlyOccurrence(now, daysOfMonth, monthlyTargetTime);
                                 timer.Interval = (nextOccurrence - now).TotalMilliseconds;
                             }
                             break;
@@ -1838,7 +1821,7 @@ public class CPHInline
     {
         try
         {
-            if (!config.ContainsKey("time") || !(config["time"] is string timeStr) ||
+            if (!TryGetStringValue(config, "time", out string timeStr) ||
                 !config.ContainsKey("daysOfWeek") || !(config["daysOfWeek"] is List<object> daysList))
             {
                 LogExecution(LogLevel.Warning, $"CreateWeeklyTimer: Missing or invalid 'time' or 'daysOfWeek' in config for spawn '{spawn.Name}'");
@@ -1867,8 +1850,8 @@ public class CPHInline
             }
 
             // Calculate delay until next occurrence
-            DateTime now = DateTime.Now;
-            DateTime nextOccurrence = GetNextWeeklyOccurrence(now, daysOfWeek, targetTime);
+            DateTimeOffset now = DateTimeOffset.Now;
+            DateTimeOffset nextOccurrence = GetNextWeeklyOccurrence(now, daysOfWeek, targetTime);
 
             double delayMs = (nextOccurrence - now).TotalMilliseconds;
             System.Timers.Timer timer = new System.Timers.Timer(delayMs);
@@ -1909,7 +1892,7 @@ public class CPHInline
     {
         try
         {
-            if (!config.ContainsKey("time") || !(config["time"] is string timeStr) ||
+            if (!TryGetStringValue(config, "time", out string timeStr) ||
                 !config.ContainsKey("daysOfMonth") || !(config["daysOfMonth"] is List<object> daysList))
             {
                 LogExecution(LogLevel.Warning, $"CreateMonthlyTimer: Missing or invalid 'time' or 'daysOfMonth' in config for spawn '{spawn.Name}'");
@@ -1944,8 +1927,8 @@ public class CPHInline
             }
 
             // Calculate delay until next occurrence
-            DateTime now = DateTime.Now;
-            DateTime nextOccurrence = GetNextMonthlyOccurrence(now, daysOfMonth, targetTime);
+            DateTimeOffset now = DateTimeOffset.Now;
+            DateTimeOffset nextOccurrence = GetNextMonthlyOccurrence(now, daysOfMonth, targetTime);
 
             double delayMs = (nextOccurrence - now).TotalMilliseconds;
             System.Timers.Timer timer = new System.Timers.Timer(delayMs);
@@ -2083,15 +2066,15 @@ public class CPHInline
             minutes = minutes.Distinct().OrderBy(m => m).ToList();
 
             // Calculate delay until next occurrence
-            DateTime now = DateTime.Now;
-            DateTime nextOccurrence = GetNextMinuteOfHourOccurrence(now, minutes);
+            DateTimeOffset now = DateTimeOffset.Now;
+            DateTimeOffset nextOccurrence = GetNextMinuteOfHourOccurrence(now, minutes);
 
             double delayMs = (nextOccurrence - now).TotalMilliseconds;
 
             // Ensure delay is reasonable
             if (delayMs < 0)
             {
-                LogExecution(LogLevel.Warning, $"CreateMinuteOfHourTimer: Calculated delay is negative for spawn '{spawn.Name}', using 1 minute delay");
+                LogExecution(LogLevel.Info, $"CreateMinuteOfHourTimer: Calculated delay is negative for spawn '{spawn.Name}', using 1 minute delay");
                 delayMs = 60000; // 1 minute
             }
 
@@ -2281,15 +2264,15 @@ public class CPHInline
     /// <param name="daysOfWeek">List of days of the week</param>
     /// <param name="targetTime">Target time of day</param>
     /// <returns>Next occurrence DateTime</returns>
-    private DateTime GetNextWeeklyOccurrence(DateTime now, List<DayOfWeek> daysOfWeek, TimeSpan targetTime)
+    private DateTimeOffset GetNextWeeklyOccurrence(DateTimeOffset now, List<DayOfWeek> daysOfWeek, TimeSpan targetTime)
     {
         // Start from today and look for the next occurrence
         for (int i = 0; i < 7; i++)
         {
-            DateTime checkDate = now.Date.AddDays(i);
+            DateTimeOffset checkDate = now.Date.AddDays(i);
             if (!daysOfWeek.Contains(checkDate.DayOfWeek))
                 continue;
-            DateTime occurrence = checkDate.Add(targetTime);
+            DateTimeOffset occurrence = checkDate.Add(targetTime);
             if (occurrence > now)
             {
                 return occurrence;
@@ -2299,7 +2282,7 @@ public class CPHInline
         // If no occurrence found in the next 7 days, look at the following week
         for (int i = 7; i < 14; i++)
         {
-            DateTime checkDate = now.Date.AddDays(i);
+            DateTimeOffset checkDate = now.Date.AddDays(i);
             if (daysOfWeek.Contains(checkDate.DayOfWeek))
             {
                 return checkDate.Add(targetTime);
@@ -2317,19 +2300,19 @@ public class CPHInline
     /// <param name="daysOfMonth">List of days of the month</param>
     /// <param name="targetTime">Target time of day</param>
     /// <returns>Next occurrence DateTime</returns>
-    private DateTime GetNextMonthlyOccurrence(DateTime now, List<int> daysOfMonth, TimeSpan targetTime)
+    private DateTimeOffset GetNextMonthlyOccurrence(DateTimeOffset now, List<int> daysOfMonth, TimeSpan targetTime)
     {
         // Start from current month and look for the next occurrence
         for (int monthOffset = 0; monthOffset < 12; monthOffset++)
         {
-            DateTime checkMonth = now.Date.AddMonths(monthOffset);
+            DateTimeOffset checkMonth = now.Date.AddMonths(monthOffset);
             int daysInMonth = DateTime.DaysInMonth(checkMonth.Year, checkMonth.Month);
 
             foreach (int day in daysOfMonth.OrderBy(d => d))
             {
                 if (day <= daysInMonth)
                 {
-                    DateTime occurrence = new DateTime(checkMonth.Year, checkMonth.Month, day).Add(targetTime);
+                    DateTimeOffset occurrence = new DateTimeOffset(checkMonth.Year, checkMonth.Month, day, 0, 0, 0, now.Offset).Add(targetTime);
                     if (occurrence > now)
                     {
                         return occurrence;
@@ -2348,12 +2331,12 @@ public class CPHInline
     /// <param name="now">Current time</param>
     /// <param name="minutes">List of minutes (0-59)</param>
     /// <returns>Next occurrence DateTime</returns>
-    private DateTime GetNextMinuteOfHourOccurrence(DateTime now, List<int> minutes)
+    private DateTimeOffset GetNextMinuteOfHourOccurrence(DateTimeOffset now, List<int> minutes)
     {
         // Check current hour first
         foreach (int minute in minutes.OrderBy(m => m))
         {
-            DateTime occurrence = now.Date.AddHours(now.Hour).AddMinutes(minute);
+            DateTimeOffset occurrence = now.Date.AddHours(now.Hour).AddMinutes(minute);
             if (occurrence > now)
             {
                 return occurrence;
@@ -2361,7 +2344,7 @@ public class CPHInline
         }
 
         // If no occurrence in current hour, look at next hour
-        DateTime nextHour = now.Date.AddHours(now.Hour + 1);
+        DateTimeOffset nextHour = now.Date.AddHours(now.Hour + 1);
         int nextMinute = minutes.OrderBy(m => m).First();
         return nextHour.AddMinutes(nextMinute);
     }
@@ -2494,7 +2477,7 @@ public class CPHInline
             if (config == null)
                 return true; // No specific time filtering
 
-            DateTime now = DateTime.Now;
+            DateTimeOffset now = DateTimeOffset.Now;
 
             switch (triggerType)
             {
@@ -6618,55 +6601,20 @@ public class CPHInline
         {
             Dictionary<string, object> status = GetTimerStatus();
 
-            LogExecution(LogLevel.Info, "GetTimerStatusInfo: === Timer Status Report ===");
-            LogExecution(LogLevel.Info, $"GetTimerStatusInfo: Active Timer Count: {status["activeTimerCount"]}");
-            LogExecution(LogLevel.Info, $"GetTimerStatusInfo: Timers Initialized: {status["timersInitialized"]}");
-            LogExecution(LogLevel.Info, $"GetTimerStatusInfo: Timers Paused: {status["timersPaused"]}");
-            LogExecution(LogLevel.Info, $"GetTimerStatusInfo: Is Shutting Down: {status["isShuttingDown"]}");
-            LogExecution(LogLevel.Info, $"GetTimerStatusInfo: Timestamp: {status["timestamp"]}");
+            // Consolidate timer status into a single summary log
+            StringBuilder statusSummary = new StringBuilder("GetTimerStatusInfo: Timer Status - ");
+            statusSummary.Append($"Active: {status["activeTimerCount"]}, ");
+            statusSummary.Append($"Paused: {status["pausedTimerCount"]}, ");
+            statusSummary.Append($"Initialized: {status["timersInitialized"]}, ");
+            statusSummary.Append($"Shutting Down: {status["isShuttingDown"]}");
 
-            if (status.ContainsKey("activeTimerIds") && status["activeTimerIds"] is List<string> timerIds)
+            if (status.ContainsKey("timerTypeBreakdown") && status["timerTypeBreakdown"] is Dictionary<string, int> timerTypes && timerTypes.Count > 0)
             {
-                LogExecution(LogLevel.Info, $"GetTimerStatusInfo: Active Timer IDs: [{string.Join(", ", timerIds)}]");
+                statusSummary.Append(" | Types: ");
+                statusSummary.Append(string.Join(", ", timerTypes.Select(kvp => $"{kvp.Key}:{kvp.Value}")));
             }
 
-            if (status.ContainsKey("timerTypeBreakdown") && status["timerTypeBreakdown"] is Dictionary<string, int> timerTypes)
-            {
-                LogExecution(LogLevel.Info, "GetTimerStatusInfo: Timer Type Breakdown:");
-                foreach (KeyValuePair<string, int> kvp in timerTypes)
-                {
-                    LogExecution(LogLevel.Info, $"GetTimerStatusInfo:   {kvp.Key}: {kvp.Value}");
-                }
-            }
-
-            if (status.ContainsKey("pausedTimerCount"))
-            {
-                LogExecution(LogLevel.Info, $"GetTimerStatusInfo: Paused Timer Count: {status["pausedTimerCount"]}");
-            }
-
-            if (status.ContainsKey("activeTimerCount"))
-            {
-                LogExecution(LogLevel.Info, $"GetTimerStatusInfo: Active Timer Count: {status["activeTimerCount"]}");
-            }
-
-            if (status.ContainsKey("timerStates") && status["timerStates"] is Dictionary<string, bool> timerStates)
-            {
-                LogExecution(LogLevel.Info, "GetTimerStatusInfo: Individual Timer States:");
-                foreach (KeyValuePair<string, bool> kvp in timerStates)
-                {
-                    string state = kvp.Value ? "Paused" : "Active";
-                    LogExecution(LogLevel.Info, $"GetTimerStatusInfo:   {kvp.Key}: {state}");
-                }
-            }
-
-            if (status.ContainsKey("performanceStats") && status["performanceStats"] is Dictionary<string, object> perfStats)
-            {
-                LogExecution(LogLevel.Info, "GetTimerStatusInfo: Performance Statistics:");
-                foreach (KeyValuePair<string, object> kvp in perfStats)
-                {
-                    LogExecution(LogLevel.Info, $"GetTimerStatusInfo:   {kvp.Key}: {kvp.Value}");
-                }
-            }
+            LogExecution(LogLevel.Info, statusSummary.ToString());
 
             if (status.ContainsKey("error"))
             {
@@ -6674,7 +6622,6 @@ public class CPHInline
                 return false;
             }
 
-            LogExecution(LogLevel.Info, "GetTimerStatusInfo: === End Timer Status Report ===");
             return true;
         }
         catch (Exception ex)
@@ -6725,7 +6672,13 @@ public class CPHInline
                     throw new ArgumentException("JSON string cannot be null or empty", nameof(json));
                 }
 
-                MediaSpawnerConfig result = JsonConvert.DeserializeObject<MediaSpawnerConfig>(json);
+                // Use DateParseHandling.None to preserve ISO 8601 datetime strings as-is
+                // This prevents Json.NET from converting UTC datetimes to local time
+                JsonSerializerSettings settings = new JsonSerializerSettings
+                {
+                    DateParseHandling = DateParseHandling.None
+                };
+                MediaSpawnerConfig result = JsonConvert.DeserializeObject<MediaSpawnerConfig>(json, settings);
                 if (result == null)
                 {
                     throw new InvalidOperationException("Failed to deserialize MediaSpawnerConfig - result is null");
@@ -6759,7 +6712,13 @@ public class CPHInline
                     return false;
                 }
 
-                config = JsonConvert.DeserializeObject<MediaSpawnerConfig>(json);
+                // Use DateParseHandling.None to preserve ISO 8601 datetime strings as-is
+                // This prevents Json.NET from converting UTC datetimes to local time
+                JsonSerializerSettings settings = new JsonSerializerSettings
+                {
+                    DateParseHandling = DateParseHandling.None
+                };
+                config = JsonConvert.DeserializeObject<MediaSpawnerConfig>(json, settings);
                 if (config == null)
                 {
                     error = "Failed to deserialize MediaSpawnerConfig - result is null";
@@ -8725,6 +8684,43 @@ public class CPHInline
         if (double.TryParse(obj.ToString(), out double parsed))
         {
             value = parsed;
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Safely extract a string value from a dictionary, handling various string types and JToken objects
+    /// Uses type checking cascade for optimal performance (matches existing codebase pattern)
+    /// </summary>
+    /// <param name="dict">Dictionary to extract value from</param>
+    /// <param name="key">Key to look up</param>
+    /// <param name="value">Extracted string value</param>
+    /// <param name="defaultValue">Default value to use if extraction fails</param>
+    /// <returns>True if value was successfully extracted, false otherwise</returns>
+    private static bool TryGetStringValue(Dictionary<string, object> dict, string key, out string value, string defaultValue = "")
+    {
+        value = defaultValue;
+        if (!dict.ContainsKey(key))
+            return false;
+
+        object obj = dict[key];
+        if (obj == null)
+            return false;
+
+        // Type checking cascade (fastest for common cases)
+        if (obj is string stringValue)
+        {
+            value = stringValue;
+            return true;
+        }
+
+        // Fallback to ToString() for JToken objects and other types
+        string stringResult = obj.ToString();
+        if (!string.IsNullOrWhiteSpace(stringResult))
+        {
+            value = stringResult;
             return true;
         }
 

@@ -496,12 +496,19 @@ function SpawnAssetsSection() {
       setDraftAssets(null);
       setSpawn(result.spawn || null);
       toast.success("Asset changes saved");
-      window.dispatchEvent(
-        new CustomEvent(
-          "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-          { detail: { spawnId: selectedSpawnId } } as CustomEventInit,
-        ),
-      );
+      if (result.spawn) {
+        window.dispatchEvent(
+          new CustomEvent(
+            "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+            {
+              detail: {
+                spawnId: result.spawn.id,
+                updatedSpawn: result.spawn,
+              },
+            } as CustomEventInit,
+          ),
+        );
+      }
     } catch (e) {
       const msg =
         e instanceof Error ? e.message : "Failed to save asset changes";

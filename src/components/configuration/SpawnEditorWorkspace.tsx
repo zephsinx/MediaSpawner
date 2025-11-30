@@ -2492,19 +2492,20 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
                                   <Input
                                     id="every-custom-iso"
                                     type="datetime-local"
-                                    label="Custom Anchor (ISO)"
+                                    label="Custom Anchor"
                                     value={(() => {
                                       const a =
                                         getEveryNMinutesConfig(trigger)?.anchor;
-                                      const v =
-                                        a && a.kind === "custom"
-                                          ? a.isoDateTime
-                                          : "";
-                                      if (!v) return "";
+                                      if (
+                                        !a ||
+                                        a.kind !== "custom" ||
+                                        !a.isoDateTime
+                                      )
+                                        return "";
                                       try {
-                                        return v
-                                          .replace(/\.\d{3}Z$/, "")
-                                          .slice(0, 16);
+                                        return moment(a.isoDateTime)
+                                          .tz(a.timezone)
+                                          .format("YYYY-MM-DDTHH:mm");
                                       } catch {
                                         return "";
                                       }
@@ -2528,8 +2529,16 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
                                         });
                                       const a = existing.anchor;
                                       if (!a || a.kind !== "custom") return;
+                                      const tz =
+                                        a.timezone || moment.tz.guess();
                                       const iso = e.target.value
-                                        ? new Date(e.target.value).toISOString()
+                                        ? moment
+                                            .tz(
+                                              e.target.value,
+                                              "YYYY-MM-DDTHH:mm",
+                                              tz,
+                                            )
+                                            .toISOString()
                                         : new Date().toISOString();
                                       setTrigger({
                                         ...trigger,
@@ -2577,13 +2586,39 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
                                         });
                                       const a = existing.anchor;
                                       if (!a || a.kind !== "custom") return;
+                                      const newTimezone = e.target.value;
+                                      const oldTimezone = a.timezone;
+                                      let newIsoDateTime = a.isoDateTime;
+                                      if (
+                                        a.isoDateTime &&
+                                        oldTimezone &&
+                                        newTimezone !== oldTimezone
+                                      ) {
+                                        try {
+                                          const wallClockTime = moment(
+                                            a.isoDateTime,
+                                          ).tz(oldTimezone);
+                                          newIsoDateTime = moment
+                                            .tz(
+                                              wallClockTime.format(
+                                                "YYYY-MM-DDTHH:mm:ss",
+                                              ),
+                                              "YYYY-MM-DDTHH:mm:ss",
+                                              newTimezone,
+                                            )
+                                            .toISOString();
+                                        } catch {
+                                          newIsoDateTime = a.isoDateTime;
+                                        }
+                                      }
                                       setTrigger({
                                         ...trigger!,
                                         config: {
                                           ...existing,
                                           anchor: {
                                             ...a,
-                                            timezone: e.target.value,
+                                            timezone: newTimezone,
+                                            isoDateTime: newIsoDateTime,
                                           },
                                         },
                                       });
