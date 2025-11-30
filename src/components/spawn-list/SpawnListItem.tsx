@@ -12,6 +12,8 @@ import { Button } from "../ui/Button";
 import { StreamerbotService } from "../../services/streamerbotService";
 import { toast } from "sonner";
 import * as Tooltip from "@radix-ui/react-tooltip";
+import { getSpawnValidationStatus } from "../../utils/spawnValidation";
+import { Layers } from "lucide-react";
 
 /**
  * Props for the spawn list item component
@@ -46,6 +48,11 @@ const SpawnListItem: React.FC<SpawnListItemProps> = ({
   itemRef,
 }) => {
   const [isTesting, setIsTesting] = React.useState(false);
+
+  const validationStatus = React.useMemo(
+    () => getSpawnValidationStatus(spawn),
+    [spawn],
+  );
 
   const handleClick = () => {
     onClick?.(spawn);
@@ -90,7 +97,7 @@ const SpawnListItem: React.FC<SpawnListItemProps> = ({
   return (
     <div
       ref={itemRef}
-      className={`p-3 border-b border-[rgb(var(--color-border))] cursor-pointer transition-colors hover:bg-[rgb(var(--color-muted))]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2 ${
+      className={`p-2 border-b border-[rgb(var(--color-border))] cursor-pointer transition-colors hover:bg-[rgb(var(--color-muted))]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2 ${
         isSelected
           ? "bg-[rgb(var(--color-accent))]/5 border-[rgb(var(--color-accent))]"
           : ""
@@ -113,7 +120,7 @@ const SpawnListItem: React.FC<SpawnListItemProps> = ({
       }}
     >
       {/* Spawn Name and Toggle */}
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center justify-between">
         <Tooltip.Root>
           <Tooltip.Trigger asChild>
             <h3
@@ -133,7 +140,7 @@ const SpawnListItem: React.FC<SpawnListItemProps> = ({
             </Tooltip.Content>
           </Tooltip.Portal>
         </Tooltip.Root>
-        <div className="flex items-center gap-2 ml-2">
+        <div className="flex items-center gap-1.5 ml-2">
           <Button
             variant="outline"
             size="sm"
@@ -179,7 +186,7 @@ const SpawnListItem: React.FC<SpawnListItemProps> = ({
         <Tooltip.Root>
           <Tooltip.Trigger asChild>
             <p
-              className="text-sm text-[rgb(var(--color-muted-foreground))] truncate mb-2 cursor-default"
+              className="text-sm text-[rgb(var(--color-muted-foreground))] truncate mb-1 cursor-default"
               tabIndex={-1}
             >
               {spawn.description}
@@ -197,52 +204,118 @@ const SpawnListItem: React.FC<SpawnListItemProps> = ({
         </Tooltip.Root>
       )}
 
-      <Tooltip.Root>
-        <Tooltip.Trigger asChild>
-          <div
-            className="flex items-center text-xs text-[rgb(var(--color-muted))] cursor-default"
-            tabIndex={-1}
-          >
-            {/* Type badge */}
-            <span className="mr-2 inline-flex items-center px-1.5 py-0.5 rounded bg-[rgb(var(--color-muted))]/10 text-[rgb(var(--color-fg))] border border-[rgb(var(--color-border))]">
-              {getTriggerTypeLabel(spawn.trigger)}
-            </span>
-            {/* Abbreviated info */}
-            <span className="mr-3 truncate max-w-[40%]">
-              {getTriggerAbbrev(spawn.trigger)}
-            </span>
-            {/* Scheduled label if applicable */}
-            {getTriggerScheduleLabel(spawn.trigger) && (
-              <span className="mr-3 text-[rgb(var(--color-muted-foreground))]">
-                {getTriggerScheduleLabel(spawn.trigger)}
+      <div className="flex items-center text-xs text-[rgb(var(--color-muted))] cursor-default gap-1.5">
+        {validationStatus.status !== "valid" && (
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <span
+                className={`
+                  inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border
+                  ${
+                    validationStatus.status === "error"
+                      ? "bg-[rgb(var(--color-error-bg))] text-[rgb(var(--color-error))] border-[rgb(var(--color-error-border))]"
+                      : "bg-[rgb(var(--color-warning))]/10 text-[rgb(var(--color-warning))] border-[rgb(var(--color-warning))]/20"
+                  }
+                `}
+                tabIndex={-1}
+              >
+                {validationStatus.status === "error" ? "Invalid" : "Warning"}
               </span>
-            )}
-            {/* Assets count */}
-            <span className="mr-3">
-              {spawn.assets.length} asset{spawn.assets.length !== 1 ? "s" : ""}
-            </span>
-            {/* Overall status */}
-            <span>{getOverallStatusLabel(spawn)}</span>
-          </div>
-        </Tooltip.Trigger>
-        <Tooltip.Portal>
-          <Tooltip.Content
-            sideOffset={6}
-            className="z-50 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-3 py-2 text-sm text-[rgb(var(--color-fg))] shadow-md max-w-xs"
-          >
-            <div className="whitespace-pre-line">
-              {getTriggerTooltip(spawn.trigger)}
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                sideOffset={6}
+                className="z-50 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-3 py-2 text-sm text-[rgb(var(--color-fg))] shadow-md max-w-xs"
+              >
+                <div className="whitespace-pre-line">
+                  {validationStatus.errors.length > 0 && (
+                    <div className="mb-1">
+                      <div className="font-semibold text-[rgb(var(--color-error))]">
+                        Errors:
+                      </div>
+                      {validationStatus.errors.map((error, idx) => (
+                        <div key={idx}>• {error}</div>
+                      ))}
+                    </div>
+                  )}
+                  {validationStatus.warnings.length > 0 && (
+                    <div>
+                      <div className="font-semibold text-[rgb(var(--color-warning))]">
+                        Warnings:
+                      </div>
+                      {validationStatus.warnings.map((warning, idx) => (
+                        <div key={idx}>• {warning}</div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <Tooltip.Arrow className="fill-[rgb(var(--color-bg))]" />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+        )}
+        <Tooltip.Root>
+          <Tooltip.Trigger asChild>
+            <div className="flex items-center gap-1.5" tabIndex={-1}>
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-[rgb(var(--color-muted))]/10 text-[rgb(var(--color-fg))] border border-[rgb(var(--color-border))]">
+                {getTriggerTypeLabel(spawn.trigger)}
+              </span>
+              {getTriggerAbbrev(spawn.trigger) !==
+                getTriggerTypeLabel(spawn.trigger) && (
+                <span className="truncate max-w-[40%]">
+                  {getTriggerAbbrev(spawn.trigger)}
+                </span>
+              )}
+              {getTriggerScheduleLabel(spawn.trigger) && (
+                <span className="text-[rgb(var(--color-muted-foreground))]">
+                  {getTriggerScheduleLabel(spawn.trigger)}
+                </span>
+              )}
+              <span className="text-[rgb(var(--color-muted-foreground))]">
+                •
+              </span>
+              <Layers className="h-3 w-3" />
+              <span>
+                {spawn.assets.length} asset
+                {spawn.assets.length !== 1 ? "s" : ""}
+              </span>
+              <span className="text-[rgb(var(--color-muted-foreground))]">
+                •
+              </span>
+              <span>{getOverallStatusLabel(spawn)}</span>
             </div>
-            <Tooltip.Arrow className="fill-[rgb(var(--color-bg))]" />
-          </Tooltip.Content>
-        </Tooltip.Portal>
-      </Tooltip.Root>
+          </Tooltip.Trigger>
+          <Tooltip.Portal>
+            <Tooltip.Content
+              sideOffset={6}
+              className="z-50 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-3 py-2 text-sm text-[rgb(var(--color-fg))] shadow-md max-w-xs"
+            >
+              <div className="whitespace-pre-line">
+                {getTriggerTooltip(spawn.trigger)}
+              </div>
+              <Tooltip.Arrow className="fill-[rgb(var(--color-bg))]" />
+            </Tooltip.Content>
+          </Tooltip.Portal>
+        </Tooltip.Root>
+      </div>
 
       {/* Screen reader descriptions */}
       <div id={`spawn-${spawn.id}-description`} className="sr-only">
         {spawn.description && `Description: ${spawn.description}. `}
         Trigger: {getTriggerTooltip(spawn.trigger)}. Status:{" "}
         {getOverallStatusLabel(spawn)}.
+        {validationStatus.status !== "valid" && (
+          <>
+            {" "}
+            Validation: {validationStatus.status}.
+            {validationStatus.errors.length > 0 && (
+              <> Errors: {validationStatus.errors.join(", ")}.</>
+            )}
+            {validationStatus.warnings.length > 0 && (
+              <> Warnings: {validationStatus.warnings.join(", ")}.</>
+            )}
+          </>
+        )}
       </div>
       <div id={`spawn-${spawn.id}-toggle-description`} className="sr-only">
         Toggle to {spawn.enabled ? "disable" : "enable"} this spawn.

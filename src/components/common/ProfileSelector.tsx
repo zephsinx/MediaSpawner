@@ -57,8 +57,13 @@ export function ProfileSelector({
                 key={profile.id}
                 className={cn(
                   "flex items-center justify-between w-full px-3 py-2 text-sm rounded-sm cursor-pointer transition-colors",
-                  "focus:bg-[rgb(var(--color-muted))] focus:text-[rgb(var(--color-fg))] focus:outline-none",
-                  "hover:bg-[rgb(var(--color-muted))] hover:text-[rgb(var(--color-fg))]",
+                  // Radix keyboard navigation highlight - use darker background in dark mode for better contrast
+                  "data-[highlighted]:bg-[rgb(var(--color-muted))] dark:data-[highlighted]:bg-[rgb(var(--color-border))] data-[highlighted]:text-[rgb(var(--color-fg))]",
+                  // Hover state
+                  "hover:bg-[rgb(var(--color-muted))] dark:hover:bg-[rgb(var(--color-border))] hover:text-[rgb(var(--color-fg))]",
+                  // Focus state (fallback)
+                  "focus:bg-[rgb(var(--color-muted))] dark:focus:bg-[rgb(var(--color-border))] focus:text-[rgb(var(--color-fg))] focus:outline-none",
+                  // Selected state
                   isSelected &&
                     "bg-[rgb(var(--color-accent))]/10 text-[rgb(var(--color-accent))]",
                 )}

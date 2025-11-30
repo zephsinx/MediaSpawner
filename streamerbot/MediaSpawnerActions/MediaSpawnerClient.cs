@@ -3908,22 +3908,21 @@ public class CPHInline
                     individualAssetStopwatch.Stop();
                     long assetExecutionTime = individualAssetStopwatch.ElapsedMilliseconds;
 
-                    if (assetResult)
+                    bool actuallySucceeded = assetResult && !string.IsNullOrEmpty(generatedSourceGuid);
+
+                    if (actuallySucceeded)
                     {
                         successfulAssets++;
                         successfulAssetList.Add(spawnAsset);
 
-                        // Store the generated GUID in ActiveSpawnExecution if we have one
-                        if (!string.IsNullOrEmpty(generatedSourceGuid))
+                        // Store the generated GUID in ActiveSpawnExecution
+                        lock (this.lockObject)
                         {
-                            lock (this.lockObject)
+                            // Find the active execution by spawn ID
+                            ActiveSpawnExecution activeExecution = this.activeSpawns.Values.FirstOrDefault(e => e.SpawnId == spawn.Id);
+                            if (activeExecution != null)
                             {
-                                // Find the active execution by spawn ID
-                                ActiveSpawnExecution activeExecution = this.activeSpawns.Values.FirstOrDefault(e => e.SpawnId == spawn.Id);
-                                if (activeExecution != null)
-                                {
-                                    activeExecution.SourceGuids[spawnAsset.Id] = generatedSourceGuid;
-                                }
+                                activeExecution.SourceGuids[spawnAsset.Id] = generatedSourceGuid;
                             }
                         }
 
@@ -3933,7 +3932,16 @@ public class CPHInline
                     {
                         failedAssets++;
                         failedAssetList.Add(spawnAsset);
-                        LogExecution(LogLevel.Warning, $"ExecuteSpawn[{executionId}]: Asset '{spawnAsset.AssetId}' execution failed in {assetExecutionTime}ms");
+
+                        if (assetResult)
+                        {
+                            LogExecution(LogLevel.Warning, $"ExecuteSpawn[{executionId}]: Asset '{spawnAsset.AssetId}' execution partially failed (no OBS source created) in {assetExecutionTime}ms");
+                        }
+                        else
+                        {
+                            LogExecution(LogLevel.Warning, $"ExecuteSpawn[{executionId}]: Asset '{spawnAsset.AssetId}' execution failed in {assetExecutionTime}ms");
+                        }
+
                         allAssetsSuccessful = false;
                     }
                 }

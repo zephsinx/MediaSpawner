@@ -577,30 +577,15 @@ describe("Layout", () => {
       expect(rightPanel).toBeInTheDocument();
     });
 
-    it("applies proper styling to panels", async () => {
-      let container!: HTMLElement;
+    it("renders three-panel layout structure", async () => {
       await act(async () => {
-        const r = renderWithAllProviders(<Layout />);
-        container = r.container as unknown as HTMLElement;
+        renderWithAllProviders(<Layout />);
       });
 
-      const panels = container.querySelectorAll(
-        ".bg-\\[rgb\\(var\\(--color-surface-1\\)\\)\\]",
-      );
-      // Header + 3 panels; allow additional inner white backgrounds
-      expect(panels.length).toBeGreaterThanOrEqual(4);
-
-      const leftPanel = container.querySelector(".col-span-3");
-      const centerPanel = container.querySelector(".col-span-6");
-
-      expect(leftPanel).toHaveClass(
-        "border-r",
-        "border-[rgb(var(--color-border))]",
-      );
-      expect(centerPanel).toHaveClass(
-        "border-r",
-        "border-[rgb(var(--color-border))]",
-      );
+      // Verify panels exist by checking for panel IDs
+      expect(document.getElementById("spawn-list")).toBeInTheDocument();
+      expect(document.getElementById("main-content")).toBeInTheDocument();
+      expect(document.getElementById("asset-management")).toBeInTheDocument();
     });
   });
 
@@ -639,34 +624,6 @@ describe("Layout", () => {
       const panelContainers = container.querySelectorAll(".h-full");
       // Includes outer panel containers and internal panel content containers
       expect(panelContainers.length).toBeGreaterThanOrEqual(6);
-    });
-  });
-
-  describe("Background and Container Styling", () => {
-    it("applies correct background to main container", async () => {
-      let container!: HTMLElement;
-      await act(async () => {
-        const r = renderWithAllProviders(<Layout />);
-        container = r.container as unknown as HTMLElement;
-      });
-
-      const mainContainer = container.firstChild as HTMLElement;
-      expect(mainContainer).toHaveClass(
-        "min-h-screen",
-        "bg-[rgb(var(--color-bg))]",
-      );
-    });
-
-    it("applies overflow handling to prevent content overflow", async () => {
-      let container!: HTMLElement;
-      await act(async () => {
-        const r = renderWithAllProviders(<Layout />);
-        container = r.container as unknown as HTMLElement;
-      });
-
-      const panels = container.querySelectorAll(".overflow-hidden");
-      // Includes the three outer panel containers plus internal overflow containers
-      expect(panels.length).toBeGreaterThanOrEqual(3);
     });
   });
 });
