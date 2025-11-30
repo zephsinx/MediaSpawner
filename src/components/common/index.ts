@@ -1,3 +1,7 @@
+export {
+  CombinedStatusBadge,
+  type CombinedStatusBadgeProps,
+} from "./CombinedStatusBadge";
 export { ConfirmDialog, type ConfirmDialogProps } from "./ConfirmDialog";
 export {
   FileReferenceInput,

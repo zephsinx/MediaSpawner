@@ -3,8 +3,7 @@ import { SpawnProfileService } from "../../services/spawnProfileService";
 import type { SpawnProfile } from "../../types/spawn";
 import { usePanelState, useStreamerbotStatus } from "../../hooks";
 import {
-  SyncStatusIndicator,
-  SyncActionsDropdown,
+  CombinedStatusBadge,
   ThemeToggle,
   ProfileActionsDropdown,
   NavigationDropdown,
@@ -398,34 +397,12 @@ const Header: React.FC<HeaderProps> = ({ className = "" }) => {
             {/* Theme Toggle */}
             <ThemeToggle className="hidden lg:flex" />
 
-            {/* Sync Status and Actions */}
-            <div className="flex items-center space-x-3">
-              <SyncStatusIndicator statusInfo={syncStatus} size="sm" />
-              <SyncActionsDropdown
-                syncStatus={syncStatus}
-                onSyncStatusChange={setSyncStatus}
-                className="hidden sm:flex"
-              />
-            </div>
-
-            {/* Streamer.bot Status */}
-            <span
-              className="inline-flex items-center rounded-full bg-[rgb(var(--color-surface-2))] px-2 py-1 text-xs text-[rgb(var(--color-muted-foreground))]"
-              aria-label={`Streamer.bot ${streamerbot.state} (${streamerbot.host}:${streamerbot.port})`}
-              title={`Streamer.bot ${streamerbot.state} (${streamerbot.host}:${streamerbot.port})`}
-            >
-              <span
-                className={
-                  "mr-1 inline-block h-2.5 w-2.5 rounded-full " +
-                  (streamerbot.state === "connected"
-                    ? "bg-[rgb(var(--color-success))]"
-                    : streamerbot.state === "connecting"
-                      ? "bg-[rgb(var(--color-warning))] animate-pulse"
-                      : "bg-[rgb(var(--color-error))]")
-                }
-              />
-              SB
-            </span>
+            {/* Combined Status Badge */}
+            <CombinedStatusBadge
+              connectionStatus={streamerbot}
+              syncStatus={syncStatus}
+              onSyncStatusChange={setSyncStatus}
+            />
           </div>
         </div>
       </div>
