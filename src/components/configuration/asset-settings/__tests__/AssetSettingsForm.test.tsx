@@ -994,6 +994,7 @@ describe("AssetSettingsForm", () => {
         selectSpawn: vi.fn(),
         selectSpawnAsset: vi.fn(),
         switchCenterPanelMode: vi.fn(),
+        setCenterPanelMode: vi.fn(),
         clearContext: vi.fn(),
         setUnsavedChanges: mockSetUnsavedChanges,
       } as ReturnType<typeof usePanelState>);

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { getNextActivation } from "../scheduling";
+import type { Trigger } from "../../types/spawn";
 
 describe("scheduling getNextActivation - weekly/monthly and enabled flag", () => {
   beforeEach(() => {
@@ -94,16 +95,13 @@ describe("scheduling getNextActivation - weekly/monthly and enabled flag", () =>
   it("handles old dayOfWeek format by migrating to daysOfWeek array", () => {
     // Monday 2025-01-06 10:00:00 UTC
     vi.setSystemTime(new Date("2025-01-06T10:00:00.000Z"));
+    // Old format with dayOfWeek (singular) instead of daysOfWeek (array)
+    // Cast through unknown to simulate legacy data
     const trigger = {
-      type: "time.weeklyAt" as const,
+      type: "time.weeklyAt",
       enabled: true,
-      // Old format with dayOfWeek (singular) instead of daysOfWeek (array)
-      config: { dayOfWeek: 1, time: "12:00", timezone: "UTC" } as {
-        dayOfWeek: number;
-        time: string;
-        timezone: string;
-      },
-    };
+      config: { dayOfWeek: 1, time: "12:00", timezone: "UTC" },
+    } as unknown as Trigger;
     const next = getNextActivation(trigger);
     expect(next.timezone).toBe("UTC");
     expect(next.when).not.toBeNull();
