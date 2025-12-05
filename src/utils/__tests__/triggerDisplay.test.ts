@@ -93,4 +93,24 @@ describe("triggerDisplay helpers", () => {
     const trigOff = { type: "manual", enabled: false, config: {} } as const;
     expect(getOverallStatusLabel(makeSpawn(trigOff, true))).toBe("Trigger off");
   });
+
+  it("handles old dayOfWeek format in weeklyAt trigger", () => {
+    // Old format with dayOfWeek (singular) instead of daysOfWeek (array)
+    const trigger = {
+      type: "time.weeklyAt" as const,
+      enabled: true,
+      config: { dayOfWeek: 1, time: "09:00", timezone: "UTC" } as {
+        dayOfWeek: number;
+        time: string;
+        timezone: string;
+      },
+    };
+    // getTriggerScheduleLabel returns a date-based label, not the trigger abbrev
+    // So we test getTriggerAbbrev instead which uses the display logic
+    const abbrev = getTriggerAbbrev(trigger);
+    expect(abbrev).toContain("Weekly");
+    expect(abbrev).toContain("Mon");
+    expect(abbrev).toContain("09:00");
+    expect(abbrev).toContain("UTC");
+  });
 });

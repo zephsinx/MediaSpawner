@@ -78,17 +78,46 @@ export const validateTrigger = (
       return result;
     }
     case "time.weeklyAt": {
-      const { dayOfWeek, time, timezone } = trigger.config as {
-        dayOfWeek: number;
+      const config = trigger.config as {
+        daysOfWeek?: number[];
+        dayOfWeek?: number;
         time: string;
         timezone: string;
       };
-      if (!(Number.isInteger(dayOfWeek) && dayOfWeek >= 0 && dayOfWeek <= 6)) {
+      // Handle old config format (dayOfWeek) by migrating to daysOfWeek array
+      const daysOfWeek = Array.isArray(config.daysOfWeek)
+        ? config.daysOfWeek
+        : typeof config.dayOfWeek === "number"
+          ? [config.dayOfWeek]
+          : [];
+      const { time, timezone } = config;
+      if (!Array.isArray(daysOfWeek) || daysOfWeek.length === 0) {
         result.isValid = false;
-        result.errors.push("Day of week must be 0 (Sun) to 6 (Sat)");
-        (result.fieldErrors.dayOfWeek ||= []).push(
-          "Day of week must be 0 (Sun) to 6 (Sat)",
+        result.errors.push("At least one day of week must be selected");
+        (result.fieldErrors.daysOfWeek ||= []).push(
+          "At least one day of week must be selected",
         );
+      } else {
+        const invalidDays = daysOfWeek.filter(
+          (day) => !Number.isInteger(day) || day < 0 || day > 6,
+        );
+        if (invalidDays.length > 0) {
+          result.isValid = false;
+          result.errors.push(
+            "Days of week must be integers from 0 (Sun) to 6 (Sat)",
+          );
+          (result.fieldErrors.daysOfWeek ||= []).push(
+            "Days of week must be integers from 0 (Sun) to 6 (Sat)",
+          );
+        }
+        const uniqueDays = new Set(daysOfWeek);
+        if (uniqueDays.size !== daysOfWeek.length) {
+          result.isValid = false;
+          result.errors.push("Days of week must not contain duplicates");
+          (result.fieldErrors.daysOfWeek ||= []).push(
+            "Days of week must not contain duplicates",
+          );
+        }
       }
       if (!isValidHHmm(time)) {
         result.isValid = false;

@@ -1652,7 +1652,15 @@ public class CPHInline
                                 List<DayOfWeek> daysOfWeek = new List<DayOfWeek>();
                                 foreach (object day in daysList)
                                 {
-                                    if (day is string dayStr && Enum.TryParse(dayStr, true, out DayOfWeek dayOfWeek))
+                                    if (day is long dayNum && dayNum >= 0 && dayNum <= 6)
+                                    {
+                                        daysOfWeek.Add((DayOfWeek)dayNum);
+                                    }
+                                    else if (day is int dayInt && dayInt >= 0 && dayInt <= 6)
+                                    {
+                                        daysOfWeek.Add((DayOfWeek)dayInt);
+                                    }
+                                    else if (day is string dayStr && Enum.TryParse(dayStr, true, out DayOfWeek dayOfWeek))
                                     {
                                         daysOfWeek.Add(dayOfWeek);
                                     }
@@ -1837,7 +1845,15 @@ public class CPHInline
             List<DayOfWeek> daysOfWeek = new List<DayOfWeek>();
             foreach (object day in daysList)
             {
-                if (day is string dayStr && Enum.TryParse(dayStr, true, out DayOfWeek dayOfWeek))
+                if (day is long dayNum && dayNum >= 0 && dayNum <= 6)
+                {
+                    daysOfWeek.Add((DayOfWeek)dayNum);
+                }
+                else if (day is int dayInt && dayInt >= 0 && dayInt <= 6)
+                {
+                    daysOfWeek.Add((DayOfWeek)dayInt);
+                }
+                else if (day is string dayStr && Enum.TryParse(dayStr, true, out DayOfWeek dayOfWeek))
                 {
                     daysOfWeek.Add(dayOfWeek);
                 }
@@ -2504,7 +2520,15 @@ public class CPHInline
                         List<DayOfWeek> daysOfWeek = new List<DayOfWeek>();
                         foreach (object day in weeklyDaysList)
                         {
-                            if (day is string dayStr && Enum.TryParse(dayStr, true, out DayOfWeek dayOfWeek))
+                            if (day is long dayNum && dayNum >= 0 && dayNum <= 6)
+                            {
+                                daysOfWeek.Add((DayOfWeek)dayNum);
+                            }
+                            else if (day is int dayInt && dayInt >= 0 && dayInt <= 6)
+                            {
+                                daysOfWeek.Add((DayOfWeek)dayInt);
+                            }
+                            else if (day is string dayStr && Enum.TryParse(dayStr, true, out DayOfWeek dayOfWeek))
                             {
                                 daysOfWeek.Add(dayOfWeek);
                             }

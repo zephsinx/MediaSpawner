@@ -551,7 +551,8 @@ export class SpawnService {
 
       // Save to localStorage
       const PROFILES_STORAGE_KEY = "mediaspawner_spawn_profiles";
-      localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(profiles));
+      const dataToSave = JSON.stringify(profiles);
+      localStorage.setItem(PROFILES_STORAGE_KEY, dataToSave);
 
       // Invalidate cache to ensure fresh data
       CacheService.invalidate(CACHE_KEYS.PROFILES);

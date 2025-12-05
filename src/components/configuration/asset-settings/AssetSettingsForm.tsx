@@ -435,6 +435,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
         });
 
         const diff = buildOverridesDiff(desired);
+
         const updatedAssets: SpawnAsset[] = spawn.assets.map((sa) =>
           sa.id === spawnAsset.id
             ? {
@@ -451,6 +452,7 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
         const result = await SpawnService.updateSpawn(spawn.id, {
           assets: updatedAssets,
         });
+
         if (!result.success || !result.spawn) {
           setError(result.error || "Failed to save asset settings");
           return;
@@ -486,13 +488,19 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
     // Persist draft on unmount to preserve across mode switches
     useEffect(() => {
       return () => {
-        // Don't persist draft if we're discarding changes
-        if (!isDiscarding && setCachedDraft) {
+        // Only persist draft if there are unsaved changes and we're not discarding
+        if (!isDiscarding && hasUnsavedChanges && setCachedDraft) {
           validateCacheIsolation("set-cached-draft-unmount");
           setCachedDraft({ draftValues });
         }
       };
-    }, [draftValues, setCachedDraft, isDiscarding, validateCacheIsolation]);
+    }, [
+      draftValues,
+      setCachedDraft,
+      isDiscarding,
+      hasUnsavedChanges,
+      validateCacheIsolation,
+    ]);
 
     const hasValidationErrors = useMemo(() => {
       return Object.values(validationErrors).some(Boolean);

@@ -1623,7 +1623,7 @@ const AssetManagementPanel: React.FC = () => {
                 {open ? "−" : "+"}
               </span>
             </Disclosure.Button>
-            <Disclosure.Panel className="min-h-[80px]">
+            <Disclosure.Panel unmount={false} className="min-h-[80px]">
               <div className="min-h-0">
                 <SpawnAssetsSection />
               </div>

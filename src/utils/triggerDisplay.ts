@@ -60,9 +60,27 @@ export const getTriggerAbbrev = (
       return `Daily ${time} ${timezone}`;
     }
     case "time.weeklyAt": {
-      const { dayOfWeek, time, timezone } = trigger.config;
-      const day = dayNames[Math.max(0, Math.min(6, dayOfWeek))];
-      return `Weekly ${day} ${time} ${timezone}`;
+      const config = trigger.config as {
+        daysOfWeek?: number[];
+        dayOfWeek?: number;
+        time: string;
+        timezone: string;
+      };
+      // Handle old config format (dayOfWeek) by migrating to daysOfWeek array
+      const daysOfWeek = Array.isArray(config.daysOfWeek)
+        ? config.daysOfWeek
+        : typeof config.dayOfWeek === "number"
+          ? [config.dayOfWeek]
+          : [1]; // Default to Monday if neither exists
+      const { time, timezone } = config;
+      if (daysOfWeek.length === 1) {
+        const day = dayNames[Math.max(0, Math.min(6, daysOfWeek[0]))];
+        return `Weekly ${day} ${time} ${timezone}`;
+      }
+      const dayLabels = daysOfWeek
+        .map((d) => dayNames[Math.max(0, Math.min(6, d))])
+        .join(", ");
+      return `Weekly ${dayLabels} ${time} ${timezone}`;
     }
     case "time.monthlyOn": {
       const { dayOfMonth, time, timezone } = trigger.config;

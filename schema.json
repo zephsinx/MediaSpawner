@@ -624,10 +624,14 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "dayOfWeek": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 6
+        "daysOfWeek": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 6
+          },
+          "minItems": 1
         },
         "time": {
           "type": "string",
@@ -638,7 +642,7 @@
           "minLength": 1
         }
       },
-      "required": ["dayOfWeek", "time", "timezone"]
+      "required": ["daysOfWeek", "time", "timezone"]
     },
     "TimeMonthlyOnConfig": {
       "type": "object",
