@@ -137,10 +137,26 @@ const getEveryNMinutesConfig = (trigger: Trigger | null) =>
   trigger?.type === "time.everyNMinutes" ? trigger.config : null;
 const getMinuteOfHourConfig = (trigger: Trigger | null) =>
   trigger?.type === "time.minuteOfHour" ? trigger.config : null;
-const getWeeklyAtConfig = (trigger: Trigger | null) =>
-  trigger?.type === "time.weeklyAt"
-    ? (trigger.config as { dayOfWeek: number; time: string; timezone: string })
-    : null;
+const getWeeklyAtConfig = (trigger: Trigger | null) => {
+  if (trigger?.type !== "time.weeklyAt") return null;
+  const config = trigger.config as {
+    daysOfWeek?: number[];
+    dayOfWeek?: number;
+    time: string;
+    timezone: string;
+  };
+  // Handle old config format (dayOfWeek) by migrating to daysOfWeek array
+  const daysOfWeek = Array.isArray(config.daysOfWeek)
+    ? config.daysOfWeek
+    : typeof config.dayOfWeek === "number"
+      ? [config.dayOfWeek]
+      : [1]; // Default to Monday if neither exists
+  return {
+    daysOfWeek,
+    time: config.time,
+    timezone: config.timezone,
+  };
+};
 const getMonthlyOnConfig = (trigger: Trigger | null) =>
   trigger?.type === "time.monthlyOn"
     ? (trigger.config as { dayOfMonth: number; time: string; timezone: string })
@@ -1984,41 +2000,76 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
                         })()}
                         {trigger?.type === "time.weeklyAt" && (
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                              <Input
-                                type="select"
-                                label="Day of Week"
-                                value={
-                                  getWeeklyAtConfig(trigger)?.dayOfWeek ?? 0
-                                }
-                                onChange={(e) => {
-                                  const base =
-                                    getWeeklyAtConfig(trigger) ||
-                                    ({
-                                      dayOfWeek: 1,
-                                      time: "09:00",
-                                      timezone: moment.tz.guess(),
-                                    } as {
-                                      dayOfWeek: number;
-                                      time: string;
-                                      timezone: string;
-                                    });
-                                  setTrigger({
-                                    ...trigger!,
-                                    config: {
-                                      ...base,
-                                      dayOfWeek: parseInt(e.target.value, 10),
-                                    },
-                                  });
-                                }}
-                                disabled={trigger?.enabled === false}
-                              >
-                                {dayOfWeekOptions.map((d) => (
-                                  <option key={d.value} value={d.value}>
-                                    {d.label}
-                                  </option>
-                                ))}
-                              </Input>
+                            <div className="md:col-span-1">
+                              <fieldset className="space-y-2">
+                                <legend className="text-sm font-medium text-[rgb(var(--color-fg))] mb-2">
+                                  Days of Week
+                                </legend>
+                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+                                  {dayOfWeekOptions.map((d) => {
+                                    const config = getWeeklyAtConfig(trigger);
+                                    const daysOfWeek = config?.daysOfWeek ?? [
+                                      1,
+                                    ];
+                                    const isChecked = daysOfWeek.includes(
+                                      d.value,
+                                    );
+                                    const isLastDay =
+                                      daysOfWeek.length === 1 && isChecked;
+                                    return (
+                                      <label
+                                        key={d.value}
+                                        className="flex items-center space-x-2 cursor-pointer"
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={isChecked}
+                                          disabled={
+                                            trigger?.enabled === false ||
+                                            isLastDay
+                                          }
+                                          onChange={(e) => {
+                                            const base =
+                                              getWeeklyAtConfig(trigger) ||
+                                              ({
+                                                daysOfWeek: [1],
+                                                time: "09:00",
+                                                timezone: moment.tz.guess(),
+                                              } as {
+                                                daysOfWeek: number[];
+                                                time: string;
+                                                timezone: string;
+                                              });
+                                            const currentDays = base.daysOfWeek;
+                                            let newDays: number[];
+                                            if (e.target.checked) {
+                                              newDays = [
+                                                ...currentDays,
+                                                d.value,
+                                              ];
+                                            } else {
+                                              newDays = currentDays.filter(
+                                                (day) => day !== d.value,
+                                              );
+                                            }
+                                            setTrigger({
+                                              ...trigger!,
+                                              config: {
+                                                ...base,
+                                                daysOfWeek: newDays,
+                                              },
+                                            });
+                                          }}
+                                          className="rounded border-[rgb(var(--color-border))] text-[rgb(var(--color-accent))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))] focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        />
+                                        <span className="text-sm text-[rgb(var(--color-fg))]">
+                                          {d.label}
+                                        </span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              </fieldset>
                             </div>
                             <div>
                               <Input
@@ -2031,11 +2082,11 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
                                   const base =
                                     getWeeklyAtConfig(trigger) ||
                                     ({
-                                      dayOfWeek: 1,
+                                      daysOfWeek: [1],
                                       time: "09:00",
                                       timezone: moment.tz.guess(),
                                     } as {
-                                      dayOfWeek: number;
+                                      daysOfWeek: number[];
                                       time: string;
                                       timezone: string;
                                     });
@@ -2059,11 +2110,11 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
                                   const base =
                                     getWeeklyAtConfig(trigger) ||
                                     ({
-                                      dayOfWeek: 1,
+                                      daysOfWeek: [1],
                                       time: "09:00",
                                       timezone: moment.tz.guess(),
                                     } as {
-                                      dayOfWeek: number;
+                                      daysOfWeek: number[];
                                       time: string;
                                       timezone: string;
                                     });
@@ -2492,19 +2543,20 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
                                   <Input
                                     id="every-custom-iso"
                                     type="datetime-local"
-                                    label="Custom Anchor (ISO)"
+                                    label="Custom Anchor"
                                     value={(() => {
                                       const a =
                                         getEveryNMinutesConfig(trigger)?.anchor;
-                                      const v =
-                                        a && a.kind === "custom"
-                                          ? a.isoDateTime
-                                          : "";
-                                      if (!v) return "";
+                                      if (
+                                        !a ||
+                                        a.kind !== "custom" ||
+                                        !a.isoDateTime
+                                      )
+                                        return "";
                                       try {
-                                        return v
-                                          .replace(/\.\d{3}Z$/, "")
-                                          .slice(0, 16);
+                                        return moment(a.isoDateTime)
+                                          .tz(a.timezone)
+                                          .format("YYYY-MM-DDTHH:mm");
                                       } catch {
                                         return "";
                                       }
@@ -2528,8 +2580,16 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
                                         });
                                       const a = existing.anchor;
                                       if (!a || a.kind !== "custom") return;
+                                      const tz =
+                                        a.timezone || moment.tz.guess();
                                       const iso = e.target.value
-                                        ? new Date(e.target.value).toISOString()
+                                        ? moment
+                                            .tz(
+                                              e.target.value,
+                                              "YYYY-MM-DDTHH:mm",
+                                              tz,
+                                            )
+                                            .toISOString()
                                         : new Date().toISOString();
                                       setTrigger({
                                         ...trigger,
@@ -2577,13 +2637,39 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
                                         });
                                       const a = existing.anchor;
                                       if (!a || a.kind !== "custom") return;
+                                      const newTimezone = e.target.value;
+                                      const oldTimezone = a.timezone;
+                                      let newIsoDateTime = a.isoDateTime;
+                                      if (
+                                        a.isoDateTime &&
+                                        oldTimezone &&
+                                        newTimezone !== oldTimezone
+                                      ) {
+                                        try {
+                                          const wallClockTime = moment(
+                                            a.isoDateTime,
+                                          ).tz(oldTimezone);
+                                          newIsoDateTime = moment
+                                            .tz(
+                                              wallClockTime.format(
+                                                "YYYY-MM-DDTHH:mm:ss",
+                                              ),
+                                              "YYYY-MM-DDTHH:mm:ss",
+                                              newTimezone,
+                                            )
+                                            .toISOString();
+                                        } catch {
+                                          newIsoDateTime = a.isoDateTime;
+                                        }
+                                      }
                                       setTrigger({
                                         ...trigger!,
                                         config: {
                                           ...existing,
                                           anchor: {
                                             ...a,
-                                            timezone: e.target.value,
+                                            timezone: newTimezone,
+                                            isoDateTime: newIsoDateTime,
                                           },
                                         },
                                       });

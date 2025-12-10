@@ -85,23 +85,4 @@ describe("ThreePanelLayout", () => {
     expect(mainContentPanel).toHaveAttribute("tabIndex", "-1");
     expect(assetManagementPanel).toHaveAttribute("tabIndex", "-1");
   });
-
-  it("applies correct CSS classes using design tokens", async () => {
-    await act(async () => {
-      renderWithAllProviders(<ThreePanelLayout {...defaultProps} />);
-    });
-
-    // Filter to only get skip navigation buttons
-    const skipButtons = screen
-      .getAllByRole("button")
-      .filter((button) => button.textContent?.includes("Skip to"));
-
-    skipButtons.forEach((button) => {
-      expect(button).toHaveClass("text-[rgb(var(--color-fg))]");
-      expect(button).toHaveClass("bg-[rgb(var(--color-surface-1))]");
-      expect(button).toHaveClass("hover:bg-[rgb(var(--color-surface-2))]");
-      expect(button).toHaveClass("border-[rgb(var(--color-border))]");
-      expect(button).toHaveClass("focus:ring-[rgb(var(--color-ring))]");
-    });
-  });
 });

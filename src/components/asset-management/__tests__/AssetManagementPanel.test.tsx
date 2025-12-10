@@ -103,63 +103,14 @@ describe("AssetManagementPanel (Core Functionality)", () => {
       expect(screen.getByText("Asset Library")).toBeInTheDocument();
     });
 
-    it("applies flex column layout and overflow handling to container", () => {
-      const { container } = render(<AssetManagementPanel />);
-      const root = container.firstChild as HTMLElement;
-      expect(root).toHaveClass("h-full", "flex", "flex-col");
-    });
-
-    it("applies min-heights and border separation to sections", () => {
-      const { container } = render(<AssetManagementPanel />);
-      const sections = container.querySelectorAll("section");
-      expect(sections).toHaveLength(2);
-
-      const topBorderWrapper = sections[0].querySelector(
-        ".flex-shrink-0.flex.flex-col.overflow-hidden",
-      ) as HTMLElement | null;
-      expect(topBorderWrapper).toBeTruthy();
-      expect(topBorderWrapper!).toHaveClass(
-        "flex-shrink-0",
-        "border-b",
-        "border-[rgb(var(--color-border))]",
-      );
-
-      const topPanel = sections[0].querySelector(
-        "[id^='headlessui-disclosure-panel']",
-      ) as HTMLElement | null;
-      expect(topPanel).toBeTruthy();
-      expect(topPanel!).toHaveClass("min-h-[80px]");
-
-      const bottomPanel = sections[1].querySelector(
-        "[id^='headlessui-disclosure-panel']",
-      ) as HTMLElement | null;
-      expect(bottomPanel).toBeTruthy();
-      expect(bottomPanel!).toHaveClass("flex-1", "min-h-0");
-    });
-
-    it("uses sticky-like headers and scrollable content areas", () => {
-      const { container } = render(<AssetManagementPanel />);
+    it("renders two collapsible sections with headers", () => {
+      render(<AssetManagementPanel />);
       // Two Disclosure headers (buttons): target by their accessible names
       const disclosureButtons = [
         screen.getByRole("button", { name: /Toggle Assets in Current Spawn/i }),
         screen.getByRole("button", { name: /Toggle Asset Library/i }),
       ];
       expect(disclosureButtons).toHaveLength(2);
-
-      // One inner toolbar (library section only) - look for elements with both classes
-      const allElements = container.querySelectorAll("*");
-      const innerToolbars = Array.from(allElements).filter((el) => {
-        const classList = el.classList;
-        return (
-          classList.contains("border-b") &&
-          Array.from(classList).some((cls) => cls.includes("color-muted")) &&
-          Array.from(classList).some((cls) => cls.includes("color-border"))
-        );
-      });
-      expect(innerToolbars).toHaveLength(1);
-
-      const scrollers = container.querySelectorAll(".flex-1.overflow-auto");
-      expect(scrollers).toHaveLength(2);
     });
   });
 

@@ -56,17 +56,39 @@ export const getNextActivation = (
     const [hh, mm] = (trigger.config.time || "00:00")
       .split(":")
       .map((v) => parseInt(v, 10));
-    const dayOfWeek = Math.max(0, Math.min(6, trigger.config.dayOfWeek));
+    // Handle old config format (dayOfWeek) by migrating to daysOfWeek array
+    const config = trigger.config as {
+      daysOfWeek?: number[];
+      dayOfWeek?: number;
+    };
+    const daysOfWeek = Array.isArray(config.daysOfWeek)
+      ? config.daysOfWeek
+      : typeof config.dayOfWeek === "number"
+        ? [config.dayOfWeek]
+        : [1]; // Default to Monday if neither exists
     const now = moment.tz(tz);
-    let next = now
-      .clone()
-      .day(dayOfWeek)
-      .hour(hh || 0)
-      .minute(mm || 0)
-      .second(0)
-      .millisecond(0);
-    if (!next.isAfter(now)) next = next.add(7, "day");
-    return { when: next.toDate(), timezone: tz };
+
+    // Find the next occurrence across the next 14 days
+    for (let i = 0; i < 14; i++) {
+      const candidate = now.clone().add(i, "day");
+      const candidateDayOfWeek = candidate.day(); // moment uses 0=Sunday, 6=Saturday
+
+      if (daysOfWeek.includes(candidateDayOfWeek)) {
+        const next = candidate
+          .clone()
+          .hour(hh || 0)
+          .minute(mm || 0)
+          .second(0)
+          .millisecond(0);
+
+        if (next.isAfter(now)) {
+          return { when: next.toDate(), timezone: tz };
+        }
+      }
+    }
+
+    // Fallback (shouldn't happen if daysOfWeek is non-empty)
+    return { when: null, timezone: tz };
   }
   if (trigger.type === "time.monthlyOn") {
     const tz = trigger.config.timezone;

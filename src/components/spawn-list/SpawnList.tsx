@@ -1,9 +1,15 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { Spawn } from "../../types/spawn";
 import { SpawnService } from "../../services/spawnService";
 import SpawnListItem from "./SpawnListItem";
 import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
 import { toast } from "sonner";
+import { Search, X, ChevronDown, ArrowUpDown } from "lucide-react";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { getSpawnValidationStatus } from "../../utils/spawnValidation";
+import { getTriggerTypeLabel } from "../../utils/triggerDisplay";
+import { cn } from "../../utils/cn";
 
 /**
  * Props for the spawn list component
@@ -33,6 +39,12 @@ const SpawnList: React.FC<SpawnListProps> = ({
   const [toggleProcessingIds, setToggleProcessingIds] = useState<Set<string>>(
     new Set(),
   );
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<
+    "name" | "enabled" | "trigger" | "assets" | "status"
+  >("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const loadSpawns = async () => {
@@ -153,6 +165,100 @@ const SpawnList: React.FC<SpawnListProps> = ({
   const [, setFocusedIndex] = useState<number>(-1);
   const focusedIndexRef = useRef<number>(-1);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
+
+  // Filter and sort spawns
+  const filteredAndSortedSpawns = useMemo(() => {
+    let filtered = [...spawns];
+
+    // Apply search/filter
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      const tokens = q.split(/\s+/);
+      filtered = filtered.filter((spawn) => {
+        return tokens.every((token) => {
+          // Prefix filters
+          if (token.startsWith("trigger:")) {
+            const want = token.slice(8).toLowerCase();
+            const triggerType = getTriggerTypeLabel(
+              spawn.trigger,
+            ).toLowerCase();
+            return triggerType === want || spawn.trigger?.type === want;
+          }
+          if (token.startsWith("status:")) {
+            const want = token.slice(7).toLowerCase();
+            const validation = getSpawnValidationStatus(spawn);
+            return validation.status === want;
+          }
+          if (token.startsWith("enabled:")) {
+            const want = token.slice(8).toLowerCase();
+            const enabledStr = spawn.enabled ? "true" : "false";
+            return enabledStr === want;
+          }
+          if (token.startsWith("assets:")) {
+            const want = token.slice(7);
+            const count = spawn.assets?.length || 0;
+            if (want === "0" || want === "empty") {
+              return count === 0;
+            }
+            const num = parseInt(want, 10);
+            if (!isNaN(num)) {
+              return count === num;
+            }
+            return false;
+          }
+          // Text search in name and description
+          const hay = `${spawn.name} ${spawn.description || ""}`.toLowerCase();
+          return hay.includes(token);
+        });
+      });
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortBy) {
+        case "name": {
+          comparison = a.name.localeCompare(b.name);
+          break;
+        }
+        case "enabled": {
+          comparison = a.enabled === b.enabled ? 0 : a.enabled ? -1 : 1;
+          break;
+        }
+        case "trigger": {
+          const aTrigger = getTriggerTypeLabel(a.trigger);
+          const bTrigger = getTriggerTypeLabel(b.trigger);
+          comparison = aTrigger.localeCompare(bTrigger);
+          break;
+        }
+        case "assets": {
+          const aCount = a.assets?.length || 0;
+          const bCount = b.assets?.length || 0;
+          comparison = aCount - bCount;
+          break;
+        }
+        case "status": {
+          const aStatus = getSpawnValidationStatus(a);
+          const bStatus = getSpawnValidationStatus(b);
+          const statusOrder = { error: 0, warning: 1, valid: 2 };
+          comparison =
+            statusOrder[aStatus.status] - statusOrder[bStatus.status];
+          break;
+        }
+      }
+
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+
+    return filtered;
+  }, [spawns, searchQuery, sortBy, sortDirection]);
+
+  // Reset focused index when filter changes
+  useEffect(() => {
+    focusedIndexRef.current = -1;
+    setFocusedIndex(-1);
+  }, [filteredAndSortedSpawns.length, searchQuery]);
 
   const handleSpawnClick = (spawn: Spawn) => {
     onSpawnClick?.(spawn);
@@ -312,12 +418,21 @@ const SpawnList: React.FC<SpawnListProps> = ({
   }
 
   const handleListKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (spawns.length === 0) return;
+    if (filteredAndSortedSpawns.length === 0) return;
+
+    if ((e.key === "f" || e.key === "F") && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      searchInputRef.current?.focus();
+      return;
+    }
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
       const current = focusedIndexRef.current;
-      const next = Math.min(spawns.length - 1, Math.max(0, current + 1));
+      const next = Math.min(
+        filteredAndSortedSpawns.length - 1,
+        Math.max(0, current + 1),
+      );
       focusedIndexRef.current = next;
       setFocusedIndex(next);
       itemRefs.current[next]?.focus();
@@ -326,16 +441,16 @@ const SpawnList: React.FC<SpawnListProps> = ({
       const current = focusedIndexRef.current;
       const next = Math.max(
         0,
-        current === -1 ? spawns.length - 1 : current - 1,
+        current === -1 ? filteredAndSortedSpawns.length - 1 : current - 1,
       );
       focusedIndexRef.current = next;
       setFocusedIndex(next);
       itemRefs.current[next]?.focus();
     } else if (e.key === "Enter" || e.key === " ") {
       const index = focusedIndexRef.current;
-      if (index >= 0 && index < spawns.length) {
+      if (index >= 0 && index < filteredAndSortedSpawns.length) {
         e.preventDefault();
-        handleSpawnClick(spawns[index]);
+        handleSpawnClick(filteredAndSortedSpawns[index]);
       }
     } else if (e.key === "Home") {
       e.preventDefault();
@@ -344,7 +459,7 @@ const SpawnList: React.FC<SpawnListProps> = ({
       itemRefs.current[0]?.focus();
     } else if (e.key === "End") {
       e.preventDefault();
-      const lastIndex = spawns.length - 1;
+      const lastIndex = filteredAndSortedSpawns.length - 1;
       focusedIndexRef.current = lastIndex;
       setFocusedIndex(lastIndex);
       itemRefs.current[lastIndex]?.focus();
@@ -410,13 +525,15 @@ const SpawnList: React.FC<SpawnListProps> = ({
     <div className={`h-full flex flex-col ${className}`}>
       {/* Header */}
       <div className="p-4 border-b border-[rgb(var(--color-border))] bg-[rgb(var(--color-muted))]/5">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-3">
           <div>
             <h2 className="text-lg font-semibold text-[rgb(var(--color-fg))]">
               Spawns
             </h2>
             <p className="text-sm text-[rgb(var(--color-muted-foreground))]">
-              {spawns.length} spawn{spawns.length !== 1 ? "s" : ""}
+              {filteredAndSortedSpawns.length === spawns.length
+                ? `${spawns.length} spawn${spawns.length !== 1 ? "s" : ""}`
+                : `${filteredAndSortedSpawns.length} of ${spawns.length} spawn${spawns.length !== 1 ? "s" : ""}`}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -430,6 +547,112 @@ const SpawnList: React.FC<SpawnListProps> = ({
             </Button>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+          {/* Search Input */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-[rgb(var(--color-muted-foreground))]" />
+            <Input
+              ref={searchInputRef}
+              type="search"
+              placeholder="Search spawns... (e.g., trigger:manual, status:error)"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 pr-8"
+              aria-label="Search spawns"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-[rgb(var(--color-muted))]/10"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4 text-[rgb(var(--color-muted-foreground))]" />
+              </button>
+            )}
+          </div>
+          {/* Sort Dropdown */}
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="justify-between min-w-[140px]"
+                aria-label={`Sort spawns by ${sortBy} ${sortDirection}`}
+              >
+                <div className="flex items-center gap-1">
+                  <ArrowUpDown className="h-4 w-4" />
+                  <span className="text-xs">
+                    {sortBy === "name"
+                      ? "Name"
+                      : sortBy === "enabled"
+                        ? "Enabled"
+                        : sortBy === "trigger"
+                          ? "Trigger"
+                          : sortBy === "assets"
+                            ? "Assets"
+                            : "Status"}
+                  </span>
+                </div>
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </Button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content
+                className={cn(
+                  "min-w-[180px] bg-[rgb(var(--color-bg))] border border-[rgb(var(--color-border))] rounded-md shadow-lg p-1 z-50",
+                )}
+                sideOffset={4}
+                role="menu"
+                aria-label="Sort options"
+              >
+                {(
+                  [
+                    { value: "name", label: "Name" },
+                    { value: "enabled", label: "Enabled" },
+                    { value: "trigger", label: "Trigger Type" },
+                    { value: "assets", label: "Asset Count" },
+                    { value: "status", label: "Status" },
+                  ] as const
+                ).map((option) => (
+                  <DropdownMenu.Item
+                    key={option.value}
+                    className={cn(
+                      "flex items-center justify-between w-full px-3 py-2 text-sm rounded-sm cursor-pointer transition-colors",
+                      // Radix keyboard navigation highlight - use darker background in dark mode for better contrast
+                      "data-[highlighted]:bg-[rgb(var(--color-muted))] dark:data-[highlighted]:bg-[rgb(var(--color-border))] data-[highlighted]:text-[rgb(var(--color-fg))]",
+                      // Hover state
+                      "hover:bg-[rgb(var(--color-muted))] dark:hover:bg-[rgb(var(--color-border))] hover:text-[rgb(var(--color-fg))]",
+                      // Focus state (fallback)
+                      "focus:bg-[rgb(var(--color-muted))] dark:focus:bg-[rgb(var(--color-border))] focus:text-[rgb(var(--color-fg))] focus:outline-none",
+                      // Selected state
+                      sortBy === option.value &&
+                        "bg-[rgb(var(--color-accent))]/10 text-[rgb(var(--color-accent))]",
+                    )}
+                    onSelect={() => {
+                      if (sortBy === option.value) {
+                        setSortDirection(
+                          sortDirection === "asc" ? "desc" : "asc",
+                        );
+                      } else {
+                        setSortBy(option.value);
+                        setSortDirection("asc");
+                      }
+                    }}
+                    role="menuitem"
+                  >
+                    <span>{option.label}</span>
+                    {sortBy === option.value && (
+                      <span className="text-xs opacity-70">
+                        {sortDirection === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </DropdownMenu.Item>
+                ))}
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+        </div>
       </div>
 
       {/* Error banners */}
@@ -442,38 +665,63 @@ const SpawnList: React.FC<SpawnListProps> = ({
       )}
 
       {/* Spawn List */}
-      <div
-        className="flex-1 overflow-y-auto"
-        role="listbox"
-        aria-label={`Spawns list with ${spawns.length} spawn${
-          spawns.length !== 1 ? "s" : ""
-        }`}
-        aria-describedby="spawn-list-instructions"
-        onKeyDown={handleListKeyDown}
-        tabIndex={0}
-      >
-        {/* Screen reader instructions */}
-        <div id="spawn-list-instructions" className="sr-only">
-          Use arrow keys to navigate between spawns. Press Enter or Space to
-          select a spawn. Press Home to go to first spawn, End to go to last
-          spawn. Press Ctrl+N or Cmd+N to create a new spawn. Press Tab to focus
-          on individual spawn controls.
+      {filteredAndSortedSpawns.length === 0 && spawns.length > 0 ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-[rgb(var(--color-muted))] text-4xl mb-3">
+              🔍
+            </div>
+            <h3 className="text-lg font-medium text-[rgb(var(--color-fg))] mb-2">
+              No spawns match your search
+            </h3>
+            <p className="text-sm text-[rgb(var(--color-muted-foreground))] max-w-xs mb-3">
+              Try adjusting your search or filters to find what you're looking
+              for.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSearchQuery("")}
+            >
+              Clear search
+            </Button>
+          </div>
         </div>
-        {spawns.map((spawn, index) => (
-          <SpawnListItem
-            key={spawn.id}
-            spawn={spawn}
-            isSelected={spawn.id === selectedSpawnId}
-            onClick={handleSpawnClick}
-            onToggle={handleToggle}
-            isToggleProcessing={toggleProcessingIds.has(spawn.id)}
-            itemRef={(el) => {
-              itemRefs.current[index] = el;
-            }}
-            className="outline-none"
-          />
-        ))}
-      </div>
+      ) : (
+        <div
+          className="flex-1 overflow-y-auto"
+          role="listbox"
+          aria-label={`Spawns list with ${filteredAndSortedSpawns.length} spawn${
+            filteredAndSortedSpawns.length !== 1 ? "s" : ""
+          }`}
+          aria-describedby="spawn-list-instructions"
+          onKeyDown={handleListKeyDown}
+          tabIndex={0}
+        >
+          {/* Screen reader instructions */}
+          <div id="spawn-list-instructions" className="sr-only">
+            Use arrow keys to navigate between spawns. Press Enter or Space to
+            select a spawn. Press Home to go to first spawn, End to go to last
+            spawn. Press Ctrl+N or Cmd+N to create a new spawn. Press Ctrl+F or
+            Cmd+F to focus search. Press Tab to focus on individual spawn
+            controls.
+          </div>
+          {filteredAndSortedSpawns.map((spawn, index) => (
+            <SpawnListItem
+              key={spawn.id}
+              spawn={spawn}
+              isSelected={spawn.id === selectedSpawnId}
+              onClick={handleSpawnClick}
+              onToggle={handleToggle}
+              isToggleProcessing={toggleProcessingIds.has(spawn.id)}
+              itemRef={(el) => {
+                itemRefs.current[index] = el;
+              }}
+              className="outline-none"
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

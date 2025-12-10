@@ -116,11 +116,15 @@ export function ProfileActionsDropdown({
                   key={action.id}
                   className={cn(
                     "flex items-center w-full px-3 py-2 text-sm rounded-sm cursor-pointer transition-colors",
-                    "focus:bg-[rgb(var(--color-muted))] focus:text-[rgb(var(--color-fg))] focus:outline-none",
-                    "hover:bg-[rgb(var(--color-muted))] hover:text-[rgb(var(--color-fg))]",
+                    // Radix keyboard navigation highlight - use darker background in dark mode for better contrast
+                    "data-[highlighted]:bg-[rgb(var(--color-muted))] dark:data-[highlighted]:bg-[rgb(var(--color-border))] data-[highlighted]:text-[rgb(var(--color-fg))]",
+                    // Hover state
+                    "hover:bg-[rgb(var(--color-muted))] dark:hover:bg-[rgb(var(--color-border))] hover:text-[rgb(var(--color-fg))]",
+                    // Focus state (fallback)
+                    "focus:bg-[rgb(var(--color-muted))] dark:focus:bg-[rgb(var(--color-border))] focus:text-[rgb(var(--color-fg))] focus:outline-none",
                     action.disabled && "opacity-50 cursor-not-allowed",
                     action.variant === "destructive" &&
-                      "text-[rgb(var(--color-error))] hover:text-[rgb(var(--color-error))] hover:bg-[rgb(var(--color-error-bg))]",
+                      "text-[rgb(var(--color-error))] hover:text-[rgb(var(--color-error))] hover:bg-[rgb(var(--color-error-bg))] dark:hover:bg-[rgb(var(--color-error-bg))]",
                   )}
                   onSelect={(e) => {
                     e.preventDefault();

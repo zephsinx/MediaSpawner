@@ -43,7 +43,9 @@ const ThreePanelLayout: React.FC<ThreePanelLayoutProps> = ({
   };
 
   return (
-    <div className={`min-h-screen bg-[rgb(var(--color-bg))] ${className}`}>
+    <div
+      className={`h-screen flex flex-col bg-[rgb(var(--color-bg))] ${className}`}
+    >
       {/* Skip Navigation Links */}
       <div className="sr-only focus-within:not-sr-only">
         <div className="absolute top-0 left-0 z-50 bg-[rgb(var(--color-surface-1))] border border-[rgb(var(--color-border))] rounded-b-md shadow-lg p-2 space-y-1">
@@ -69,11 +71,13 @@ const ThreePanelLayout: React.FC<ThreePanelLayoutProps> = ({
       </div>
 
       {/* Header */}
-      <Header />
+      <div className="flex-shrink-0">
+        <Header />
+      </div>
 
       {/* Three-Panel Layout Container with ultrawide constraints */}
-      <div className="w-full max-w-[2560px] mx-auto">
-        <div className="grid grid-cols-12 h-[calc(100vh-80px)] min-w-[1280px] px-0 lg:px-2 xl:px-4 2xl:px-6">
+      <div className="flex-1 w-full max-w-[2560px] mx-auto min-h-0">
+        <div className="grid grid-cols-12 h-full min-w-[1280px] px-0 lg:px-2 xl:px-4 2xl:px-6">
           {/* Left Panel - Spawn Navigation (25%) */}
           <div
             id="spawn-list"

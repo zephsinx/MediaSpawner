@@ -227,7 +227,9 @@ export class SpawnService {
         window.dispatchEvent(
           new CustomEvent(
             "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-            { detail: { spawnId: updatedSpawn.id } } as CustomEventInit,
+            {
+              detail: { spawnId: reconciled.id, updatedSpawn: reconciled },
+            } as CustomEventInit,
           ),
         );
       } catch {
@@ -549,7 +551,8 @@ export class SpawnService {
 
       // Save to localStorage
       const PROFILES_STORAGE_KEY = "mediaspawner_spawn_profiles";
-      localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(profiles));
+      const dataToSave = JSON.stringify(profiles);
+      localStorage.setItem(PROFILES_STORAGE_KEY, dataToSave);
 
       // Invalidate cache to ensure fresh data
       CacheService.invalidate(CACHE_KEYS.PROFILES);

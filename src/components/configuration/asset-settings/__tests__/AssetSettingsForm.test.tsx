@@ -979,7 +979,26 @@ describe("AssetSettingsForm", () => {
       expect(scaleInput).toHaveValue(2);
     });
 
-    it("saves draft when component unmounts", async () => {
+    it("saves draft when component unmounts with unsaved changes", async () => {
+      vi.mocked(usePanelState).mockReturnValue({
+        selectedSpawnId: undefined,
+        activeProfileId: undefined,
+        liveProfileId: undefined,
+        selectedSpawnAssetId: undefined,
+        centerPanelMode: "spawn-settings",
+        hasUnsavedChanges: true,
+        changeType: "asset",
+        profileSpawnSelections: {},
+        setActiveProfile: vi.fn(),
+        setLiveProfile: vi.fn(),
+        selectSpawn: vi.fn(),
+        selectSpawnAsset: vi.fn(),
+        switchCenterPanelMode: vi.fn(),
+        setCenterPanelMode: vi.fn(),
+        clearContext: vi.fn(),
+        setUnsavedChanges: mockSetUnsavedChanges,
+      } as ReturnType<typeof usePanelState>);
+
       const { unmount } = render(
         <AssetSettingsForm
           spawnId="spawn1"
@@ -989,6 +1008,9 @@ describe("AssetSettingsForm", () => {
         />,
       );
 
+      // Wait for component to load
+      await screen.findByText("Test Video · video");
+
       await act(async () => {
         unmount();
       });
@@ -996,6 +1018,26 @@ describe("AssetSettingsForm", () => {
       expect(mockSetCachedDraft).toHaveBeenCalledWith({
         draftValues: expect.any(Object),
       });
+    });
+
+    it("does not save draft when unmounting without changes", async () => {
+      const { unmount } = render(
+        <AssetSettingsForm
+          spawnId="spawn1"
+          spawnAssetId="asset1"
+          onBack={mockOnBack}
+          setCachedDraft={mockSetCachedDraft}
+        />,
+      );
+
+      // Wait for component to load
+      await screen.findByText("Test Video · video");
+
+      await act(async () => {
+        unmount();
+      });
+
+      expect(mockSetCachedDraft).not.toHaveBeenCalled();
     });
   });
 

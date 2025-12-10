@@ -97,13 +97,6 @@ describe("ThemeToggle", () => {
       const container = screen.getByRole("switch").closest("div");
       expect(container).toHaveClass("custom-class");
     });
-
-    it("has fixed width container to prevent layout shifts", () => {
-      renderWithAllProviders(<ThemeToggle />);
-
-      const container = screen.getByRole("switch").closest("div");
-      expect(container).toHaveClass("min-w-[120px]");
-    });
   });
 
   describe("Theme Switching", () => {

@@ -496,12 +496,19 @@ function SpawnAssetsSection() {
       setDraftAssets(null);
       setSpawn(result.spawn || null);
       toast.success("Asset changes saved");
-      window.dispatchEvent(
-        new CustomEvent(
-          "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-          { detail: { spawnId: selectedSpawnId } } as CustomEventInit,
-        ),
-      );
+      if (result.spawn) {
+        window.dispatchEvent(
+          new CustomEvent(
+            "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
+            {
+              detail: {
+                spawnId: result.spawn.id,
+                updatedSpawn: result.spawn,
+              },
+            } as CustomEventInit,
+          ),
+        );
+      }
     } catch (e) {
       const msg =
         e instanceof Error ? e.message : "Failed to save asset changes";
@@ -750,7 +757,7 @@ function SpawnAssetsSection() {
                           className="z-10 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] shadow-md p-1 text-sm"
                         >
                           <DropdownMenu.Item
-                            className="px-3 py-2 rounded data-[highlighted]:bg-[rgb(var(--color-muted))]/5 outline-none cursor-pointer"
+                            className="px-3 py-2 rounded data-[highlighted]:bg-[rgb(var(--color-muted))] dark:data-[highlighted]:bg-[rgb(var(--color-border))] data-[highlighted]:text-[rgb(var(--color-fg))] outline-none cursor-pointer"
                             onSelect={() => {
                               const toIndex = Math.max(0, index - 1);
                               if (toIndex !== index)
@@ -762,7 +769,7 @@ function SpawnAssetsSection() {
                             </span>
                           </DropdownMenu.Item>
                           <DropdownMenu.Item
-                            className="px-3 py-2 rounded data-[highlighted]:bg-[rgb(var(--color-muted))]/5 outline-none cursor-pointer"
+                            className="px-3 py-2 rounded data-[highlighted]:bg-[rgb(var(--color-muted))] dark:data-[highlighted]:bg-[rgb(var(--color-border))] data-[highlighted]:text-[rgb(var(--color-fg))] outline-none cursor-pointer"
                             onSelect={() => {
                               const toIndex = Math.min(
                                 resolvedAssets.length - 1,
@@ -1536,7 +1543,7 @@ function AssetLibrarySection() {
                           className="z-10 rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] shadow-md p-1 text-sm"
                         >
                           <DropdownMenu.Item
-                            className="px-3 py-2 rounded data-[highlighted]:bg-[rgb(var(--color-muted))]/5 outline-none cursor-pointer"
+                            className="px-3 py-2 rounded data-[highlighted]:bg-[rgb(var(--color-muted))] dark:data-[highlighted]:bg-[rgb(var(--color-border))] data-[highlighted]:text-[rgb(var(--color-fg))] outline-none cursor-pointer"
                             onSelect={() => startRename(asset)}
                           >
                             Rename
@@ -1616,7 +1623,7 @@ const AssetManagementPanel: React.FC = () => {
                 {open ? "−" : "+"}
               </span>
             </Disclosure.Button>
-            <Disclosure.Panel className="min-h-[80px]">
+            <Disclosure.Panel unmount={false} className="min-h-[80px]">
               <div className="min-h-0">
                 <SpawnAssetsSection />
               </div>

@@ -496,7 +496,7 @@ describe("SpawnEditorWorkspace", () => {
         trigger: {
           type: "time.weeklyAt",
           enabled: true,
-          config: { dayOfWeek: 1, time: "09:00", timezone: "UTC" },
+          config: { daysOfWeek: [1], time: "09:00", timezone: "UTC" },
         } as unknown as import("../../../types/spawn").Trigger,
       });
       mockState.selectedSpawnId = "s-week";

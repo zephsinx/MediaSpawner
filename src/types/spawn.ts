@@ -13,7 +13,7 @@ export type Trigger = { enabled?: boolean } & (
     }
   | {
       type: "time.weeklyAt";
-      config: { dayOfWeek: number; time: string; timezone: string };
+      config: { daysOfWeek: number[]; time: string; timezone: string };
     }
   | {
       type: "time.monthlyOn";
@@ -100,7 +100,7 @@ export const getDefaultTrigger = (type: TriggerType): Trigger => {
       return {
         type: "time.weeklyAt",
         enabled: true,
-        config: { dayOfWeek: 1, time: "09:00", timezone: moment.tz.guess() },
+        config: { daysOfWeek: [1], time: "09:00", timezone: moment.tz.guess() },
       };
     case "time.monthlyOn":
       return {

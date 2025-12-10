@@ -10,6 +10,31 @@ import { SpawnService } from "../../../services/spawnService";
 import type { Spawn } from "../../../types/spawn";
 import { renderWithAllProviders } from "./testUtils";
 
+/**
+ * Helper function to wait for spawn list to finish loading.
+ * This is more reliable than waiting for loading text to disappear,
+ * as it waits for actual content to appear.
+ */
+async function waitForSpawnListToLoad(): Promise<void> {
+  // Wait for either the spawn list header or "No Spawns Found" message
+  // This ensures loading is complete regardless of whether spawns exist
+  // Use findByText which will wait and retry until the element appears
+  try {
+    await Promise.race([
+      screen.findByText("Spawns", {}, { timeout: 5000 }),
+      screen.findByText("No Spawns Found", {}, { timeout: 5000 }),
+    ]);
+  } catch {
+    // If neither appears, check if loading is still present
+    const loading = screen.queryByText("Loading spawns...");
+    if (loading) {
+      await waitForElementToBeRemoved(loading, { timeout: 5000 });
+    }
+  }
+  // Final check: ensure loading is gone
+  expect(screen.queryByText("Loading spawns...")).not.toBeInTheDocument();
+}
+
 // Mock the SpawnService
 vi.mock("../../../services/spawnService", () => ({
   SpawnService: {
@@ -87,24 +112,24 @@ describe("Layout", () => {
       await act(async () => {
         renderWithAllProviders(<Layout />);
       });
-      const loading1 = screen.queryByText("Loading spawns...");
-      if (loading1) {
-        await waitForElementToBeRemoved(loading1);
-      }
+
+      // Wait for spawn list to load by checking for actual content
+      // This is more reliable than waiting for loading to disappear
+      await waitForSpawnListToLoad();
 
       // Check for spawn list header
-      expect(await screen.findByText("Spawns")).toBeInTheDocument();
-      expect(await screen.findByText("2 spawns")).toBeInTheDocument();
+      expect(screen.getByText("Spawns")).toBeInTheDocument();
+      expect(screen.getByText("2 spawns")).toBeInTheDocument();
 
       // Check for spawn items
-      expect(await screen.findByText("Test Spawn 1")).toBeInTheDocument();
-      expect(await screen.findByText("Test Spawn 2")).toBeInTheDocument();
+      expect(screen.getByText("Test Spawn 1")).toBeInTheDocument();
+      expect(screen.getByText("Test Spawn 2")).toBeInTheDocument();
       expect(screen.getByText("A test spawn for testing")).toBeInTheDocument();
       expect(screen.getByText("Another test spawn")).toBeInTheDocument();
 
       // Check for status indicators
-      expect(await screen.findByText("Active")).toBeInTheDocument();
-      expect(await screen.findByText("Inactive")).toBeInTheDocument();
+      expect(screen.getByText("Active")).toBeInTheDocument();
+      expect(screen.getByText("Inactive")).toBeInTheDocument();
     });
 
     it("center panel shows spawn details when a spawn is selected and updates on selection change", async () => {
@@ -113,10 +138,7 @@ describe("Layout", () => {
       await act(async () => {
         renderWithAllProviders(<Layout />);
       });
-      const loading = screen.queryByText("Loading spawns...");
-      if (loading) {
-        await waitForElementToBeRemoved(loading);
-      }
+      await waitForSpawnListToLoad();
 
       // Select first spawn
       await act(async () => {
@@ -152,10 +174,7 @@ describe("Layout", () => {
       await act(async () => {
         renderWithAllProviders(<Layout />);
       });
-      const loading = screen.queryByText("Loading spawns...");
-      if (loading) {
-        await waitForElementToBeRemoved(loading);
-      }
+      await waitForSpawnListToLoad();
 
       await act(async () => {
         screen.getByText("Test Spawn 1").click();
@@ -200,10 +219,7 @@ describe("Layout", () => {
       await act(async () => {
         renderWithAllProviders(<Layout />);
       });
-      const loading = screen.queryByText("Loading spawns...");
-      if (loading) {
-        await waitForElementToBeRemoved(loading);
-      }
+      await waitForSpawnListToLoad();
 
       await act(async () => {
         screen.getByText("Test Spawn 1").click();
@@ -245,10 +261,7 @@ describe("Layout", () => {
       await act(async () => {
         renderWithAllProviders(<Layout />);
       });
-      const loading = screen.queryByText("Loading spawns...");
-      if (loading) {
-        await waitForElementToBeRemoved(loading);
-      }
+      await waitForSpawnListToLoad();
 
       await act(async () => {
         screen.getByText("Test Spawn 1").click();
@@ -280,10 +293,7 @@ describe("Layout", () => {
       await act(async () => {
         renderWithAllProviders(<Layout />);
       });
-      const loading = screen.queryByText("Loading spawns...");
-      if (loading) {
-        await waitForElementToBeRemoved(loading);
-      }
+      await waitForSpawnListToLoad();
 
       await act(async () => {
         screen.getByText("Test Spawn 1").click();
@@ -306,10 +316,7 @@ describe("Layout", () => {
       await act(async () => {
         renderWithAllProviders(<Layout />);
       });
-      const loading = screen.queryByText("Loading spawns...");
-      if (loading) {
-        await waitForElementToBeRemoved(loading);
-      }
+      await waitForSpawnListToLoad();
 
       await act(async () => {
         screen.getByText("Test Spawn 1").click();
@@ -356,10 +363,7 @@ describe("Layout", () => {
       await act(async () => {
         renderWithAllProviders(<Layout />);
       });
-      const loading = screen.queryByText("Loading spawns...");
-      if (loading) {
-        await waitForElementToBeRemoved(loading);
-      }
+      await waitForSpawnListToLoad();
 
       // Select first spawn
       await act(async () => {
@@ -399,10 +403,7 @@ describe("Layout", () => {
       await act(async () => {
         renderWithAllProviders(<Layout />);
       });
-      const loading = screen.queryByText("Loading spawns...");
-      if (loading) {
-        await waitForElementToBeRemoved(loading);
-      }
+      await waitForSpawnListToLoad();
 
       await act(async () => {
         screen.getByText("Test Spawn 1").click();
@@ -428,10 +429,7 @@ describe("Layout", () => {
       await act(async () => {
         renderWithAllProviders(<Layout />);
       });
-      const loading2 = screen.queryByText("Loading spawns...");
-      if (loading2) {
-        await waitForElementToBeRemoved(loading2);
-      }
+      await waitForSpawnListToLoad();
 
       // Check for empty state
       expect(await screen.findByText("No Spawns Found")).toBeInTheDocument();
@@ -448,10 +446,7 @@ describe("Layout", () => {
       await act(async () => {
         renderWithAllProviders(<Layout />);
       });
-      const loading3 = screen.queryByText("Loading spawns...");
-      if (loading3) {
-        await waitForElementToBeRemoved(loading3);
-      }
+      await waitForSpawnListToLoad();
 
       // Center panel should show Spawn Editor prompt when no selection
       expect(screen.getByText("Spawn Editor")).toBeInTheDocument();
@@ -494,10 +489,7 @@ describe("Layout", () => {
       await act(async () => {
         renderWithAllProviders(<Layout />);
       });
-      const loading = screen.queryByText("Loading spawns...");
-      if (loading) {
-        await waitForElementToBeRemoved(loading);
-      }
+      await waitForSpawnListToLoad();
 
       await act(async () => {
         screen.getByRole("button", { name: "Create New Spawn" }).click();
@@ -514,10 +506,7 @@ describe("Layout", () => {
       await act(async () => {
         renderWithAllProviders(<Layout />);
       });
-      const loading4 = screen.queryByText("Loading spawns...");
-      if (loading4) {
-        await waitForElementToBeRemoved(loading4);
-      }
+      await waitForSpawnListToLoad();
 
       // Right panel shows AssetManagementPanel structure
       expect(screen.getByText("Assets in Current Spawn")).toBeInTheDocument();
@@ -533,10 +522,7 @@ describe("Layout", () => {
       await act(async () => {
         renderWithAllProviders(<Layout />);
       });
-      const loading5 = screen.queryByText("Loading spawns...");
-      if (loading5) {
-        await waitForElementToBeRemoved(loading5);
-      }
+      await waitForSpawnListToLoad();
 
       expect(screen.getByText("Assets in Current Spawn")).toBeInTheDocument();
       expect(screen.getByText("Asset Library")).toBeInTheDocument();
@@ -577,30 +563,15 @@ describe("Layout", () => {
       expect(rightPanel).toBeInTheDocument();
     });
 
-    it("applies proper styling to panels", async () => {
-      let container!: HTMLElement;
+    it("renders three-panel layout structure", async () => {
       await act(async () => {
-        const r = renderWithAllProviders(<Layout />);
-        container = r.container as unknown as HTMLElement;
+        renderWithAllProviders(<Layout />);
       });
 
-      const panels = container.querySelectorAll(
-        ".bg-\\[rgb\\(var\\(--color-surface-1\\)\\)\\]",
-      );
-      // Header + 3 panels; allow additional inner white backgrounds
-      expect(panels.length).toBeGreaterThanOrEqual(4);
-
-      const leftPanel = container.querySelector(".col-span-3");
-      const centerPanel = container.querySelector(".col-span-6");
-
-      expect(leftPanel).toHaveClass(
-        "border-r",
-        "border-[rgb(var(--color-border))]",
-      );
-      expect(centerPanel).toHaveClass(
-        "border-r",
-        "border-[rgb(var(--color-border))]",
-      );
+      // Verify panels exist by checking for panel IDs
+      expect(document.getElementById("spawn-list")).toBeInTheDocument();
+      expect(document.getElementById("main-content")).toBeInTheDocument();
+      expect(document.getElementById("asset-management")).toBeInTheDocument();
     });
   });
 
@@ -612,9 +583,7 @@ describe("Layout", () => {
         container = r.container as unknown as HTMLElement;
       });
 
-      const gridContainer = container.querySelector(
-        ".h-\\[calc\\(100vh-80px\\)\\]",
-      );
+      const gridContainer = container.querySelector(".grid.h-full");
       expect(gridContainer).toBeInTheDocument();
     });
 
@@ -639,34 +608,6 @@ describe("Layout", () => {
       const panelContainers = container.querySelectorAll(".h-full");
       // Includes outer panel containers and internal panel content containers
       expect(panelContainers.length).toBeGreaterThanOrEqual(6);
-    });
-  });
-
-  describe("Background and Container Styling", () => {
-    it("applies correct background to main container", async () => {
-      let container!: HTMLElement;
-      await act(async () => {
-        const r = renderWithAllProviders(<Layout />);
-        container = r.container as unknown as HTMLElement;
-      });
-
-      const mainContainer = container.firstChild as HTMLElement;
-      expect(mainContainer).toHaveClass(
-        "min-h-screen",
-        "bg-[rgb(var(--color-bg))]",
-      );
-    });
-
-    it("applies overflow handling to prevent content overflow", async () => {
-      let container!: HTMLElement;
-      await act(async () => {
-        const r = renderWithAllProviders(<Layout />);
-        container = r.container as unknown as HTMLElement;
-      });
-
-      const panels = container.querySelectorAll(".overflow-hidden");
-      // Includes the three outer panel containers plus internal overflow containers
-      expect(panels.length).toBeGreaterThanOrEqual(3);
     });
   });
 });

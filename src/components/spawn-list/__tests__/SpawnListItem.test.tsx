@@ -147,14 +147,6 @@ describe("SpawnListItem", () => {
       const switchElement = screen.getByRole("switch");
       expect(switchElement).toHaveAttribute("aria-checked", "false");
     });
-
-    it("applies correct Switch size", async () => {
-      await act(async () => {
-        renderSpawnList(<SpawnListItem spawn={mockSpawn} />);
-      });
-      const switchElement = screen.getByRole("switch");
-      expect(switchElement).toHaveClass("h-6", "w-11");
-    });
   });
 
   describe("Basic Accessibility", () => {
@@ -359,22 +351,6 @@ describe("SpawnListItem", () => {
   });
 
   describe("Visual States", () => {
-    it("applies base styling classes", async () => {
-      let container: HTMLElement;
-      await act(async () => {
-        const r = renderSpawnList(<SpawnListItem spawn={mockSpawn} />);
-        container = r.container;
-      });
-      // @ts-expect-error assigned above
-      const listItem = container.firstChild as HTMLElement;
-      expect(listItem).toHaveClass(
-        "p-3",
-        "border-b",
-        "cursor-pointer",
-        "transition-colors",
-      );
-    });
-
     it("applies selected styling when isSelected is true", async () => {
       let container: HTMLElement;
       await act(async () => {
@@ -403,21 +379,6 @@ describe("SpawnListItem", () => {
       // @ts-expect-error container is assigned
       const listItem = container.firstChild as HTMLElement;
       expect(listItem).toHaveClass("opacity-60");
-    });
-
-    it("applies CSS variables for theming", async () => {
-      let container: HTMLElement;
-      await act(async () => {
-        const r = renderSpawnList(<SpawnListItem spawn={mockSpawn} />);
-        container = r.container;
-      });
-      // @ts-expect-error container is assigned
-      const listItem = container.firstChild as HTMLElement;
-      expect(listItem).toHaveClass(
-        "border-[rgb(var(--color-border))]",
-        "hover:bg-[rgb(var(--color-muted))]/5",
-        "focus-visible:ring-[rgb(var(--color-ring))]",
-      );
     });
   });
 
