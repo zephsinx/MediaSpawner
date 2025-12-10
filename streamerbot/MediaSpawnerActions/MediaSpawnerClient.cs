@@ -161,7 +161,6 @@ public class CPHInline
                 return;
             }
 
-            // Initialize timers
             InitializeTimers();
 
             LogExecution(LogLevel.Info, "Init: Timer management initialization completed");
@@ -193,7 +192,6 @@ public class CPHInline
                 {
                     try
                     {
-                        // Handle different timer types
                         if (timer is System.Timers.Timer systemTimer)
                         {
                             systemTimer.Stop();
@@ -560,7 +558,6 @@ public class CPHInline
         {
             LogExecution(LogLevel.Info, $"HandleCommandTrigger: Processing command trigger from source: {source}");
 
-            // Get command details from Streamer.bot
             if (!CPH.TryGetArg("command", out string command) || string.IsNullOrWhiteSpace(command))
             {
                 LogExecution(LogLevel.Error, "HandleCommandTrigger: No command argument provided");
@@ -613,8 +610,6 @@ public class CPHInline
                 LogExecution(LogLevel.Info, "HandleCommandTrigger: No spawns are ready for execution after validation");
                 return true; // Not an error, just no ready spawns
             }
-
-            // Execute matching spawns
             bool executionResult = ExecuteSpawns(executableSpawns, "command", new Dictionary<string, object>
             {
                 ["command"] = command,
@@ -647,7 +642,6 @@ public class CPHInline
         {
             LogExecution(LogLevel.Info, $"HandleTwitchTrigger: Processing Twitch trigger from source: {source}");
 
-            // Get the actual trigger name from Streamer.bot
             if (!CPH.TryGetArg("triggerName", out string triggerName) || string.IsNullOrWhiteSpace(triggerName))
             {
                 LogExecution(LogLevel.Error, "HandleTwitchTrigger: No triggerName argument provided");
@@ -715,8 +709,6 @@ public class CPHInline
                 LogExecution(LogLevel.Info, "HandleTwitchTrigger: No spawns are ready for execution after validation");
                 return true; // Not an error, just no ready spawns
             }
-
-            // Execute matching spawns
             bool executionResult = ExecuteSpawns(executableSpawns, $"twitch.{twitchEventType}", eventData);
 
 
@@ -782,7 +774,6 @@ public class CPHInline
                 return false;
             }
 
-            // Check if spawn has any enabled assets
             if (!HasEnabledAssets(targetSpawn))
             {
                 LogExecution(LogLevel.Warning, $"HandleManualTrigger: Spawn '{targetSpawn.Name}' has no enabled assets");
@@ -790,7 +781,6 @@ public class CPHInline
             }
 
 
-            // Execute the specific spawn
             bool executionResult = ExecuteSpawns(new List<Spawn> { targetSpawn }, "manual", new Dictionary<string, object>
             {
                 ["spawnId"] = spawnId,
@@ -951,7 +941,6 @@ public class CPHInline
                 return false;
             }
 
-            // Check if spawn is enabled
             if (!spawn.Enabled)
             {
                 LogExecution(LogLevel.Info, $"ValidateSpawnForTimerCreation: Spawn '{spawn.Name}' is disabled, skipping timer creation");
@@ -976,7 +965,6 @@ public class CPHInline
     {
         try
         {
-            // Check if system is shutting down
             if (this.isShuttingDown)
             {
                 LogExecution(LogLevel.Info, $"CreateTimerForSpawn: System is shutting down, skipping timer creation for spawn '{spawn.Name}'");
@@ -1102,7 +1090,6 @@ public class CPHInline
                 return false;
             }
 
-            // Create System.Threading.Timer for one-time execution
             Timer timer = new Timer(
               state => OnOneTimeTimerElapsed(spawn, "atDateTime"),
               null,
@@ -1297,7 +1284,6 @@ public class CPHInline
                 }
             }
 
-            // Create System.Threading.Timer for one-time cleanup execution
             Timer timer = null;
             try
             {
@@ -1785,7 +1771,6 @@ public class CPHInline
                     return; // Not the right time for this trigger
                 }
 
-                // Execute the spawn
                 LogExecution(LogLevel.Info, $"OnRecurringTimerElapsed: Executing recurring spawn '{spawn.Name}' from {triggerType} timer");
                 ExecuteSpawnFromTimer(spawn, triggerType);
 
@@ -2245,7 +2230,6 @@ public class CPHInline
                     return; // Not the right time for this trigger
                 }
 
-                // Execute the spawn
                 LogExecution(LogLevel.Info, $"OnIntervalTimerElapsed: Executing interval spawn '{spawn.Name}' from {triggerType} timer");
                 ExecuteSpawnFromTimer(spawn, triggerType);
 
@@ -2390,7 +2374,6 @@ public class CPHInline
                     return; // Not the right time for this trigger
                 }
 
-                // Execute the spawn
                 LogExecution(LogLevel.Info, $"OnTimerElapsed: Executing spawn '{spawn.Name}' from {triggerType} timer");
                 ExecuteSpawnFromTimer(spawn, triggerType);
             }
@@ -2418,7 +2401,6 @@ public class CPHInline
                 ["timerFiredAt"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
             };
 
-            // Execute the spawn using existing execution logic
             bool success = ExecuteSpawn(spawn, $"time.{triggerType}", contextData);
 
             if (success)
@@ -2445,7 +2427,6 @@ public class CPHInline
     {
         try
         {
-            // Check if configuration has changed
             if (HasConfigurationChanged())
             {
                 LogExecution(LogLevel.Info, "IsSpawnStillValid: Configuration changed, spawn may no longer be valid");
@@ -2502,7 +2483,6 @@ public class CPHInline
                     return true;
 
                 case "dailyAt":
-                    // Check if current time matches the configured time
                     if (config.ContainsKey("time") && config["time"] is string timeStr &&
                         TimeSpan.TryParse(timeStr, out TimeSpan targetTime))
                     {
@@ -2512,7 +2492,6 @@ public class CPHInline
                     return true;
 
                 case "weeklyAt":
-                    // Check if current day and time match
                     if (config.ContainsKey("time") && config["time"] is string weeklyTimeStr &&
                         TimeSpan.TryParse(weeklyTimeStr, out TimeSpan weeklyTargetTime) &&
                         config.ContainsKey("daysOfWeek") && config["daysOfWeek"] is List<object> weeklyDaysList)
@@ -2541,7 +2520,6 @@ public class CPHInline
                     return true;
 
                 case "monthlyOn":
-                    // Check if current day and time match
                     if (config.ContainsKey("time") && config["time"] is string monthlyTimeStr &&
                         TimeSpan.TryParse(monthlyTimeStr, out TimeSpan monthlyTargetTime) &&
                         config.ContainsKey("daysOfMonth") && config["daysOfMonth"] is List<object> monthlyDaysList)
@@ -2569,7 +2547,6 @@ public class CPHInline
                     return true;
 
                 case "minuteOfHour":
-                    // Check if current minute matches configured minutes
                     if (config.ContainsKey("minutes") && config["minutes"] is List<object> minutesList)
                     {
                         List<int> minutes = new List<int>();
@@ -2611,7 +2588,6 @@ public class CPHInline
                 {
                     try
                     {
-                        // Handle different timer types
                         if (timer is System.Timers.Timer systemTimer)
                         {
                             systemTimer.Stop();
@@ -2670,7 +2646,6 @@ public class CPHInline
                 {
                     IDisposable timer = this.activeTimers[spawnId];
 
-                    // Handle different timer types
                     if (timer is System.Timers.Timer systemTimer)
                     {
                         systemTimer.Stop();
@@ -3117,7 +3092,6 @@ public class CPHInline
                         switch (kvp.Value)
                         {
                             // Basic health check - verify timer is still valid
-                            // Check if timer is still enabled (basic health check)
                             case System.Timers.Timer systemTimer when systemTimer.Enabled:
                                 healthyTimers.Add(kvp.Key);
                                 break;
@@ -3415,14 +3389,11 @@ public class CPHInline
             if (config == null)
                 continue;
 
-            // Check if command matches aliases
             bool commandMatches = false;
             if (config.ContainsKey("aliases"))
             {
                 object aliasesValue = config["aliases"];
                 List<object> aliases = null;
-
-                // Handle different types of aliases collections
                 if (aliasesValue is List<object> listAliases)
                 {
                     aliases = listAliases;
@@ -3734,7 +3705,6 @@ public class CPHInline
                         CPH.SetGlobalVar($"MediaSpawner_Context_{kvp.Key}", kvp.Value?.ToString() ?? "", persisted: false);
                     }
 
-                    // Execute the spawn
                     bool spawnResult = ExecuteSpawn(spawn, triggerType, contextData, spawnExecutionId);
 
                     // Complete tracking
@@ -3988,8 +3958,7 @@ public class CPHInline
                 {
                     LogExecution(LogLevel.Info, $"ExecuteSpawn[{executionId}]: Recovery completed successfully in {recoveryStopwatch.ElapsedMilliseconds}ms");
                     // Update success metrics based on recovery results
-                    // Note: This is a simplified approach - in a real implementation, you'd want to track
-                    // which specific assets were recovered and update the metrics accordingly
+                    // Simplified approach: doesn't track which specific assets were recovered
                 }
                 else
                 {
@@ -4017,7 +3986,6 @@ public class CPHInline
                 int spawnCleanupTimersCreated = 0;
                 foreach (SpawnAsset successfulAsset in successfulAssetList)
                 {
-                    // Check if this asset already has an asset-level cleanup timer
                     // Asset-level cleanup uses spawnAsset.Id as source name
                     double assetDuration = GetAssetDuration(spawn, successfulAsset);
                     bool hasAssetLevelCleanup = assetDuration > 0;
@@ -4554,7 +4522,6 @@ public class CPHInline
                 guid = Guid.NewGuid().ToString("N");
                 attempts++;
 
-                // Check if this GUID is already used in any active spawn execution
                 bool isDuplicate = this.activeSpawns.Values.Any(execution =>
                     execution.SourceGuids.Values.Contains(guid));
 
@@ -4583,7 +4550,6 @@ public class CPHInline
     /// <returns>True if asset executed successfully</returns>
     private bool ExecuteSpawnAsset(Spawn spawn, SpawnAsset spawnAsset, string triggerType, Dictionary<string, object> contextData, out string generatedSourceGuid)
     {
-        // Initialize out parameter
         generatedSourceGuid = string.Empty;
 
         Stopwatch stopwatch = Stopwatch.StartNew();
@@ -4596,7 +4562,6 @@ public class CPHInline
 
             LogExecution(LogLevel.Info, $"ExecuteSpawnAsset[{executionId}]: Executing asset '{spawnAsset.AssetId}' in spawn '{spawn.Name}' with source GUID '{generatedSourceGuid}'");
 
-            // Validate input parameters
             Dictionary<string, object> parameters = new Dictionary<string, object>
             {
                 ["spawn"] = spawn,
@@ -4964,9 +4929,8 @@ public class CPHInline
     /// <returns>True if source was created successfully</returns>
     private bool CreateOBSSource(MediaAsset asset, Dictionary<string, object> properties, string sourceName, out int sceneItemId, string workingDirectory = null)
     {
-        sceneItemId = -1; // Initialize out parameter
+        sceneItemId = -1;
 
-        // Validate input parameters
         Dictionary<string, object> parameters = new Dictionary<string, object>
         {
             ["asset"] = asset,
@@ -4993,7 +4957,6 @@ public class CPHInline
                     return false;
                 }
 
-                // Check if source already exists
                 if (OBSSourceExists(sourceName))
                 {
                     LogExecution(LogLevel.Warning, $"CreateOBSSource: Source '{sourceName}' already exists, skipping creation");
@@ -5613,7 +5576,6 @@ public class CPHInline
     /// <returns>Dictionary containing SetInputSettings request data</returns>
     private Dictionary<string, object> BuildSetInputSettingsRequest(string sourceName, Dictionary<string, object> properties)
     {
-        // Check if we have loop property to apply
         bool hasLoop = properties.ContainsKey("loop");
 
         if (!hasLoop)
@@ -5832,7 +5794,7 @@ public class CPHInline
     private bool ValidateOBSConnection()
     {
         // OBS connection validation temporarily disabled
-        // TODO: Implement more reliable OBS connection checking
+        // TODO: Add reliable OBS connection checking (validate WebSocket connection and scene availability)
         LogExecution(LogLevel.Info, "ValidateOBSConnection: OBS connection validation disabled - proceeding with execution");
         return true;
 
@@ -6158,7 +6120,6 @@ public class CPHInline
         {
             try
             {
-                // Check if cached config is still valid
                 if (this.cachedConfig != null && IsConfigCacheValid())
                 {
                     LogExecution(LogLevel.Info, "LoadMediaSpawnerConfig: Using cached configuration");
@@ -6172,7 +6133,6 @@ public class CPHInline
                     return false;
                 }
 
-                // Check if we need to reload (config might have changed)
                 string currentSha = ComputeSha256(configJson);
                 if (this.cachedConfig != null && this.cachedConfigSha == currentSha && IsConfigCacheValid())
                 {
@@ -7968,7 +7928,6 @@ public class CPHInline
                             // Extract source name from timer key (format: "cleanup-{sourceName}")
                             string sourceName = timerKey.Substring(8); // Remove "cleanup-" prefix
 
-                            // Check if this source GUID belongs to this spawn's tracked GUIDs
                             bool belongsToSpawn = execution.SourceGuids.Values.Contains(sourceName);
 
                             if (belongsToSpawn)
@@ -8470,7 +8429,6 @@ public class CPHInline
                 LogExecution(LogLevel.Warning, "ValidateExecutionEnvironment: OBS is not connected - some operations may fail");
             }
 
-            // Check if we have access to required Streamer.bot methods
             try
             {
                 string testSource = CPH.GetSource().ToString();
@@ -9050,7 +9008,6 @@ public class CPHInline
                 Overrides = originalAsset.Overrides, // Keep original overrides
             };
 
-            // Execute the fallback asset
             return ExecuteSpawnAsset(spawn, fallbackSpawnAsset, triggerType, contextData, out _);
         }
         catch (Exception ex)
