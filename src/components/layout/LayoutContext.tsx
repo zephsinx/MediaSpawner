@@ -2,6 +2,10 @@ import React, { useReducer, useEffect, useRef } from "react";
 import { SpawnProfileService } from "../../services/spawnProfileService";
 import { LayoutContext } from "./LayoutContextTypes";
 import type { LayoutState, LayoutAction } from "./LayoutContextTypes";
+import {
+  dispatchMediaSpawnerEvent,
+  MediaSpawnerEvents,
+} from "../../hooks/useMediaSpawnerEvent";
 
 /**
  * Initial state for the layout context
@@ -189,14 +193,10 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
     // Only dispatch if profile actually changed and we're not in initial load
     if (currentProfileId !== previousProfileId && hasLoadedProfile.current) {
       try {
-        window.dispatchEvent(
-          new CustomEvent(
-            "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
-            {
-              detail: { profileId: currentProfileId, previousProfileId },
-            } as CustomEventInit,
-          ),
-        );
+        dispatchMediaSpawnerEvent(MediaSpawnerEvents.PROFILE_CHANGED, {
+          profileId: currentProfileId,
+          previousProfileId,
+        });
       } catch {
         // Best-effort notification
       }

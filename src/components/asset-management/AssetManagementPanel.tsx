@@ -23,6 +23,11 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { toast } from "sonner";
 import { Disclosure } from "@headlessui/react";
 import {
+  dispatchMediaSpawnerEvent,
+  MediaSpawnerEvents,
+  useMediaSpawnerEvent,
+} from "../../hooks/useMediaSpawnerEvent";
+import {
   GripVertical,
   Settings,
   MoreVertical,
@@ -49,56 +54,41 @@ function SpawnAssetsCount() {
   const [draftCount, setDraftCount] = useState<number | null>(null);
 
   useEffect(() => {
-    let active = true;
     const load = async () => {
       if (!selectedSpawnId) {
-        if (active) setSavedCount(0);
+        setSavedCount(0);
         return;
       }
       const s = await SpawnService.getSpawn(selectedSpawnId);
-      if (active) setSavedCount(s?.assets.length ?? 0);
+      setSavedCount(s?.assets.length ?? 0);
     };
     void load();
-    const handler = (evt: Event) => {
-      const detail = (evt as CustomEvent).detail as
-        | { spawnId?: string }
-        | undefined;
-      if (detail?.spawnId === selectedSpawnId) void load();
-    };
-    window.addEventListener(
-      "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-      handler as EventListener,
-    );
-    return () => {
-      active = false;
-      window.removeEventListener(
-        "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-        handler as EventListener,
-      );
-    };
   }, [selectedSpawnId]);
 
-  // Listen for draft count changes
-  useEffect(() => {
-    const handler = (evt: Event) => {
-      const detail = (evt as CustomEvent).detail as
-        | { spawnId?: string; count: number; isDraft: boolean }
-        | undefined;
-      if (detail && detail.spawnId === selectedSpawnId) {
+  useMediaSpawnerEvent(
+    MediaSpawnerEvents.SPAWN_UPDATED,
+    (event) => {
+      if (event.detail.spawnId === selectedSpawnId) {
+        const load = async () => {
+          const s = await SpawnService.getSpawn(selectedSpawnId);
+          setSavedCount(s?.assets.length ?? 0);
+        };
+        void load();
+      }
+    },
+    [selectedSpawnId],
+  );
+
+  useMediaSpawnerEvent(
+    MediaSpawnerEvents.DRAFT_ASSET_COUNT_CHANGED,
+    (event) => {
+      const detail = event.detail;
+      if (detail.spawnId === selectedSpawnId) {
         setDraftCount(detail.isDraft ? detail.count : null);
       }
-    };
-    window.addEventListener(
-      "mediaspawner:draft-asset-count-changed" as unknown as keyof WindowEventMap,
-      handler as EventListener,
-    );
-    return () => {
-      window.removeEventListener(
-        "mediaspawner:draft-asset-count-changed" as unknown as keyof WindowEventMap,
-        handler as EventListener,
-      );
-    };
-  }, [selectedSpawnId]);
+    },
+    [selectedSpawnId],
+  );
 
   const displayCount = draftCount !== null ? draftCount : savedCount;
 
@@ -111,19 +101,9 @@ function SpawnAssetsCount() {
 
 function AssetLibraryCount() {
   const [count, setCount] = useState<number>(AssetService.getAssets().length);
-  useEffect(() => {
-    const handler = () => setCount(AssetService.getAssets().length);
-    window.addEventListener(
-      "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
-      handler as EventListener,
-    );
-    return () => {
-      window.removeEventListener(
-        "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
-        handler as EventListener,
-      );
-    };
-  }, []);
+  useMediaSpawnerEvent(MediaSpawnerEvents.ASSETS_UPDATED, () => {
+    setCount(AssetService.getAssets().length);
+  });
   return (
     <span className="ml-2 text-[rgb(var(--color-muted-foreground))]">
       ({count})
@@ -234,7 +214,6 @@ function SpawnAssetsSection() {
   }, [hasAssetChanges]);
 
   useEffect(() => {
-    let isActive = true;
     const load = async () => {
       if (!selectedSpawnId) {
         setSpawn(null);
@@ -246,82 +225,52 @@ function SpawnAssetsSection() {
       setSaveError(null);
       try {
         const s = await SpawnService.getSpawn(selectedSpawnId);
-        if (isActive) {
-          setSpawn(s);
-          setDraftAssets(null); // Clear draft when loading new spawn
-        }
+        setSpawn(s);
+        setDraftAssets(null); // Clear draft when loading new spawn
       } catch (e) {
-        if (isActive)
-          setLoadError(e instanceof Error ? e.message : "Failed to load spawn");
+        setLoadError(e instanceof Error ? e.message : "Failed to load spawn");
       } finally {
-        if (isActive) setIsLoading(false);
+        setIsLoading(false);
       }
     };
     load();
-
-    const onSpawnUpdated = (evt: Event) => {
-      const detail = (evt as CustomEvent).detail as
-        | { spawnId?: string }
-        | undefined;
-      if (!detail || !detail.spawnId) return;
-      if (detail.spawnId === selectedSpawnId) {
-        void load();
-      }
-    };
-
-    window.addEventListener(
-      "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-      onSpawnUpdated as EventListener,
-    );
-
-    return () => {
-      isActive = false;
-      window.removeEventListener(
-        "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-        onSpawnUpdated as EventListener,
-      );
-    };
   }, [selectedSpawnId]);
 
-  // Listen for profile changes to reset spawn-related state
-  useEffect(() => {
-    const handleProfileChanged = (e: Event) => {
-      const ce = e as CustomEvent<{
-        profileId?: string;
-        previousProfileId?: string;
-      }>;
-      const { profileId } = ce.detail || {};
-      if (profileId) {
-        // Reset spawn-related state when profile changes
-        setSpawn(null);
-        setLoadError(null);
-        setIsLoading(false);
-        setDraggingId(null);
-        setDragOverIndex(null);
-        setRemoveError(null);
-        setDraftAssets(null);
-        setSaveError(null);
+  useMediaSpawnerEvent(
+    MediaSpawnerEvents.SPAWN_UPDATED,
+    (event) => {
+      const detail = event.detail;
+      if (detail.spawnId === selectedSpawnId && detail.updatedSpawn) {
+        setSpawn(detail.updatedSpawn);
+      } else if (detail.spawnId === selectedSpawnId) {
+        const load = async () => {
+          const s = await SpawnService.getSpawn(selectedSpawnId);
+          setSpawn(s);
+        };
+        void load();
       }
-    };
+    },
+    [selectedSpawnId],
+  );
 
-    window.addEventListener(
-      "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
-      handleProfileChanged as EventListener,
-    );
+  useMediaSpawnerEvent(MediaSpawnerEvents.PROFILE_CHANGED, (event) => {
+    const { profileId } = event.detail;
+    if (profileId) {
+      setSpawn(null);
+      setLoadError(null);
+      setIsLoading(false);
+      setDraggingId(null);
+      setDragOverIndex(null);
+      setRemoveError(null);
+      setDraftAssets(null);
+      setSaveError(null);
+    }
+  });
 
-    return () => {
-      window.removeEventListener(
-        "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
-        handleProfileChanged as EventListener,
-      );
-    };
-  }, []);
-
-  // Listen for requests to add assets to spawn
-  useEffect(() => {
-    const handleAddAssetRequest = (e: Event) => {
-      const ce = e as CustomEvent<{ assetId: string; assetName: string }>;
-      const { assetId, assetName } = ce.detail || {};
+  useMediaSpawnerEvent(
+    MediaSpawnerEvents.REQUEST_ADD_ASSET_TO_SPAWN,
+    (event) => {
+      const { assetId, assetName } = event.detail;
       if (!assetId || !spawn) return;
 
       const current = draftAssets ?? spawn.assets;
@@ -338,39 +287,17 @@ function SpawnAssetsSection() {
       const newSpawnAsset: SpawnAsset = createSpawnAsset(assetId, newOrder);
       setDraftAssets([...current, newSpawnAsset]);
       toast.success(`Added to spawn: ${assetName} (unsaved)`);
-    };
+    },
+    [spawn, draftAssets],
+  );
 
-    window.addEventListener(
-      "mediaspawner:request-add-asset-to-spawn" as unknown as keyof WindowEventMap,
-      handleAddAssetRequest as EventListener,
-    );
-
-    return () => {
-      window.removeEventListener(
-        "mediaspawner:request-add-asset-to-spawn" as unknown as keyof WindowEventMap,
-        handleAddAssetRequest as EventListener,
-      );
-    };
-  }, [spawn, draftAssets]);
-
-  // Listen for asset library updates to refresh resolved assets
   useEffect(() => {
-    // Initial load
     setAssets(AssetService.getAssets());
-
-    // Listen for external updates to refresh assets
-    const handler = () => setAssets(AssetService.getAssets());
-    window.addEventListener(
-      "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
-      handler as EventListener,
-    );
-    return () => {
-      window.removeEventListener(
-        "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
-        handler as EventListener,
-      );
-    };
   }, []);
+
+  useMediaSpawnerEvent(MediaSpawnerEvents.ASSETS_UPDATED, () => {
+    setAssets(AssetService.getAssets());
+  });
 
   // Use draft assets if available, otherwise use spawn assets
   const currentAssets = useMemo(() => {
@@ -379,13 +306,14 @@ function SpawnAssetsSection() {
 
   // Emit draft count for header display
   useEffect(() => {
+    if (!selectedSpawnId) return;
     const count = currentAssets.length;
     const isDraft = draftAssets !== null;
-    window.dispatchEvent(
-      new CustomEvent("mediaspawner:draft-asset-count-changed", {
-        detail: { spawnId: selectedSpawnId, count, isDraft },
-      }),
-    );
+    dispatchMediaSpawnerEvent(MediaSpawnerEvents.DRAFT_ASSET_COUNT_CHANGED, {
+      spawnId: selectedSpawnId,
+      count,
+      isDraft,
+    });
   }, [currentAssets, draftAssets, selectedSpawnId]);
 
   const resolvedAssets: ResolvedSpawnAsset[] = useMemo(() => {
@@ -497,17 +425,10 @@ function SpawnAssetsSection() {
       setSpawn(result.spawn || null);
       toast.success("Asset changes saved");
       if (result.spawn) {
-        window.dispatchEvent(
-          new CustomEvent(
-            "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-            {
-              detail: {
-                spawnId: result.spawn.id,
-                updatedSpawn: result.spawn,
-              },
-            } as CustomEventInit,
-          ),
-        );
+        dispatchMediaSpawnerEvent(MediaSpawnerEvents.SPAWN_UPDATED, {
+          spawnId: result.spawn.id,
+          updatedSpawn: result.spawn,
+        });
       }
     } catch (e) {
       const msg =
@@ -720,11 +641,9 @@ function SpawnAssetsSection() {
                           mode: "asset-settings",
                           spawnAssetId: spawnAsset.id,
                         } as const;
-                        window.dispatchEvent(
-                          new CustomEvent(
-                            "mediaspawner:request-center-switch" as unknown as keyof WindowEventMap,
-                            { detail } as CustomEventInit,
-                          ),
+                        dispatchMediaSpawnerEvent(
+                          MediaSpawnerEvents.REQUEST_CENTER_SWITCH,
+                          detail,
                         );
                       }}
                       aria-label="Configure"
@@ -1030,60 +949,44 @@ function AssetLibrarySection() {
   const [renameError, setRenameError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Initial load
     setAssets(AssetService.getAssets());
-
-    // Listen for external updates to refresh list
-    const handler = () => setAssets(AssetService.getAssets());
-    window.addEventListener(
-      "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
-      handler as EventListener,
-    );
-    return () => {
-      window.removeEventListener(
-        "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
-        handler as EventListener,
-      );
-    };
   }, []);
+
+  useMediaSpawnerEvent(MediaSpawnerEvents.ASSETS_UPDATED, () => {
+    setAssets(AssetService.getAssets());
+  });
 
   // Track which assets are already in the selected spawn
   useEffect(() => {
-    let isActive = true;
     const loadSpawnAssets = async () => {
       if (!selectedSpawnId) {
-        if (isActive) setSpawnAssetIds(new Set());
+        setSpawnAssetIds(new Set());
         return;
       }
       const spawn = await SpawnService.getSpawn(selectedSpawnId);
-      if (isActive) {
-        const ids = new Set((spawn?.assets ?? []).map((sa) => sa.assetId));
-        setSpawnAssetIds(ids);
-      }
+      const ids = new Set((spawn?.assets ?? []).map((sa) => sa.assetId));
+      setSpawnAssetIds(ids);
     };
     void loadSpawnAssets();
+  }, [selectedSpawnId]);
 
-    const onSpawnUpdated = (evt: Event) => {
-      const detail = (evt as CustomEvent).detail as
-        | { spawnId?: string }
-        | undefined;
-      if (!detail || !detail.spawnId) return;
+  useMediaSpawnerEvent(
+    MediaSpawnerEvents.SPAWN_UPDATED,
+    (event) => {
+      const detail = event.detail;
       if (detail.spawnId === selectedSpawnId) {
+        const loadSpawnAssets = async () => {
+          const spawn = await SpawnService.getSpawn(selectedSpawnId);
+          if (spawn) {
+            const ids = new Set((spawn?.assets ?? []).map((sa) => sa.assetId));
+            setSpawnAssetIds(ids);
+          }
+        };
         void loadSpawnAssets();
       }
-    };
-    window.addEventListener(
-      "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-      onSpawnUpdated as EventListener,
-    );
-    return () => {
-      isActive = false;
-      window.removeEventListener(
-        "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-        onSpawnUpdated as EventListener,
-      );
-    };
-  }, [selectedSpawnId]);
+    },
+    [selectedSpawnId],
+  );
 
   const getTypeIcon = (type: MediaAsset["type"]) =>
     type === "image" ? "🖼️" : type === "video" ? "🎥" : "🎵";
@@ -1117,11 +1020,7 @@ function AssetLibrarySection() {
       setUrlInput("");
       setIsAddingUrl(false);
       setAssets(AssetService.getAssets());
-      window.dispatchEvent(
-        new Event(
-          "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
-        ),
-      );
+      dispatchMediaSpawnerEvent(MediaSpawnerEvents.ASSETS_UPDATED, {});
     } catch (e) {
       setAddError(e instanceof Error ? e.message : "Failed to add URL asset");
     } finally {
@@ -1213,11 +1112,7 @@ function AssetLibrarySection() {
       AssetService.addAsset(type, name, filename);
     }
     setAssets(AssetService.getAssets());
-    window.dispatchEvent(
-      new Event(
-        "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
-      ),
-    );
+    dispatchMediaSpawnerEvent(MediaSpawnerEvents.ASSETS_UPDATED, {});
     // Compose error summary
     if (errors.length > 0) {
       setFilesError(
@@ -1234,15 +1129,10 @@ function AssetLibrarySection() {
 
   const handleAddToSpawn = (asset: MediaAsset) => {
     if (!selectedSpawnId) return;
-    // Dispatch event for SpawnAssetsSection to handle
-    window.dispatchEvent(
-      new CustomEvent(
-        "mediaspawner:request-add-asset-to-spawn" as unknown as keyof WindowEventMap,
-        {
-          detail: { assetId: asset.id, assetName: asset.name },
-        } as CustomEventInit,
-      ),
-    );
+    dispatchMediaSpawnerEvent(MediaSpawnerEvents.REQUEST_ADD_ASSET_TO_SPAWN, {
+      assetId: asset.id,
+      assetName: asset.name,
+    });
   };
 
   const startRename = (asset: MediaAsset) => {

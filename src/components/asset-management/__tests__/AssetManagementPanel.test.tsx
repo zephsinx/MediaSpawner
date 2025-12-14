@@ -38,6 +38,7 @@ vi.mock("../../../hooks/useLayout", () => ({
 import { SpawnService } from "../../../services/spawnService";
 import { AssetService } from "../../../services/assetService";
 import { usePanelState } from "../../../hooks/useLayout";
+import { MediaSpawnerEvents } from "../../../types/events";
 
 function render(ui: React.ReactNode) {
   return rtlRender(
@@ -441,9 +442,7 @@ describe("AssetManagementPanel (Core Functionality)", () => {
 
       await act(async () => {
         window.dispatchEvent(
-          new Event(
-            "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
-          ),
+          new CustomEvent(MediaSpawnerEvents.ASSETS_UPDATED, { detail: {} }),
         );
       });
 

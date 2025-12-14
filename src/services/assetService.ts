@@ -5,6 +5,10 @@ import { CacheService, CACHE_KEYS } from "./cacheService";
 import { SpawnService } from "./spawnService";
 import { SpawnProfileService } from "./spawnProfileService";
 import { resolveEffectiveProperties } from "../utils/assetSettingsResolver";
+import {
+  dispatchMediaSpawnerEvent,
+  MediaSpawnerEvents,
+} from "../hooks/useMediaSpawnerEvent";
 
 const STORAGE_KEY = "mediaspawner_assets";
 // No parallel spawn-asset overrides storage; overrides are inline on Spawn.assets
@@ -93,11 +97,7 @@ export class AssetService {
     assets.push(asset);
     this.saveAssets(assets);
     try {
-      window.dispatchEvent(
-        new Event(
-          "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
-        ),
-      );
+      dispatchMediaSpawnerEvent(MediaSpawnerEvents.ASSETS_UPDATED, {});
     } catch {
       // Best-effort notification
     }
@@ -135,11 +135,7 @@ export class AssetService {
         if (changed) {
           SpawnProfileService.replaceProfiles(updated);
           try {
-            window.dispatchEvent(
-              new Event(
-                "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
-              ),
-            );
+            dispatchMediaSpawnerEvent(MediaSpawnerEvents.ASSETS_UPDATED, {});
           } catch {
             // Best-effort notify
           }
@@ -165,11 +161,7 @@ export class AssetService {
       this.saveAssets(assets);
       try {
         // Notify listeners that assets changed so dependent panels can refresh
-        window.dispatchEvent(
-          new Event(
-            "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
-          ),
-        );
+        dispatchMediaSpawnerEvent(MediaSpawnerEvents.ASSETS_UPDATED, {});
       } catch {
         // Best-effort notification
       }
@@ -195,11 +187,7 @@ export class AssetService {
     // Invalidate cache after successful clear
     CacheService.invalidate(CACHE_KEYS.ASSETS);
     try {
-      window.dispatchEvent(
-        new Event(
-          "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
-        ),
-      );
+      dispatchMediaSpawnerEvent(MediaSpawnerEvents.ASSETS_UPDATED, {});
     } catch {
       // Best-effort notification
     }

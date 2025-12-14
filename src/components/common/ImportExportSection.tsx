@@ -7,6 +7,10 @@ import { downloadConfiguration } from "../../utils/fileDownload";
 import type { ImportOptions } from "../../services/importExportService";
 import { Button } from "../ui/Button";
 import { cn } from "../../utils/cn";
+import {
+  dispatchMediaSpawnerEvent,
+  MediaSpawnerEvents,
+} from "../../hooks/useMediaSpawnerEvent";
 
 /**
  * Props for the ImportExportSection component
@@ -149,8 +153,9 @@ export function ImportExportSection({
         toast.success(message);
 
         // Dispatch event to refresh the UI
-        window.dispatchEvent(
-          new CustomEvent("mediaspawner:configuration-imported"),
+        dispatchMediaSpawnerEvent(
+          MediaSpawnerEvents.CONFIGURATION_IMPORTED,
+          {},
         );
       } else {
         throw new Error(result.error || "Import failed");

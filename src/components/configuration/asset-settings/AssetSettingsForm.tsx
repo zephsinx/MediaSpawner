@@ -23,6 +23,11 @@ import {
 import { usePanelState } from "../../../hooks/useLayout";
 import { useDebounce } from "../../../hooks/useDebounce";
 import { useAssetValidation } from "../../../hooks/useAssetValidation";
+import {
+  useMediaSpawnerEvent,
+  dispatchMediaSpawnerEvent,
+  MediaSpawnerEvents,
+} from "../../../hooks/useMediaSpawnerEvent";
 import { Button } from "../../ui/Button";
 import { cn } from "../../../utils/cn";
 import { inputVariants } from "../../ui/variants";
@@ -294,12 +299,11 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
     }, [spawn, spawnAsset]);
 
     // Stable event listener - only re-registered when IDs change
-    useEffect(() => {
-      const onSpawnUpdated = async (evt: Event) => {
-        const detail = (evt as CustomEvent).detail as
-          | { spawnId?: string; updatedSpawn?: Spawn }
-          | undefined;
-        if (!detail?.spawnId || detail.spawnId !== spawnId) return;
+    useMediaSpawnerEvent(
+      MediaSpawnerEvents.SPAWN_UPDATED,
+      async (event) => {
+        const detail = event.detail;
+        if (!detail.spawnId || detail.spawnId !== spawnId) return;
 
         const nextSpawn: Spawn | null = detail.updatedSpawn
           ? detail.updatedSpawn
@@ -323,20 +327,9 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
           overrides: nextSpawnAsset.overrides?.properties,
         });
         setDraftValues(nextEffective.effective);
-      };
-
-      window.addEventListener(
-        "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-        onSpawnUpdated as EventListener,
-      );
-
-      return () => {
-        window.removeEventListener(
-          "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-          onSpawnUpdated as EventListener,
-        );
-      };
-    }, [spawnId, spawnAssetId]);
+      },
+      [spawnId, spawnAssetId],
+    );
 
     // Cleanup unsaved changes when component unmounts
     useEffect(() => {
@@ -470,12 +463,9 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
             draftValues,
           });
         }
-        window.dispatchEvent(
-          new CustomEvent(
-            "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-            { detail: { spawnId: result.spawn.id } } as CustomEventInit,
-          ),
-        );
+        dispatchMediaSpawnerEvent(MediaSpawnerEvents.SPAWN_UPDATED, {
+          spawnId: result.spawn.id,
+        });
       } catch (e) {
         setError(
           e instanceof Error ? e.message : "Failed to save asset settings",

@@ -17,6 +17,10 @@ import {
   reconcileBucketsWithAssets,
   validateRandomizationBuckets,
 } from "../utils/randomizationBuckets";
+import {
+  dispatchMediaSpawnerEvent,
+  MediaSpawnerEvents,
+} from "../hooks/useMediaSpawnerEvent";
 
 /**
  * Result of spawn operations
@@ -224,14 +228,10 @@ export class SpawnService {
       }
 
       try {
-        window.dispatchEvent(
-          new CustomEvent(
-            "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-            {
-              detail: { spawnId: reconciled.id, updatedSpawn: reconciled },
-            } as CustomEventInit,
-          ),
-        );
+        dispatchMediaSpawnerEvent(MediaSpawnerEvents.SPAWN_UPDATED, {
+          spawnId: reconciled.id,
+          updatedSpawn: reconciled,
+        });
       } catch {
         // Best-effort notification
       }

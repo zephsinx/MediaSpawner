@@ -76,6 +76,11 @@ import {
 import { validateTrigger } from "../../utils/triggerValidation";
 import { RandomizationBucketsSection } from "./RandomizationBucketsSection";
 import { validateRandomizationBuckets } from "../../utils/randomizationBuckets";
+import {
+  dispatchMediaSpawnerEvent,
+  MediaSpawnerEvents,
+  useMediaSpawnerEvent,
+} from "../../hooks/useMediaSpawnerEvent";
 
 const buildTimezoneOptions = () => {
   const now = Date.now();
@@ -106,7 +111,6 @@ const dayOfWeekOptions = [
   { value: 6, label: "Saturday" },
 ];
 
-// Helper function to safely access command config
 const getCommandConfig = (trigger: Trigger | null) => {
   if (trigger?.type === "streamerbot.command") {
     return trigger.config;
@@ -114,7 +118,6 @@ const getCommandConfig = (trigger: Trigger | null) => {
   return null;
 };
 
-// Helper function to safely access channel point reward config
 const getChannelPointConfig = (trigger: Trigger | null) => {
   if (trigger?.type === "twitch.channelPointReward") {
     return trigger.config;
@@ -122,7 +125,6 @@ const getChannelPointConfig = (trigger: Trigger | null) => {
   return null;
 };
 
-// Helper accessors for event/time-based configs
 const getSubscriptionConfig = (trigger: Trigger | null) =>
   trigger?.type === "twitch.subscription" ? trigger.config : null;
 const getGiftSubConfig = (trigger: Trigger | null) =>
@@ -477,10 +479,9 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
 
   // Stable event listener - only re-registered when IDs change
   useEffect(() => {
-    let isActive = true;
     const load = async () => {
       if (!selectedSpawnId) {
-        if (isActive) setSelectedSpawn(null);
+        setSelectedSpawn(null);
         setName("");
         setDescription("");
         return;
@@ -488,14 +489,16 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
       const allSpawns = await SpawnService.getAllSpawns();
       setAllSpawnsCache(allSpawns);
       const found = allSpawns.find((s) => s.id === selectedSpawnId) || null;
-      if (isActive) setSelectedSpawn(found);
+      setSelectedSpawn(found);
     };
     load();
-    const onUpdated = (evt: Event) => {
-      const detail = (evt as CustomEvent).detail as
-        | { spawnId?: string; updatedSpawn?: Spawn }
-        | undefined;
-      if (!detail || !detail.spawnId) return;
+  }, [selectedSpawnId]);
+
+  useMediaSpawnerEvent(
+    MediaSpawnerEvents.SPAWN_UPDATED,
+    (event) => {
+      const detail = event.detail;
+      if (!detail.spawnId) return;
       if (detail.spawnId !== selectedSpawnIdRef.current) return;
       if (detail.updatedSpawn) {
         setSelectedSpawnRef.current(detail.updatedSpawn);
@@ -503,20 +506,17 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
         setDescriptionRef.current(detail.updatedSpawn.description || "");
         return;
       }
+      const load = async () => {
+        const allSpawns = await SpawnService.getAllSpawns();
+        setAllSpawnsCache(allSpawns);
+        const found =
+          allSpawns.find((s) => s.id === selectedSpawnIdRef.current) || null;
+        setSelectedSpawnRef.current(found);
+      };
       void load();
-    };
-    window.addEventListener(
-      "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-      onUpdated as EventListener,
-    );
-    return () => {
-      isActive = false;
-      window.removeEventListener(
-        "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-        onUpdated as EventListener,
-      );
-    };
-  }, [selectedSpawnId]);
+    },
+    [],
+  );
 
   // Keep hasUnsavedChanges and changeType refs in sync
   useEffect(() => {
@@ -539,25 +539,19 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
   setCenterPanelModeRef.current = setCenterPanelMode;
   setShowModeSwitchDialogRef.current = setShowModeSwitchDialog;
 
-  useEffect(() => {
-    const onRequestSwitch = (evt: Event) => {
-      const detail = (evt as CustomEvent).detail as
-        | {
-            mode: "spawn-settings" | "asset-settings";
-            spawnAssetId?: string;
-            skipGuard?: boolean;
-          }
-        | undefined;
-      if (!detail) return;
+  useEffect(() => {}, []);
 
-      // Check skipGuard first to avoid checking stale refs when bypassing
+  useMediaSpawnerEvent(
+    MediaSpawnerEvents.REQUEST_CENTER_SWITCH,
+    (event) => {
+      const detail = event.detail;
+
       if (
         !detail.skipGuard &&
         hasUnsavedChangesRef.current &&
         changeTypeRef.current !== "none"
       ) {
-        // Special case: If we're in asset-settings mode and switching to a different asset,
-        // let the useEffect at line 395 handle the guard check to avoid double dialogs
+        // Asset-to-asset switches handled by useEffect at line 395 to avoid double dialogs
         const isAssetToAssetSwitch =
           centerPanelModeRef.current === "asset-settings" &&
           detail.mode === "asset-settings" &&
@@ -579,18 +573,9 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
         setCenterPanelModeRef.current("spawn-settings");
         selectSpawnAssetRef.current(undefined);
       }
-    };
-    window.addEventListener(
-      "mediaspawner:request-center-switch" as unknown as keyof WindowEventMap,
-      onRequestSwitch as EventListener,
-    );
-    return () => {
-      window.removeEventListener(
-        "mediaspawner:request-center-switch" as unknown as keyof WindowEventMap,
-        onRequestSwitch as EventListener,
-      );
-    };
-  }, []); // Empty dependency array - event listener never re-registers
+    },
+    [],
+  );
 
   useEffect(() => {
     if (selectedSpawn) {
@@ -791,14 +776,10 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
       setSelectedSpawn(result.spawn);
       setSaveSuccess("Changes saved");
       // Notify other panels and list of updates (e.g., name change)
-      window.dispatchEvent(
-        new CustomEvent(
-          "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-          {
-            detail: { spawnId: result.spawn.id, updatedSpawn: result.spawn },
-          } as CustomEventInit,
-        ),
-      );
+      dispatchMediaSpawnerEvent(MediaSpawnerEvents.SPAWN_UPDATED, {
+        spawnId: result.spawn.id,
+        updatedSpawn: result.spawn,
+      });
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Failed to save spawn");
     } finally {
@@ -1025,11 +1006,9 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
             clearAllCacheEntries();
 
             // Notify list to remove and clear selection
-            window.dispatchEvent(
-              new CustomEvent<{ id: string }>("mediaspawner:spawn-deleted", {
-                detail: { id: selectedSpawn.id },
-              }),
-            );
+            dispatchMediaSpawnerEvent(MediaSpawnerEvents.SPAWN_DELETED, {
+              id: selectedSpawn.id,
+            });
             setSelectedSpawn(null);
             setName("");
             setDescription("");
@@ -1057,13 +1036,12 @@ const SpawnEditorWorkspace: React.FC = memo(() => {
           spawnId={selectedSpawnId}
           spawnAssetId={selectedSpawnAssetId}
           onBack={(skipGuard = false) => {
-            window.dispatchEvent(
-              new CustomEvent(
-                "mediaspawner:request-center-switch" as unknown as keyof WindowEventMap,
-                {
-                  detail: { mode: "spawn-settings", skipGuard },
-                } as CustomEventInit,
-              ),
+            dispatchMediaSpawnerEvent(
+              MediaSpawnerEvents.REQUEST_CENTER_SWITCH,
+              {
+                mode: "spawn-settings",
+                skipGuard,
+              },
             );
           }}
           getCachedDraft={() =>

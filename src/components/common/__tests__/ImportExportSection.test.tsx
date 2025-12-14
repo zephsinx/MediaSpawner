@@ -14,6 +14,7 @@ import { ImportExportService } from "../../../services/importExportService";
 import { downloadConfiguration } from "../../../utils/fileDownload";
 import { toast } from "sonner";
 import type { ImportOptions } from "../../../services/importExportService";
+import { MediaSpawnerEvents } from "../../../types/events";
 
 vi.mock("sonner", () => ({
   toast: {
@@ -214,7 +215,7 @@ describe("ImportExportSection", () => {
       expect(toast.success).toHaveBeenCalled();
       expect(dispatchSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: "mediaspawner:configuration-imported",
+          type: MediaSpawnerEvents.CONFIGURATION_IMPORTED,
         }),
       );
     });

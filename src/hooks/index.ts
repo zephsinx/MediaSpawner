@@ -12,3 +12,8 @@ export {
   useModalFocusManagement,
   useSkipNavigation,
 } from "./useFocusManagement";
+export {
+  useMediaSpawnerEvent,
+  dispatchMediaSpawnerEvent,
+  MediaSpawnerEvents,
+} from "./useMediaSpawnerEvent";

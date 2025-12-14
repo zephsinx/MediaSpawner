@@ -73,6 +73,7 @@ vi.mock("../../../../utils/assetValidation", () => ({
 import { SpawnService } from "../../../../services/spawnService";
 import { AssetService } from "../../../../services/assetService";
 import { usePanelState } from "../../../../hooks/useLayout";
+import { MediaSpawnerEvents } from "../../../../types/events";
 import {
   resolveEffectiveProperties,
   buildOverridesDiff,
@@ -673,7 +674,7 @@ describe("AssetSettingsForm", () => {
 
       expect(dispatchEventSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: "mediaspawner:spawn-updated",
+          type: MediaSpawnerEvents.SPAWN_UPDATED,
           detail: { spawnId: "spawn1" },
         }),
       );

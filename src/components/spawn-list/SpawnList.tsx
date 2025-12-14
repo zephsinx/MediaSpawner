@@ -10,6 +10,11 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { getSpawnValidationStatus } from "../../utils/spawnValidation";
 import { getTriggerTypeLabel } from "../../utils/triggerDisplay";
 import { cn } from "../../utils/cn";
+import {
+  dispatchMediaSpawnerEvent,
+  MediaSpawnerEvents,
+  useMediaSpawnerEvent,
+} from "../../hooks/useMediaSpawnerEvent";
 
 /**
  * Props for the spawn list component
@@ -67,99 +72,55 @@ const SpawnList: React.FC<SpawnListProps> = ({
   }, []);
 
   // Listen for profile changes to reload spawns
-  useEffect(() => {
-    const handleProfileChanged = (e: Event) => {
-      const ce = e as CustomEvent<{
-        profileId?: string;
-        previousProfileId?: string;
-      }>;
-      const { profileId } = ce.detail || {};
-      if (profileId) {
-        // Reload spawns for the new profile
-        const loadSpawns = async () => {
-          setIsLoading(true);
-          setLoadError(null);
+  useMediaSpawnerEvent(MediaSpawnerEvents.PROFILE_CHANGED, (event) => {
+    const { profileId } = event.detail;
+    if (profileId) {
+      // Reload spawns for the new profile
+      const loadSpawns = async () => {
+        setIsLoading(true);
+        setLoadError(null);
 
-          try {
-            const allSpawns = await SpawnService.getAllSpawns();
-            setSpawns(allSpawns);
-          } catch (err) {
-            setLoadError(
-              err instanceof Error ? err.message : "Failed to load spawns",
-            );
-          } finally {
-            setIsLoading(false);
-          }
-        };
+        try {
+          const allSpawns = await SpawnService.getAllSpawns();
+          setSpawns(allSpawns);
+        } catch (err) {
+          setLoadError(
+            err instanceof Error ? err.message : "Failed to load spawns",
+          );
+        } finally {
+          setIsLoading(false);
+        }
+      };
 
-        void loadSpawns();
-      }
-    };
-
-    window.addEventListener(
-      "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
-      handleProfileChanged as EventListener,
-    );
-
-    return () => {
-      window.removeEventListener(
-        "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
-        handleProfileChanged as EventListener,
-      );
-    };
-  }, []);
+      void loadSpawns();
+    }
+  });
 
   // Listen for external spawn updates to keep list in sync (name, enabled, etc.)
-  useEffect(() => {
-    const handleUpdated = (e: Event) => {
-      const ce = e as CustomEvent<{ spawnId?: string; updatedSpawn?: Spawn }>;
-      const updatedSpawn = ce.detail?.updatedSpawn;
-      if (updatedSpawn) {
-        setSpawns((prev) =>
-          prev.map((s) => (s.id === updatedSpawn.id ? updatedSpawn : s)),
-        );
-        return;
-      }
-      // If no payload provided, ignore to avoid clobbering optimistic UI with stale data
-      // Other panels (editor) will send updatedSpawn payloads when needed
-    };
-    window.addEventListener(
-      "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-      handleUpdated as EventListener,
-    );
-    return () => {
-      window.removeEventListener(
-        "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-        handleUpdated as EventListener,
+  useMediaSpawnerEvent(MediaSpawnerEvents.SPAWN_UPDATED, (event) => {
+    const updatedSpawn = event.detail.updatedSpawn;
+    if (updatedSpawn) {
+      setSpawns((prev) =>
+        prev.map((s) => (s.id === updatedSpawn.id ? updatedSpawn : s)),
       );
-    };
-  }, []);
+      return;
+    }
+    // If no payload provided, ignore to avoid clobbering optimistic UI with stale data
+    // Other panels (editor) will send updatedSpawn payloads when needed
+  });
 
   // Respond to external spawn deletion events to keep list in sync
-  useEffect(() => {
-    const handleDeleted = (e: Event) => {
-      const ce = e as CustomEvent<{ id?: string }>;
-      const id = ce.detail?.id;
-      if (id) {
-        setSpawns((prev) => prev.filter((s) => s.id !== id));
-      } else {
-        // Fallback: reload list
-        SpawnService.getAllSpawns()
-          .then(setSpawns)
-          .catch(() => void 0);
-      }
-    };
-    window.addEventListener(
-      "mediaspawner:spawn-deleted" as unknown as keyof WindowEventMap,
-      handleDeleted as EventListener,
-    );
-    return () => {
-      window.removeEventListener(
-        "mediaspawner:spawn-deleted" as unknown as keyof WindowEventMap,
-        handleDeleted as EventListener,
-      );
-    };
-  }, []);
+  useMediaSpawnerEvent(MediaSpawnerEvents.SPAWN_DELETED, (event) => {
+    const id = event.detail.id;
+    if (id) {
+      setSpawns((prev) => prev.filter((s) => s.id !== id));
+    } else {
+      // Fallback: reload list
+      SpawnService.getAllSpawns()
+        .then(setSpawns)
+        .catch(() => void 0);
+    }
+  });
 
   // Keyboard navigation state and refs must be declared unconditionally
   const [, setFocusedIndex] = useState<number>(-1);
@@ -295,17 +256,10 @@ const SpawnList: React.FC<SpawnListProps> = ({
 
         // Dispatch event to notify other panels
         try {
-          window.dispatchEvent(
-            new CustomEvent(
-              "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-              {
-                detail: {
-                  spawnId: result.spawn.id,
-                  updatedSpawn: result.spawn,
-                },
-              } as CustomEventInit,
-            ),
-          );
+          dispatchMediaSpawnerEvent(MediaSpawnerEvents.SPAWN_UPDATED, {
+            spawnId: result.spawn.id,
+            updatedSpawn: result.spawn,
+          });
         } catch {
           // Best-effort notification
         }
