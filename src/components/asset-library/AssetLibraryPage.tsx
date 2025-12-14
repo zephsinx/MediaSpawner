@@ -12,6 +12,10 @@ import { Input } from "../ui/Input";
 import { Card } from "../ui/Card";
 import { SyncStatusIndicator, SyncActionsDropdown } from "../common";
 import { StreamerbotService } from "../../services/streamerbotService";
+import {
+  useMediaSpawnerEvent,
+  MediaSpawnerEvents,
+} from "../../hooks/useMediaSpawnerEvent";
 import type { SyncStatusInfo } from "../../types/sync";
 import * as Tooltip from "@radix-ui/react-tooltip";
 
@@ -37,18 +41,12 @@ const AssetLibraryPage: React.FC = () => {
   // Load assets on component mount
   useEffect(() => {
     setAssets(AssetService.getAssets());
-    const handler = () => setAssets(AssetService.getAssets());
-    window.addEventListener(
-      "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
-      handler as EventListener,
-    );
-    return () => {
-      window.removeEventListener(
-        "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
-        handler as EventListener,
-      );
-    };
   }, []);
+
+  // Listen for asset updates
+  useMediaSpawnerEvent(MediaSpawnerEvents.ASSETS_UPDATED, () => {
+    setAssets(AssetService.getAssets());
+  });
 
   // Subscribe to sync status changes
   useEffect(() => {

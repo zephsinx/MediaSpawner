@@ -22,6 +22,7 @@ vi.mock("../../../services/spawnService", () => ({
 import { SpawnService } from "../../../services/spawnService";
 import { within } from "@testing-library/react";
 import type { Spawn } from "../../../types/spawn";
+import { MediaSpawnerEvents } from "../../../types/events";
 
 describe("SpawnList", () => {
   it("loads and displays spawns correctly", async () => {
@@ -613,7 +614,9 @@ describe("SpawnList", () => {
       // Dispatch event without detail.id to trigger fallback reload
       await act(async () => {
         window.dispatchEvent(
-          new CustomEvent("mediaspawner:spawn-deleted" as unknown as string),
+          new CustomEvent(MediaSpawnerEvents.SPAWN_DELETED, {
+            detail: { id: "" },
+          }),
         );
       });
 

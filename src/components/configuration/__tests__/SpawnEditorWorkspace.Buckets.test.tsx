@@ -11,6 +11,7 @@ import SpawnEditorWorkspace from "../SpawnEditorWorkspace";
 import { usePanelState } from "../../../hooks/useLayout";
 import { SpawnService } from "../../../services/spawnService";
 import { AssetService } from "../../../services/assetService";
+import { MediaSpawnerEvents } from "../../../types/events";
 import { getDefaultTrigger, createSpawnAsset } from "../../../types/spawn";
 import type { Spawn } from "../../../types/spawn";
 import * as Tooltip from "@radix-ui/react-tooltip";
@@ -207,12 +208,9 @@ describe("SpawnEditorWorkspace - Randomization Buckets UI", () => {
 
     act(() => {
       window.dispatchEvent(
-        new CustomEvent(
-          "mediaspawner:request-center-switch" as unknown as keyof WindowEventMap,
-          {
-            detail: { mode: "asset-settings", spawnAssetId: "sa1" },
-          } as CustomEventInit,
-        ),
+        new CustomEvent(MediaSpawnerEvents.REQUEST_CENTER_SWITCH, {
+          detail: { mode: "asset-settings", spawnAssetId: "sa1" },
+        }),
       );
     });
 

@@ -10,6 +10,10 @@ import { Button } from "../ui/Button";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
 import { cn } from "../../utils/cn";
 import { useDebounce } from "../../hooks/useDebounce";
+import {
+  useMediaSpawnerEvent,
+  MediaSpawnerEvents,
+} from "../../hooks/useMediaSpawnerEvent";
 
 /**
  * Props for the GoogleDriveBackupSection component
@@ -296,39 +300,10 @@ export function GoogleDriveBackupSection({
         }, intervalMs);
       }
     } else if (backupFrequency === "on-change") {
-      // Event listeners for on-change mode
-      const handleConfigChange = () => {
-        // Increment trigger to cause debounce to restart
-        setEventTrigger((prev) => prev + 1);
-      };
-
-      window.addEventListener(
-        "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-        handleConfigChange as EventListener,
-      );
-      window.addEventListener(
-        "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
-        handleConfigChange as EventListener,
-      );
-      window.addEventListener(
-        "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
-        handleConfigChange as EventListener,
-      );
-
-      // Cleanup event listeners
+      // Event listeners for on-change mode (handled by hooks below)
+      // Cleanup function for other listeners
       const cleanup = () => {
-        window.removeEventListener(
-          "mediaspawner:spawn-updated" as unknown as keyof WindowEventMap,
-          handleConfigChange as EventListener,
-        );
-        window.removeEventListener(
-          "mediaspawner:assets-updated" as unknown as keyof WindowEventMap,
-          handleConfigChange as EventListener,
-        );
-        window.removeEventListener(
-          "mediaspawner:profile-changed" as unknown as keyof WindowEventMap,
-          handleConfigChange as EventListener,
-        );
+        // Other cleanup if needed
       };
 
       // Set up visibility change listener
@@ -391,6 +366,29 @@ export function GoogleDriveBackupSection({
     autoBackup,
     backupFrequency,
     performAutomaticBackup,
+  ]);
+
+  // Listen for config changes (only in on-change mode)
+  const handleConfigChange = useCallback(() => {
+    if (
+      enabled &&
+      authStatus.authenticated &&
+      autoBackup &&
+      backupFrequency === "on-change"
+    ) {
+      // Increment trigger to cause debounce to restart
+      setEventTrigger((prev) => prev + 1);
+    }
+  }, [enabled, authStatus.authenticated, autoBackup, backupFrequency]);
+
+  useMediaSpawnerEvent(MediaSpawnerEvents.SPAWN_UPDATED, handleConfigChange, [
+    handleConfigChange,
+  ]);
+  useMediaSpawnerEvent(MediaSpawnerEvents.ASSETS_UPDATED, handleConfigChange, [
+    handleConfigChange,
+  ]);
+  useMediaSpawnerEvent(MediaSpawnerEvents.PROFILE_CHANGED, handleConfigChange, [
+    handleConfigChange,
   ]);
 
   /**
