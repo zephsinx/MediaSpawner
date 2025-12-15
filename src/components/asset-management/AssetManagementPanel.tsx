@@ -21,7 +21,11 @@ import * as Popover from "@radix-ui/react-popover";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { toast } from "sonner";
-import { Disclosure } from "@headlessui/react";
+import {
+  Disclosure,
+  DisclosureButton,
+  DisclosurePanel,
+} from "@headlessui/react";
 import {
   dispatchMediaSpawnerEvent,
   MediaSpawnerEvents,
@@ -1497,7 +1501,7 @@ const AssetManagementPanel: React.FC = () => {
       <Disclosure as="section" defaultOpen={spawnOpen}>
         {({ open }) => (
           <div className="flex-shrink-0 flex flex-col overflow-hidden border-b border-[rgb(var(--color-border))]">
-            <Disclosure.Button
+            <DisclosureButton
               onClick={() => setSpawnOpen(!open)}
               className="flex items-center justify-between w-full px-3 py-2 lg:px-4 lg:py-3 bg-[rgb(var(--color-muted))]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))]"
               aria-label="Toggle Assets in Current Spawn"
@@ -1512,12 +1516,12 @@ const AssetManagementPanel: React.FC = () => {
               >
                 {open ? "−" : "+"}
               </span>
-            </Disclosure.Button>
-            <Disclosure.Panel unmount={false} className="min-h-[80px]">
+            </DisclosureButton>
+            <DisclosurePanel unmount={false} className="min-h-[80px]">
               <div className="min-h-0">
                 <SpawnAssetsSection />
               </div>
-            </Disclosure.Panel>
+            </DisclosurePanel>
           </div>
         )}
       </Disclosure>
@@ -1525,7 +1529,7 @@ const AssetManagementPanel: React.FC = () => {
       <Disclosure as="section" defaultOpen={libraryOpen}>
         {({ open }) => (
           <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-            <Disclosure.Button
+            <DisclosureButton
               onClick={() => setLibraryOpen(!open)}
               className="flex items-center justify-between w-full px-3 py-2 lg:px-4 lg:py-3 bg-[rgb(var(--color-muted))]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--color-ring))]"
               aria-label="Toggle Asset Library"
@@ -1540,12 +1544,12 @@ const AssetManagementPanel: React.FC = () => {
               >
                 {open ? "−" : "+"}
               </span>
-            </Disclosure.Button>
-            <Disclosure.Panel className="flex-1 min-h-0">
+            </DisclosureButton>
+            <DisclosurePanel className="flex-1 min-h-0">
               <div className="h-full">
                 <AssetLibrarySection />
               </div>
-            </Disclosure.Panel>
+            </DisclosurePanel>
           </div>
         )}
       </Disclosure>

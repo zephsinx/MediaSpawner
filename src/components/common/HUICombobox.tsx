@@ -1,5 +1,11 @@
 import React, { useMemo } from "react";
-import { Combobox as HCombobox } from "@headlessui/react";
+import {
+  Combobox as HCombobox,
+  ComboboxInput,
+  ComboboxButton,
+  ComboboxOptions,
+  ComboboxOption,
+} from "@headlessui/react";
 import { comboboxVariants } from "../ui/variants";
 import { cn } from "../../utils/cn";
 
@@ -55,7 +61,7 @@ export const HUICombobox: React.FC<HUIComboboxProps> = ({
     >
       <div className={`relative ${className}`}>
         <div className="relative">
-          <HCombobox.Input
+          <ComboboxInput
             displayValue={() => value}
             onChange={(e) => {
               const next = e.target.value;
@@ -65,14 +71,14 @@ export const HUICombobox: React.FC<HUIComboboxProps> = ({
             placeholder={placeholder}
             className={cn(comboboxVariants({ variant: "default" }))}
           />
-          <HCombobox.Button
+          <ComboboxButton
             className="absolute inset-y-0 right-0 px-2 text-[rgb(var(--color-muted))] hover:text-[rgb(var(--color-fg))]"
             aria-label="Toggle options"
           >
             ▼
-          </HCombobox.Button>
+          </ComboboxButton>
         </div>
-        <HCombobox.Options className="absolute z-10 mt-1 w-full rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] shadow-md max-h-56 overflow-auto py-1">
+        <ComboboxOptions className="absolute z-10 mt-1 w-full rounded-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] shadow-md max-h-56 overflow-auto py-1">
           {isLoading ? (
             <div className="px-3 py-2 text-sm text-[rgb(var(--color-muted-foreground))]">
               Loading…
@@ -83,22 +89,22 @@ export const HUICombobox: React.FC<HUIComboboxProps> = ({
             </div>
           ) : (
             filtered.map((opt) => (
-              <HCombobox.Option
+              <ComboboxOption
                 key={opt.value}
                 value={opt.value}
-                className={({ active }) =>
+                className={({ focus }) =>
                   `px-3 py-2 text-sm cursor-pointer ${
-                    active
+                    focus
                       ? "bg-[rgb(var(--color-accent))]/10"
                       : "hover:bg-[rgb(var(--color-muted))]/5"
                   }`
                 }
               >
                 {opt.label || opt.value}
-              </HCombobox.Option>
+              </ComboboxOption>
             ))
           )}
-        </HCombobox.Options>
+        </ComboboxOptions>
       </div>
     </HCombobox>
   );
