@@ -474,7 +474,7 @@ export class SettingsService {
   static getThemeMode(): "light" | "dark" {
     const settings = this.getSettings();
     if (settings.themeMode !== "light" && settings.themeMode !== "dark") {
-      return "light";
+      return "dark";
     }
     return settings.themeMode;
   }

@@ -56,7 +56,7 @@ describe("ThemeToggle", () => {
   });
 
   describe("Basic Rendering", () => {
-    it("renders theme toggle with light theme by default", () => {
+    it("renders theme toggle with mocked light theme", () => {
       renderWithAllProviders(<ThemeToggle />);
 
       expect(screen.getByRole("switch")).toBeInTheDocument();
@@ -240,7 +240,7 @@ describe("ThemeToggle", () => {
 
       renderWithAllProviders(<ThemeToggle />);
 
-      // Should default to light theme (isDark = false)
+      // Should fallback to light theme when undefined (isDark = false)
       const icon = screen
         .getByRole("switch")
         .parentElement?.querySelector("svg");
