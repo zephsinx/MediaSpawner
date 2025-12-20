@@ -217,7 +217,7 @@ describe("Header", () => {
       renderWithAllProviders(<Header />);
 
       expect(screen.getByRole("switch")).toBeInTheDocument();
-      // Should show sun icon for light theme by default
+      // Should show sun icon for mocked light theme
       const icon = screen
         .getByRole("switch")
         .parentElement?.querySelector("svg");

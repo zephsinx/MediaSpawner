@@ -54,7 +54,7 @@ describe("SettingsService", () => {
   describe("Theme Management", () => {
     it("should get default theme mode", () => {
       const themeMode = SettingsService.getThemeMode();
-      expect(themeMode).toBe("light");
+      expect(themeMode).toBe("dark");
     });
 
     it("should set theme mode successfully", () => {
@@ -72,7 +72,7 @@ describe("SettingsService", () => {
       expect(result.settings?.themeMode).toBe("light");
     });
 
-    it("should default to light for legacy system theme", () => {
+    it("should default to dark for legacy system theme", () => {
       localStorage.setItem(
         "mediaspawner_settings",
         JSON.stringify({
@@ -82,7 +82,7 @@ describe("SettingsService", () => {
       );
 
       const themeMode = SettingsService.getThemeMode();
-      expect(themeMode).toBe("light");
+      expect(themeMode).toBe("dark");
     });
 
     it("should apply theme mode to DOM", () => {
@@ -120,7 +120,7 @@ describe("SettingsService", () => {
       expect(mockHtmlElement.classList.add).toHaveBeenCalledWith("light");
     });
 
-    it("should apply migrated system theme as light", () => {
+    it("should apply migrated system theme as dark", () => {
       // Mock document.documentElement
       const mockHtmlElement = {
         classList: {
@@ -142,14 +142,14 @@ describe("SettingsService", () => {
         }),
       );
 
-      // Apply theme mode (should migrate system to light)
+      // Apply theme mode (should migrate system to dark)
       SettingsService.applyThemeMode();
 
       expect(mockHtmlElement.classList.remove).toHaveBeenCalledWith(
         "light",
         "dark",
       );
-      expect(mockHtmlElement.classList.add).toHaveBeenCalledWith("light");
+      expect(mockHtmlElement.classList.add).toHaveBeenCalledWith("dark");
     });
 
     it("should handle invalid theme mode gracefully", () => {
@@ -244,7 +244,7 @@ describe("SettingsService", () => {
       });
 
       const themeMode = SettingsService.getThemeMode();
-      expect(themeMode).toBe("light");
+      expect(themeMode).toBe("dark");
     });
   });
 
