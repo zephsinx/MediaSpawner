@@ -120,7 +120,6 @@ export class SpawnProfileService {
     try {
       const profiles = this.getAllProfiles();
 
-      // Check for name uniqueness
       if (profiles.some((profile) => profile.name === name)) {
         return {
           success: false,
@@ -208,7 +207,6 @@ export class SpawnProfileService {
         lastModified: Date.now(),
       };
 
-      // Validate the updated profile
       const validation = validateSpawnProfile(updatedProfile);
       if (!validation.isValid) {
         return {
@@ -317,7 +315,6 @@ export class SpawnProfileService {
         return saveResult;
       }
 
-      // Update settings to track active profile ID
       const settingsResult = SettingsService.updateSettings({
         activeProfileId: id,
       });
@@ -591,7 +588,6 @@ export class SpawnProfileService {
         lastModified: Date.now(),
       };
 
-      // Validate the updated profile
       const validation = validateSpawnProfile(updatedProfile);
       if (!validation.isValid) {
         return {
@@ -600,7 +596,6 @@ export class SpawnProfileService {
         };
       }
 
-      // Update the profile in the array
       profiles[profileIndex] = updatedProfile;
 
       // Save via saveProfiles to ensure proper caching

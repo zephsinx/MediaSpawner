@@ -94,7 +94,6 @@ export function GoogleDriveBackupSection({
   const settings = SettingsService.getSettings();
   const backupSettings = settings.googleDriveBackup;
 
-  // Initialize enabled state from settings
   const [enabled, setEnabled] = useState(backupSettings?.enabled ?? false);
   const [autoBackup, setAutoBackup] = useState(
     backupSettings?.autoBackup ?? false,

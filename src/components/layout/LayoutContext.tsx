@@ -73,8 +73,8 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
         selectedSpawnId: spawnId,
         selectedSpawnAssetId: undefined,
         profileSpawnSelections: newProfileSpawnSelections,
-        centerPanelMode: "spawn-settings", // Reset to spawn settings when selecting spawn
-        // Note: hasUnsavedChanges and changeType are now managed by the guard dialog in Layout.tsx
+        centerPanelMode: "spawn-settings",
+        // hasUnsavedChanges and changeType are managed by the guard dialog in Layout.tsx
       };
     }
 

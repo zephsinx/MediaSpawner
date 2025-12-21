@@ -114,7 +114,6 @@ export class AssetService {
     if (filteredAssets.length !== initialLength) {
       this.saveAssets(filteredAssets);
       try {
-        // Remove this asset from all spawns across all profiles
         const profiles = SpawnProfileService.getAllProfiles();
         let changed = false;
         const updated = profiles.map((p) => {
@@ -360,7 +359,6 @@ export class AssetService {
       }
     });
 
-    // Save only valid assets back to storage
     this.saveAssets(validAssets);
 
     return {
@@ -482,7 +480,6 @@ export class AssetService {
         return null;
       }
 
-      // Resolve from inline spawn asset overrides (single source of truth)
       const spawnAsset = spawn.assets.find((sa) => sa.id === spawnAssetId);
       const inlineOverrides = spawnAsset?.overrides || {};
 
@@ -502,8 +499,6 @@ export class AssetService {
     }
   }
   // Legacy parallel storage APIs removed
-
-  // Helper methods for validation
 
   /**
    * Check if path is a URL
@@ -532,7 +527,6 @@ export class AssetService {
       return false;
     }
 
-    // Check for invalid characters that are not allowed in file paths
     // Allow colons only in drive letters (C:) and backslashes for Windows paths
     const invalidChars = /[<>"|?*]/;
     if (invalidChars.test(path)) {
@@ -547,7 +541,6 @@ export class AssetService {
       return false;
     }
 
-    // Check for supported file extensions
     const supportedExtensions = [
       // Images
       "jpg",

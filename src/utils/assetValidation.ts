@@ -65,7 +65,6 @@ export function validateDimensionsValues(
 ): AssetValidationResult {
   if (!dim) return { isValid: true };
 
-  // Validate individual fields if present
   if (dim.width !== undefined && dim.width <= 0)
     return { isValid: false, error: "Width must be > 0" };
   if (dim.height !== undefined && dim.height <= 0)
@@ -79,7 +78,6 @@ export function validatePositionValues(
 ): AssetValidationResult {
   if (!pos) return { isValid: true };
 
-  // Validate individual fields if present
   if (pos.x !== undefined && pos.x < 0)
     return { isValid: false, error: "X position must be ≥ 0" };
   if (pos.y !== undefined && pos.y < 0)
@@ -102,7 +100,6 @@ export function validateScaleValue(
   if (typeof value === "object" && value !== null) {
     const scaleObj = value as ScaleObject;
 
-    // Validate individual fields if present
     if (scaleObj.x !== undefined) {
       if (Number.isNaN(scaleObj.x) || scaleObj.x < 0) {
         return { isValid: false, error: "Scale X must be ≥ 0" };
@@ -137,7 +134,6 @@ export function validateCropSettings(
 
   const { left, top, right, bottom } = crop;
 
-  // Check for non-negative values (only validate fields that are defined)
   if (left !== undefined && left < 0)
     return { isValid: false, error: "Crop left must be ≥ 0" };
   if (top !== undefined && top < 0)
@@ -147,7 +143,6 @@ export function validateCropSettings(
   if (bottom !== undefined && bottom < 0)
     return { isValid: false, error: "Crop bottom must be ≥ 0" };
 
-  // Check against dimensions if available (only validate defined fields)
   if (dimensions) {
     const { width, height } = dimensions;
     if (

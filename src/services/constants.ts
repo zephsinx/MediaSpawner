@@ -6,13 +6,10 @@
  */
 
 export const STORAGE_KEYS = {
-  // Core data keys
   PROFILES: "mediaspawner_spawn_profiles",
   ASSETS: "mediaspawner_assets",
   SETTINGS: "mediaspawner_settings",
-  // Service state keys
   SYNC_STATUS: "mediaspawner_sync_status",
-  // UI state keys
   PROFILE_SPAWN_SELECTIONS: "mediaspawner_profile_spawn_selections",
   PROFILES_INITIALIZED: "mediaspawner_profiles_initialized",
 } as const;

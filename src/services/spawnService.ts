@@ -47,7 +47,6 @@ export class SpawnService {
         };
       }
 
-      // Validate spawn name
       if (!name || name.trim() === "") {
         return {
           success: false,
@@ -55,7 +54,6 @@ export class SpawnService {
         };
       }
 
-      // Check for name uniqueness within the profile
       if (activeProfile.spawns.some((spawn) => spawn.name === name.trim())) {
         return {
           success: false,
@@ -63,13 +61,9 @@ export class SpawnService {
         };
       }
 
-      // Create new spawn with default settings
       const newSpawn = createSpawn(name.trim(), description?.trim());
-
-      // Set order to be last in the profile
       newSpawn.order = activeProfile.spawns.length;
 
-      // Validate the new spawn
       const validation = validateSpawn(newSpawn);
       if (!validation.isValid) {
         return {
@@ -78,7 +72,6 @@ export class SpawnService {
         };
       }
 
-      // Add spawn to active profile
       const updatedSpawns = [...activeProfile.spawns, newSpawn];
       const updateResult = SpawnProfileService.updateProfileSpawns(
         activeProfile.id,
@@ -162,7 +155,6 @@ export class SpawnService {
 
       const currentSpawn = activeProfile.spawns[spawnIndex];
 
-      // Check for name uniqueness if name is being updated
       if (updates.name && updates.name !== currentSpawn.name) {
         if (
           activeProfile.spawns.some(
@@ -176,17 +168,14 @@ export class SpawnService {
         }
       }
 
-      // Create updated spawn
       const updatedSpawn: Spawn = {
         ...currentSpawn,
         ...updates,
         lastModified: Date.now(),
       };
 
-      // Reconcile buckets with assets (remove dangling members)
       const reconciled = reconcileBucketsWithAssets(updatedSpawn);
 
-      // Validate buckets if present
       const bucketValidation = validateRandomizationBuckets(reconciled);
       if (!bucketValidation.isValid) {
         return {
@@ -197,7 +186,6 @@ export class SpawnService {
         };
       }
 
-      // Validate the updated spawn
       const validation = validateSpawn(reconciled);
       if (!validation.isValid) {
         return {
@@ -206,7 +194,6 @@ export class SpawnService {
         };
       }
 
-      // Update spawn in profile
       const updatedSpawns = [...activeProfile.spawns];
       updatedSpawns[spawnIndex] = reconciled;
 
@@ -267,12 +254,10 @@ export class SpawnService {
 
       const spawnToDelete = activeProfile.spawns[spawnIndex];
 
-      // Remove spawn from profile
       const updatedSpawns = activeProfile.spawns.filter(
         (spawn) => spawn.id !== id,
       );
 
-      // Reorder remaining spawns to maintain sequential order
       updatedSpawns.forEach((spawn, index) => {
         spawn.order = index;
       });
@@ -401,7 +386,6 @@ export class SpawnService {
         };
       }
 
-      // Disable the spawn
       const updatedSpawn = {
         ...currentSpawn,
         enabled: false,
