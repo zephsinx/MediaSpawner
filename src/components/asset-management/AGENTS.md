@@ -5,12 +5,37 @@
 - Right panel for managing assets in the current spawn and the global asset library.
 - Manual save model for all asset operations (add, remove, reorder).
 
+## Directory structure
+
+```
+asset-management/
+├── AssetManagementPanel.tsx      # Orchestrator with collapsible sections (~110 lines)
+├── types.ts                      # Shared types (ResolvedSpawnAsset)
+├── SpawnAssetsSection/
+│   ├── index.tsx                 # Section logic, state management, drag-drop (~320 lines)
+│   ├── SpawnAssetItem.tsx        # Single draggable asset item (~260 lines)
+│   └── PendingChangesPanel.tsx   # Diff display for pending changes (~140 lines)
+├── AssetLibrarySection/
+│   ├── index.tsx                 # Section logic, filtering, keyboard nav (~280 lines)
+│   ├── AssetLibraryItem.tsx      # Single library asset item (~170 lines)
+│   └── AddAssetControls.tsx      # Add buttons, URL form, search (~150 lines)
+├── shared/
+│   ├── index.ts                  # Barrel exports
+│   ├── SpawnAssetsCount.tsx      # Header count for spawn assets (~60 lines)
+│   ├── AssetLibraryCount.tsx     # Header count for library (~20 lines)
+│   ├── ThumbnailWithPreview.tsx  # Thumbnail with hover popover (~50 lines)
+│   ├── AssetTypeBadge.tsx        # Type badge component (~20 lines)
+│   ├── assetTypeUtils.ts         # getAssetTypeIcon helper
+│   └── AssetPopoverContent.tsx   # Shared popover content (~45 lines)
+└── __tests__/                    # Test files (unchanged)
+```
+
 ## Architecture
 
 Two main sections:
 
-- **Assets in Current Spawn**: Draft-enabled asset list with save/cancel controls
-- **Asset Library**: Global asset pool with search and add functionality
+- **Assets in Current Spawn** (`SpawnAssetsSection`): Draft-enabled asset list with save/cancel controls
+- **Asset Library** (`AssetLibrarySection`): Global asset pool with search and add functionality
 
 ## Draft state pattern
 
@@ -63,3 +88,4 @@ Asset operations (add, remove, reorder) create draft changes that require explic
 - Ensure `hasUnsavedChanges` set correctly
 - Test navigation blocking with unsaved asset changes
 - Verify event-based add communication works
+- Tests import `AssetManagementPanel` and test through the public API
