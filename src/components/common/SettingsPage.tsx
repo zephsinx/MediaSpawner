@@ -17,7 +17,7 @@ const SettingsPage: React.FC = () => {
   const { hasUnsavedChanges, setUnsavedChanges } = usePanelState();
   const [settings, setSettings] = useState<Settings>({
     workingDirectory: "",
-    themeMode: "light",
+    themeMode: "dark",
     obsCanvasWidth: 1920,
     obsCanvasHeight: 1080,
   });

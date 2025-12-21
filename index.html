@@ -13,19 +13,17 @@
       (function () {
         try {
           const stored = localStorage.getItem("mediaspawner_settings");
-          let themeMode = "light"; // default
+          let themeMode = "dark"; // default
 
           if (stored) {
             const parsed = JSON.parse(stored);
-            if (parsed.themeMode === "dark") {
-              themeMode = "dark";
-            }
+            themeMode = parsed.themeMode === "light" ? "light" : "dark";
           }
 
           document.documentElement.classList.add(themeMode);
         } catch (e) {
-          // Fallback to light theme if localStorage fails
-          document.documentElement.classList.add("light");
+          // Fallback to dark theme if localStorage fails
+          document.documentElement.classList.add("dark");
         }
       })();
     </script>
