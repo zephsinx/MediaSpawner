@@ -10,17 +10,16 @@ import type {
   SyncOperationResult,
   SyncErrorType,
 } from "../types/sync";
-import { ImportExportService } from "./importExportService";
 import { CacheService, getSyncStatusCacheKey } from "./cacheService";
-
-const SYNC_STATUS_STORAGE_KEY = "mediaspawner_sync_status";
+import { STORAGE_KEYS } from "./constants";
+import { ImportExportService } from "./importExportService";
 
 /**
  * Load sync status from localStorage with validation (standalone function)
  */
 function loadSyncStatusFromStorage(): SyncStatusInfo {
   try {
-    const stored = localStorage.getItem(SYNC_STATUS_STORAGE_KEY);
+    const stored = localStorage.getItem(STORAGE_KEYS.SYNC_STATUS);
     if (!stored) {
       return { status: "unknown" };
     }
@@ -28,7 +27,7 @@ function loadSyncStatusFromStorage(): SyncStatusInfo {
     const parsed = JSON.parse(stored);
     if (!isValidSyncStatusInfo(parsed)) {
       console.warn("Invalid sync status found in localStorage, using default");
-      localStorage.removeItem(SYNC_STATUS_STORAGE_KEY);
+      localStorage.removeItem(STORAGE_KEYS.SYNC_STATUS);
       return { status: "unknown" };
     }
 
@@ -40,7 +39,7 @@ function loadSyncStatusFromStorage(): SyncStatusInfo {
     return parsed;
   } catch (error) {
     console.error("Failed to load sync status from localStorage:", error);
-    localStorage.removeItem(SYNC_STATUS_STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEYS.SYNC_STATUS);
     return { status: "unknown" };
   }
 }
@@ -709,7 +708,7 @@ export class StreamerbotService {
    */
   private static saveSyncStatusToStorage(status: SyncStatusInfo): void {
     try {
-      localStorage.setItem(SYNC_STATUS_STORAGE_KEY, JSON.stringify(status));
+      localStorage.setItem(STORAGE_KEYS.SYNC_STATUS, JSON.stringify(status));
     } catch (error) {
       console.error("Failed to save sync status to localStorage:", error);
     }

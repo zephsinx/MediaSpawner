@@ -11,8 +11,7 @@ import {
   UNIX_PATH_RULES,
 } from "../types/settings";
 import { CacheService, CACHE_KEYS } from "./cacheService";
-
-const SETTINGS_STORAGE_KEY = "mediaspawner_settings";
+import { STORAGE_KEYS } from "./constants";
 
 // Cache for validation results to improve performance
 const validationCache = new Map<string, WorkingDirectoryValidationResult>();
@@ -28,7 +27,7 @@ export class SettingsService {
   static getSettings(): Settings {
     return CacheService.get(CACHE_KEYS.SETTINGS, () => {
       try {
-        const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
+        const stored = localStorage.getItem(STORAGE_KEYS.SETTINGS);
         if (!stored) {
           return { ...DEFAULT_SETTINGS };
         }
@@ -79,7 +78,7 @@ export class SettingsService {
       }
 
       localStorage.setItem(
-        SETTINGS_STORAGE_KEY,
+        STORAGE_KEYS.SETTINGS,
         JSON.stringify(updatedSettings),
       );
 
@@ -172,7 +171,7 @@ export class SettingsService {
    */
   static resetSettings(): Settings {
     try {
-      localStorage.removeItem(SETTINGS_STORAGE_KEY);
+      localStorage.removeItem(STORAGE_KEYS.SETTINGS);
       // Invalidate cache after successful reset
       CacheService.invalidate(CACHE_KEYS.SETTINGS);
       return { ...DEFAULT_SETTINGS };
@@ -187,7 +186,7 @@ export class SettingsService {
    */
   static clearSettings(): void {
     try {
-      localStorage.removeItem(SETTINGS_STORAGE_KEY);
+      localStorage.removeItem(STORAGE_KEYS.SETTINGS);
       // Invalidate cache after successful clear
       CacheService.invalidate(CACHE_KEYS.SETTINGS);
     } catch (error) {
@@ -456,7 +455,7 @@ export class SettingsService {
     workingDirectorySet: boolean;
     settingsValid: boolean;
   } {
-    const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    const stored = localStorage.getItem(STORAGE_KEYS.SETTINGS);
     const current = this.getSettings();
     const validation = this.validateSettings(current);
 

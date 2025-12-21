@@ -2,6 +2,7 @@ import type { MediaAsset, MediaAssetProperties } from "../types/media";
 import { createMediaAsset } from "../types/media";
 import type { Trigger } from "../types/spawn";
 import { CacheService, CACHE_KEYS } from "./cacheService";
+import { STORAGE_KEYS } from "./constants";
 import { SpawnService } from "./spawnService";
 import { SpawnProfileService } from "./spawnProfileService";
 import { resolveEffectiveProperties } from "../utils/assetSettingsResolver";
@@ -9,8 +10,6 @@ import {
   dispatchMediaSpawnerEvent,
   MediaSpawnerEvents,
 } from "../hooks/useMediaSpawnerEvent";
-
-const STORAGE_KEY = "mediaspawner_assets";
 // No parallel spawn-asset overrides storage; overrides are inline on Spawn.assets
 
 /**
@@ -43,7 +42,7 @@ export class AssetService {
   static getAssets(): MediaAsset[] {
     return CacheService.get(CACHE_KEYS.ASSETS, () => {
       try {
-        const stored = localStorage.getItem(STORAGE_KEY);
+        const stored = localStorage.getItem(STORAGE_KEYS.ASSETS);
         if (!stored) {
           return [];
         }
@@ -76,7 +75,7 @@ export class AssetService {
    */
   static saveAssets(assets: MediaAsset[]): void {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(assets));
+      localStorage.setItem(STORAGE_KEYS.ASSETS, JSON.stringify(assets));
       // Invalidate cache after successful write
       CacheService.invalidate(CACHE_KEYS.ASSETS);
     } catch (error) {
@@ -183,7 +182,7 @@ export class AssetService {
    * Clear all assets and invalidate cache
    */
   static clearAssets(): void {
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEYS.ASSETS);
     // Invalidate cache after successful clear
     CacheService.invalidate(CACHE_KEYS.ASSETS);
     try {
@@ -409,7 +408,7 @@ export class AssetService {
     let corruptedData = false;
 
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(STORAGE_KEYS.ASSETS);
       if (!stored) {
         return { validAssets: [], invalidAssets: [], corruptedData: false };
       }

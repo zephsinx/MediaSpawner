@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { SpawnProfileService } from "../services/spawnProfileService";
+import { STORAGE_KEYS } from "../services/constants";
 import { SettingsService } from "../services/settingsService";
-
-const INITIALIZATION_FLAG_KEY = "mediaspawner_profiles_initialized";
 
 export function useAppInitialization() {
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +23,9 @@ export function useAppInitialization() {
         mediaQuery.addEventListener("change", handleSystemThemeChange);
 
         // Check if profiles have been initialized before
-        const hasInitialized = localStorage.getItem(INITIALIZATION_FLAG_KEY);
+        const hasInitialized = localStorage.getItem(
+          STORAGE_KEYS.PROFILES_INITIALIZED,
+        );
         const activeProfile = SpawnProfileService.getActiveProfile();
 
         // Initialize if never initialized OR if there's no active profile
@@ -32,7 +33,7 @@ export function useAppInitialization() {
         if (!hasInitialized || !activeProfile) {
           const result = SpawnProfileService.ensureDefaultProfile();
           if (result.success) {
-            localStorage.setItem(INITIALIZATION_FLAG_KEY, "true");
+            localStorage.setItem(STORAGE_KEYS.PROFILES_INITIALIZED, "true");
           } else {
             setError(result.error || "Failed to create default profile");
           }

@@ -7,6 +7,7 @@ import {
   renderHook,
   act,
 } from "@testing-library/react";
+import { STORAGE_KEYS } from "../../../services/constants";
 import { LayoutProvider } from "../LayoutContext";
 import { usePanelState, useLayoutContext } from "../../../hooks";
 
@@ -179,7 +180,7 @@ describe("LayoutContext", () => {
       );
 
       expect(localStorageMock.getItem).toHaveBeenCalledWith(
-        "mediaspawner_profile_spawn_selections",
+        STORAGE_KEYS.PROFILE_SPAWN_SELECTIONS,
       );
     });
 
@@ -297,7 +298,7 @@ describe("LayoutContext", () => {
 
       // Check that localStorage was updated
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        "mediaspawner_profile_spawn_selections",
+        STORAGE_KEYS.PROFILE_SPAWN_SELECTIONS,
         JSON.stringify({ "profile-1": "spawn-1" }),
       );
     });

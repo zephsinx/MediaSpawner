@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { SpawnProfile } from "../../types/spawn";
+import { STORAGE_KEYS } from "../constants";
 import { getLocalStorageMock } from "./testUtils";
 
 // Mock dependencies before importing the service
@@ -132,9 +133,7 @@ describe("SpawnProfileService", () => {
       const result = SpawnProfileService.getAllProfiles();
 
       expect(result).toEqual([]);
-      expect(localStorage.getItem).toHaveBeenCalledWith(
-        "mediaspawner_spawn_profiles",
-      );
+      expect(localStorage.getItem).toHaveBeenCalledWith(STORAGE_KEYS.PROFILES);
     });
 
     it("returns profiles when valid data exists", () => {
@@ -176,7 +175,7 @@ describe("SpawnProfileService", () => {
         "Invalid profiles data found in localStorage, clearing",
       );
       expect(localStorage.removeItem).toHaveBeenCalledWith(
-        "mediaspawner_spawn_profiles",
+        STORAGE_KEYS.PROFILES,
       );
     });
 
@@ -192,7 +191,7 @@ describe("SpawnProfileService", () => {
         expect.any(Error),
       );
       expect(localStorage.removeItem).toHaveBeenCalledWith(
-        "mediaspawner_spawn_profiles",
+        STORAGE_KEYS.PROFILES,
       );
     });
 
@@ -362,12 +361,12 @@ describe("SpawnProfileService", () => {
       // Track localStorage state changes
       let storedData = JSON.stringify([]);
       localStorage.setItem.mockImplementation((key, value) => {
-        if (key === "mediaspawner_spawn_profiles") {
+        if (key === STORAGE_KEYS.PROFILES) {
           storedData = value;
         }
       });
       localStorage.getItem.mockImplementation((key) => {
-        if (key === "mediaspawner_spawn_profiles") {
+        if (key === STORAGE_KEYS.PROFILES) {
           return storedData;
         }
         return null;
@@ -376,7 +375,7 @@ describe("SpawnProfileService", () => {
       // Mock CacheService to return current localStorage state
       mockCacheService.get.mockImplementation((key, fetcher) => {
         if (key === CACHE_KEYS.PROFILES) {
-          const stored = localStorage.getItem("mediaspawner_spawn_profiles");
+          const stored = localStorage.getItem(STORAGE_KEYS.PROFILES);
           if (stored) {
             return JSON.parse(stored);
           }
@@ -499,7 +498,7 @@ describe("SpawnProfileService", () => {
       // Mock CacheService to return the profile data from localStorage
       mockCacheService.get.mockImplementation((key, fetcher) => {
         if (key === CACHE_KEYS.PROFILES) {
-          const stored = localStorage.getItem("mediaspawner_spawn_profiles");
+          const stored = localStorage.getItem(STORAGE_KEYS.PROFILES);
           if (stored) {
             return JSON.parse(stored);
           }
@@ -551,6 +550,113 @@ describe("SpawnProfileService", () => {
     });
   });
 
+  describe("updateProfileSpawns", () => {
+    const profileWithSpawns: SpawnProfile = {
+      ...validProfile,
+      spawns: [
+        {
+          id: "spawn-1",
+          name: "Spawn 1",
+          enabled: true,
+          trigger: { type: "manual" as const, config: {} },
+          duration: 5000,
+          assets: [],
+          order: 0,
+          lastModified: 1234567890000,
+        },
+      ],
+    };
+
+    it("updates spawns successfully", () => {
+      const localStorage = getLocalStorageMock();
+      localStorage.getItem.mockReturnValue(JSON.stringify([profileWithSpawns]));
+      localStorage.setItem.mockImplementation(() => {});
+      mockValidateSpawnProfile.mockReturnValue({
+        isValid: true,
+        errors: [],
+      });
+
+      const newSpawns = [
+        {
+          id: "spawn-2",
+          name: "Spawn 2",
+          enabled: true,
+          trigger: { type: "manual" as const, config: {} },
+          duration: 3000,
+          assets: [],
+          order: 0,
+          lastModified: 1234567890000,
+        },
+      ];
+
+      const result = SpawnProfileService.updateProfileSpawns(
+        profileWithSpawns.id,
+        newSpawns,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.profile).toBeDefined();
+      expect(result.profile?.spawns).toEqual(newSpawns);
+      expect(localStorage.setItem).toHaveBeenCalled();
+    });
+
+    it("fails when profile ID not found", () => {
+      const localStorage = getLocalStorageMock();
+      localStorage.getItem.mockReturnValue(JSON.stringify([profileWithSpawns]));
+
+      const result = SpawnProfileService.updateProfileSpawns(
+        "non-existent-id",
+        [],
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Profile with ID "non-existent-id" not found');
+    });
+
+    it("fails when profile validation fails", () => {
+      const localStorage = getLocalStorageMock();
+      localStorage.getItem.mockReturnValue(JSON.stringify([profileWithSpawns]));
+      mockCacheService.get.mockImplementation((key, fetcher) => {
+        if (key === CACHE_KEYS.PROFILES) {
+          return [profileWithSpawns];
+        }
+        return fetcher();
+      });
+      mockValidateSpawnProfile.mockReturnValue({
+        isValid: false,
+        errors: ["Invalid spawn data"],
+      });
+
+      const result = SpawnProfileService.updateProfileSpawns(
+        profileWithSpawns.id,
+        [],
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Invalid profile data: Invalid spawn data");
+    });
+
+    it("handles localStorage errors", () => {
+      const localStorage = getLocalStorageMock();
+      localStorage.getItem.mockReturnValue(JSON.stringify([profileWithSpawns]));
+      localStorage.setItem.mockImplementation(() => {
+        throw new Error("Storage error");
+      });
+      mockValidateSpawnProfile.mockReturnValue({
+        isValid: true,
+        errors: [],
+      });
+
+      const result = SpawnProfileService.updateProfileSpawns(
+        profileWithSpawns.id,
+        [],
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Storage error");
+    });
+  });
+
   describe("deleteProfile", () => {
     it("deletes non-active profile successfully", () => {
       const localStorage = getLocalStorageMock();
@@ -568,7 +674,7 @@ describe("SpawnProfileService", () => {
 
       expect(result.success).toBe(true);
       expect(localStorage.setItem).toHaveBeenCalledWith(
-        "mediaspawner_spawn_profiles",
+        STORAGE_KEYS.PROFILES,
         JSON.stringify([activeProfile]),
       );
     });
@@ -594,7 +700,7 @@ describe("SpawnProfileService", () => {
 
       expect(result.success).toBe(true);
       expect(localStorage.setItem).toHaveBeenCalledWith(
-        "mediaspawner_spawn_profiles",
+        STORAGE_KEYS.PROFILES,
         JSON.stringify([inactiveProfile]),
       );
     });
@@ -869,7 +975,7 @@ describe("SpawnProfileService", () => {
       SpawnProfileService.clearProfiles();
 
       expect(localStorage.removeItem).toHaveBeenCalledWith(
-        "mediaspawner_spawn_profiles",
+        STORAGE_KEYS.PROFILES,
       );
       expect(mockCacheService.invalidate).toHaveBeenCalledWith(
         CACHE_KEYS.PROFILES,

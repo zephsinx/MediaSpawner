@@ -5,13 +5,12 @@
  * management with active profile tracking and proper context switching.
  */
 
-import type { SpawnProfile } from "../types/spawn";
+import type { SpawnProfile, Spawn } from "../types/spawn";
 import { createSpawnProfile, validateSpawnProfile } from "../types/spawn";
 import { CacheService, CACHE_KEYS } from "./cacheService";
+import { STORAGE_KEYS } from "./constants";
 import { SettingsService } from "./settingsService";
 import { StreamerbotService } from "./streamerbotService";
-
-const PROFILES_STORAGE_KEY = "mediaspawner_spawn_profiles";
 const DEFAULT_PROFILE_NAME = "Default Profile";
 
 /**
@@ -34,7 +33,7 @@ export class SpawnProfileService {
   static getAllProfiles(): SpawnProfile[] {
     return CacheService.get(CACHE_KEYS.PROFILES, () => {
       try {
-        const stored = localStorage.getItem(PROFILES_STORAGE_KEY);
+        const stored = localStorage.getItem(STORAGE_KEYS.PROFILES);
         if (!stored) {
           return [];
         }
@@ -503,7 +502,7 @@ export class SpawnProfileService {
     profiles: SpawnProfile[],
   ): ProfileOperationResult {
     try {
-      localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(profiles));
+      localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(profiles));
       CacheService.invalidate(CACHE_KEYS.PROFILES);
 
       return {
@@ -524,7 +523,7 @@ export class SpawnProfileService {
    */
   static clearProfiles(): void {
     try {
-      localStorage.removeItem(PROFILES_STORAGE_KEY);
+      localStorage.removeItem(STORAGE_KEYS.PROFILES);
       CacheService.invalidate(CACHE_KEYS.PROFILES);
       this.clearActiveProfile();
     } catch (error) {
@@ -561,5 +560,67 @@ export class SpawnProfileService {
       profilesWithSpawns,
       totalSpawns,
     };
+  }
+
+  /**
+   * Update spawns in a profile
+   * This method allows SpawnService to update spawns without bypassing
+   * the service layer's validation and caching logic.
+   */
+  static updateProfileSpawns(
+    profileId: string,
+    spawns: Spawn[],
+  ): ProfileOperationResult {
+    try {
+      const profiles = this.getAllProfiles();
+      const profileIndex = profiles.findIndex(
+        (profile) => profile.id === profileId,
+      );
+
+      if (profileIndex === -1) {
+        return {
+          success: false,
+          error: `Profile with ID "${profileId}" not found`,
+        };
+      }
+
+      const currentProfile = profiles[profileIndex];
+      const updatedProfile: SpawnProfile = {
+        ...currentProfile,
+        spawns,
+        lastModified: Date.now(),
+      };
+
+      // Validate the updated profile
+      const validation = validateSpawnProfile(updatedProfile);
+      if (!validation.isValid) {
+        return {
+          success: false,
+          error: `Invalid profile data: ${validation.errors.join(", ")}`,
+        };
+      }
+
+      // Update the profile in the array
+      profiles[profileIndex] = updatedProfile;
+
+      // Save via saveProfiles to ensure proper caching
+      const saveResult = this.saveProfiles(profiles);
+      if (!saveResult.success) {
+        return saveResult;
+      }
+
+      return {
+        success: true,
+        profile: updatedProfile,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to update profile spawns",
+      };
+    }
   }
 }

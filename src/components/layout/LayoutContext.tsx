@@ -1,5 +1,6 @@
 import React, { useReducer, useEffect, useRef } from "react";
 import { SpawnProfileService } from "../../services/spawnProfileService";
+import { STORAGE_KEYS } from "../../services/constants";
 import { LayoutContext } from "./LayoutContextTypes";
 import type { LayoutState, LayoutAction } from "./LayoutContextTypes";
 import {
@@ -113,7 +114,7 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
     case "LOAD_STATE_FROM_STORAGE": {
       try {
         const storedSelections = localStorage.getItem(
-          "mediaspawner_profile_spawn_selections",
+          STORAGE_KEYS.PROFILE_SPAWN_SELECTIONS,
         );
         const profileSpawnSelections = storedSelections
           ? JSON.parse(storedSelections)
@@ -158,7 +159,7 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({ children }) => {
   useEffect(() => {
     try {
       localStorage.setItem(
-        "mediaspawner_profile_spawn_selections",
+        STORAGE_KEYS.PROFILE_SPAWN_SELECTIONS,
         JSON.stringify(state.profileSpawnSelections),
       );
     } catch (error) {
