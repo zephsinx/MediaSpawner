@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { SettingsService } from "../settingsService";
 import { CacheService } from "../cacheService";
+import { STORAGE_KEYS } from "../constants";
 
 // Mock CacheService
 vi.mock("../cacheService", () => ({
@@ -74,7 +75,7 @@ describe("SettingsService", () => {
 
     it("should default to dark for legacy system theme", () => {
       localStorage.setItem(
-        "mediaspawner_settings",
+        STORAGE_KEYS.SETTINGS,
         JSON.stringify({
           workingDirectory: "",
           themeMode: "system",
@@ -155,7 +156,7 @@ describe("SettingsService", () => {
     it("should handle invalid theme mode gracefully", () => {
       // Mock localStorage to return invalid theme mode
       localStorage.setItem(
-        "mediaspawner_settings",
+        STORAGE_KEYS.SETTINGS,
         JSON.stringify({
           workingDirectory: "",
           themeMode: "invalid",

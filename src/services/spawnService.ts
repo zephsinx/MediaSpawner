@@ -5,13 +5,8 @@
  * working through SpawnProfileService since spawns are stored within profiles.
  */
 
-import type { Spawn, SpawnProfile } from "../types/spawn";
-import {
-  createSpawn,
-  validateSpawn,
-  validateSpawnProfile,
-} from "../types/spawn";
-import { CacheService, CACHE_KEYS } from "./cacheService";
+import type { Spawn } from "../types/spawn";
+import { createSpawn, validateSpawn } from "../types/spawn";
 import { SpawnProfileService } from "./spawnProfileService";
 import {
   reconcileBucketsWithAssets,
@@ -52,7 +47,6 @@ export class SpawnService {
         };
       }
 
-      // Validate spawn name
       if (!name || name.trim() === "") {
         return {
           success: false,
@@ -60,7 +54,6 @@ export class SpawnService {
         };
       }
 
-      // Check for name uniqueness within the profile
       if (activeProfile.spawns.some((spawn) => spawn.name === name.trim())) {
         return {
           success: false,
@@ -68,13 +61,9 @@ export class SpawnService {
         };
       }
 
-      // Create new spawn with default settings
       const newSpawn = createSpawn(name.trim(), description?.trim());
-
-      // Set order to be last in the profile
       newSpawn.order = activeProfile.spawns.length;
 
-      // Validate the new spawn
       const validation = validateSpawn(newSpawn);
       if (!validation.isValid) {
         return {
@@ -83,9 +72,8 @@ export class SpawnService {
         };
       }
 
-      // Add spawn to active profile
       const updatedSpawns = [...activeProfile.spawns, newSpawn];
-      const updateResult = this.updateProfileSpawns(
+      const updateResult = SpawnProfileService.updateProfileSpawns(
         activeProfile.id,
         updatedSpawns,
       );
@@ -167,7 +155,6 @@ export class SpawnService {
 
       const currentSpawn = activeProfile.spawns[spawnIndex];
 
-      // Check for name uniqueness if name is being updated
       if (updates.name && updates.name !== currentSpawn.name) {
         if (
           activeProfile.spawns.some(
@@ -181,17 +168,14 @@ export class SpawnService {
         }
       }
 
-      // Create updated spawn
       const updatedSpawn: Spawn = {
         ...currentSpawn,
         ...updates,
         lastModified: Date.now(),
       };
 
-      // Reconcile buckets with assets (remove dangling members)
       const reconciled = reconcileBucketsWithAssets(updatedSpawn);
 
-      // Validate buckets if present
       const bucketValidation = validateRandomizationBuckets(reconciled);
       if (!bucketValidation.isValid) {
         return {
@@ -202,7 +186,6 @@ export class SpawnService {
         };
       }
 
-      // Validate the updated spawn
       const validation = validateSpawn(reconciled);
       if (!validation.isValid) {
         return {
@@ -211,11 +194,10 @@ export class SpawnService {
         };
       }
 
-      // Update spawn in profile
       const updatedSpawns = [...activeProfile.spawns];
       updatedSpawns[spawnIndex] = reconciled;
 
-      const updateResult = this.updateProfileSpawns(
+      const updateResult = SpawnProfileService.updateProfileSpawns(
         activeProfile.id,
         updatedSpawns,
       );
@@ -272,17 +254,15 @@ export class SpawnService {
 
       const spawnToDelete = activeProfile.spawns[spawnIndex];
 
-      // Remove spawn from profile
       const updatedSpawns = activeProfile.spawns.filter(
         (spawn) => spawn.id !== id,
       );
 
-      // Reorder remaining spawns to maintain sequential order
       updatedSpawns.forEach((spawn, index) => {
         spawn.order = index;
       });
 
-      const updateResult = this.updateProfileSpawns(
+      const updateResult = SpawnProfileService.updateProfileSpawns(
         activeProfile.id,
         updatedSpawns,
       );
@@ -349,7 +329,7 @@ export class SpawnService {
       const updatedSpawns = [...activeProfile.spawns];
       updatedSpawns[spawnIndex] = updatedSpawn;
 
-      const updateResult = this.updateProfileSpawns(
+      const updateResult = SpawnProfileService.updateProfileSpawns(
         activeProfile.id,
         updatedSpawns,
       );
@@ -406,7 +386,6 @@ export class SpawnService {
         };
       }
 
-      // Disable the spawn
       const updatedSpawn = {
         ...currentSpawn,
         enabled: false,
@@ -416,7 +395,7 @@ export class SpawnService {
       const updatedSpawns = [...activeProfile.spawns];
       updatedSpawns[spawnIndex] = updatedSpawn;
 
-      const updateResult = this.updateProfileSpawns(
+      const updateResult = SpawnProfileService.updateProfileSpawns(
         activeProfile.id,
         updatedSpawns,
       );
@@ -505,68 +484,6 @@ export class SpawnService {
         enabledSpawns: 0,
         disabledSpawns: 0,
         hasActiveProfile: false,
-      };
-    }
-  }
-
-  /**
-   * Private method to update spawns in a profile
-   * This bypasses the SpawnProfileService.updateProfile limitation
-   */
-  private static updateProfileSpawns(
-    profileId: string,
-    spawns: Spawn[],
-  ): SpawnOperationResult {
-    try {
-      const profiles = SpawnProfileService.getAllProfiles();
-      const profileIndex = profiles.findIndex(
-        (profile) => profile.id === profileId,
-      );
-
-      if (profileIndex === -1) {
-        return {
-          success: false,
-          error: `Profile with ID "${profileId}" not found`,
-        };
-      }
-
-      const currentProfile = profiles[profileIndex];
-      const updatedProfile: SpawnProfile = {
-        ...currentProfile,
-        spawns,
-        lastModified: Date.now(),
-      };
-
-      // Validate the updated profile
-      const validation = validateSpawnProfile(updatedProfile);
-      if (!validation.isValid) {
-        return {
-          success: false,
-          error: `Invalid profile data: ${validation.errors.join(", ")}`,
-        };
-      }
-
-      // Update the profile in the array
-      profiles[profileIndex] = updatedProfile;
-
-      // Save to localStorage
-      const PROFILES_STORAGE_KEY = "mediaspawner_spawn_profiles";
-      const dataToSave = JSON.stringify(profiles);
-      localStorage.setItem(PROFILES_STORAGE_KEY, dataToSave);
-
-      // Invalidate cache to ensure fresh data
-      CacheService.invalidate(CACHE_KEYS.PROFILES);
-
-      return {
-        success: true,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to update profile spawns",
       };
     }
   }

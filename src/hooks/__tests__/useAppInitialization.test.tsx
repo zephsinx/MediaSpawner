@@ -1,5 +1,6 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { STORAGE_KEYS } from "../../services/constants";
 import { useAppInitialization } from "../useAppInitialization";
 import { SpawnProfileService } from "../../services/spawnProfileService";
 import type { SpawnProfile } from "../../types/spawn";
@@ -102,7 +103,7 @@ describe("useAppInitialization", () => {
 
     expect(mockEnsureDefaultProfile).toHaveBeenCalledOnce();
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
-      "mediaspawner_profiles_initialized",
+      STORAGE_KEYS.PROFILES_INITIALIZED,
       "true",
     );
     expect(result.current.error).toBe(null);
@@ -174,7 +175,7 @@ describe("useAppInitialization", () => {
     // Should call ensureDefaultProfile to auto-heal the state
     expect(mockEnsureDefaultProfile).toHaveBeenCalledOnce();
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
-      "mediaspawner_profiles_initialized",
+      STORAGE_KEYS.PROFILES_INITIALIZED,
       "true",
     );
     expect(result.current.error).toBe(null);

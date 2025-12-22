@@ -338,8 +338,7 @@ export class GoogleDriveService {
       // Calculate expiration time
       const expiresAt = Date.now() + tokenData.expires_in * 1000;
 
-      // Store tokens
-      // Note: refresh_token may not be provided if user previously authorized
+      // refresh_token may not be provided if user previously authorized
       // In that case, we'll need to re-authenticate with prompt=consent
       if (!tokenData.refresh_token) {
         return {

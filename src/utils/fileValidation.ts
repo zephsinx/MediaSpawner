@@ -143,7 +143,6 @@ export function validateFileReference(
     return { isValid: false, error: "File reference cannot be empty" };
   }
 
-  // Check if it's a URL
   if (isValidUrl(trimmed)) {
     const fileValidation = validateFileType(trimmed);
     return {
@@ -152,7 +151,6 @@ export function validateFileReference(
     };
   }
 
-  // Check if it's a file path
   if (isValidFilePath(trimmed)) {
     const fileValidation = validateFileType(trimmed);
     return {

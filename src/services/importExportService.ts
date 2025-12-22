@@ -133,12 +133,10 @@ export class ImportExportService {
    */
   static async exportConfiguration(): Promise<ExportResult> {
     try {
-      // Get data from services
       const profiles = SpawnProfileService.getAllProfiles();
       const assets = AssetService.getAssets();
       const settings = SettingsService.getSettings();
 
-      // Validate that we have data to export
       if (profiles.length === 0 && assets.length === 0) {
         return {
           success: false,
@@ -147,7 +145,6 @@ export class ImportExportService {
         };
       }
 
-      // Transform data to exported format
       const exportedProfiles = profiles.map((profile) =>
         transformProfileToSchema(profile),
       );
@@ -155,7 +152,6 @@ export class ImportExportService {
         transformAssetToSchema(asset),
       );
 
-      // Validate transformed data
       const validation = validateExportData(exportedProfiles, exportedAssets);
       if (!validation.isValid) {
         return {
@@ -164,7 +160,6 @@ export class ImportExportService {
         };
       }
 
-      // Create configuration object
       const config: MediaSpawnerConfig = {
         version: this.CONFIG_VERSION,
         workingDirectory: settings.workingDirectory,
@@ -174,10 +169,8 @@ export class ImportExportService {
         assets: exportedAssets,
       };
 
-      // Serialize to JSON with compact formatting
       const jsonData = JSON.stringify(config);
 
-      // Validate JSON serialization
       try {
         JSON.parse(jsonData);
       } catch {
@@ -187,7 +180,6 @@ export class ImportExportService {
         };
       }
 
-      // Create metadata
       const metadata: ExportMetadata = {
         exportedAt: new Date().toISOString(),
         version: this.CONFIG_VERSION,
@@ -221,10 +213,8 @@ export class ImportExportService {
     options: ImportOptions = DEFAULT_IMPORT_OPTIONS,
   ): Promise<ImportResult> {
     try {
-      // Parse JSON data
       const config = JSON.parse(jsonData) as MediaSpawnerConfig;
 
-      // Validate the imported configuration
       const validation = this.validateImportedConfig(config);
       if (!validation.isValid) {
         return {
@@ -241,7 +231,6 @@ export class ImportExportService {
         transformAssetFromSchema(asset),
       );
 
-      // Validate transformed data
       const dataValidation = validateImportData(
         importedProfiles,
         importedAssets,
@@ -253,7 +242,6 @@ export class ImportExportService {
         };
       }
 
-      // Handle conflicts and merge data
       const mergeResult = await this.mergeImportedData(
         importedProfiles,
         importedAssets,
@@ -267,7 +255,6 @@ export class ImportExportService {
         };
       }
 
-      // Handle working directory update if option is enabled
       if (options.updateWorkingDirectory && config.workingDirectory) {
         const workingDirResult = SettingsService.updateWorkingDirectory(
           config.workingDirectory,
@@ -280,7 +267,6 @@ export class ImportExportService {
         }
       }
 
-      // Handle canvas size update if present in config
       if (config.obsCanvasWidth && config.obsCanvasHeight) {
         const canvasSizeResult = SettingsService.updateOBSCanvasSize(
           config.obsCanvasWidth,
@@ -294,7 +280,6 @@ export class ImportExportService {
         }
       }
 
-      // Create metadata
       const metadata: ImportMetadata = {
         importedAt: new Date().toISOString(),
         version: config.version,
@@ -342,7 +327,6 @@ export class ImportExportService {
 
     const configObj = config as Record<string, unknown>;
 
-    // Check required fields
     if (!configObj.version || typeof configObj.version !== "string") {
       errors.push("Configuration must have a version field");
     }
@@ -391,11 +375,9 @@ export class ImportExportService {
         workingDirectoryConflicts: false,
       };
 
-      // Get existing data
       const existingProfiles = SpawnProfileService.getAllProfiles();
       const existingAssets = AssetService.getAssets();
 
-      // Handle asset conflicts
       const mergedAssets = [...existingAssets];
       const assetIdMap = new Map<string, string>(); // old ID -> new ID mapping
 
@@ -425,7 +407,6 @@ export class ImportExportService {
               break;
             }
             case "rename": {
-              // Create new asset with new ID
               const newAsset = { ...importedAsset, id: crypto.randomUUID() };
               mergedAssets.push(newAsset);
               assetIdMap.set(importedAsset.id, newAsset.id);
@@ -433,13 +414,11 @@ export class ImportExportService {
             }
           }
         } else {
-          // No conflict, add asset
           mergedAssets.push(importedAsset);
           assetIdMap.set(importedAsset.id, importedAsset.id);
         }
       }
 
-      // Handle profile conflicts
       const mergedProfiles = [...existingProfiles];
 
       for (const importedProfile of importedProfiles) {
@@ -466,7 +445,6 @@ export class ImportExportService {
               break;
             }
             case "rename": {
-              // Create new profile with new ID and update asset references
               const newProfile = {
                 ...importedProfile,
                 id: crypto.randomUUID(),
@@ -486,7 +464,6 @@ export class ImportExportService {
             }
           }
         } else {
-          // No conflict, add profile with updated asset references
           const updatedProfile = {
             ...importedProfile,
             spawns: importedProfile.spawns.map((spawn) => ({
@@ -504,7 +481,6 @@ export class ImportExportService {
         }
       }
 
-      // Validate asset references
       if (options.validateAssetReferences) {
         for (const profile of mergedProfiles) {
           for (const spawn of profile.spawns) {
@@ -522,7 +498,6 @@ export class ImportExportService {
         }
       }
 
-      // Save merged data
       SpawnProfileService.replaceProfiles(mergedProfiles);
       AssetService.saveAssets(mergedAssets);
 

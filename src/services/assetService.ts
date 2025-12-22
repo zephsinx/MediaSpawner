@@ -2,6 +2,7 @@ import type { MediaAsset, MediaAssetProperties } from "../types/media";
 import { createMediaAsset } from "../types/media";
 import type { Trigger } from "../types/spawn";
 import { CacheService, CACHE_KEYS } from "./cacheService";
+import { STORAGE_KEYS } from "./constants";
 import { SpawnService } from "./spawnService";
 import { SpawnProfileService } from "./spawnProfileService";
 import { resolveEffectiveProperties } from "../utils/assetSettingsResolver";
@@ -9,8 +10,6 @@ import {
   dispatchMediaSpawnerEvent,
   MediaSpawnerEvents,
 } from "../hooks/useMediaSpawnerEvent";
-
-const STORAGE_KEY = "mediaspawner_assets";
 // No parallel spawn-asset overrides storage; overrides are inline on Spawn.assets
 
 /**
@@ -43,7 +42,7 @@ export class AssetService {
   static getAssets(): MediaAsset[] {
     return CacheService.get(CACHE_KEYS.ASSETS, () => {
       try {
-        const stored = localStorage.getItem(STORAGE_KEY);
+        const stored = localStorage.getItem(STORAGE_KEYS.ASSETS);
         if (!stored) {
           return [];
         }
@@ -76,7 +75,7 @@ export class AssetService {
    */
   static saveAssets(assets: MediaAsset[]): void {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(assets));
+      localStorage.setItem(STORAGE_KEYS.ASSETS, JSON.stringify(assets));
       // Invalidate cache after successful write
       CacheService.invalidate(CACHE_KEYS.ASSETS);
     } catch (error) {
@@ -115,7 +114,6 @@ export class AssetService {
     if (filteredAssets.length !== initialLength) {
       this.saveAssets(filteredAssets);
       try {
-        // Remove this asset from all spawns across all profiles
         const profiles = SpawnProfileService.getAllProfiles();
         let changed = false;
         const updated = profiles.map((p) => {
@@ -183,7 +181,7 @@ export class AssetService {
    * Clear all assets and invalidate cache
    */
   static clearAssets(): void {
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEYS.ASSETS);
     // Invalidate cache after successful clear
     CacheService.invalidate(CACHE_KEYS.ASSETS);
     try {
@@ -361,7 +359,6 @@ export class AssetService {
       }
     });
 
-    // Save only valid assets back to storage
     this.saveAssets(validAssets);
 
     return {
@@ -409,7 +406,7 @@ export class AssetService {
     let corruptedData = false;
 
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(STORAGE_KEYS.ASSETS);
       if (!stored) {
         return { validAssets: [], invalidAssets: [], corruptedData: false };
       }
@@ -483,7 +480,6 @@ export class AssetService {
         return null;
       }
 
-      // Resolve from inline spawn asset overrides (single source of truth)
       const spawnAsset = spawn.assets.find((sa) => sa.id === spawnAssetId);
       const inlineOverrides = spawnAsset?.overrides || {};
 
@@ -503,8 +499,6 @@ export class AssetService {
     }
   }
   // Legacy parallel storage APIs removed
-
-  // Helper methods for validation
 
   /**
    * Check if path is a URL
@@ -533,7 +527,6 @@ export class AssetService {
       return false;
     }
 
-    // Check for invalid characters that are not allowed in file paths
     // Allow colons only in drive letters (C:) and backslashes for Windows paths
     const invalidChars = /[<>"|?*]/;
     if (invalidChars.test(path)) {
@@ -548,7 +541,6 @@ export class AssetService {
       return false;
     }
 
-    // Check for supported file extensions
     const supportedExtensions = [
       // Images
       "jpg",

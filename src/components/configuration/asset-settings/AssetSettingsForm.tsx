@@ -188,7 +188,6 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
     const { validateField } = useAssetValidation();
     const draftValuesRef = useRef(draftValues);
 
-    // Initialize draft when context target changes (avoid loops on referential changes)
     const initKeyRef = useRef<string | null>(null);
     useEffect(() => {
       if (!effective || !spawn || !spawnAsset) return;
@@ -274,7 +273,6 @@ const AssetSettingsForm: React.FC<AssetSettingsFormProps> = memo(
       setUnsavedChanges(true, "asset");
     }, [debouncedVolume, debouncedRotation, setUnsavedChanges]);
 
-    // Initialize local state when component first loads
     useEffect(() => {
       if (effective) {
         setLocalVolume(effective.effective.volume ?? 0.5);

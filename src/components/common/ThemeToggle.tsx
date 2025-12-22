@@ -11,7 +11,6 @@ export interface ThemeToggleProps {
 export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className }) => {
   const [isDark, setIsDark] = React.useState(false);
 
-  // Initialize theme mode from settings
   React.useEffect(() => {
     const currentMode = SettingsService.getThemeMode();
     setIsDark(currentMode === "dark");
@@ -25,7 +24,6 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className }) => {
     const result = SettingsService.setThemeMode(newMode);
     if (!result.success) {
       console.error("Failed to set theme mode:", result.error);
-      // Revert on error
       setIsDark(isDark);
     }
   }, [isDark]);

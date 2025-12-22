@@ -90,7 +90,6 @@ export function ProfileFormDialog({
   const isEditMode = !!profile;
   const dialogTitle = title || (isEditMode ? "Edit Profile" : "Create Profile");
 
-  // Initialize form data when profile changes
   useEffect(() => {
     if (profile) {
       setFormData({
@@ -115,7 +114,6 @@ export function ProfileFormDialog({
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
-    // Validate name
     if (!formData.name.trim()) {
       newErrors.name = "Profile name is required";
     } else if (formData.name.trim().length < 1) {
@@ -124,12 +122,10 @@ export function ProfileFormDialog({
       newErrors.name = "Profile name must be less than 100 characters";
     }
 
-    // Validate description length
     if (formData.description.length > 500) {
       newErrors.description = "Description must be less than 500 characters";
     }
 
-    // Validate working directory if provided
     if (formData.workingDirectory.trim()) {
       const path = formData.workingDirectory.trim();
       const invalidChars = /[<>"|?*]/;
@@ -152,7 +148,6 @@ export function ProfileFormDialog({
       [field]: value,
     }));
 
-    // Clear field-specific error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({
         ...prev,
@@ -160,7 +155,6 @@ export function ProfileFormDialog({
       }));
     }
 
-    // Clear submit error when user makes changes
     if (submitError) {
       setSubmitError(null);
     }

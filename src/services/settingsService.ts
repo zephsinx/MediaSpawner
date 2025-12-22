@@ -11,8 +11,7 @@ import {
   UNIX_PATH_RULES,
 } from "../types/settings";
 import { CacheService, CACHE_KEYS } from "./cacheService";
-
-const SETTINGS_STORAGE_KEY = "mediaspawner_settings";
+import { STORAGE_KEYS } from "./constants";
 
 // Cache for validation results to improve performance
 const validationCache = new Map<string, WorkingDirectoryValidationResult>();
@@ -28,7 +27,7 @@ export class SettingsService {
   static getSettings(): Settings {
     return CacheService.get(CACHE_KEYS.SETTINGS, () => {
       try {
-        const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
+        const stored = localStorage.getItem(STORAGE_KEYS.SETTINGS);
         if (!stored) {
           return { ...DEFAULT_SETTINGS };
         }
@@ -79,7 +78,7 @@ export class SettingsService {
       }
 
       localStorage.setItem(
-        SETTINGS_STORAGE_KEY,
+        STORAGE_KEYS.SETTINGS,
         JSON.stringify(updatedSettings),
       );
 
@@ -172,7 +171,7 @@ export class SettingsService {
    */
   static resetSettings(): Settings {
     try {
-      localStorage.removeItem(SETTINGS_STORAGE_KEY);
+      localStorage.removeItem(STORAGE_KEYS.SETTINGS);
       // Invalidate cache after successful reset
       CacheService.invalidate(CACHE_KEYS.SETTINGS);
       return { ...DEFAULT_SETTINGS };
@@ -187,7 +186,7 @@ export class SettingsService {
    */
   static clearSettings(): void {
     try {
-      localStorage.removeItem(SETTINGS_STORAGE_KEY);
+      localStorage.removeItem(STORAGE_KEYS.SETTINGS);
       // Invalidate cache after successful clear
       CacheService.invalidate(CACHE_KEYS.SETTINGS);
     } catch (error) {
@@ -201,17 +200,13 @@ export class SettingsService {
   static validateWorkingDirectory(
     path: string,
   ): WorkingDirectoryValidationResult {
-    // Check cache first
     if (validationCache.has(path)) {
       return validationCache.get(path)!;
     }
 
-    // Perform validation
     const result = this.performValidation(path);
 
-    // Cache the result (with size limit)
     if (validationCache.size >= CACHE_MAX_SIZE) {
-      // Remove oldest entry (Map maintains insertion order)
       const firstKey = validationCache.keys().next().value;
       if (firstKey !== undefined) {
         validationCache.delete(firstKey);
@@ -332,7 +327,6 @@ export class SettingsService {
    * Detect operating system from path format
    */
   private static detectOS(path: string): SupportedOS {
-    // Check for Windows-style paths (drive letter or UNC)
     if (/^[A-Za-z]:[\\/]/.test(path) || /^\\\\/.test(path)) {
       return "windows";
     }
@@ -369,7 +363,6 @@ export class SettingsService {
         };
       }
 
-      // Check for invalid characters
       const invalidChars = /[<>:"|?*]/;
       if (invalidChars.test(path.replace(/^[A-Za-z]:/, ""))) {
         return {
@@ -424,7 +417,6 @@ export class SettingsService {
     const workingDir = settings.workingDirectory;
     const separator = workingDir.includes("\\") ? "\\" : "/";
 
-    // Create abbreviated path with ellipsis
     const pathParts = workingDir.split(/[\\/]/);
     if (pathParts.length <= 2) {
       // Short path, show full path
@@ -456,7 +448,7 @@ export class SettingsService {
     workingDirectorySet: boolean;
     settingsValid: boolean;
   } {
-    const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    const stored = localStorage.getItem(STORAGE_KEYS.SETTINGS);
     const current = this.getSettings();
     const validation = this.validateSettings(current);
 
