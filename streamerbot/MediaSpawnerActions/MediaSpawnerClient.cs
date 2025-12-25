@@ -1618,7 +1618,7 @@ public class CPHInline
                     switch (triggerType)
                     {
                         case "dailyAt":
-                            if (config.ContainsKey("time") && config["time"] is string timeStr &&
+                            if (config.TryGetValue("time", out object timeObj1) && timeObj1 is string timeStr &&
                                 TimeSpan.TryParse(timeStr, out TimeSpan targetTime))
                             {
                                 DateTimeOffset nextOccurrence = now.Date.Add(targetTime);
@@ -1631,9 +1631,9 @@ public class CPHInline
                             break;
 
                         case "weeklyAt":
-                            if (config.ContainsKey("time") && config["time"] is string weeklyTimeStr &&
+                            if (config.TryGetValue("time", out object timeObj2) && timeObj2 is string weeklyTimeStr &&
                                 TimeSpan.TryParse(weeklyTimeStr, out TimeSpan weeklyTargetTime) &&
-                                config.ContainsKey("daysOfWeek") && config["daysOfWeek"] is List<object> daysList)
+                                config.TryGetValue("daysOfWeek", out object dowObj1) && dowObj1 is List<object> daysList)
                             {
                                 List<DayOfWeek> daysOfWeek = new List<DayOfWeek>();
                                 foreach (object day in daysList)
@@ -1657,9 +1657,9 @@ public class CPHInline
                             break;
 
                         case "monthlyOn":
-                            if (config.ContainsKey("time") && config["time"] is string monthlyTimeStr &&
+                            if (config.TryGetValue("time", out object timeObj3) && timeObj3 is string monthlyTimeStr &&
                                 TimeSpan.TryParse(monthlyTimeStr, out TimeSpan monthlyTargetTime) &&
-                                config.ContainsKey("daysOfMonth") && config["daysOfMonth"] is List<object> monthlyDaysList)
+                                config.TryGetValue("daysOfMonth", out object domObj1) && domObj1 is List<object> monthlyDaysList)
                             {
                                 List<int> daysOfMonth = new List<int>();
                                 foreach (object day in monthlyDaysList)
@@ -1787,7 +1787,7 @@ public class CPHInline
                 // Handle DST transitions for recurring timers
                 try
                 {
-                    if (this.activeTimers.ContainsKey(spawn.Id) && this.activeTimers[spawn.Id] is System.Timers.Timer timer)
+                    if (this.activeTimers.TryGetValue(spawn.Id, out IDisposable timerDisposable) && timerDisposable is System.Timers.Timer timer)
                     {
                         HandleDaylightSavingTimeTransition(spawn, triggerType, timer);
                     }
@@ -1815,7 +1815,7 @@ public class CPHInline
         try
         {
             if (!TryGetStringValue(config, "time", out string timeStr) ||
-                !config.ContainsKey("daysOfWeek") || !(config["daysOfWeek"] is List<object> daysList))
+                !config.TryGetValue("daysOfWeek", out object dowObj2) || !(dowObj2 is List<object> daysList))
             {
                 LogExecution(LogLevel.Warning, $"CreateWeeklyTimer: Missing or invalid 'time' or 'daysOfWeek' in config for spawn '{spawn.Name}'");
                 return false;
@@ -1894,7 +1894,7 @@ public class CPHInline
         try
         {
             if (!TryGetStringValue(config, "time", out string timeStr) ||
-                !config.ContainsKey("daysOfMonth") || !(config["daysOfMonth"] is List<object> daysList))
+                !config.TryGetValue("daysOfMonth", out object domObj2) || !(domObj2 is List<object> daysList))
             {
                 LogExecution(LogLevel.Warning, $"CreateMonthlyTimer: Missing or invalid 'time' or 'daysOfMonth' in config for spawn '{spawn.Name}'");
                 return false;
@@ -2144,7 +2144,7 @@ public class CPHInline
                     return true;
 
                 case "minuteOfHour":
-                    if (!config.ContainsKey("minutes") || !(config["minutes"] is List<object> minutesList))
+                    if (!config.TryGetValue("minutes", out object minObj1) || !(minObj1 is List<object> minutesList))
                     {
                         LogExecution(LogLevel.Warning, $"ValidateIntervalTimerConfig: Missing 'minutes' for spawn '{spawn.Name}'");
                         return false;
@@ -2238,7 +2238,7 @@ public class CPHInline
                 {
                     try
                     {
-                        if (this.activeTimers.ContainsKey(spawn.Id) && this.activeTimers[spawn.Id] is System.Timers.Timer timer)
+                        if (this.activeTimers.TryGetValue(spawn.Id, out IDisposable timerDisposable2) && timerDisposable2 is System.Timers.Timer timer)
                         {
                             timer.Interval = 60000; // 1 minute interval for continuous minute checking
                             LogExecution(LogLevel.Info, $"OnIntervalTimerElapsed: Reset minute-of-hour timer to 1-minute interval for spawn '{spawn.Name}'");
@@ -2483,7 +2483,7 @@ public class CPHInline
                     return true;
 
                 case "dailyAt":
-                    if (config.ContainsKey("time") && config["time"] is string timeStr &&
+                    if (config.TryGetValue("time", out object timeObj4) && timeObj4 is string timeStr &&
                         TimeSpan.TryParse(timeStr, out TimeSpan targetTime))
                     {
                         TimeSpan currentTime = now.TimeOfDay;
@@ -2492,9 +2492,9 @@ public class CPHInline
                     return true;
 
                 case "weeklyAt":
-                    if (config.ContainsKey("time") && config["time"] is string weeklyTimeStr &&
+                    if (config.TryGetValue("time", out object timeObj5) && timeObj5 is string weeklyTimeStr &&
                         TimeSpan.TryParse(weeklyTimeStr, out TimeSpan weeklyTargetTime) &&
-                        config.ContainsKey("daysOfWeek") && config["daysOfWeek"] is List<object> weeklyDaysList)
+                        config.TryGetValue("daysOfWeek", out object dowObj3) && dowObj3 is List<object> weeklyDaysList)
                     {
                         List<DayOfWeek> daysOfWeek = new List<DayOfWeek>();
                         foreach (object day in weeklyDaysList)
@@ -2520,9 +2520,9 @@ public class CPHInline
                     return true;
 
                 case "monthlyOn":
-                    if (config.ContainsKey("time") && config["time"] is string monthlyTimeStr &&
+                    if (config.TryGetValue("time", out object timeObj6) && timeObj6 is string monthlyTimeStr &&
                         TimeSpan.TryParse(monthlyTimeStr, out TimeSpan monthlyTargetTime) &&
-                        config.ContainsKey("daysOfMonth") && config["daysOfMonth"] is List<object> monthlyDaysList)
+                        config.TryGetValue("daysOfMonth", out object domObj3) && domObj3 is List<object> monthlyDaysList)
                     {
                         List<int> daysOfMonth = new List<int>();
                         foreach (object day in monthlyDaysList)
@@ -2547,7 +2547,7 @@ public class CPHInline
                     return true;
 
                 case "minuteOfHour":
-                    if (config.ContainsKey("minutes") && config["minutes"] is List<object> minutesList)
+                    if (config.TryGetValue("minutes", out object minObj2) && minObj2 is List<object> minutesList)
                     {
                         List<int> minutes = new List<int>();
                         foreach (object minute in minutesList)
@@ -3427,7 +3427,7 @@ public class CPHInline
             }
 
             // Check command ID if provided
-            if (!commandMatches && config.ContainsKey("commandId") && config["commandId"] is string commandId)
+            if (!commandMatches && config.TryGetValue("commandId", out object cmdIdObj) && cmdIdObj is string commandId)
             {
                 // For now, we'll use the command string as a fallback
                 // In future implementation, this would match against actual Streamer.bot command IDs
@@ -3438,7 +3438,7 @@ public class CPHInline
                 continue;
 
             // Check bot account filter
-            if (config.ContainsKey("ignoreBotAccount") && config["ignoreBotAccount"] is bool ignoreBotAccount && ignoreBotAccount && isBotAccount)
+            if (config.TryGetValue("ignoreBotAccount", out object ibaObj) && ibaObj is bool ignoreBotAccount && ignoreBotAccount && isBotAccount)
             {
                 continue; // Skip bot account commands if configured to ignore them
             }
@@ -3585,10 +3585,10 @@ public class CPHInline
                     break;
 
                 case "subscription":
-                    if (config.ContainsKey("tier") && config["tier"] is string configTier)
+                    if (config.TryGetValue("tier", out object tierObj1) && tierObj1 is string configTier)
                     {
                         string normalizedConfigTier = NormalizeTier(configTier);
-                        string eventTier = eventData.ContainsKey("tier") && eventData["tier"] is string t ? t : "1000";
+                        string eventTier = eventData.TryGetValue("tier", out object etObj1) && etObj1 is string t ? t : "1000";
                         if (eventTier != normalizedConfigTier)
                             matches = false;
                     }
@@ -3607,19 +3607,19 @@ public class CPHInline
                         if (count < minCount)
                             matches = false;
                     }
-                    if (config.ContainsKey("tier") && config["tier"] is string giftConfigTier)
+                    if (config.TryGetValue("tier", out object tierObj2) && tierObj2 is string giftConfigTier)
                     {
                         string normalizedConfigTier = NormalizeTier(giftConfigTier);
-                        string eventTier = eventData.ContainsKey("tier") && eventData["tier"] is string t ? t : "1000";
+                        string eventTier = eventData.TryGetValue("tier", out object etObj2) && etObj2 is string t ? t : "1000";
                         if (eventTier != normalizedConfigTier)
                             matches = false;
                     }
                     break;
 
                 case "channelPointReward":
-                    if (config.ContainsKey("rewardIdentifier") && config["rewardIdentifier"] is string rewardId)
+                    if (config.TryGetValue("rewardIdentifier", out object riObj1) && riObj1 is string rewardId)
                     {
-                        string eventRewardId = eventData.ContainsKey("rewardId") && eventData["rewardId"] is string r ? r : "";
+                        string eventRewardId = eventData.TryGetValue("rewardId", out object erObj1) && erObj1 is string r ? r : "";
                         if (eventRewardId != rewardId)
                             matches = false;
                     }
@@ -4818,6 +4818,27 @@ public class CPHInline
         if (properties.ContainsKey("height"))
             assetHeight = Convert.ToDouble(properties["height"]);
 
+        // Extract and apply scale to dimensions
+        double scaleX = 1.0;
+        double scaleY = 1.0;
+
+        if (TryGetDoubleValue(properties, "scale", out double scale))
+        {
+            // Uniform scaling (backward compatibility)
+            scaleX = scale;
+            scaleY = scale;
+        }
+        else if (properties.TryGetValue("scale", out object scaleObj) && scaleObj is Dictionary<string, object> scaleDict)
+        {
+            // Non-uniform scaling
+            scaleX = TryGetDoubleValue(scaleDict, "x", out double xVal) ? xVal : 1.0;
+            scaleY = TryGetDoubleValue(scaleDict, "y", out double yVal) ? yVal : 1.0;
+        }
+
+        // Apply scale to dimensions for bounds calculation
+        assetWidth *= scaleX;
+        assetHeight *= scaleY;
+
         // Calculate max X and Y to keep asset on-screen
         int maxX = (int)(canvasWidth - assetWidth);
         int maxY = (int)(canvasHeight - assetHeight);
@@ -5021,13 +5042,13 @@ public class CPHInline
                     return false;
                 }
                 // Check for requestStatus wrapper (OBS WebSocket protocol format)
-                if (responseData.ContainsKey("requestStatus") && responseData["requestStatus"] is Dictionary<string, object> status)
+                if (responseData.TryGetValue("requestStatus", out object statusObj) && statusObj is Dictionary<string, object> status)
                 {
-                    bool success = status.ContainsKey("result") && status["result"] is bool successResult && successResult;
+                    bool success = status.TryGetValue("result", out object resultObj) && resultObj is bool successResult && successResult;
                     if (success)
                     {
                         // Extract sceneItemId from responseData if available
-                        if (responseData.ContainsKey("responseData") && responseData["responseData"] is Dictionary<string, object> responseDataInner)
+                        if (responseData.TryGetValue("responseData", out object rdObj) && rdObj is Dictionary<string, object> responseDataInner)
                         {
                             LogExecution(LogLevel.Info, $"CreateOBSSource: responseDataInner structure: {JsonConvert.SerializeObject(responseDataInner, Formatting.Indented)}");
                             if (TryGetIntValue(responseDataInner, "sceneItemId", out int itemId))
@@ -5158,7 +5179,7 @@ public class CPHInline
             }
 
             // Apply mute setting using SetInputMute API
-            if (properties.ContainsKey("muted") && properties["muted"] is bool muted)
+            if (properties.TryGetValue("muted", out object mutedObj) && mutedObj is bool muted)
             {
                 bool muteSuccess = ExecuteOBSOperationWithRetry($"SetInputMute-{sourceName}", () =>
                 {
@@ -5195,7 +5216,7 @@ public class CPHInline
             }
 
             // Apply audio monitoring type if specified (only for audio/video sources)
-            if (properties.ContainsKey("monitorType") && properties["monitorType"] is string monitorType
+            if (properties.TryGetValue("monitorType", out object mtObj) && mtObj is string monitorType
                 && !string.IsNullOrEmpty(monitorType) && monitorType != "none"
                 && (asset.Type == "audio" || asset.Type == "video"))
             {
@@ -5426,9 +5447,9 @@ public class CPHInline
                     return false;
                 }
                 // Check for requestStatus wrapper (OBS WebSocket protocol format)
-                if (responseData.ContainsKey("requestStatus") && responseData["requestStatus"] is Dictionary<string, object> status)
+                if (responseData.TryGetValue("requestStatus", out object statusObj2) && statusObj2 is Dictionary<string, object> status)
                 {
-                    bool result = status.ContainsKey("result") && status["result"] is bool success && success;
+                    bool result = status.TryGetValue("result", out object resultObj2) && resultObj2 is bool success && success;
                     if (result)
                     {
                         LogExecution(LogLevel.Info, $"DeleteOBSSource: Successfully deleted OBS source '{sourceName}'");
@@ -5561,7 +5582,7 @@ public class CPHInline
         if (asset.Type == "video" || asset.Type == "audio")
         {
             settings["is_local_file"] = !asset.IsUrl;
-            settings["looping"] = properties.ContainsKey("loop") && properties["loop"] is bool loop ? loop : false;
+            settings["looping"] = properties.TryGetValue("loop", out object loopObj) && loopObj is bool loop ? loop : false;
             settings["restart_on_activate"] = true;
         }
 
@@ -5622,7 +5643,7 @@ public class CPHInline
         bool hasTransformProperties = false;
 
         // Handle position
-        if (properties.ContainsKey("position") && properties["position"] is Dictionary<string, object> position)
+        if (properties.TryGetValue("position", out object posObj) && posObj is Dictionary<string, object> position)
         {
             double x = TryGetDoubleValue(position, "x", out double xVal) ? xVal : 0;
             double y = TryGetDoubleValue(position, "y", out double yVal) ? yVal : 0;
@@ -5633,25 +5654,22 @@ public class CPHInline
         }
 
         // Handle scale - support both uniform (double) and non-uniform (ScaleObject) scaling
-        if (properties.ContainsKey("scale"))
+        if (TryGetDoubleValue(properties, "scale", out double scale))
         {
-            if (TryGetDoubleValue(properties, "scale", out double scale))
-            {
-                // Uniform scaling (backward compatibility)
-                sceneItemTransform["scaleX"] = scale;
-                sceneItemTransform["scaleY"] = scale;
-                hasTransformProperties = true;
-            }
-            else if (properties["scale"] is Dictionary<string, object> scaleObj)
-            {
-                // Non-uniform scaling
-                double scaleX = TryGetDoubleValue(scaleObj, "x", out double xVal) ? xVal : 1.0;
-                double scaleY = TryGetDoubleValue(scaleObj, "y", out double yVal) ? yVal : 1.0;
+            // Uniform scaling (backward compatibility)
+            sceneItemTransform["scaleX"] = scale;
+            sceneItemTransform["scaleY"] = scale;
+            hasTransformProperties = true;
+        }
+        else if (properties.TryGetValue("scale", out object scaleObj) && scaleObj is Dictionary<string, object> scaleDict)
+        {
+            // Non-uniform scaling
+            double scaleX = TryGetDoubleValue(scaleDict, "x", out double xVal) ? xVal : 1.0;
+            double scaleY = TryGetDoubleValue(scaleDict, "y", out double yVal) ? yVal : 1.0;
 
-                sceneItemTransform["scaleX"] = scaleX;
-                sceneItemTransform["scaleY"] = scaleY;
-                hasTransformProperties = true;
-            }
+            sceneItemTransform["scaleX"] = scaleX;
+            sceneItemTransform["scaleY"] = scaleY;
+            hasTransformProperties = true;
         }
 
         // Handle rotation
@@ -5698,7 +5716,7 @@ public class CPHInline
         }
 
         // Handle bounds type
-        if (properties.ContainsKey("boundsType") && properties["boundsType"] is string boundsType)
+        if (properties.TryGetValue("boundsType", out object btObj) && btObj is string boundsType)
         {
             sceneItemTransform["boundsType"] = boundsType;
             hasTransformProperties = true;
@@ -5712,7 +5730,7 @@ public class CPHInline
         }
 
         // Handle dimensions (bounds) - enhanced to work with bounds type
-        if (properties.ContainsKey("dimensions") && properties["dimensions"] is Dictionary<string, object> dimensions)
+        if (properties.TryGetValue("dimensions", out object dimObj) && dimObj is Dictionary<string, object> dimensions)
         {
             double width = TryGetDoubleValue(dimensions, "width", out double w) ? w : 0;
             double height = TryGetDoubleValue(dimensions, "height", out double h) ? h : 0;
@@ -5889,9 +5907,9 @@ public class CPHInline
                 // CPH.ObsSendBatchRaw returns the full WebSocket message with 'op' and 'd' fields
                 Dictionary<string, object> fullResponse = JsonConvert.DeserializeObject<Dictionary<string, object>>(batchResponse);
 
-                if (fullResponse.ContainsKey("d") && fullResponse["d"] is Dictionary<string, object> dData)
+                if (fullResponse.TryGetValue("d", out object dObj) && dObj is Dictionary<string, object> dData)
                 {
-                    if (dData.ContainsKey("results") && dData["results"] is List<object> resultsList)
+                    if (dData.TryGetValue("results", out object resultsObj) && resultsObj is List<object> resultsList)
                     {
                         // Convert List<object> to List<Dictionary<string, object>>
                         responses = new List<Dictionary<string, object>>();
@@ -5932,9 +5950,9 @@ public class CPHInline
             {
                 string operationType = operationIndex < operationTypes.Count ? operationTypes[operationIndex] : "Unknown";
 
-                if (response.ContainsKey("requestStatus") && response["requestStatus"] is Dictionary<string, object> status)
+                if (response.TryGetValue("requestStatus", out object statusObj3) && statusObj3 is Dictionary<string, object> status)
                 {
-                    bool success = status.ContainsKey("result") && status["result"] is bool result && result;
+                    bool success = status.TryGetValue("result", out object resultObj3) && resultObj3 is bool result && result;
                     if (!success)
                     {
                         allSuccessful = false;
@@ -6021,18 +6039,18 @@ public class CPHInline
                 LogExecution(LogLevel.Error, $"OBSSourceExists: Invalid JSON response from OBS for checking source '{sourceName}': {ex.Message}");
                 return false;
             }
-            if (responseData.ContainsKey("requestStatus") && responseData["requestStatus"] is Dictionary<string, object> status)
+            if (responseData.TryGetValue("requestStatus", out object statusObj4) && statusObj4 is Dictionary<string, object> status)
             {
-                bool success = status.ContainsKey("result") && status["result"] is bool result && result;
-                if (success && responseData.ContainsKey("responseData") && responseData["responseData"] is Dictionary<string, object> responseDataDict)
+                bool success = status.TryGetValue("result", out object resultObj4) && resultObj4 is bool result && result;
+                if (success && responseData.TryGetValue("responseData", out object rdObj2) && rdObj2 is Dictionary<string, object> responseDataDict)
                 {
-                    if (responseDataDict.ContainsKey("sceneItems") && responseDataDict["sceneItems"] is List<object> sceneItems)
+                    if (responseDataDict.TryGetValue("sceneItems", out object siObj) && siObj is List<object> sceneItems)
                     {
                         foreach (object item in sceneItems)
                         {
                             if (item is Dictionary<string, object> sceneItem)
                             {
-                                if (sceneItem.ContainsKey("sourceName") && sceneItem["sourceName"] is string itemName && itemName == sourceName)
+                                if (sceneItem.TryGetValue("sourceName", out object snObj) && snObj is string itemName && itemName == sourceName)
                                 {
                                     LogExecution(LogLevel.Info, $"OBSSourceExists: Source '{sourceName}' exists in scene '{currentScene}'");
                                     return true;
@@ -6592,7 +6610,7 @@ public class CPHInline
             statusSummary.Append($"Initialized: {status["timersInitialized"]}, ");
             statusSummary.Append($"Shutting Down: {status["isShuttingDown"]}");
 
-            if (status.ContainsKey("timerTypeBreakdown") && status["timerTypeBreakdown"] is Dictionary<string, int> timerTypes && timerTypes.Count > 0)
+            if (status.TryGetValue("timerTypeBreakdown", out object ttbObj) && ttbObj is Dictionary<string, int> timerTypes && timerTypes.Count > 0)
             {
                 statusSummary.Append(" | Types: ");
                 statusSummary.Append(string.Join(", ", timerTypes.Select(kvp => $"{kvp.Key}:{kvp.Value}")));
@@ -7620,7 +7638,7 @@ public class CPHInline
                 return false;
         }
 
-        if (config.ContainsKey("bitsComparator") && config["bitsComparator"] is string comparator)
+        if (config.TryGetValue("bitsComparator", out object bcObj) && bcObj is string comparator)
         {
             int bits = TryGetIntValue(eventData, "bits", out int b) ? b : 0;
             int threshold = TryGetIntValue(config, "bits", out int t) ? t : 0;
@@ -7646,10 +7664,10 @@ public class CPHInline
     /// </summary>
     private bool ValidateSubscriptionConditions(Dictionary<string, object> config, Dictionary<string, object> eventData)
     {
-        if (config.ContainsKey("tier") && config["tier"] is string configTier)
+        if (config.TryGetValue("tier", out object tierObj3) && tierObj3 is string configTier)
         {
             string normalizedConfigTier = NormalizeTier(configTier);
-            string eventTier = eventData.ContainsKey("tier") && eventData["tier"] is string t ? t : "1000";
+            string eventTier = eventData.TryGetValue("tier", out object etObj3) && etObj3 is string t ? t : "1000";
             if (eventTier != normalizedConfigTier)
                 return false;
         }
@@ -7661,7 +7679,7 @@ public class CPHInline
                 return false;
         }
 
-        if (config.ContainsKey("monthsComparator") && config["monthsComparator"] is string comparator)
+        if (config.TryGetValue("monthsComparator", out object mcObj) && mcObj is string comparator)
         {
             int months = TryGetIntValue(eventData, "months", out int m) ? m : 1;
             int threshold = TryGetIntValue(config, "months", out int t) ? t : 1;
@@ -7694,10 +7712,10 @@ public class CPHInline
                 return false;
         }
 
-        if (config.ContainsKey("tier") && config["tier"] is string configTier)
+        if (config.TryGetValue("tier", out object tierObj4) && tierObj4 is string configTier)
         {
             string normalizedConfigTier = NormalizeTier(configTier);
-            string eventTier = eventData.ContainsKey("tier") && eventData["tier"] is string t ? t : "1000";
+            string eventTier = eventData.TryGetValue("tier", out object etObj4) && etObj4 is string t ? t : "1000";
             if (eventTier != normalizedConfigTier)
                 return false;
         }
@@ -7710,16 +7728,16 @@ public class CPHInline
     /// </summary>
     private bool ValidateChannelPointRewardConditions(Dictionary<string, object> config, Dictionary<string, object> eventData)
     {
-        if (config.ContainsKey("rewardIdentifier") && config["rewardIdentifier"] is string rewardId)
+        if (config.TryGetValue("rewardIdentifier", out object riObj2) && riObj2 is string rewardId)
         {
-            string eventRewardId = eventData.ContainsKey("rewardId") && eventData["rewardId"] is string r ? r : "";
+            string eventRewardId = eventData.TryGetValue("rewardId", out object erObj2) && erObj2 is string r ? r : "";
             if (eventRewardId != rewardId)
                 return false;
         }
 
-        if (config.ContainsKey("statuses") && config["statuses"] is List<object> statuses)
+        if (config.TryGetValue("statuses", out object stObj) && stObj is List<object> statuses)
         {
-            string eventStatus = eventData.ContainsKey("status") && eventData["status"] is string s ? s : "fulfilled";
+            string eventStatus = eventData.TryGetValue("status", out object esObj) && esObj is string s ? s : "fulfilled";
             if (!statuses.Any(status => status is string statusStr && statusStr == eventStatus))
                 return false;
         }
@@ -8592,11 +8610,7 @@ public class CPHInline
     private static bool TryGetIntValue(Dictionary<string, object> dict, string key, out int value, int defaultValue = 0)
     {
         value = defaultValue;
-        if (!dict.ContainsKey(key))
-            return false;
-
-        object obj = dict[key];
-        if (obj == null)
+        if (!dict.TryGetValue(key, out object obj) || obj == null)
             return false;
 
         // Type checking cascade (fastest for common cases)
@@ -8638,11 +8652,7 @@ public class CPHInline
     private static bool TryGetDoubleValue(Dictionary<string, object> dict, string key, out double value, double defaultValue = 0.0)
     {
         value = defaultValue;
-        if (!dict.ContainsKey(key))
-            return false;
-
-        object obj = dict[key];
-        if (obj == null)
+        if (!dict.TryGetValue(key, out object obj) || obj == null)
             return false;
 
         // Type checking cascade (fastest for common cases)
@@ -8684,11 +8694,7 @@ public class CPHInline
     private static bool TryGetStringValue(Dictionary<string, object> dict, string key, out string value, string defaultValue = "")
     {
         value = defaultValue;
-        if (!dict.ContainsKey(key))
-            return false;
-
-        object obj = dict[key];
-        if (obj == null)
+        if (!dict.TryGetValue(key, out object obj) || obj == null)
             return false;
 
         // Type checking cascade (fastest for common cases)
